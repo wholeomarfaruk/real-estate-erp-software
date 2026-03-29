@@ -1,0 +1,217 @@
+PROJECTS MANAGEMENT
+│
+├── 1. Dashboard / Overview
+│   ├── Total Projects
+│   ├── Active Projects
+│   ├── Total Units
+│   ├── Available Units
+│   ├── Booked / Sold Units
+│   └── Project Progress Summary
+│
+├── 2. Projects
+│   ├── Project List
+│   ├── Create Project
+│   ├── Project Details
+│   │   ├── Basic Information
+│   │   ├── Location
+│   │   ├── Project Type
+│   │   ├── Start Date
+│   │   ├── End Date
+│   │   ├── Status
+│   │   ├── Budget
+│   │   ├── Project Documents
+│   │   └── Notes
+│   ├── Project Status
+│   │   ├── Planned
+│   │   ├── Ongoing
+│   │   ├── On Hold
+│   │   └── Completed
+│   └── Project Reports
+│
+├── 3. Properties
+│   ├── Property Overview
+│   ├── Floor Management
+│   │   ├── Floor List
+│   │   ├── Create Floor
+│   │   ├── Floor Number / Name
+│   │   ├── Floor Type
+│   │   ├── Total Units
+│   │   └── Floor Status
+│   │
+│   └── Unit Management
+│       ├── Unit List
+│       ├── Create Unit
+│       ├── Unit Number
+│       ├── Unit Type
+│       ├── Size / Sqft
+│       ├── Price
+│       ├── Facing
+│       ├── Bedrooms
+│       ├── Bathrooms
+│       ├── Balcony
+│       ├── Availability Status
+│       │   ├── Available
+│       │   ├── Reserved
+│       │   ├── Booked
+│       │   ├── Sold
+│       │   └── Handover
+│       ├── Unit Images / Layout
+│       ├── Unit Documents
+│       └── Unit History
+│
+├── 4. Planning
+│   ├── Project Planning
+│   ├── Project Estimate  
+│   ├── Timeline
+│   └── Project Calendar
+│
+├── 5. Task Management
+│   ├── Task List
+│   ├── Create Task
+│   ├── Assign Task
+│   ├── Priority
+│   ├── Deadline
+│   ├── Task Status
+│   │   ├── Pending
+│   │   ├── In Progress
+│   │   ├── Completed
+│   │   └── Cancelled
+│   ├── Task Notes
+│   └── Task Attachments
+│
+├── 6. Progress Tracking
+│   ├── Daily Progress Entry
+│   ├── Work Progress %
+│   ├── Floor-wise Progress
+│   ├── Unit Readiness
+│   ├── Delay Tracking
+│   ├── Issue Log
+│   └── Completion Summary
+│
+├── 7. Materials / Inventory Link
+│   ├── Material Requirement
+│   ├── Material Request
+│   ├── Material Issue
+│   ├── Material Consumption
+│   ├── Stock Check
+│   └── Material Usage Report
+│
+├── 8. Budget / Costing
+│   ├── Estimated Budget
+│   ├── Actual Cost
+│   ├── Cost by Floor
+│   ├── Cost by Unit Type
+│   ├── Expense Tracking
+│   └── Budget vs Actual
+│
+├── 9. Documents
+│   ├── Project Documents
+│   ├── Floor Layout
+│   ├── Unit Layout
+│   ├── Approvals
+│   ├── Legal Papers
+│   └── Attachments
+│
+├── 10. Reports
+│   ├── Project Summary Report
+│   ├── Floor-wise Unit Report
+│   ├── Unit Availability Report
+│   ├── Progress Report
+│   ├── Material Usage Report
+│   ├── Cost Report
+│   └── Completion Report
+│
+└── 11. Settings
+    ├── Project Type
+    ├── Floor Type
+    ├── Unit Type
+    ├── Unit Status
+    ├── Project Status
+    └── Task Priority
+
+
+Here is the main relationship flow:
+
+Projects Management
+│
+├── Projects
+│   └── Project Details
+│       ├── Properties
+│       │   ├── Floor
+│       │   │   └── Unit
+│       │   └── Unit Availability / Pricing
+│       │
+│       ├── Planning
+│       ├── Tasks
+│       ├── Progress
+│       ├── Materials
+│       ├── Budget
+│       ├── Documents
+│       └── Reports
+
+Recommended Phase 1 submenu only:
+
+Projects Management
+├── Dashboard
+├── Projects
+├── Properties
+│   ├── Floors
+│   └── Units
+├── Tasks
+├── Progress
+├── Materials
+├── Reports
+└── Settings
+
+Project Estimate (Final Structure):
+Project Estimate
+ ├── Estimate List
+ ├── Create Estimate
+ ├── Estimate Sections
+ │   ├── Materials
+ │   ├── Labor / Workers
+ │   ├── Equipment
+ │   ├── Transportation
+ │   ├── Subcontract / Services
+ │   └── Overhead / Misc
+ │
+ ├── Estimate Items
+ │   ├── Type (material / labor / etc)
+ │   ├── Name
+ │   ├── Quantity
+ │   ├── Unit
+ │   ├── Rate
+ │   └── Total Cost
+ │
+ └── Estimate Summary
+     ├── Total Material Cost
+     ├── Total Labor Cost
+     ├── Total Equipment Cost
+     ├── Total Transport Cost
+     ├── Other Costs
+     └── Grand Total
+
+
+     Planning
+ ├── Project Planning
+ │    ├── Start Date
+ │    ├── End Date
+ │    └── Duration
+ │
+ ├── Project Estimate
+ │
+ ├── Timeline
+ │    ├── Phases (Foundation, Structure, etc)
+ │    │    ├── Start Date
+ │    │    ├── End Date
+ │    │    ├── Progress %
+ │    │    └── Task Count (5 pending, 3 done)
+ │    │
+ │    └── Tasks
+ │         ├── Task Name
+ │         ├── Start Date
+ │         ├── End Date
+ │         ├── Status (Pending / Done)
+ │         └── Progress %
+ │
+ └── Project Calendar

@@ -1,0 +1,241 @@
+REAL ESTATE ERP SYSTEM
+│
+├── 1. CORE SETUP
+│   ├── Company Setup
+│   ├── Branch Setup
+│   ├── Project Setup
+│   ├── Tower / Block Setup
+│   ├── Floor Setup
+│   ├── Unit Type Setup
+│   ├── Warehouse Setup
+│   ├── Payment Method Setup
+│   ├── Chart of Accounts Setup
+│   └── Role & Permission Setup
+│
+├── 2. CRM
+│   ├── Lead Management
+│   ├── Lead Sources
+│   ├── Follow-up
+│   ├── Site Visit
+│   ├── Customer Inquiry
+│   ├── Broker / Agent Management
+│   ├── Quotation
+│   ├── Booking Request
+│   └── Customer Communication History
+│
+├── 3. PROPERTY / UNIT MANAGEMENT
+│   ├── Project List
+│   ├── Tower / Block
+│   ├── Floor
+│   ├── Unit / Flat
+│   ├── Plot / Land
+│   ├── Parking
+│   ├── Unit Pricing
+│   ├── Unit Status
+│   │   ├── Available
+│   │   ├── Reserved
+│   │   ├── Booked
+│   │   ├── Sold
+│   │   └── Handed Over
+│   └── Unit Availability Board
+│
+├── 4. SALES & BOOKING
+│   ├── Quotation
+│   ├── Booking
+│   ├── Sales Agreement
+│   ├── Allotment
+│   ├── Installment Plan
+│   ├── Down Payment
+│   ├── Collection Schedule
+│   ├── Discount Approval
+│   ├── Cancellation
+│   └── Refund Processing
+│
+├── 5. PROJECT MANAGEMENT
+│   ├── Project Planning
+│   ├── BOQ
+│   ├── Budgeting
+│   ├── Task Management
+│   ├── Milestone Tracking
+│   ├── Work Breakdown Structure
+│   ├── Daily Progress Report
+│   ├── Site Progress
+│   ├── Inspection
+│   ├── Snag List
+│   └── Handover Checklist
+│
+├── 6. ENGINEERS
+│   ├── Engineer List
+│   ├── Discipline Setup
+│   ├── Engineer Assignment
+│   ├── Site Assignment
+│   ├── Daily Work Log
+│   ├── Progress Update
+│   ├── Material Request
+│   ├── Inspection Report
+│   └── Quality Check
+│
+├── 7. PROCUREMENT
+│   ├── Purchase Requisition
+│   ├── RFQ
+│   ├── Quotation Comparison
+│   ├── Vendor Selection
+│   ├── Purchase Order
+│   ├── Goods Receive
+│   ├── Service Receive
+│   ├── Purchase Return
+│   ├── Supplier Bill
+│   └── Approval Workflow
+│
+├── 8. SUPPLIERS
+│   ├── Supplier Registration
+│   ├── Supplier Category
+│   ├── Contact Person
+│   ├── Supplier Documents
+│   ├── Supplier Ledger
+│   ├── Due Tracking
+│   ├── Payment History
+│   └── Vendor Rating
+│
+├── 9. PRODUCTS / MATERIALS
+│   ├── Product Master
+│   ├── Material Category
+│   ├── Brand
+│   ├── Unit of Measure
+│   ├── Rate History
+│   ├── Reorder Level
+│   ├── Specification
+│   └── Asset / Consumable Classification
+│
+├── 10. INVENTORY & STORE
+│   ├── Warehouse
+│   ├── Store Requisition
+│   ├── Stock In
+│   ├── Stock Out
+│   ├── Stock Transfer
+│   ├── Stock Adjustment
+│   ├── Opening Stock
+│   ├── Damage / Loss
+│   ├── Return to Store
+│   ├── Site-wise Stock
+│   ├── Material Consumption
+│   └── Stock Ledger
+│
+├── 11. CONTRACTOR MANAGEMENT
+│   ├── Contractor Registration
+│   ├── Contract Agreement
+│   ├── Work Order
+│   ├── Progress Billing
+│   ├── Running Bill
+│   ├── Payment Processing
+│   ├── Retention Money
+│   └── Contractor Ledger
+│
+├── 12. ACCOUNTS & FINANCE
+│   ├── Chart of Accounts
+│   ├── Journal Voucher
+│   ├── Payment Voucher
+│   ├── Receipt Voucher
+│   ├── Contra Voucher
+│   ├── Cash Book
+│   ├── Bank Book
+│   ├── General Ledger
+│   ├── Sub Ledger
+│   ├── Trial Balance
+│   ├── Profit & Loss
+│   ├── Balance Sheet
+│   ├── Cash Flow
+│   ├── Bank Reconciliation
+│   ├── Cost Center
+│   └── Budget vs Actual
+│
+├── 13. BILLING & COLLECTION
+│   ├── Invoice Generation
+│   ├── Installment Billing
+│   ├── Service Charge Billing
+│   ├── Parking Billing
+│   ├── Utility Billing
+│   ├── Penalty / Late Fee
+│   ├── Collection Entry
+│   ├── Adjustment
+│   ├── Credit Note
+│   └── Outstanding Report
+│
+├── 14. HR & PAYROLL
+│   ├── Employee Management
+│   ├── Department
+│   ├── Designation
+│   ├── Attendance
+│   ├── Leave Management
+│   ├── Shift Management
+│   ├── Salary Structure
+│   ├── Payroll Processing
+│   ├── Loan / Advance
+│   ├── Expense Claim
+│   └── Performance Review
+│
+├── 15. SERVICE / AFTER SALES
+│   ├── Complaint Management
+│   ├── Service Ticket
+│   ├── Maintenance Request
+│   ├── Technician Assignment
+│   ├── Service Visit
+│   ├── Spare Parts Usage
+│   ├── Feedback
+│   └── Closure Report
+│
+├── 16. REPORTS & ANALYTICS
+│   ├── Sales Report
+│   ├── Lead Conversion Report
+│   ├── Unit Availability Report
+│   ├── Booking Report
+│   ├── Collection Report
+│   ├── Due Report
+│   ├── Stock Report
+│   ├── Material Consumption Report
+│   ├── Supplier Due Report
+│   ├── Project Progress Report
+│   ├── Financial Report
+│   ├── HR Report
+│   └── Dashboard KPI
+│
+├── 17. DOCUMENT MANAGEMENT
+│   ├── Customer Documents
+│   ├── Booking Documents
+│   ├── Agreement Files
+│   ├── Property Documents
+│   ├── Project Drawings
+│   ├── Supplier Documents
+│   ├── Employee Documents
+│   └── Version History
+│
+├── 18. ADMIN
+│   ├── User Management
+│   ├── Roles
+│   ├── Permissions
+│   ├── Approval Settings
+│   ├── Workflow Settings
+│   ├── Notification Settings
+│   ├── Email / SMS Template
+│   ├── Audit Log
+│   └── System Settings
+│
+├── 19. SUPER ADMIN
+│   ├── Multi Company Control
+│   ├── Subscription Plan
+│   ├── Tenant Management
+│   ├── License Management
+│   ├── Module Enable / Disable
+│   ├── Global Settings
+│   ├── Backup / Restore
+│   └── System Monitoring
+│
+└── 20. NOTIFICATION SYSTEM
+    ├── SMS
+    ├── Email
+    ├── WhatsApp
+    ├── In-app Notification
+    ├── Payment Reminder
+    ├── Follow-up Reminder
+    ├── Approval Alert
+    └── Stock Alert
