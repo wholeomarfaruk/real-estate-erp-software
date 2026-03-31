@@ -1,0 +1,306 @@
+{
+  "version": "1.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "detailLevel": "All",
+  "tablePositions": [
+    {
+      "name": "users",
+      "schemaName": "public",
+      "x": 1599.7900390625,
+      "y": 53
+    },
+    {
+      "name": "roles",
+      "schemaName": "public",
+      "x": 1112.05078125,
+      "y": 218
+    },
+    {
+      "name": "panels",
+      "schemaName": "public",
+      "x": 1112.05078125,
+      "y": 12
+    },
+    {
+      "name": "users_panels_pivot",
+      "schemaName": "public",
+      "x": 2107.6845703125,
+      "y": 12
+    },
+    {
+      "name": "user_role_pivot",
+      "schemaName": "public",
+      "x": 2107.6845703125,
+      "y": 250
+    },
+    {
+      "name": "files",
+      "schemaName": "public",
+      "x": 1112.05078125,
+      "y": 424
+    },
+    {
+      "name": "file_items",
+      "schemaName": "public",
+      "x": 1599.7900390625,
+      "y": 516
+    },
+    {
+      "name": "projects",
+      "schemaName": "public",
+      "x": 1599.7900390625,
+      "y": 819
+    },
+    {
+      "name": "project_plannings",
+      "schemaName": "public",
+      "x": 2107.6845703125,
+      "y": 488
+    },
+    {
+      "name": "tasks",
+      "schemaName": "public",
+      "x": 2107.6845703125,
+      "y": 1124
+    },
+    {
+      "name": "project_estimates",
+      "schemaName": "public",
+      "x": 710.13427734375,
+      "y": 12
+    },
+    {
+      "name": "project_estimate_sections",
+      "schemaName": "public",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "project_estimate_items",
+      "schemaName": "public",
+      "x": 336.02880859375,
+      "y": 12
+    },
+    {
+      "name": "properties",
+      "schemaName": "public",
+      "x": 2107.6845703125,
+      "y": 918
+    }
+  ],
+  "tableGroupCollapseStates": [],
+  "stickyNoteLayouts": [],
+  "referencePaths": [
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "files",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "image_id"
+      ],
+      "secondTableName": "users",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "users",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "user_id"
+      ],
+      "secondTableName": "users_panels_pivot",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "panels",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "panel_id"
+      ],
+      "secondTableName": "users_panels_pivot",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "users",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "user_id"
+      ],
+      "secondTableName": "user_role_pivot",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "roles",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "role_id"
+      ],
+      "secondTableName": "user_role_pivot",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "files",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "file_id"
+      ],
+      "secondTableName": "file_items",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "files",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "image"
+      ],
+      "secondTableName": "projects",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "projects",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "project_id"
+      ],
+      "secondTableName": "project_plannings",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "files",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "documents"
+      ],
+      "secondTableName": "project_plannings",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "projects",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "project_id"
+      ],
+      "secondTableName": "tasks",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "files",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "documents"
+      ],
+      "secondTableName": "tasks",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "users",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "created_by"
+      ],
+      "secondTableName": "project_estimates",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "files",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "documents"
+      ],
+      "secondTableName": "project_estimates",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "projects",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "project_id"
+      ],
+      "secondTableName": "properties",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    }
+  ]
+}

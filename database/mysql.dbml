@@ -1,0 +1,187 @@
+Table users {
+  id bigint [pk]
+  name string
+  phone string
+  country_code string
+  phone_without_cc string
+  country_name_short string
+  email string
+  password string
+  email_verified_at timestamp
+  image_id int [ref:>files.id]
+  updated_at timestamp
+  created_at timestamp
+}
+
+Table roles { //done
+id bigint [pk]
+name string //admin,newuser,client etc
+updated_at timestamp
+created_at timestamp
+}
+
+Table panels { //done
+id bigint [pk]
+name string //admin,client
+updated_at timestamp
+created_at timestamp
+}
+
+Table users_panels_pivot { //done
+id bigint [pk]
+user_id bigint [ref: >users.id]
+panel_id bigint [ref:> panels.id]
+updated_at timestamp
+created_at timestamp
+}
+
+Table user_role_pivot { //spite default
+id bigint [pk]
+user_id bigint [ref: > users.id]
+role_id bigint [ref: > roles.id]
+updated_at timestamp
+created_at timestamp
+}
+
+Table files { //done
+id integer [pk]
+name text
+caption text
+type string //image/video/zip/audio/others
+extension string
+updated_at timestamp
+created_at timestamp
+}
+
+Table file_items { //done
+id integer [pk]
+file_id bigint [ref: >files.id]
+type string//original/thumbnail/featured/small
+size string
+path text
+updated_at timestamp
+created_at timestamp
+}
+
+// projects module
+Table projects {
+  id integer [pk]
+  image bigint [ref: >files.id]
+  name string
+  code string [unique]
+  project_type string //enum=type
+  status string //enum=status
+  location text
+  start_date date
+  end_date date
+  budget decimal(10,2)
+  description text
+  documents json
+  updated_at timestamp
+  created_at timestamp
+  deleted_at timestamp
+}
+
+Table project_plannings {
+  id bigint [pk, increment]
+  project_id bigint [ref: > projects.id]
+  name string
+  start_date date [null]
+  end_date date [null]
+  duration_days int [null]
+  notes text [null]
+  documents json [ref: >files.id]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp [null]
+}
+
+Table tasks {
+  id bigint [pk, increment]
+  project_id bigint [ref: > projects.id]
+  name string
+  start_date date [null]
+  end_date date [null]
+  duration_days int [null]
+  status string //enum
+  documents json [ref: >files.id]
+  notes text [null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table project_estimates {
+  id bigint [pk, increment]
+
+  project_id bigint
+  title string
+  description text [null]
+
+  status string [note: 'draft | approved | revised | cancelled | pending', default: 'draft'] //status value from enum files
+
+  total_material_cost decimal(15,2) [default: 0]
+  total_labor_cost decimal(15,2) [default: 0]
+  total_equipment_cost decimal(15,2) [default: 0]
+  total_transport_cost decimal(15,2) [default: 0]
+  total_subcontract_cost decimal(15,2) [default: 0]
+  total_overhead_cost decimal(15,2) [default: 0]
+  grand_total decimal(15,2) [default: 0]
+  created_by bigint [ref:>users.id]
+  created_by_name string
+  documents json [ref: >files.id]
+  authority_approved_at timestamp
+  gm_approved_at timestamp
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp [null]
+}
+
+Table project_estimate_sections {
+  id bigint [pk, increment]
+
+  project_estimate_id bigint
+  project_id bigint
+
+  name string [note: 'Materials, Labor / Workers, Equipment, Transportation, Subcontract / Services, Overhead / Misc']
+  type string [note: 'material | labor | equipment | transport | subcontract | overhead']
+  sort_order int [default: 0]
+
+  notes text [null]
+
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp [null]
+}
+
+Table project_estimate_items {
+  id bigint [pk, increment]
+
+  project_estimate_id bigint
+  project_estimate_section_id bigint
+  project_id bigint
+
+  type string [note: 'material | labor | equipment | transport | subcontract | overhead']
+  name string
+
+  meterial_id bigint [null, note: 'nullable, only for material if linked with products']
+
+  quantity decimal(15,2) [default: 0]
+  unit string [null]
+  rate decimal(15,2) [default: 0]
+  total_cost decimal(15,2) [default: 0]
+
+  remarks text [null]
+  sort_order int [default: 0]
+
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp [null]
+}
+
+
+Table properties {
+  id integer [pk]
+  project_id bigint [ref: > projects.id]
+  updated_at timestamp
+  created_at timestamp
+}
