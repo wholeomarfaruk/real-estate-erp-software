@@ -12,6 +12,7 @@ class File extends Model
         'caption',
         'type',
         'extension',
+        'user_id',
     ];
 
     public function items()

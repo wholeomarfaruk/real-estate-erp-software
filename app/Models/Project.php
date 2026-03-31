@@ -25,6 +25,8 @@ class Project extends Model
         'start_date' => 'date',
         'end_date' => 'date',
         'budget' => 'decimal:2',
+        'status' => \App\Enums\Project\Status::class,
+        'project_type'=> \App\Enums\Project\Type::class,
     ];
 
     public function user(): BelongsTo

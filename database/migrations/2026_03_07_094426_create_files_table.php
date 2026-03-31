@@ -13,11 +13,14 @@ return new class extends Migration
     {
         Schema::create('files', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('user_id')->nullable(); //foreign key
             $table->text('name')->nullable(); //file name
             $table->text('caption')->nullable(); //file caption
             $table->string('type')->nullable(); // image, video, audio, document
             $table->string('extension')->nullable(); // .jpg, .mp4, .mp3, .pdf
             $table->timestamps();
+
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
         });
     }
 

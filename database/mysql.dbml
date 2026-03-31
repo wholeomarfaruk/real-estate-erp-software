@@ -45,6 +45,7 @@ created_at timestamp
 
 Table files { //done
 id integer [pk]
+user_id bigint [ref: >users.id]
 name text
 caption text
 type string //image/video/zip/audio/others

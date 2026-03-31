@@ -55,17 +55,25 @@
 
                         <!-- Project Code -->
                         <div class="col-span-6 sm:col-span-3">
-                            <x-label for="code" value="Project Code" />
-                            <x-input wire:model="code" id="code" type="text" class="mt-1 block w-full"
-                                placeholder="Enter project code (optional)" />
+                            <x-label for="code" value="Project Code *" />
+                            <div class="flex items-center gap-2">
+                            <x-input wire:model="code" id="code" type="text" class="mt-1 flex-1 block w-full"
+                                placeholder="Enter project code" />
+                            <span class="w-[20%]"><button wire:click="generateCode" class="text-indego-500 hover:text-indego-600">Generate Code</button></span>
+                            </div>
                             <x-input-error for="code" class="mt-2" />
                         </div>
 
                         <!-- Project Type -->
                         <div class="col-span-6 sm:col-span-3">
                             <x-label for="project_type" value="Project Type *" />
-                            <x-input wire:model="project_type" id="project_type" type="text" class="mt-1 block w-full"
-                                placeholder="e.g., Residential, Commercial" required />
+                              <select wire:model="project_type" id="project_type"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                <option value="">Select Type</option>
+                                @foreach (\App\Enums\Project\Type::cases() as $type )
+                                    <option value="{{ $type->value }}">{{ $type?->label() }}</option>
+                                @endforeach
+                            </select>
                             <x-input-error for="project_type" class="mt-2" />
                         </div>
 
@@ -74,10 +82,10 @@
                             <x-label for="status" value="Status *" />
                             <select wire:model="status" id="status"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-                                <option value="planned">Planned</option>
-                                <option value="ongoing">Ongoing</option>
-                                <option value="on_hold">On Hold</option>
-                                <option value="completed">Completed</option>
+                                <option value="">Select Status</option>
+                                @foreach (\App\Enums\Project\Status::cases() as $status )
+                                    <option value="{{ $status->value }}">{{ $status?->label() }}</option>
+                                @endforeach
                             </select>
                             <x-input-error for="status" class="mt-2" />
                         </div>
@@ -85,9 +93,8 @@
                         <!-- Location -->
                         <div class="col-span-6">
                             <x-label for="location" value="Location *" />
-                            <textarea wire:model="location" id="location" rows="3"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-                                placeholder="Enter project location" required></textarea>
+                            <x-input wire:model="location" id="location" placeholder="Enter project address" type="text" class="mt-1 block w-full" required />
+
                             <x-input-error for="location" class="mt-2" />
                         </div>
 
@@ -120,6 +127,10 @@
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                                 placeholder="Enter project description (optional)"></textarea>
                             <x-input-error for="description" class="mt-2" />
+                        </div>
+                            <!-- Description -->
+                        <div class="col-span-6">
+                            <x-media-picker-field field="image" :value="$image" placeholder="Click to Upload Image" multiple="false" type="image" label="Project Image" required="true" />
                         </div>
                     </x-slot>
 

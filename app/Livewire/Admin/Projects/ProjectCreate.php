@@ -2,12 +2,14 @@
 
 namespace App\Livewire\Admin\Projects;
 
+use App\Livewire\Traits\WithMediaPicker;
 use Livewire\Component;
 use App\Models\Project;
 use Illuminate\Validation\Rule;
 
 class ProjectCreate extends Component
 {
+    use WithMediaPicker;
     public $name;
     public $code;
     public $project_type;
@@ -17,6 +19,7 @@ class ProjectCreate extends Component
     public $budget;
     public $status = 'planned';
     public $description;
+    public $image;
 
     public function mount()
     {
@@ -29,7 +32,7 @@ class ProjectCreate extends Component
     {
         return [
             'name' => 'required|string|max:255',
-            'code' => 'nullable|string|max:50|unique:projects,code',
+            'code' => 'required|string|max:50|unique:projects,code',
             'project_type' => 'required|string|max:100',
             'location' => 'required|string|max:500',
             'start_date' => 'required|date',
@@ -46,6 +49,11 @@ class ProjectCreate extends Component
             $this->validateOnly($propertyName, $this->rules());
         }
     }
+    public function generateCode(){
+        $project = Project::latest()->first();
+        $code = 'SUDP'.($project ? intval($project->code) + 1 : 1);
+        $this->code = $code;
+    }
 
     public function save()
     {
@@ -55,7 +63,6 @@ class ProjectCreate extends Component
 
         $validatedData = $this->validate();
 
-        $validatedData['user_id'] = auth()->id();
 
         $project = Project::create($validatedData);
 

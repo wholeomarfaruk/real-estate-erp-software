@@ -126,7 +126,8 @@
                                         <td class="px-5 py-4 sm:px-6">
                                             <div>
                                                 <p class="text-theme-sm text-gray-800 dark:text-white/90">
-                                                    {{ $project->project_type }}
+
+                                                    {{ $project->project_type?->label() }}
                                                 </p>
                                                 <p class="text-theme-xs text-gray-500 dark:text-gray-400">
                                                     {{ Str::limit($project->location, 30) }}
@@ -149,7 +150,7 @@
                                                 @elseif($project->status === 'ongoing') bg-blue-100 text-blue-800
                                                 @elseif($project->status === 'on_hold') bg-yellow-100 text-yellow-800
                                                 @else bg-gray-100 text-gray-800 @endif">
-                                                {{ ucfirst(str_replace('_', ' ', $project->status)) }}
+                                                {{  $project->status?->label() }}
                                             </span>
                                         </td>
                                         <td class="px-5 py-4 sm:px-6">
@@ -168,12 +169,7 @@
                                                         class="rounded-l-sm border border-gray-200 px-3 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900 focus:z-10 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white focus:outline-none disabled:pointer-events-auto disabled:opacity-50 cursor-pointer">
                                                         View
                                                     </button>
-                                                    @can('project.edit')
-                                                        <a href="{{ route('admin.projects.edit', $project->id) }}"
-                                                            class="-ml-px border border-gray-200 px-3 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900 focus:z-10 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white focus:outline-none disabled:pointer-events-auto disabled:opacity-50">
-                                                            Edit
-                                                        </a>
-                                                    @endcan
+
                                                     @can('project.delete')
                                                         <button wire:click="deleteProject({{ $project->id }})"
                                                             class="-ml-px rounded-r-sm border border-gray-200 px-3 py-2 font-medium text-red-700 transition-colors hover:bg-red-50 hover:text-red-900 focus:z-10 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-white focus:outline-none disabled:pointer-events-auto disabled:opacity-50 cursor-pointer">
@@ -227,14 +223,14 @@
                                     <div class="space-y-2 text-sm">
                                         <p><strong>Name:</strong> {{ $selectedProject->name }}</p>
                                         <p><strong>Code:</strong> {{ $selectedProject->code ?? 'N/A' }}</p>
-                                        <p><strong>Type:</strong> {{ $selectedProject->project_type }}</p>
+                                        <p><strong>Type:</strong> {{ $selectedProject->project_type?->label() }}</p>
                                         <p><strong>Status:</strong>
                                             <span class="inline-block px-2 py-1 text-xs font-medium rounded-full
                                                 @if($selectedProject->status === 'completed') bg-green-100 text-green-800
                                                 @elseif($selectedProject->status === 'ongoing') bg-blue-100 text-blue-800
                                                 @elseif($selectedProject->status === 'on_hold') bg-yellow-100 text-yellow-800
                                                 @else bg-gray-100 text-gray-800 @endif">
-                                                {{ ucfirst(str_replace('_', ' ', $selectedProject->status)) }}
+                                                {{  $selectedProject->status?->label() }}
                                             </span>
                                         </p>
                                         <p><strong>Budget:</strong> {{ $selectedProject->budget ? '$' . number_format($selectedProject->budget, 2) : 'N/A' }}</p>

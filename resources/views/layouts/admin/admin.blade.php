@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Laravel Starter Kit</title>
+    <title>ERP Software - Star Unity Development</title>
+    <link rel="shortcut icon" href="{{ asset('assets/logo/sud-logo.png') }}" type="image/x-icon">
     @vite(['resources/sass/admin.scss', 'resources/css/admin.css', 'resources/js/admin.js'])
     @livewireStyles
 </head>

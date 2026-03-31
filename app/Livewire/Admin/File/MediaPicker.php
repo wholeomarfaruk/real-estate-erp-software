@@ -15,6 +15,8 @@ class MediaPicker extends Component
     public $showModal = false;
     public $target;
     public $type;
+    public $user_id;
+    public $role;
     protected $listeners = ['openMediaPicker','fileUploaded'];
     public $search = ''; // optional: for search/filter
  use WithPagination; // ✅ enable pagination
@@ -31,9 +33,19 @@ class MediaPicker extends Component
         $this->mediapickerModal = true;
         $this->reset('selected');
     }
+    public function mount(){
+        if(auth()->check() && !auth()->user()) {
+            abort(403, 'Authentication required.');
+        }
+        $this->user_id = auth()->user()->id;
+        $this->role = auth()->user()->roleName();
+    }
     public function render()
     {
         $files = File::query()
+            ->when($this->user_id && ($this->role  !== 'admin' || $this->role  !== 'super-admin'), function ($query) {
+                $query->where('type', $this->target);
+            })
             ->when($this->type, function ($query) {
                 $query->where('type', $this->type);
             })

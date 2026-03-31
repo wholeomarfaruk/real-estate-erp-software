@@ -17,6 +17,9 @@ public function storeAdmin(Request $request)
     if (!$request->hasFile('filepond')) {
         return response($request->all(), 400);
     }
+    if(auth()->check() && !auth()->user()) {
+        return response($request->all(), 400);
+    }
 
     $upload = $request->file('filepond');
 
@@ -61,12 +64,13 @@ public function storeAdmin(Request $request)
     array_map('unlink', glob("$tempDir/*"));
     rmdir($tempDir);
 
-   
+
     // Save DB records
     $file = File::create([
         'name' => $fileName,
         'type' => Type::fromExtension($upload->getClientOriginalExtension()),
         'extension' => $upload->getClientOriginalExtension(),
+        'user_id' => auth()->check() ? auth()->id() : null,
     ]);
 
 

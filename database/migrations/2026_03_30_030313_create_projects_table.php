@@ -13,16 +13,17 @@ return new class extends Migration
     {
         Schema::create('projects', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('code')->nullable();
-            $table->string('project_type');
-            $table->text('location');
-            $table->date('start_date');
-            $table->date('end_date');
-            $table->decimal('budget', 15, 2)->nullable();
-            $table->enum('status', ['planned', 'ongoing', 'on_hold', 'completed'])->default('planned');
+            $table->string('name')->nullable();
+            $table->string('image')->nullable();
+            $table->string('code')->unique();
+            $table->string('project_type')->nullable();
+            $table->text('location')->nullable();
+            $table->date('start_date')->nullable();
+            $table->date('end_date')->nullable();
+            $table->decimal('budget', 10, 2)->nullable();
+            $table->string('status')->default('upcoming');
             $table->text('description')->nullable();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->json('documents')->nullable();
             $table->timestamps();
         });
     }
