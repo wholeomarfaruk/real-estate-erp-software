@@ -1,5 +1,5 @@
 {{-- ======================== Page Layout Start From Here ======================== --}}
-<div x-data x-init="$store.pageName = { name: 'Create New Project', slug: 'project-create' }">
+<div x-data x-init="$store.pageName = { name: '{{ $editMode ? 'Update Project' : 'Create New Project' }}' }">
     {{-- ======================== Page Header Start From Here ======================== --}}
     <div class="flex flex-wrap justify-between gap-6 ">
         {{-- Page Name  --}}
@@ -41,7 +41,7 @@
         <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="px-5 py-4 sm:px-6 sm:py-5">
                 <x-form-section submit="save">
-                    <x-slot name="title">Create New Project</x-slot>
+                    <x-slot name="title" >{{ $editMode ? 'Update Project' : 'Create New Project' }}</x-slot>
                     <x-slot name="description">Fill in the details below to create a new project.</x-slot>
 
                     <x-slot name="form">
@@ -99,16 +99,16 @@
                         </div>
 
                         <!-- Start Date -->
-                        <div class="col-span-6 sm:col-span-3">
+                        <div class="col-span-6 sm:col-span-3" wire:ignore>
                             <x-label for="start_date" value="Start Date *" />
-                            <x-input wire:model="start_date" id="start_date" type="date" class="mt-1 block w-full" required />
+                            <x-input wire:model="start_date" id="start_date" type="date" class="mt-1 block w-full flatpickr-only-date" required />
                             <x-input-error for="start_date" class="mt-2" />
                         </div>
 
                         <!-- End Date -->
-                        <div class="col-span-6 sm:col-span-3">
+                        <div class="col-span-6 sm:col-span-3" wire:ignore>
                             <x-label for="end_date" value="End Date *" />
-                            <x-input wire:model="end_date" id="end_date" type="date" class="mt-1 block w-full" required />
+                            <x-input wire:model="end_date" id="end_date" type="date" class="mt-1 block w-full flatpickr-only-date" required />
                             <x-input-error for="end_date" class="mt-2" />
                         </div>
 
@@ -130,13 +130,16 @@
                         </div>
                             <!-- Description -->
                         <div class="col-span-6">
-                            <x-media-picker-field field="image" :value="$image" placeholder="Click to Upload Image" multiple="false" type="image" label="Project Image" required="true" />
+                            <x-media-picker-field field="image" :value="$image" placeholder="Click to Upload Image" :multiple="false" type="image" label="Project Image" required="true" />
+                        </div>
+                        <div class="col-span-6">
+                            <x-media-picker-field field="documents" :value="$documents" placeholder="Click to documents" :multiple="true" type="all" label="Project documents" required="false" />
                         </div>
                     </x-slot>
 
                     <x-slot name="actions">
                         <x-button type="submit" class="ml-3">
-                            Create Project
+                            {{ $editMode ? 'Update Project' : 'Create Project' }}
                         </x-button>
                         <a href="{{ route('admin.projects.list') }}"
                             class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">

@@ -181,9 +181,12 @@
                                                <video class="h-36 w-full rounded-md object-contain">
                                                    <source src="{{ file_path($file->id) }}" type="video/mp4">
                                                </video>
-                                           @else
+                                           @elseif ($type == 'image')
                                                <img alt="" src="{{ file_path($file->id) }}"
-                                                   class="h-36 w-full rounded-md object-contain {{ $type == 'video' ? 'replace-video-preview' : '' }}">
+                                                   class="h-36 w-full rounded-md object-contain">
+                                           @elseif ($type == 'document')
+                                           <span>{{ $file->extension }}</span>
+                                               
                                            @endif
 
                                            <div class="mt-1">
@@ -377,7 +380,7 @@
                        onprocessfile: (error, file) => {
                            if (!error) {
                                // Livewire v3
-                                 Livewire.dispatch('fileUploaded');
+                               Livewire.dispatch('fileUploaded');
                                // OR Livewire v2
                                // Livewire.emit('fileUploaded');
                            }

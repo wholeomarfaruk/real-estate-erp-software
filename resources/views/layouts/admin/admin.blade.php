@@ -11,9 +11,7 @@
     @livewireStyles
 </head>
 
-<body x-data class=" mx-auto antialiased flex justify-between">
-
-
+<body x-data class="mx-auto antialiased flex justify-between">
     <!-- Mobile Menu Toggle -->
     <button @click="$store.sidebar.navOpen = !$store.sidebar.navOpen"
         class="sm:hidden absolute top-5 right-5 focus:outline-none">
@@ -570,7 +568,6 @@
         </div>
     </div>
     <div class="min-h-screen flex-1  w-full p-6 bg-gray-100 " comment="Page Content">
-
         {{ $slot }}
     </div>
 

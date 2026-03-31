@@ -150,6 +150,52 @@ import "flatpickr/dist/flatpickr.min.css";
 
 window.flatpickr = flatpickr;
 
+
+window.initFlatpickr = () => {
+    document.querySelectorAll(".flatpickr-only-date").forEach((el) => {
+        if (el._flatpickr) {
+            el._flatpickr.destroy();
+        }
+
+        flatpickr(el, {
+            enableTime: false,
+            dateFormat: "Y-m-d",
+            defaultDate: el.value || null,
+            onChange: function (selectedDates, dateStr) {
+                el.dispatchEvent(new Event("input", { bubbles: true }));
+            },
+        });
+    });
+
+    document.querySelectorAll(".flatpickr").forEach((el) => {
+        if (el._flatpickr) {
+            el._flatpickr.destroy();
+        }
+
+        flatpickr(el, {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i",
+            defaultDate: el.value || null,
+            onChange: function (selectedDates, dateStr) {
+                el.dispatchEvent(new Event("input", { bubbles: true }));
+            },
+        });
+    });
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.initFlatpickr();
+});
+
+document.addEventListener("livewire:navigated", () => {
+    window.initFlatpickr();
+});
+
+document.addEventListener("livewire:initialized", () => {
+    Livewire.hook("morph.updated", () => {
+        window.initFlatpickr();
+    });
+});
 //FlatPickr==================================================END
 //--    ====================================================
 //Sortable==================================================START
@@ -169,6 +215,11 @@ import { Fancybox } from "@fancyapps/ui";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 
 window.Fancybox = Fancybox;
+document.addEventListener("DOMContentLoaded", () => {
+    Fancybox.bind("[data-fancybox]", {
+        // Your custom options
+    });
+});
 // fancybox==================================================END
 
 // ChartJs==================================================START

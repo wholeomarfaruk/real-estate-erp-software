@@ -44,9 +44,9 @@ class MediaPicker extends Component
     {
         $files = File::query()
             ->when($this->user_id && ($this->role  !== 'admin' || $this->role  !== 'super-admin'), function ($query) {
-                $query->where('type', $this->target);
+                $query->where('user_id', $this->user_id);
             })
-            ->when($this->type, function ($query) {
+            ->when($this->type && $this->type !== 'all', function ($query) {
                 $query->where('type', $this->type);
             })
             ->when($this->search, function ($query) {

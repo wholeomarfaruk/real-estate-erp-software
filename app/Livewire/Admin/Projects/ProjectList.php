@@ -70,4 +70,5 @@ class ProjectList extends Component
         session()->flash('success', 'Project deleted successfully.');
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Project deleted successfully.']);
     }
+
 }

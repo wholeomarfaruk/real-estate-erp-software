@@ -20,6 +20,7 @@ Route::get('/permissions/role/edit/{id}', App\Livewire\Admin\Permissions\RoleEdi
 //projects
 Route::get('/projects', App\Livewire\Admin\Projects\ProjectList::class)->name('projects.list');
 Route::get('/projects/create', App\Livewire\Admin\Projects\ProjectCreate::class)->name('projects.create');
+Route::get('/projects/{project}', App\Livewire\Admin\Projects\ProjectDetails::class)->name('projects.details');
 
 //floors
 Route::get('/floors', App\Livewire\Admin\Projects\FloorList::class)->name('floors.list');
