@@ -93,9 +93,10 @@ class ProjectCreate extends Component
             abort(403, 'Unauthorized action.');
         }
 
-
+         
+        
         $this->validate();
-
+try {
         $data = [
             'name' => $this->name,
             'code' => $this->code,
@@ -116,14 +117,20 @@ class ProjectCreate extends Component
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Project updated successfully.']);
             return redirect()->route('admin.projects.list');
         } else {
+            
             $this->validate([
                 'code' => 'required|string|max:50|unique:projects,code',
             ]);
             $project = Project::create($data);
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Project created successfully.']);
         }
-
-
+    //code...
+         } catch (\Throwable $th) {
+            //throw $th;
+            dd($th->getMessage());
+             $this->dispatch('toast', ['type' => 'error', 'message' => 'An error occurred while saving the project.']);
+            
+         }
 
         return redirect()->route('admin.projects.list');
     }

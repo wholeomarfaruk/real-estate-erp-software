@@ -9,10 +9,7 @@ use Livewire\Component;
 
 class ProjectDetails extends Component
 {
-    use WithMediaPicker {
-        mediaSelected as baseMediaSelected;
-        removeMedia as baseRemoveMedia;
-    }
+    use WithMediaPicker;
 
     public Project $project;
     public $documents = [];
@@ -27,32 +24,28 @@ class ProjectDetails extends Component
 
         $this->project = $project->load(['floors', 'units']);
         $this->documents = $this->project->documents ?? [];
+        $this->documentFiles = $this->documents ? File::whereIn('id', $this->documents)->get() : [];
         $this->canEdit = auth()->user()->can('project.edit');
 
-        $this->hydrateDocumentFiles();
     }
 
 
 
-    public function saveDocuments(bool $notify = true): void
+    public function saveDocuments(): void
     {
         if (!$this->canEdit) {
             abort(403, 'Unauthorized action.');
         }
 
-        $this->project->update(['documents' => $this->documents]);
-
-
-        if ($notify) {
-            $this->dispatch('toast', ['type' => 'success', 'message' => 'Documents updated successfully.']);
+        $project = Project::find($this->project->id);
+        if (!$project) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Project not found.']);
+            return;
         }
-    }
-    protected function hydrateDocumentFiles(): void
-    {
-        $ids = collect($this->documents)->filter()->values();
-        $this->documentFiles = $ids->isEmpty()
-            ? collect()
-            : File::whereIn('id', $ids)->get();
+        $project->documents = $this->documents;
+        $project->save();
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Documents updated successfully.']);
+
     }
 
     public function render()

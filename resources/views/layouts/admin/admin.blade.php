@@ -402,7 +402,7 @@
 
                 </a> --}}
                 <!-- Ui elements -->
-                {{-- <div class="mt-4 mb-1">
+                 <div class="mt-4 mb-1">
                     <h2 class="text-gray-500 text-md font-semibold" :class="{ 'hidden': !$store.sidebar.full }"
                         x-transition>Ui Elements</h2>
                 </div>
@@ -410,7 +410,7 @@
                 <!-- UI Elements -->
                 <div x-data="dropdown" class="relative">
                     <!-- Dropdown head -->
-                    <div @click="toggle('uielements')" x-data="tooltip" x-on:mouseover="show = true"
+                    <div @click="toggle('uicomponents')" x-data="tooltip" x-on:mouseover="show = true"
                         x-on:mouseleave="show = false"
                         class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer"
                         x-bind:class="{
@@ -431,7 +431,7 @@
                             <h1 x-cloak
                                 x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full && !show ?
                                     'sm:hidden' : ''">
-                                Elements</h1>
+                                Ui Components</h1>
                         </div>
                         <svg x-cloak x-bind:class="$store.sidebar.full ? '' : 'sm:hidden'"
                             xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 size-6" viewBox="0 0 20 20"
@@ -441,35 +441,12 @@
                                 clip-rule="evenodd" />
                         </svg>
                     </div>
-                    <!-- Dropdown content -->
-                    <div x-cloak x-show="open" @click.outside="open=false"
-                        x-bind:class="$store.sidebar.full ? expandedClass : shrinkedClass"
-                        class="text-gray-400 space-y-3">
-
-                        <!-- Sub Dropdown  -->
-                        <div x-data="sub_dropdown" class="relative w-full ">
-                            <div @click="sub_toggle()" class="flex items-center justify-between cursor-pointer">
-                                <h1 class="hover:text-gray-200 cursor-pointer">Pages</h1>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20"
-                                    fill="currentColor">
-                                    <path fill-rule="evenodd"
-                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                        clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div x-show="sub_open" @click.outside="sub_open = false"
-                                x-bind:class="$store.sidebar.full ? sub_expandedClass : sub_shrinkedClass">
-                                <a class="block" href="{{ route('admin.page-template') }}"
-                                    class="hover:text-gray-200 cursor-pointer ">Page Template</a>
-
-                                <a class="block" href="{{ route('admin.blank-page') }}"
-                                    class="hover:text-gray-200 cursor-pointer ">Blank Page</a>
-
-                            </div>
-                        </div>
-
+                       <div x-cloak x-show="open" @click.outside="open=false"
+                        :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                        <a href="{{ route('admin.ui.layouts') }}" class="hover:text-gray-200 cursor-pointer">Layouts</a>
                     </div>
-                </div> --}}
+                   
+                </div> 
             </div>
 
         </div>

@@ -99,16 +99,16 @@
                         </div>
 
                         <!-- Start Date -->
-                        <div class="col-span-6 sm:col-span-3" wire:ignore>
+                        <div class="col-span-6 sm:col-span-3">
                             <x-label for="start_date" value="Start Date *" />
-                            <x-input wire:model="start_date" id="start_date" type="date" class="mt-1 block w-full flatpickr-only-date" required />
+                            <x-input  wire:ignore wire:model="start_date" id="start_date" type="date" class="mt-1 block w-full flatpickr-only-date" required />
                             <x-input-error for="start_date" class="mt-2" />
                         </div>
 
                         <!-- End Date -->
-                        <div class="col-span-6 sm:col-span-3" wire:ignore>
+                        <div class="col-span-6 sm:col-span-3" >
                             <x-label for="end_date" value="End Date *" />
-                            <x-input wire:model="end_date" id="end_date" type="date" class="mt-1 block w-full flatpickr-only-date" required />
+                            <x-input wire:ignore wire:model="end_date" id="end_date" type="date" class="mt-1 block w-full flatpickr-only-date" required />
                             <x-input-error for="end_date" class="mt-2" />
                         </div>
 

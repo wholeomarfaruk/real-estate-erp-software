@@ -35,3 +35,8 @@ Route::get('/project-calendar', App\Livewire\Admin\Projects\ProjectCalendar::cla
 Route::get('/uploads', App\Livewire\Admin\File\Uploads::class)->name('uploads');
 Route::post('/upload', [FileUploadController::class, 'storeAdmin']);
 Route::delete('/upload/revert', [FileUploadController::class, 'revertAdmin']);
+
+
+
+//Ui Components
+Route::get('/ui/layouts', App\Livewire\Admin\Ui\Layouts\Layouts::class)->name('ui.layouts');

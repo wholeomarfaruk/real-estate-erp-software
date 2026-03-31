@@ -64,7 +64,8 @@
                     <div class="lg:col-span-2 space-y-6">
                         <div
                             class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
-                            <h3 class="text-base font-semibold text-gray-900 dark:text-white/90 mb-4">Project Overview</h3>
+                            <h3 class="text-base font-semibold text-gray-900 dark:text-white/90 mb-4">Project Overview
+                            </h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700 dark:text-gray-300">
                                 <div>
                                     <p class="text-gray-500 dark:text-gray-400">Location</p>
@@ -72,7 +73,8 @@
                                 </div>
                                 <div>
                                     <p class="text-gray-500 dark:text-gray-400">Budget</p>
-                                    <p class="font-medium">{{ $project->budget ? '$' . number_format($project->budget, 2) : 'N/A' }}</p>
+                                    <p class="font-medium">
+                                        {{ $project->budget ? '$' . number_format($project->budget, 2) : 'N/A' }}</p>
                                 </div>
                                 <div>
                                     <p class="text-gray-500 dark:text-gray-400">Start Date</p>
@@ -84,7 +86,8 @@
                                 </div>
                                 <div class="md:col-span-2">
                                     <p class="text-gray-500 dark:text-gray-400">Description</p>
-                                    <p class="font-medium">{{ $project->description ?? 'No description provided.' }}</p>
+                                    <p class="font-medium">{{ $project->description ?? 'No description provided.' }}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -102,9 +105,12 @@
                             </div>
 
                             @if ($canEdit)
-                                <x-media-picker-field field="documents" :value="$documents" placeholder="Click to upload files"
-                                    :multiple="true" type="all" label="Manage Documents" required="false" />
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Add or remove attachments; changes save automatically when you pick or remove files, or click "Save Documents" to confirm.</p>
+                                <x-media-picker-field field="documents" :value="$documents"
+                                    placeholder="Click to upload files" :multiple="true" type="all"
+                                    label="Manage Documents" required="false" />
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Add or remove attachments;
+                                    changes save automatically when you pick or remove files, or click "Save Documents"
+                                    to confirm.</p>
                             @endif
 
                             <div class="mt-4 space-y-3">
@@ -124,8 +130,8 @@
                                             </div>
                                         </div>
                                         <div class="flex items-center gap-2">
-                                            <a href="{{ file_path($file->id) }}"
-                                                data-fancybox="project-docs"
+                                            <a href="{{ file_path($file->id) }}" data-fancybox="project-docs"
+                                                {{ $file->extension == 'pdf' ? 'data-type=iframe data-autosize=true' : '' }}
                                                 data-caption="{{ $file->name ?? 'Document ' . $loop->iteration }}"
                                                 class="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-50 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
@@ -154,7 +160,8 @@
                                         </div>
                                     </div>
                                 @empty
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">No documents uploaded for this project yet.</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">No documents uploaded for this
+                                        project yet.</p>
                                 @endforelse
                             </div>
                         </div>
@@ -175,11 +182,13 @@
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-gray-600 dark:text-gray-400">Available Units</span>
-                                    <span class="text-lg font-semibold text-green-600">{{ $stats['available_units'] }}</span>
+                                    <span
+                                        class="text-lg font-semibold text-green-600">{{ $stats['available_units'] }}</span>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-gray-600 dark:text-gray-400">Sold Units</span>
-                                    <span class="text-lg font-semibold text-orange-600">{{ $stats['sold_units'] }}</span>
+                                    <span
+                                        class="text-lg font-semibold text-orange-600">{{ $stats['sold_units'] }}</span>
                                 </div>
                             </div>
                         </div>
@@ -189,3 +198,23 @@
         </div>
     </div>
 </div>
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Listen for the custom 'toast' event to display toast notifications
+            Fancybox.bind("[data-fancybox='project-docs']", {
+                Toolbar: true,
+                closeButton: "top",
+                Html: {
+                    iframe: {
+                        preload: false,
+                        css: {
+                            width: "90%",
+                            height: "90%",
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+@endpush
