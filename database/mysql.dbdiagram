@@ -87,6 +87,36 @@
       "schemaName": "public",
       "x": 2107.6845703125,
       "y": 918
+    },
+    {
+      "name": "product_categories",
+      "schemaName": "public",
+      "x": 12,
+      "y": 1558
+    },
+    {
+      "name": "product_brands",
+      "schemaName": "public",
+      "x": 12,
+      "y": 1832
+    },
+    {
+      "name": "products",
+      "schemaName": "public",
+      "x": 12,
+      "y": 2074
+    },
+    {
+      "name": "product_variants",
+      "schemaName": "public",
+      "x": 12,
+      "y": 2412
+    },
+    {
+      "name": "product_units",
+      "schemaName": "public",
+      "x": 12,
+      "y": 2718
     }
   ],
   "tableGroupCollapseStates": [],
@@ -313,6 +343,81 @@
         "project_id"
       ],
       "secondTableName": "properties",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "files",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "image_id"
+      ],
+      "secondTableName": "product_categories",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "product_categories",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "parent_id"
+      ],
+      "secondTableName": "product_categories",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "product_categories",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "category_id"
+      ],
+      "secondTableName": "products",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "product_brands",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "brand_id"
+      ],
+      "secondTableName": "products",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "products",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "product_id"
+      ],
+      "secondTableName": "product_variants",
       "secondSchemaName": "public",
       "secondRelation": "*",
       "checkPoints": []

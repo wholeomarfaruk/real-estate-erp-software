@@ -45,6 +45,7 @@ class ProjectDetails extends Component
         $project->documents = $this->documents;
         $project->save();
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Documents updated successfully.']);
+        $this->resetPage();
 
     }
 

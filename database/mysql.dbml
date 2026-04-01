@@ -186,3 +186,53 @@ Table properties {
   updated_at timestamp
   created_at timestamp
 }
+
+//materials
+Table product_categories {
+  id integer [pk]
+  name string
+  slug string [unique]
+  image_id bigint [ref: > files.id, null]
+  description text
+  parent_id bigint [ref: > product_categories.id, null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table product_brands {
+  id integer [pk]
+  name string
+  slug string [unique]
+  image string [null]
+  description text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table products {
+  id integer [pk]
+  name string
+  category_id bigint [ref: > product_categories.id]
+  brand_id bigint [ref: > product_brands.id]
+  description text
+  unit string
+  created_at timestamp
+  updated_at timestamp
+}
+Table product_variants {
+  id integer [pk]
+  image string [null]
+  product_id bigint [ref: > products.id]
+  name string
+  description text
+  created_at timestamp
+  updated_at timestamp
+}
+Table product_units{
+  id integer [pk]
+  name string
+  slug string [unique]
+  description text
+  created_at timestamp
+  updated_at timestamp
+}

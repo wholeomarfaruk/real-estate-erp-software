@@ -41,8 +41,8 @@
             <h1 class="text-white font-black py-4"
                 x-bind:class="$store.sidebar.full ? 'text-2xl px-4' : 'text-xl px-4 xm:px-2'">Admin</h1>
         </div>
-        <div class="px-4 space-y-2">
 
+        <div class="px-4 space-y-2">
             <!-- SideBar Toggle -->
             <button @click="$store.sidebar.full = !$store.sidebar.full"
                 class="hidden sm:block focus:outline-none absolute p-1 -right-3 top-10 bg-gray-900 rounded-full shadow-md cursor-pointer">
@@ -88,180 +88,65 @@
                 <!-- Home -->
                 <a href="{{ route('admin.dashboard') }}" x-data="tooltip" x-on:mouseover="show = true"
                     x-on:mouseleave="show = false"
-                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400
+                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400 text-xs
                     {{ Route::currentRouteName() == 'admin.dashboard' ? 'text-gray-200 bg-gray-800' : '' }}
 
                     ">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
-                    <h1 x-cloak
+                    <p x-cloak
                         x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full ?
                             'sm:hidden' : ''">
-                        Dashboard</h1>
+                        Dashboard</p>
                 </a>
                 <!-- uploads -->
                 <a href="{{ route('admin.uploads') }}" x-data="tooltip" x-on:mouseover="show = true"
                     x-on:mouseleave="show = false"
-                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400
+                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400 text-xs
                     {{ Route::currentRouteName() == 'admin.uploads' ? 'text-gray-200 bg-gray-800' : '' }}
 
                     ">
 
-
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                        stroke="currentColor" class="h-6 w-6">
+                        stroke="currentColor" class="h-4 w-4">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
                     </svg>
 
 
 
-                    <h1 x-cloak
+                    <p x-cloak
                         x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full ?
                             'sm:hidden' : ''">
-                        Uploads</h1>
+                        Uploads</p>
                 </a>
-                <!-- User -->
-                {{-- <a href="{{ route('admin.user.list') }}" x-data="tooltip" x-on:mouseover="show = true"
-                    x-on:mouseleave="show = false"
-                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400
-                    {{ Route::currentRouteName() == 'admin.user.list' ? 'text-gray-200 bg-gray-800' : '' }}
 
-                    ">
-
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                        stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                    </svg>
-
-                    <h1 x-cloak
-                        x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full && !show ?
-                            'sm:hidden' : ''">
-                        Users</h1>
-                </a> --}}
-                <!-- Customer -->
-                {{-- <a href="{{ route('admin.customer.list') }}" x-data="tooltip" x-on:mouseover="show = true"
-                    x-on:mouseleave="show = false"
-                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400
-                    {{ Route::currentRouteName() == 'admin.customer.list' ? 'text-gray-200 bg-gray-800' : '' }}
-
-                    ">
-
-
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                        stroke="currentColor" class="h-6 w-6">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
-                    </svg>
-
-
-                    <h1 x-cloak
-                        x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full && !show ?
-                            'sm:hidden' : ''">
-                        Customers</h1>
-                </a> --}}
-                <!-- Products -->
-                {{-- <a href="{{ route('admin.product.list') }}" x-data="tooltip" x-on:mouseover="show = true"
-                    x-on:mouseleave="show = false"
-                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400
-                    {{ Route::currentRouteName() == 'admin.product.list' ? 'text-gray-200 bg-gray-800' : '' }}
-
-                    ">
-
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                        stroke-width="2" stroke="currentColor" class="size-6">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 0 0 2.25-2.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v2.25A2.25 2.25 0 0 0 6 10.5Zm0 9.75h2.25A2.25 2.25 0 0 0 10.5 18v-2.25a2.25 2.25 0 0 0-2.25-2.25H6a2.25 2.25 0 0 0-2.25 2.25V18A2.25 2.25 0 0 0 6 20.25Zm9.75-9.75H18a2.25 2.25 0 0 0 2.25-2.25V6A2.25 2.25 0 0 0 18 3.75h-2.25A2.25 2.25 0 0 0 13.5 6v2.25a2.25 2.25 0 0 0 2.25 2.25Z" />
-                    </svg>
-
-
-
-                    <h1 x-cloak
-                        x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full && !show ?
-                            'sm:hidden' : ''">
-                        Products</h1>
-                </a> --}}
-                <!-- Invoices -->
-                {{-- <a href="{{ route('admin.invoice.list') }}" x-data="tooltip" x-on:mouseover="show = true"
-                    x-on:mouseleave="show = false"
-                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400
-                    {{ Route::currentRouteName() == 'admin.invoice.list' ? 'text-gray-200 bg-gray-800' : '' }}
-
-                    ">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                        stroke="currentColor" class="h-6 w-6">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                    </svg>
-
-                    <h1 x-cloak
-                        x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full && !show ?
-                            'sm:hidden' : ''">
-                        Invoices</h1>
-                </a> --}}
-                <!-- Stock -->
-                {{-- <a href="{{ route('admin.stocklist') }}" x-data="tooltip" x-on:mouseover="show = true"
-                    x-on:mouseleave="show = false"
-                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400
-                    {{ Route::currentRouteName() == 'admin.stocklist' ? 'text-gray-200 bg-gray-800' : '' }}
-
-                    ">
-
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                        stroke="currentColor" class="h-6 w-6">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z" />
-                    </svg>
-
-
-                    <h1 x-cloak
-                        x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full && !show ?
-                            'sm:hidden' : ''">
-                        Stocks</h1>
-                </a> --}}
-                <!-- transection -->
-                {{-- <a href="{{ route('admin.transection.list') }}" x-data="tooltip" x-on:mouseover="show = true"
-                    x-on:mouseleave="show = false"
-                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400
-                    {{ Route::currentRouteName() == 'admin.transection.list' ? 'text-gray-200 bg-gray-800' : '' }}
-
-                    ">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-6 w-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 8.25.22-.22a.75.75 0 0 1 1.28.53v6.441c0 .472.214.934.64 1.137a3.75 3.75 0 0 0 4.994-1.77c.205-.428-.152-.868-.627-.868h-.507m-6-2.25h7.5M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                    </svg>
-
-
-
-                    <h1 x-cloak
-                        x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full && !show ?
-                            'sm:hidden' : ''">
-                        Transections</h1>
-                </a> --}}
-                <!-- Projects Management -->
+                <!-- Materials Management -->
                 <div x-data="dropdown" class="relative">
-                    <div @click="toggle('projects')" x-data="tooltip" @mouseover="show = true"
+                    <div @click="toggle('materials')" x-data="tooltip" @mouseover="show = true"
                         @mouseleave="show = false"
-                        class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer"
+                        class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
                         :class="{
                             'justify-start': $store.sidebar.full,
                             'sm:justify-center': !$store.sidebar.full,
-                            'text-gray-200 bg-gray-800': $store.sidebar.active == 'projects',
-                            'text-gray-400': $store.sidebar.active != 'projects'
+                            'text-gray-200 bg-gray-800': $store.sidebar.active == 'materials',
+                            'text-gray-400': $store.sidebar.active != 'materials'
                         }">
+                        
                         <div class="relative flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                                stroke="currentColor" class="h-6 w-6">
+                                stroke="currentColor" class="h-4 w-4">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                             </svg>
 
-                            <h1 x-cloak :class="!$store.sidebar.full ? (show ? visibleClass : 'sm:hidden') : ''">
-                                Projects Management
-                            </h1>
+                            <p x-cloak class="text-xs"
+                                :class="!$store.sidebar.full ? (show ? visibleClass : 'sm:hidden') : ''">
+                                Materials Management
+                            </p>
                         </div>
 
                         <svg x-cloak :class="$store.sidebar.full ? '' : 'sm:hidden'" xmlns="http://www.w3.org/2000/svg"
@@ -274,12 +159,58 @@
 
                     <div x-cloak x-show="open" @click.outside="open=false"
                         :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
-                        <a href="{{ route('admin.projects.list') }}" class="hover:text-gray-200 cursor-pointer">Projects</a>
+                        <a href="{{ route('admin.materials.categories') }}"
+                            class="hover:text-gray-200 cursor-pointer text-xs">Product Categories</a>
+                        <a href="{{ route('admin.materials.brands') }}"
+                            class="hover:text-gray-200 cursor-pointer text-xs">Product Brands</a>
+                        <a href="{{ route('admin.materials.products') }}"
+                            class="hover:text-gray-200 cursor-pointer text-xs">Products &amp; Variants</a>
+                    </div>
+
+
+                </div>
+                <!-- Projects Management -->
+                <div x-data="dropdown" class="relative">
+                    <div @click="toggle('projects')" x-data="tooltip" @mouseover="show = true"
+                        @mouseleave="show = false"
+                        class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
+                        :class="{
+                            'justify-start': $store.sidebar.full,
+                            'sm:justify-center': !$store.sidebar.full,
+                            'text-gray-200 bg-gray-800': $store.sidebar.active == 'projects',
+                            'text-gray-400': $store.sidebar.active != 'projects'
+                        }">
+                        <div class="relative flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke-width="2" stroke="currentColor" class="h-4 w-4">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                            </svg>
+
+                            <p x-cloak class="text-xs"
+                                :class="!$store.sidebar.full ? (show ? visibleClass : 'sm:hidden') : ''">
+                                Projects
+                            </p>
+                        </div>
+
+                        <svg x-cloak :class="$store.sidebar.full ? '' : 'sm:hidden'"
+                            xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 size-6" viewBox="0 0 20 20"
+                            stroke-width="1.5" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+
+                    <div x-cloak x-show="open" @click.outside="open=false"
+                        :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                        <a href="{{ route('admin.projects.list') }}"
+                            class="hover:text-gray-200 cursor-pointer text-xs">Projects</a>
 
                         <!-- Properties Submenu -->
                         <div x-data="sub_dropdown" class="relative w-full">
                             <div @click="sub_toggle()" class="flex items-center justify-between cursor-pointer">
-                                <h1 class="hover:text-gray-200 cursor-pointer">Properties</h1>
+                                <p class="hover:text-gray-200 cursor-pointer text-xs">Properties</p>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20"
                                     fill="currentColor">
                                     <path fill-rule="evenodd"
@@ -288,12 +219,15 @@
                                 </svg>
                             </div>
                             <div x-show="sub_open" class="ml-4 mt-2 space-y-2">
-                                <a href="{{ route('admin.floors.list') }}" class="hover:text-gray-200 cursor-pointer block">Floors</a>
-                                <a href="{{ route('admin.units.list') }}" class="hover:text-gray-200 cursor-pointer block">Units</a>
+                                <a href="{{ route('admin.floors.list') }}"
+                                    class="hover:text-gray-200 cursor-pointer block text-xs">Floors</a>
+                                <a href="{{ route('admin.units.list') }}"
+                                    class="hover:text-gray-200 cursor-pointer block text-xs">Units</a>
                             </div>
                         </div>
 
-                        <a href="{{ route('admin.project.calendar') }}" class="hover:text-gray-200 cursor-pointer">Project Calendar</a>
+                        <a href="{{ route('admin.project.calendar') }}"
+                            class="hover:text-gray-200 cursor-pointer text-xs">Project Calendar</a>
                     </div>
                 </div>
 
@@ -301,7 +235,7 @@
                 <div x-data="dropdown" class="relative">
                     <div @click="toggle('users')" x-data="tooltip" @mouseover="show = true"
                         @mouseleave="show = false"
-                        class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer"
+                        class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
                         :class="{
                             'justify-start': $store.sidebar.full,
                             'sm:justify-center': !$store.sidebar.full,
@@ -309,19 +243,21 @@
                             'text-gray-400': $store.sidebar.active != 'Reports'
                         }">
                         <div class="relative flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                                stroke="currentColor" class="h-6 w-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke-width="2" stroke="currentColor" class="h-4 w-4">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                             </svg>
 
-                            <h1 x-cloak :class="!$store.sidebar.full ? (show ? visibleClass : 'sm:hidden') : ''">
+                            <p x-cloak class="text-xs"
+                                :class="!$store.sidebar.full ? (show ? visibleClass : 'sm:hidden') : ''">
                                 User Management
-                            </h1>
+                            </p>
                         </div>
 
-                        <svg x-cloak :class="$store.sidebar.full ? '' : 'sm:hidden'" xmlns="http://www.w3.org/2000/svg"
-                            class="h-4 w-4 size-6" viewBox="0 0 20 20" stroke-width="1.5" fill="currentColor">
+                        <svg x-cloak :class="$store.sidebar.full ? '' : 'sm:hidden'"
+                            xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 size-6" viewBox="0 0 20 20"
+                            stroke-width="1.5" fill="currentColor">
                             <path fill-rule="evenodd"
                                 d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
                                 clip-rule="evenodd" />
@@ -330,7 +266,8 @@
 
                     <div x-cloak x-show="open" @click.outside="open=false"
                         :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
-                        <a href="{{ route('admin.users') }}" class="hover:text-gray-200 cursor-pointer">Users</a>
+                        <a href="{{ route('admin.users') }}"
+                            class="hover:text-gray-200 cursor-pointer text-xs">Users</a>
                     </div>
                 </div>
 
@@ -346,23 +283,23 @@
                 <!-- Role and permissions -->
                 <a href="{{ route('admin.roles.list') }}" x-data="tooltip" x-on:mouseover="show = true"
                     x-on:mouseleave="show = false"
-                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400
+                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400 text-xs
                     {{ Route::currentRouteName() == 'admin.roles.list' || Route::currentRouteName() == 'admin.roles.create' || Route::currentRouteName() == 'admin.roles.edit' ? 'text-gray-200 bg-gray-800' : '' }}
                     ">
 
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                         stroke-width="1.5" stroke="currentColor" class="size-6">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
                     </svg>
 
-                    <h1 x-cloak
+                    <p x-cloak class="text-xs"
                         x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full ?
                             'sm:hidden' : ''">
-                        Permissions</h1>
+                        Permissions</p>
 
                 </a>
-  
+
                 <!-- Role and permissions -->
                 {{-- <a href="{{ route('admin.admin.profile') }}" x-data="tooltip"
                     x-on:mouseover="show = true" x-on:mouseleave="show = false"
@@ -402,7 +339,7 @@
 
                 </a> --}}
                 <!-- Ui elements -->
-                 <div class="mt-4 mb-1">
+                <div class="mt-4 mb-1">
                     <h2 class="text-gray-500 text-md font-semibold" :class="{ 'hidden': !$store.sidebar.full }"
                         x-transition>Ui Elements</h2>
                 </div>
@@ -412,7 +349,7 @@
                     <!-- Dropdown head -->
                     <div @click="toggle('uicomponents')" x-data="tooltip" x-on:mouseover="show = true"
                         x-on:mouseleave="show = false"
-                        class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer"
+                        class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
                         x-bind:class="{
                             'justify-start': $store.sidebar.full,
                             'sm:justify-center': !$store.sidebar
@@ -422,13 +359,13 @@
                                 .sidebar.active != 'uielements'
                         }">
                         <div class="relative flex space-x-2 items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z" />
                             </svg>
 
-                            <h1 x-cloak
+                            <h1 x-cloak class="text-xs"
                                 x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full && !show ?
                                     'sm:hidden' : ''">
                                 Ui Components</h1>
@@ -441,12 +378,13 @@
                                 clip-rule="evenodd" />
                         </svg>
                     </div>
-                       <div x-cloak x-show="open" @click.outside="open=false"
+                    <div x-cloak x-show="open" @click.outside="open=false"
                         :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
-                        <a href="{{ route('admin.ui.layouts') }}" class="hover:text-gray-200 cursor-pointer">Layouts</a>
+                        <a href="{{ route('admin.ui.layouts') }}"
+                            class="hover:text-gray-200 cursor-pointer text-xs">Layouts</a>
                     </div>
-                   
-                </div> 
+
+                </div>
             </div>
 
         </div>
@@ -454,70 +392,60 @@
 
             <hr class="border-gray-700 mt-4">
             <!-- Profile / Dropup -->
-<div x-data="{ openProfile: false }" class="relative px-2 py-2">
-    <div @click="openProfile = !openProfile"
-        class="flex items-center justify-between rounded-md p-2 cursor-pointer text-gray-300 hover:bg-gray-800 hover:text-white transition"
-        :class="{
-            'justify-center': !$store.sidebar.full,
-            'justify-between': $store.sidebar.full
-        }">
+            <div x-data="{ openProfile: false }" class="relative px-2 py-2">
+                <div @click="openProfile = !openProfile"
+                    class="flex items-center justify-between rounded-md p-2 cursor-pointer text-gray-300 hover:bg-gray-800 hover:text-white transition"
+                    :class="{
+                        'justify-center': !$store.sidebar.full,
+                        'justify-between': $store.sidebar.full
+                    }">
 
-        <div class="flex items-center gap-3 overflow-hidden">
-            <!-- Profile Image -->
-            <img
-                src="{{auth()->user()->profile_photo_path ? file_path(auth()->user()->profile_photo_path) : 'https://ui-avatars.com/api/?name=' . auth()->user()->name . '&background=111827&color=ffffff&bold=true'}}"
-                alt="Profile"
-                class="w-10 h-10 rounded-full object-cover border border-gray-700 shrink-0">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <!-- Profile Image -->
+                        <img src="{{ auth()->user()->profile_photo_path ? file_path(auth()->user()->profile_photo_path) : 'https://ui-avatars.com/api/?name=' . auth()->user()->name . '&background=111827&color=ffffff&bold=true' }}"
+                            alt="Profile"
+                            class="w-10 h-10 rounded-full object-cover border border-gray-700 shrink-0">
 
-            <!-- User info -->
-            <div x-cloak x-show="$store.sidebar.full" x-transition class="min-w-0">
-                <h4 class="text-sm font-semibold text-white truncate">{{ auth()->user()->name }}</h4>
-                <p class="text-xs text-gray-400 truncate">{{ auth()->user()->email }}</p>
+                        <!-- User info -->
+                        <div x-cloak x-show="$store.sidebar.full" x-transition class="min-w-0">
+                            <h4 class="text-sm font-semibold text-white truncate">{{ auth()->user()->name }}</h4>
+                            <p class="text-xs text-gray-400 truncate">{{ auth()->user()->email }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Arrow -->
+                    <svg x-cloak x-show="$store.sidebar.full" xmlns="http://www.w3.org/2000/svg"
+                        class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': openProfile }"
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+
+                <!-- Dropup menu -->
+                <div x-cloak x-show="openProfile" x-transition @click.outside="openProfile = false"
+                    class="absolute bottom-16 left-2 right-2 bg-gray-800 border border-gray-700 rounded-lg shadow-lg overflow-hidden z-50">
+
+                    <a href="{{ route('admin.profile') }}"
+                        class="block px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
+                        My Profile
+                    </a>
+
+                    <a href="{{ route('admin.settings') }}"
+                        class="block px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
+                        Account Settings
+                    </a>
+
+                    <button type="button" @click="$refs.logoutForm.submit()"
+                        class="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-gray-700">
+                        Logout
+                    </button>
+                </div>
             </div>
-        </div>
-
-        <!-- Arrow -->
-        <svg x-cloak x-show="$store.sidebar.full"
-            xmlns="http://www.w3.org/2000/svg"
-            class="w-4 h-4 text-gray-400 transition-transform"
-            :class="{ 'rotate-180': openProfile }"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M19 9l-7 7-7-7" />
-        </svg>
-    </div>
-
-    <!-- Dropup menu -->
-    <div x-cloak
-        x-show="openProfile"
-        x-transition
-        @click.outside="openProfile = false"
-        class="absolute bottom-16 left-2 right-2 bg-gray-800 border border-gray-700 rounded-lg shadow-lg overflow-hidden z-50">
-
-        <a href="{{ route('admin.profile') }}"
-            class="block px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
-            My Profile
-        </a>
-
-        <a href="{{ route('admin.settings') }}"
-            class="block px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
-            Account Settings
-        </a>
-
-        <button type="button"
-            @click="$refs.logoutForm.submit()"
-            class="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-gray-700">
-            Logout
-        </button>
-    </div>
-</div>
 
             <!-- logout -->
             <div x-data="tooltip" @click="$refs.logoutForm.submit()" @mouseover="show = true"
                 @mouseleave="show = false"
-                class="relative flex justify-between items-center text-gray-400 hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer"
+                class="relative flex justify-between items-center text-gray-400 hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer text-xs"
                 :class="{
                     'justify-start': $store.sidebar.full,
                     'sm:justify-center': !$store.sidebar.full,
@@ -525,13 +453,14 @@
                     'text-gray-400': $store.sidebar.active != 'logout'
                 }">
                 <div class="flex items-center space-x-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
 
-                    <span x-cloak :class="!$store.sidebar.full ? (show ? visibleClass : 'sm:hidden') : ''">
+                    <span x-cloak class="text-xs"
+                        :class="!$store.sidebar.full ? (show ? visibleClass : 'sm:hidden') : ''">
                         Logout
                     </span>
                 </div>
@@ -609,9 +538,44 @@
                 show: false,
                 visibleClass: 'block sm:absolute -top-7 sm:border border-gray-800 left-5 sm:text-sm sm:bg-gray-900 sm:px-2 sm:py-1 sm:rounded-md'
             }))
-           
+
         })
     </script>
+    <script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('livewireConfirm', () => ({
+            confirmAction({
+                id = null,
+                method = null,
+                title = 'Are you sure?',
+                text = 'This action cannot be undone.',
+                confirmText = 'Yes, continue!',
+                cancelText = 'Cancel',
+                icon = 'warning',
+            }) {
+                Swal.fire({
+                    title,
+                    text,
+                    icon,
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonText: cancelText,
+                    confirmButtonText: confirmText,
+                    reverseButtons: true,
+                    focusCancel: true,
+                }).then((result) => {
+                    if (!result.isConfirmed || !method) return;
+
+                    if (id !== null) {
+                        this.$wire[method](id);
+                    } else {
+                        this.$wire[method]();
+                    }
+                });
+            }
+        }));
+    });
+</script>
     @livewireScripts
     @stack('scripts')
 </body>

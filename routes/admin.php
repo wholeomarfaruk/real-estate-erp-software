@@ -31,6 +31,11 @@ Route::get('/units', App\Livewire\Admin\Projects\UnitList::class)->name('units.l
 //project calendar
 Route::get('/project-calendar', App\Livewire\Admin\Projects\ProjectCalendar::class)->name('project.calendar');
 
+//materials
+Route::get('/materials/categories', App\Livewire\Admin\Materials\ProductCategories::class)->name('materials.categories');
+Route::get('/materials/brands', App\Livewire\Admin\Materials\ProductBrands::class)->name('materials.brands');
+Route::get('/materials/products', App\Livewire\Admin\Materials\Products::class)->name('materials.products');
+Route::get('/materials/units', App\Livewire\Admin\Materials\ProductUnits::class)->name('materials.units');
 //uploads
 Route::get('/uploads', App\Livewire\Admin\File\Uploads::class)->name('uploads');
 Route::post('/upload', [FileUploadController::class, 'storeAdmin']);

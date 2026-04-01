@@ -201,19 +201,20 @@
                                                     @can('project.delete')
                                                         <button x-data
                                                             @click="
-        Swal.fire({
-            title: 'Are you sure?',
-            text: 'This record & all related data will be permanently deleted!',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            confirmButtonText: 'Yes, delete project!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $wire.deleteProject({{ $project->id }})
-            }
-        })
-    "
+                                                                    Swal.fire({
+                                                                        title: 'Are you sure?',
+                                                                        text: 'This record & all related data will be permanently deleted!',
+                                                                        icon: 'warning',
+                                                                        showCancelButton: true,
+                                                                        confirmButtonColor: '#d33',
+                                                                        confirmButtonText: 'Yes, delete project!'
+                                                                    }).then((result) => {
+                                                                        if (result.isConfirmed) {
+                                                                            $wire.deleteProject({{ $project->id }})
+                                                                        }
+                                                                        
+                                                                    })
+                                                                "
                                                             type="button"
                                                             class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 dark:hover:bg-red-500/10">
                                                             Delete
