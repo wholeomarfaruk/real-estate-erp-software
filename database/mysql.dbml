@@ -232,7 +232,6 @@ Table product_units{
   id integer [pk]
   name string
   slug string [unique]
-  description text
   created_at timestamp
   updated_at timestamp
 }
