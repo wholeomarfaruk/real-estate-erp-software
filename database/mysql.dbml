@@ -235,3 +235,15 @@ Table product_units{
   created_at timestamp
   updated_at timestamp
 }
+Table stores {
+  id bigint [pk, increment]
+  name varchar //store name= Bashundhara office store  etc
+  code varchar [unique] // unique code for store
+  type varchar // type from enum office or project
+  project_id bigint [null]
+  address string [null]
+  description text [null]
+  status boolean [default: true] //active/inactive
+  created_at timestamp
+  updated_at timestamp
+}

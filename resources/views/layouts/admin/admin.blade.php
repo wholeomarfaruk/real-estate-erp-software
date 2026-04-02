@@ -56,32 +56,32 @@
             </button>
             <!-- Sales Point -->
 
-            <div class="h-[70vh]  scrollbar scrollbar-thumb-gray-900  scrollbar-thin scrollbar-track-transparent"
+            <div class="h-[70vh]  scrollbar-thumb-gray-900  scrollbar-thin scrollbar-track-transparent"
                 :class="$store.sidebar.full ? 'overflow-y-scroll' : ''">
 
                 <!-- Quick Action -->
-                {{-- <div class="mt-4 mb-1">
+                <div class="mt-4 mb-1">
                      <h2 class="text-gray-500 text-md font-semibold" :class="{ 'hidden': !$store.sidebar.full }"
                         x-transition>Quick Action</h2>
                 </div>
-                <a href="#" x-data="tooltip" x-on:mouseover="show = true"
-                    x-on:mouseleave="show = false" @click="$store.sidebar.active = 'pos' "
-                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400 mb-6
-                    {{ Route::currentRouteName() == 'admin.pos' ? 'text-gray-200 bg-gray-800' : '' }}">
+               <a href="#" x-data="tooltip" x-on:mouseover="show = true"
+                    x-on:mouseleave="show = false" @click="$store.sidebar.active = 'dashboard' "
+                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400 mb-2
+                    {{ Route::currentRouteName() == 'admin.dashboard' ? 'text-gray-200 bg-gray-800' : '' }}">
 
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                        stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <svg xmlns="http://www.w3.org/2000/svg"  fill="none" viewBox="0 0 24 24"
+                        stroke-width="1.5" stroke="currentColor" class="size-4">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
                     </svg>
 
-                    <h1 x-cloak
+                    <p x-cloak
                         x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full && !show ?
                             'sm:hidden' : ''">
-                        Dashboard</h1>
-                </a> --}}
+                        Dashboard</p>
+                </a>
                 <!-- General  -->
-                <div class="mt-4 mb-1">
+                <div class="mt-2 mb-1">
                     <h2 class="text-gray-500 text-md font-semibold" :class="{ 'hidden': !$store.sidebar.full }"
                         x-transition> General</h2>
                 </div>
@@ -116,8 +116,6 @@
                             d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
                     </svg>
 
-
-
                     <p x-cloak
                         x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full ?
                             'sm:hidden' : ''">
@@ -135,7 +133,7 @@
                             'text-gray-200 bg-gray-800': $store.sidebar.active == 'materials',
                             'text-gray-400': $store.sidebar.active != 'materials'
                         }">
-                        
+
                         <div class="relative flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                                 stroke="currentColor" class="h-4 w-4">
@@ -161,12 +159,24 @@
                         :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
                         <a href="{{ route('admin.materials.categories') }}"
                             class="hover:text-gray-200 cursor-pointer text-xs">Product Categories</a>
+                            </div>
+                                                <div x-cloak x-show="open" @click.outside="open=false"
+                        :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+
                         <a href="{{ route('admin.materials.brands') }}"
                             class="hover:text-gray-200 cursor-pointer text-xs">Product Brands</a>
+                            </div>
+                                                <div x-cloak x-show="open" @click.outside="open=false"
+                        :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+
                         <a href="{{ route('admin.materials.products') }}"
                             class="hover:text-gray-200 cursor-pointer text-xs">Products &amp; Variants</a>
                     </div>
-
+                                        <div x-cloak x-show="open" @click.outside="open=false"
+                        :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                        <a href="{{ route('admin.materials.units') }}"
+                            class="hover:text-gray-200 cursor-pointer text-xs">Product Units</a>
+                    </div>
 
                 </div>
                 <!-- Projects Management -->
@@ -230,7 +240,64 @@
                             class="hover:text-gray-200 cursor-pointer text-xs">Project Calendar</a>
                     </div>
                 </div>
+     <!-- Materials Management -->
+                <div x-data="dropdown" class="relative">
+                    <div @click="toggle('inventory')" x-data="tooltip" @mouseover="show = true"
+                        @mouseleave="show = false"
+                        class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
+                        :class="{
+                            'justify-start': $store.sidebar.full,
+                            'sm:justify-center': !$store.sidebar.full,
+                            'text-gray-200 bg-gray-800': $store.sidebar.active == 'inventory',
+                            'text-gray-400': $store.sidebar.active != 'inventory'
+                        }">
 
+                        <div class="relative flex items-center gap-2">
+                            
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z" />
+</svg>
+
+
+                            <p x-cloak class="text-xs"
+                                :class="!$store.sidebar.full ? (show ? visibleClass : 'sm:hidden') : ''">
+                                Inventory Management
+                            </p>
+                        </div>
+
+                        <svg x-cloak :class="$store.sidebar.full ? '' : 'sm:hidden'" xmlns="http://www.w3.org/2000/svg"
+                            class="h-4 w-4 size-6" viewBox="0 0 20 20" stroke-width="1.5" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                clip-rule="evenodd" />
+                        </svg>
+
+                    </div>
+
+                    <div x-cloak x-show="open" @click.outside="open=false"
+                        :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                        <a href="{{ route('admin.inventory.stores.index') }}"
+                            class="hover:text-gray-200 cursor-pointer text-xs">Stores</a>
+                            </div>
+                                                <div x-cloak x-show="open" @click.outside="open=false"
+                        :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+
+                        <a href="{{ route('admin.materials.brands') }}"
+                            class="hover:text-gray-200 cursor-pointer text-xs">Product Brands</a>
+                            </div>
+                                                <div x-cloak x-show="open" @click.outside="open=false"
+                        :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+
+                        <a href="{{ route('admin.materials.products') }}"
+                            class="hover:text-gray-200 cursor-pointer text-xs">Products &amp; Variants</a>
+                    </div>
+                                        <div x-cloak x-show="open" @click.outside="open=false"
+                        :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                        <a href="{{ route('admin.materials.units') }}"
+                            class="hover:text-gray-200 cursor-pointer text-xs">Product Units</a>
+                    </div>
+
+                </div>
                 <!-- User Management -->
                 <div x-data="dropdown" class="relative">
                     <div @click="toggle('users')" x-data="tooltip" @mouseover="show = true"
@@ -300,44 +367,7 @@
 
                 </a>
 
-                <!-- Role and permissions -->
-                {{-- <a href="{{ route('admin.admin.profile') }}" x-data="tooltip"
-                    x-on:mouseover="show = true" x-on:mouseleave="show = false"
-                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400
-                    {{ Route::currentRouteName() == 'admin.admin.profile' ? 'text-gray-200 bg-gray-800' : '' }}
-                    ">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                        stroke="currentColor" class="h-6 w-6">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z" />
-                    </svg>
 
-
-                    <h1 x-cloak
-                        x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full && !show ?
-                            'sm:hidden' : ''">
-                        admin Profile</h1>
-
-                </a>
-                <a href="{{ route('admin.user.profile') }}" x-data="tooltip" x-on:mouseover="show = true"
-                    x-on:mouseleave="show = false"
-                    class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400
-                    {{ Route::currentRouteName() == 'admin.user.profile' ? 'text-gray-200 bg-gray-800' : '' }}
-                    ">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                        stroke="currentColor" class="h-6 w-6">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M16.5 12a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Zm0 0c0 1.657 1.007 3 2.25 3S21 13.657 21 12a9 9 0 1 0-2.636 6.364M16.5 12V8.25" />
-                    </svg>
-
-
-
-                    <h1 x-cloak
-                        x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full && !show ?
-                            'sm:hidden' : ''">
-                        Profile</h1>
-
-                </a> --}}
                 <!-- Ui elements -->
                 <div class="mt-4 mb-1">
                     <h2 class="text-gray-500 text-md font-semibold" :class="{ 'hidden': !$store.sidebar.full }"

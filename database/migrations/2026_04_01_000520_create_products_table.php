@@ -15,10 +15,12 @@ return new class extends Migration
             $table->unsignedBigInteger('brand_id')->nullable();
             $table->text('description')->nullable();
             $table->string('unit')->nullable();
+            $table->unsignedBigInteger('image_id')->nullable();
             $table->timestamps();
 
             $table->foreign('category_id')->references('id')->on('product_categories')->cascadeOnDelete();
             $table->foreign('brand_id')->references('id')->on('product_brands')->nullOnDelete();
+            $table->foreign('image_id')->references('id')->on('files')->onDelete('set null');
         });
     }
 

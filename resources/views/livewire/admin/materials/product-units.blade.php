@@ -63,13 +63,11 @@
             <h2 class="text-sm font-semibold text-gray-700">{{ $editingId ? 'Edit' : 'Create' }}</h2>
             <div class="space-y-1">
                 <label class="text-xs text-gray-500">Name <span class="text-red-400">*</span></label>
-                <input type="text" wire:model.defer.500ms="name" class="w-full rounded-md border-gray-300 text-sm">
+                <input type="text" wire:model.live.debounce.500ms="name" class="w-full rounded-md border-gray-300 text-sm">
                 @error('name')
                     <span class="text-red-500 text-xs">{{ $message }}</span>
                 @enderror
             </div>
-
-
             <div class="flex gap-2 pt-2">
                 <button type="submit" class="px-3 py-2 bg-gray-900 text-white text-xs rounded-md cursor-pointer">Save Brand</button>
                 <button type="button" wire:click="resetForm" class="px-3 py-2 text-xs border rounded-md cursor-pointer">Clear</button>
@@ -96,7 +94,7 @@
                                         <a class="block"
                                             href="{{ 'https://ui-avatars.com/api/?name=' . urlencode($unit->name) . '&background=111827&color=fff&rounded=falese&bold=true' }}"
                                             data-fancybox
-                                            
+
                                             <img src="{{'https://ui-avatars.com/api/?name=' . urlencode($unit->name) . '&background=111827&color=fff&rounded=falese&bold=true' }}"
                                                 class="h-10 w-10 rounded-sm object-cover">
                                         </a>
@@ -139,4 +137,5 @@
             <div class="mt-4">{{ $units->links() }}</div>
         </div>
     </div>
+
 </div>
