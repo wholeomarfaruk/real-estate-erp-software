@@ -235,6 +235,7 @@ Table product_units{
   created_at timestamp
   updated_at timestamp
 }
+
 Table stores {
   id bigint [pk, increment]
   name varchar //store name= Bashundhara office store  etc
@@ -244,6 +245,42 @@ Table stores {
   address string [null]
   description text [null]
   status boolean [default: true] //active/inactive
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table stocks {
+ id bigint [pk, increment]
+ supplier_id bigint [null]
+ supplier_voucer string
+ store_register_number string [unique,null]
+ store_id bigint [ref:>stores.id]
+ product_id bigint [ref:>products.id]
+ quantity decimal(10,3)
+ type string //value from file enum = purchased,received,send,adjustment,consumption
+ stock_type string //value from file enum = in/out
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table transfer_transaction{
+  id bigint [pk, increment]
+  sender_store_id bigint [ref:>stores.id]
+  receiver_store_id bigint [ref:>stores.id]
+  is_requested boolean
+  store_man_approved_at timestamp
+  user_id bigint [ref:users.id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table transfer_items{
+  id bigint [pk, increment]
+  transfer_transaction_id bigint [ref:>transfer_transaction.id]
+  product_id bigint [ref:>products.id]
+  quantity decimal(10,3)
+  checked_by_sender boolean 
+  checked_by_reciever boolean 
   created_at timestamp
   updated_at timestamp
 }

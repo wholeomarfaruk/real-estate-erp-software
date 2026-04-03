@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -85,6 +87,28 @@ class User extends Authenticatable
     public function roleName(): ?string
     {
         return $this->getRoleNames()->first();
+    }
+
+    public function managedStores(): HasMany
+    {
+        return $this->hasMany(Store::class, 'manager_user_id');
+    }
+
+    public function assignedStores(): BelongsToMany
+    {
+        return $this->belongsToMany(Store::class, 'store_user')
+            ->withPivot(['is_primary'])
+            ->withTimestamps();
+    }
+
+    public function canAccessStore(int $storeId): bool
+    {
+        if ($this->hasRole('superadmin') || $this->can('inventory.stock.report.view')) {
+            return true;
+        }
+
+        return $this->managedStores()->whereKey($storeId)->exists()
+            || $this->assignedStores()->where('stores.id', $storeId)->exists();
     }
 
 }

@@ -3,14 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class ProductUnit extends Model
+class Supplier extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'name',
-        'code',
+        'contact_person',
+        'phone',
+        'secondary_phone',
+        'email',
+        'address',
         'status',
     ];
 
@@ -18,9 +25,14 @@ class ProductUnit extends Model
         'status' => 'boolean',
     ];
 
-    public function products(): HasMany
+    public function stockReceives(): HasMany
     {
-        return $this->hasMany(Product::class, 'product_unit_id');
+        return $this->hasMany(StockReceive::class);
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class);
     }
 
     public function scopeActive(Builder $query): Builder

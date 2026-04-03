@@ -65,4 +65,14 @@ class Project extends Model
     {
         return $this->hasMany(Store::class);
     }
+
+    public function stockConsumptions(): HasMany
+    {
+        return $this->hasMany(StockConsumption::class);
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class);
+    }
 }

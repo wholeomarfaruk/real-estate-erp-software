@@ -61,16 +61,16 @@
 
                 <!-- Quick Action -->
                 <div class="mt-4 mb-1">
-                     <h2 class="text-gray-500 text-md font-semibold" :class="{ 'hidden': !$store.sidebar.full }"
+                    <h2 class="text-gray-500 text-md font-semibold" :class="{ 'hidden': !$store.sidebar.full }"
                         x-transition>Quick Action</h2>
                 </div>
-               <a href="#" x-data="tooltip" x-on:mouseover="show = true"
-                    x-on:mouseleave="show = false" @click="$store.sidebar.active = 'dashboard' "
+                <a href="#" x-data="tooltip" x-on:mouseover="show = true" x-on:mouseleave="show = false"
+                    @click="$store.sidebar.active = 'dashboard' "
                     class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400 mb-2
                     {{ Route::currentRouteName() == 'admin.dashboard' ? 'text-gray-200 bg-gray-800' : '' }}">
 
-                    <svg xmlns="http://www.w3.org/2000/svg"  fill="none" viewBox="0 0 24 24"
-                        stroke-width="1.5" stroke="currentColor" class="size-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" class="size-4">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
                     </svg>
@@ -147,8 +147,9 @@
                             </p>
                         </div>
 
-                        <svg x-cloak :class="$store.sidebar.full ? '' : 'sm:hidden'" xmlns="http://www.w3.org/2000/svg"
-                            class="h-4 w-4 size-6" viewBox="0 0 20 20" stroke-width="1.5" fill="currentColor">
+                        <svg x-cloak :class="$store.sidebar.full ? '' : 'sm:hidden'"
+                            xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 size-6" viewBox="0 0 20 20"
+                            stroke-width="1.5" fill="currentColor">
                             <path fill-rule="evenodd"
                                 d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
                                 clip-rule="evenodd" />
@@ -159,20 +160,20 @@
                         :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
                         <a href="{{ route('admin.materials.categories') }}"
                             class="hover:text-gray-200 cursor-pointer text-xs">Product Categories</a>
-                            </div>
-                                                <div x-cloak x-show="open" @click.outside="open=false"
+                    </div>
+                    <div x-cloak x-show="open" @click.outside="open=false"
                         :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
 
                         <a href="{{ route('admin.materials.brands') }}"
                             class="hover:text-gray-200 cursor-pointer text-xs">Product Brands</a>
-                            </div>
-                                                <div x-cloak x-show="open" @click.outside="open=false"
+                    </div>
+                    <div x-cloak x-show="open" @click.outside="open=false"
                         :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
 
                         <a href="{{ route('admin.materials.products') }}"
                             class="hover:text-gray-200 cursor-pointer text-xs">Products &amp; Variants</a>
                     </div>
-                                        <div x-cloak x-show="open" @click.outside="open=false"
+                    <div x-cloak x-show="open" @click.outside="open=false"
                         :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
                         <a href="{{ route('admin.materials.units') }}"
                             class="hover:text-gray-200 cursor-pointer text-xs">Product Units</a>
@@ -240,7 +241,7 @@
                             class="hover:text-gray-200 cursor-pointer text-xs">Project Calendar</a>
                     </div>
                 </div>
-     <!-- Materials Management -->
+                <!-- Materials Management -->
                 <div x-data="dropdown" class="relative">
                     <div @click="toggle('inventory')" x-data="tooltip" @mouseover="show = true"
                         @mouseleave="show = false"
@@ -253,10 +254,12 @@
                         }">
 
                         <div class="relative flex items-center gap-2">
-                            
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z" />
-</svg>
+
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke-width="2" stroke="currentColor" class="size-4">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z" />
+                            </svg>
 
 
                             <p x-cloak class="text-xs"
@@ -265,8 +268,9 @@
                             </p>
                         </div>
 
-                        <svg x-cloak :class="$store.sidebar.full ? '' : 'sm:hidden'" xmlns="http://www.w3.org/2000/svg"
-                            class="h-4 w-4 size-6" viewBox="0 0 20 20" stroke-width="1.5" fill="currentColor">
+                        <svg x-cloak :class="$store.sidebar.full ? '' : 'sm:hidden'"
+                            xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 size-6" viewBox="0 0 20 20"
+                            stroke-width="1.5" fill="currentColor">
                             <path fill-rule="evenodd"
                                 d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
                                 clip-rule="evenodd" />
@@ -274,28 +278,37 @@
 
                     </div>
 
+                    @php
+                        $inventoryMenuRoutes = [
+                            'Product Categories' => Route::has('admin.inventory.product-categories.index') ? 'admin.inventory.product-categories.index' : 'admin.materials.categories',
+                            'Product Units' => Route::has('admin.inventory.product-units.index') ? 'admin.inventory.product-units.index' : 'admin.materials.units',
+                            'Products' => Route::has('admin.inventory.products.index') ? 'admin.inventory.products.index' : 'admin.materials.products',
+                            'Stores' => 'admin.inventory.stores.index',
+                            'Suppliers' => 'admin.inventory.suppliers.index',
+                            'Stock Receive' => 'admin.inventory.stock-receives.index',
+                            'Stock Transfer' => 'admin.inventory.stock-transfers.index',
+                            'Ledger Reports' => 'admin.inventory.reports.ledger',
+                            'Stock Summary' => 'admin.inventory.reports.summary',
+                        ];
+                    @endphp
+
                     <div x-cloak x-show="open" @click.outside="open=false"
                         :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
-                        <a href="{{ route('admin.inventory.stores.index') }}"
-                            class="hover:text-gray-200 cursor-pointer text-xs">Stores</a>
-                            </div>
-                                                <div x-cloak x-show="open" @click.outside="open=false"
-                        :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                        @foreach ($inventoryMenuRoutes as $label => $routeName)
+                            @if (Route::has($routeName))
+                                <a href="{{ route($routeName) }}" class="hover:text-gray-200 cursor-pointer text-xs">
+                                    {{ $label }}
+                                </a>
+                            @endif
+                        @endforeach
 
-                        <a href="{{ route('admin.materials.brands') }}"
-                            class="hover:text-gray-200 cursor-pointer text-xs">Product Brands</a>
-                            </div>
-                                                <div x-cloak x-show="open" @click.outside="open=false"
-                        :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                        <a href="{{ url('/admin/inventory/stock-consumptions') }}" class="hover:text-gray-200 cursor-pointer text-xs">
+                            Stock Consumption
+                        </a>
+                    </div>
 
-                        <a href="{{ route('admin.materials.products') }}"
-                            class="hover:text-gray-200 cursor-pointer text-xs">Products &amp; Variants</a>
-                    </div>
-                                        <div x-cloak x-show="open" @click.outside="open=false"
-                        :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
-                        <a href="{{ route('admin.materials.units') }}"
-                            class="hover:text-gray-200 cursor-pointer text-xs">Product Units</a>
-                    </div>
+
+
 
                 </div>
                 <!-- User Management -->
@@ -330,7 +343,6 @@
                                 clip-rule="evenodd" />
                         </svg>
                     </div>
-
                     <div x-cloak x-show="open" @click.outside="open=false"
                         :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
                         <a href="{{ route('admin.users') }}"
@@ -572,40 +584,40 @@
         })
     </script>
     <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('livewireConfirm', () => ({
-            confirmAction({
-                id = null,
-                method = null,
-                title = 'Are you sure?',
-                text = 'This action cannot be undone.',
-                confirmText = 'Yes, continue!',
-                cancelText = 'Cancel',
-                icon = 'warning',
-            }) {
-                Swal.fire({
-                    title,
-                    text,
-                    icon,
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonText: cancelText,
-                    confirmButtonText: confirmText,
-                    reverseButtons: true,
-                    focusCancel: true,
-                }).then((result) => {
-                    if (!result.isConfirmed || !method) return;
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('livewireConfirm', () => ({
+                confirmAction({
+                    id = null,
+                    method = null,
+                    title = 'Are you sure?',
+                    text = 'This action cannot be undone.',
+                    confirmText = 'Yes, continue!',
+                    cancelText = 'Cancel',
+                    icon = 'warning',
+                }) {
+                    Swal.fire({
+                        title,
+                        text,
+                        icon,
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonText: cancelText,
+                        confirmButtonText: confirmText,
+                        reverseButtons: true,
+                        focusCancel: true,
+                    }).then((result) => {
+                        if (!result.isConfirmed || !method) return;
 
-                    if (id !== null) {
-                        this.$wire[method](id);
-                    } else {
-                        this.$wire[method]();
-                    }
-                });
-            }
-        }));
-    });
-</script>
+                        if (id !== null) {
+                            this.$wire[method](id);
+                        } else {
+                            this.$wire[method]();
+                        }
+                    });
+                }
+            }));
+        });
+    </script>
     @livewireScripts
     @stack('scripts')
 </body>
