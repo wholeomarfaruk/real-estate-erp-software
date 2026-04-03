@@ -150,13 +150,16 @@ class StockReceiveList extends Component
         $this->authorizePermission('inventory.stock.receive.view');
 
         $query = StockReceive::query()
-            ->with(['supplier:id,name,contact_person,phone', 'store:id,name,code'])
+            ->with(['supplier:id,name,contact_person,phone', 'store:id,name,code', 'purchaseOrder:id,po_no,status'])
             ->withSum('items as grand_total', 'total_price')
             ->when($this->search !== '', function (Builder $builder): void {
                 $builder->where(function (Builder $subQuery): void {
                     $subQuery->where('receive_no', 'like', '%'.$this->search.'%')
                         ->orWhere('supplier_voucher', 'like', '%'.$this->search.'%')
                         ->orWhere('remarks', 'like', '%'.$this->search.'%')
+                        ->orWhereHas('purchaseOrder', function (Builder $purchaseOrderQuery): void {
+                            $purchaseOrderQuery->where('po_no', 'like', '%'.$this->search.'%');
+                        })
                         ->orWhereHas('supplier', function (Builder $supplierQuery): void {
                             $supplierQuery->where('name', 'like', '%'.$this->search.'%');
                         });

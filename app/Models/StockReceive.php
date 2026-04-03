@@ -17,6 +17,7 @@ class StockReceive extends Model
         'receive_no',
         'receive_date',
         'supplier_id',
+        'purchase_order_id',
         'supplier_voucher',
         'store_id',
         'remarks',
@@ -35,6 +36,11 @@ class StockReceive extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    public function purchaseOrder(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrder::class, 'purchase_order_id');
     }
 
     public function store(): BelongsTo

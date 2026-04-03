@@ -49,6 +49,23 @@
                 </div>
 
                 <div>
+                    <label for="purchase_order_id" class="text-sm font-medium text-gray-700">Linked Purchase Order</label>
+                    <select id="purchase_order_id" wire:model.live="purchase_order_id" @disabled($isLocked)
+                        class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
+                        <option value="">No purchase order</option>
+                        @foreach ($purchaseOrders as $purchaseOrder)
+                            <option value="{{ $purchaseOrder->id }}">
+                                {{ $purchaseOrder->po_no }} - {{ $purchaseOrder->supplier?->name ?? 'No Supplier' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <x-input-error for="purchase_order_id" class="mt-1" />
+                    @if ($poLinked)
+                        <p class="mt-1 text-xs text-indigo-600">Only pending PO items are allowed in this receive.</p>
+                    @endif
+                </div>
+
+                <div>
                     <label for="supplier_id" class="text-sm font-medium text-gray-700">Supplier</label>
                     <select id="supplier_id" wire:model="supplier_id" @disabled($isLocked)
                         class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
@@ -79,7 +96,7 @@
                     <x-input-error for="store_id" class="mt-1" />
                 </div>
 
-                <div class="md:col-span-2 xl:col-span-3">
+                <div class="md:col-span-2 xl:col-span-2">
                     <label for="remarks" class="text-sm font-medium text-gray-700">Remarks</label>
                     <input id="remarks" type="text" wire:model="remarks" @disabled($isLocked)
                         class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
@@ -89,7 +106,7 @@
 
             <div class="mt-6 flex items-center justify-between">
                 <h3 class="text-base font-semibold text-gray-800">Receive Items</h3>
-                @if (! $isLocked)
+                @if (! $isLocked && ! $poLinked)
                     <button type="button" wire:click="addItem" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50">
                         <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -105,6 +122,9 @@
                         <thead>
                             <tr class="border-b border-gray-100 bg-gray-50">
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Product *</th>
+                                @if ($poLinked)
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">PO Pending</th>
+                                @endif
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Quantity *</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Unit Price *</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Total *</th>
@@ -114,9 +134,13 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             @foreach ($items as $index => $item)
+                                @php
+                                    $pendingQty = $this->pendingQuantityForIndex($index);
+                                @endphp
                                 <tr>
                                     <td class="px-4 py-3 min-w-[260px]">
-                                        <select wire:model="items.{{ $index }}.product_id" @disabled($isLocked)
+                                        <input type="hidden" wire:model="items.{{ $index }}.purchase_order_item_id">
+                                        <select wire:model="items.{{ $index }}.product_id" @disabled($isLocked || $poLinked)
                                             class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                                             <option value="">Select product</option>
                                             @foreach ($products as $product)
@@ -125,6 +149,12 @@
                                         </select>
                                         <x-input-error for="items.{{ $index }}.product_id" class="mt-1" />
                                     </td>
+
+                                    @if ($poLinked)
+                                        <td class="px-4 py-3 min-w-[130px]">
+                                            <p class="text-sm text-gray-700">{{ number_format($pendingQty, 3) }}</p>
+                                        </td>
+                                    @endif
 
                                     <td class="px-4 py-3 min-w-[140px]">
                                         <input type="number" min="0.001" step="0.001" wire:model.live="items.{{ $index }}.quantity" @disabled($isLocked)

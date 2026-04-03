@@ -22,10 +22,12 @@ class StockReceiveView extends Component
 
         $this->stockReceive = $stockReceive->load([
             'supplier:id,name,contact_person,phone',
+            'purchaseOrder:id,po_no,status',
             'store:id,name,code,type',
             'creator:id,name',
             'poster:id,name',
             'items.product:id,name,sku',
+            'items.purchaseOrderItem:id,purchase_order_id,product_id',
         ]);
 
         $this->ensureStoreAccessible((int) $this->stockReceive->store_id);
@@ -43,7 +45,15 @@ class StockReceiveView extends Component
 
         try {
             app(StockReceiveService::class)->postReceive($this->stockReceive);
-            $this->stockReceive = $this->stockReceive->refresh()->load(['items.product', 'supplier', 'store', 'creator', 'poster']);
+            $this->stockReceive = $this->stockReceive->refresh()->load([
+                'supplier:id,name,contact_person,phone',
+                'purchaseOrder:id,po_no,status',
+                'store:id,name,code,type',
+                'creator:id,name',
+                'poster:id,name',
+                'items.product:id,name,sku',
+                'items.purchaseOrderItem:id,purchase_order_id,product_id',
+            ]);
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Stock receive posted successfully.']);
         } catch (\Throwable $throwable) {
             $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
@@ -66,7 +76,15 @@ class StockReceiveView extends Component
             ]);
         });
 
-        $this->stockReceive = $this->stockReceive->refresh()->load(['items.product', 'supplier', 'store', 'creator', 'poster']);
+        $this->stockReceive = $this->stockReceive->refresh()->load([
+            'supplier:id,name,contact_person,phone',
+            'purchaseOrder:id,po_no,status',
+            'store:id,name,code,type',
+            'creator:id,name',
+            'poster:id,name',
+            'items.product:id,name,sku',
+            'items.purchaseOrderItem:id,purchase_order_id,product_id',
+        ]);
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Stock receive cancelled successfully.']);
     }
 

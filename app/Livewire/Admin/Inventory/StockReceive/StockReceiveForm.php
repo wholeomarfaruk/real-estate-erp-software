@@ -2,13 +2,19 @@
 
 namespace App\Livewire\Admin\Inventory\StockReceive;
 
+use App\Enums\Inventory\PurchaseOrderStatus;
 use App\Enums\Inventory\StockReceiveStatus;
 use App\Enums\Inventory\StoreType;
 use App\Livewire\Admin\Inventory\Concerns\InteractsWithInventoryAccess;
+use App\Models\Product;
+use App\Models\PurchaseOrder;
 use App\Models\StockReceive;
+use App\Models\StockReceiveItem;
 use App\Models\Store;
+use App\Models\Supplier;
 use App\Services\Inventory\StockReceiveService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -27,6 +33,8 @@ class StockReceiveForm extends Component
 
     public string $receive_date = '';
 
+    public ?int $purchase_order_id = null;
+
     public ?int $supplier_id = null;
 
     public ?string $supplier_voucher = null;
@@ -40,7 +48,12 @@ class StockReceiveForm extends Component
     public bool $isLocked = false;
 
     /**
-     * @var array<int, array{product_id:int|string|null, quantity:float|int|string, unit_price:float|int|string, total_price:float|int|string, remarks:?string}>
+     * @var array<int, float>
+     */
+    public array $pendingPoItemQuantities = [];
+
+    /**
+     * @var array<int, array{product_id:int|string|null, purchase_order_item_id:int|string|null, quantity:float|int|string, unit_price:float|int|string, total_price:float|int|string, remarks:?string}>
      */
     public array $items = [];
 
@@ -55,6 +68,7 @@ class StockReceiveForm extends Component
 
             $this->receive_no = $stockReceive->receive_no;
             $this->receive_date = optional($stockReceive->receive_date)->format('Y-m-d') ?: now()->toDateString();
+            $this->purchase_order_id = $stockReceive->purchase_order_id;
             $this->supplier_id = $stockReceive->supplier_id;
             $this->supplier_voucher = $stockReceive->supplier_voucher;
             $this->store_id = $stockReceive->store_id;
@@ -67,6 +81,7 @@ class StockReceiveForm extends Component
             $this->items = $stockReceive->items
                 ->map(fn ($item): array => [
                     'product_id' => $item->product_id,
+                    'purchase_order_item_id' => $item->purchase_order_item_id,
                     'quantity' => (float) $item->quantity,
                     'unit_price' => (float) $item->unit_price,
                     'total_price' => (float) $item->total_price,
@@ -79,6 +94,10 @@ class StockReceiveForm extends Component
                 $this->items[] = $this->blankItem();
             }
 
+            if ($this->purchase_order_id) {
+                $this->pendingPoItemQuantities = $this->pendingQuantitiesForPurchaseOrder((int) $this->purchase_order_id);
+            }
+
             return;
         }
 
@@ -89,14 +108,43 @@ class StockReceiveForm extends Component
         $this->items[] = $this->blankItem();
     }
 
+    public function updatedPurchaseOrderId($purchaseOrderId): void
+    {
+        if ($this->isLocked) {
+            return;
+        }
+
+        if (! $purchaseOrderId) {
+            $this->pendingPoItemQuantities = [];
+
+            foreach ($this->items as $index => $item) {
+                $this->items[$index]['purchase_order_item_id'] = null;
+            }
+
+            return;
+        }
+
+        try {
+            $this->loadItemsFromPurchaseOrder((int) $purchaseOrderId);
+        } catch (\Throwable $throwable) {
+            $this->purchase_order_id = null;
+            $this->pendingPoItemQuantities = [];
+            $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
+        }
+    }
+
     public function addItem(): void
     {
+        if ($this->isLocked || $this->purchase_order_id) {
+            return;
+        }
+
         $this->items[] = $this->blankItem();
     }
 
     public function removeItem(int $index): void
     {
-        if (count($this->items) <= 1) {
+        if ($this->isLocked || count($this->items) <= 1) {
             return;
         }
 
@@ -145,14 +193,7 @@ class StockReceiveForm extends Component
 
         try {
             $saved = $this->save(StockReceiveStatus::DRAFT);
-        } catch (\Throwable $throwable) {
-            $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
-
-            return;
-        }
-
-        try {
-            app(StockReceiveService::class)->postReceive($saved);
+            app(StockReceiveService::class)->postReceive($saved, (int) auth()->id());
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Stock receive posted successfully.']);
         } catch (\Throwable $throwable) {
             $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
@@ -161,6 +202,21 @@ class StockReceiveForm extends Component
         }
 
         return redirect()->route('admin.inventory.stock-receives.index');
+    }
+
+    public function pendingQuantityForIndex(int $index): float
+    {
+        if (! isset($this->items[$index])) {
+            return 0;
+        }
+
+        $purchaseOrderItemId = (int) ($this->items[$index]['purchase_order_item_id'] ?? 0);
+
+        if ($purchaseOrderItemId <= 0) {
+            return 0;
+        }
+
+        return (float) ($this->pendingPoItemQuantities[$purchaseOrderItemId] ?? 0);
     }
 
     public function render(): View
@@ -172,19 +228,25 @@ class StockReceiveForm extends Component
         }
 
         $storesQuery = Store::query()->active()->office()->orderBy('name');
-        $supplierQuery = \App\Models\Supplier::query()->active()->orderBy('name');
 
         if (! $this->canViewAllStores()) {
             $storeIds = $this->getAccessibleStoreIds();
             $storesQuery->whereIn('id', $storeIds === [] ? [0] : $storeIds);
         }
 
+        $purchaseOrdersQuery = $this->selectablePurchaseOrdersQuery()
+            ->with(['supplier:id,name', 'store:id,name,code'])
+            ->latest('order_date')
+            ->latest('id');
+
         return view('livewire.admin.inventory.stock-receive.stock-receive-form', [
             'stores' => $storesQuery->get(['id', 'name', 'code']),
-            'suppliers' => $supplierQuery->get(['id', 'name', 'contact_person', 'phone']),
-            'products' => \App\Models\Product::query()->active()->orderBy('name')->get(['id', 'name', 'sku']),
+            'suppliers' => Supplier::query()->active()->orderBy('name')->get(['id', 'name', 'contact_person', 'phone']),
+            'products' => Product::query()->active()->orderBy('name')->get(['id', 'name', 'sku']),
+            'purchaseOrders' => $purchaseOrdersQuery->get(['id', 'po_no', 'supplier_id', 'store_id', 'status']),
             'grandTotal' => $this->grandTotal,
             'isLocked' => $this->isLocked,
+            'poLinked' => (bool) $this->purchase_order_id,
         ])->layout('layouts.admin.admin');
     }
 
@@ -206,10 +268,13 @@ class StockReceiveForm extends Component
 
         $this->ensureStoreAccessible((int) $validated['store_id']);
 
+        $this->validatePurchaseOrderLink($validated);
+
         $stockReceive = DB::transaction(function () use ($validated, $status): StockReceive {
             $header = [
                 'receive_no' => $validated['receive_no'],
                 'receive_date' => $validated['receive_date'],
+                'purchase_order_id' => $validated['purchase_order_id'],
                 'supplier_id' => $validated['supplier_id'],
                 'supplier_voucher' => $validated['supplier_voucher'],
                 'store_id' => $validated['store_id'],
@@ -239,6 +304,7 @@ class StockReceiveForm extends Component
             foreach ($validated['items'] as $item) {
                 $record->items()->create([
                     'product_id' => $item['product_id'],
+                    'purchase_order_item_id' => $item['purchase_order_item_id'] ?: null,
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
                     'total_price' => $item['total_price'],
@@ -259,6 +325,7 @@ class StockReceiveForm extends Component
         return [
             'receive_no' => ['required', 'string', 'max:100', Rule::unique('stock_receives', 'receive_no')->ignore($this->stockReceiveId)],
             'receive_date' => ['required', 'date'],
+            'purchase_order_id' => ['nullable', 'integer', 'exists:purchase_orders,id'],
             'supplier_id' => ['nullable', 'integer', 'exists:suppliers,id'],
             'supplier_voucher' => ['nullable', 'string', 'max:255'],
             'store_id' => [
@@ -269,6 +336,7 @@ class StockReceiveForm extends Component
             'remarks' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
+            'items.*.purchase_order_item_id' => ['nullable', 'integer', 'exists:purchase_order_items,id'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
             'items.*.total_price' => ['required', 'numeric', 'min:0'],
@@ -286,12 +354,13 @@ class StockReceiveForm extends Component
     }
 
     /**
-     * @return array{product_id:null, quantity:float, unit_price:float, total_price:float, remarks:null}
+     * @return array{product_id:null, purchase_order_item_id:null, quantity:float, unit_price:float, total_price:float, remarks:null}
      */
     protected function blankItem(): array
     {
         return [
             'product_id' => null,
+            'purchase_order_item_id' => null,
             'quantity' => 1,
             'unit_price' => 0,
             'total_price' => 0,
@@ -317,16 +386,178 @@ class StockReceiveForm extends Component
         }
     }
 
-    protected function generateReceiveNo(): string
+    protected function validatePurchaseOrderLink(array &$validated): void
     {
-        return app(StockReceiveService::class)->generateReceiveNo();
+        if (empty($validated['purchase_order_id'])) {
+            foreach ($validated['items'] as $index => $item) {
+                $validated['items'][$index]['purchase_order_item_id'] = null;
+            }
+
+            return;
+        }
+
+        $purchaseOrder = PurchaseOrder::query()
+            ->with('items')
+            ->findOrFail($validated['purchase_order_id']);
+
+        if (! $this->canViewAllStores()) {
+            $this->ensureStoreAccessible((int) $purchaseOrder->store_id);
+        }
+
+        if (! in_array($purchaseOrder->status, [
+            PurchaseOrderStatus::APPROVED,
+            PurchaseOrderStatus::PARTIALLY_RECEIVED,
+        ], true)) {
+            throw new \DomainException('Only approved or partially received purchase order can be received against.');
+        }
+
+        if ($purchaseOrder->supplier_id && ! $validated['supplier_id']) {
+            $validated['supplier_id'] = (int) $purchaseOrder->supplier_id;
+        }
+
+        if ($purchaseOrder->supplier_id && $validated['supplier_id'] && (int) $purchaseOrder->supplier_id !== (int) $validated['supplier_id']) {
+            throw new \DomainException('Selected supplier does not match the linked purchase order supplier.');
+        }
+
+        $poItems = $purchaseOrder->items->keyBy('id');
+        $pendingQuantities = $this->pendingQuantitiesForPurchaseOrder((int) $purchaseOrder->id);
+        $requestedByPoItem = [];
+
+        foreach ($validated['items'] as $item) {
+            $purchaseOrderItemId = (int) ($item['purchase_order_item_id'] ?? 0);
+            if ($purchaseOrderItemId <= 0) {
+                throw new \DomainException('Each receive row must be linked to a purchase order item when PO is selected.');
+            }
+
+            $poItem = $poItems->get($purchaseOrderItemId);
+            if (! $poItem) {
+                throw new \DomainException('A selected purchase order item does not belong to this purchase order.');
+            }
+
+            if ((int) $poItem->product_id !== (int) $item['product_id']) {
+                throw new \DomainException('Product mismatch found between receive item and purchase order item.');
+            }
+
+            $requestedByPoItem[$purchaseOrderItemId] = ($requestedByPoItem[$purchaseOrderItemId] ?? 0) + (float) $item['quantity'];
+        }
+
+        foreach ($requestedByPoItem as $purchaseOrderItemId => $requestedQty) {
+            $pendingQty = (float) ($pendingQuantities[$purchaseOrderItemId] ?? 0);
+
+            if ($requestedQty > $pendingQty + 0.0001) {
+                $poItem = $poItems->get($purchaseOrderItemId);
+                throw new \DomainException(
+                    'Receive quantity exceeds pending quantity for product '
+                    .($poItem->product?->name ?? 'item').'. Pending: '.number_format($pendingQty, 3)
+                );
+            }
+        }
+
+        $this->pendingPoItemQuantities = $pendingQuantities;
+    }
+
+    protected function loadItemsFromPurchaseOrder(int $purchaseOrderId): void
+    {
+        $purchaseOrder = $this->selectablePurchaseOrdersQuery()
+            ->with(['items.product:id,name,sku', 'store:id,type', 'supplier:id,name'])
+            ->find($purchaseOrderId);
+
+        if (! $purchaseOrder) {
+            throw new \DomainException('Selected purchase order is not available for stock receive.');
+        }
+
+        $pendingQuantities = $this->pendingQuantitiesForPurchaseOrder($purchaseOrderId);
+
+        $items = [];
+
+        foreach ($purchaseOrder->items as $item) {
+            $pendingQty = (float) ($pendingQuantities[$item->id] ?? 0);
+
+            if ($pendingQty <= 0) {
+                continue;
+            }
+
+            $unitPrice = (float) ($item->approved_unit_price ?? $item->estimated_unit_price ?? 0);
+
+            $items[] = [
+                'product_id' => $item->product_id,
+                'purchase_order_item_id' => $item->id,
+                'quantity' => $pendingQty,
+                'unit_price' => $unitPrice,
+                'total_price' => round($pendingQty * $unitPrice, 2),
+                'remarks' => $item->remarks,
+            ];
+        }
+
+        if ($items === []) {
+            throw new \DomainException('All selected purchase order items are already fully received.');
+        }
+
+        $this->pendingPoItemQuantities = $pendingQuantities;
+        $this->items = $items;
+
+        if (! $this->supplier_id && $purchaseOrder->supplier_id) {
+            $this->supplier_id = (int) $purchaseOrder->supplier_id;
+        }
+
+        if (! $this->store_id && $purchaseOrder->store?->type === StoreType::OFFICE) {
+            $this->store_id = (int) $purchaseOrder->store_id;
+        }
+    }
+
+    /**
+     * @return array<int, float>
+     */
+    protected function pendingQuantitiesForPurchaseOrder(int $purchaseOrderId): array
+    {
+        $purchaseOrder = PurchaseOrder::query()->with('items')->findOrFail($purchaseOrderId);
+        $poItemIds = $purchaseOrder->items->pluck('id')->all();
+
+        $receivedByItem = StockReceiveItem::query()
+            ->selectRaw('purchase_order_item_id, SUM(quantity) as received_quantity')
+            ->whereIn('purchase_order_item_id', $poItemIds === [] ? [0] : $poItemIds)
+            ->whereHas('stockReceive', function (Builder $builder): void {
+                $builder->where('status', StockReceiveStatus::POSTED->value);
+            })
+            ->groupBy('purchase_order_item_id')
+            ->pluck('received_quantity', 'purchase_order_item_id');
+
+        $pending = [];
+
+        foreach ($purchaseOrder->items as $item) {
+            $requiredQty = (float) ($item->approved_quantity ?: $item->quantity);
+            $receivedQty = (float) ($receivedByItem[$item->id] ?? 0);
+            $pending[$item->id] = max(0, round($requiredQty - $receivedQty, 3));
+        }
+
+        return $pending;
+    }
+
+    protected function selectablePurchaseOrdersQuery(): Builder
+    {
+        $query = PurchaseOrder::query()
+            ->where(function (Builder $builder): void {
+                $builder->whereIn('status', [
+                    PurchaseOrderStatus::APPROVED->value,
+                    PurchaseOrderStatus::PARTIALLY_RECEIVED->value,
+                ]);
+
+                if ($this->purchase_order_id) {
+                    $builder->orWhereKey($this->purchase_order_id);
+                }
+            });
+
+        if (! $this->canViewAllStores()) {
+            $storeIds = $this->getAccessibleStoreIds();
+            $query->whereIn('store_id', $storeIds === [] ? [0] : $storeIds);
+        }
+
+        return $query;
     }
 
     public function getGrandTotalProperty(): float
     {
-        $total = collect($this->items)->sum(function (array $item): float {
-            return (float) ($item['total_price'] ?? 0);
-        });
+        $total = collect($this->items)->sum(fn (array $item): float => (float) ($item['total_price'] ?? 0));
 
         return round($total, 2);
     }

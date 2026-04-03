@@ -37,6 +37,11 @@ Route::get('/materials/brands', App\Livewire\Admin\Materials\ProductBrands::clas
 Route::get('/materials/products', App\Livewire\Admin\Materials\Products::class)->name('materials.products');
 Route::get('/materials/units', App\Livewire\Admin\Materials\ProductUnits::class)->name('materials.units');
 
+//inventory dashboard
+Route::get('/inventory/dashboard', App\Livewire\Admin\Inventory\Dashboard\InventoryDashboard::class)
+    ->middleware('can:inventory.dashboard.view')
+    ->name('inventory.dashboard');
+
 //inventory stores
 Route::get('/inventory/stores', App\Livewire\Admin\Inventory\Store\StoreList::class)->name('inventory.stores.index');
 Route::get('/inventory/stores/create', App\Livewire\Admin\Inventory\Store\StoreForm::class)->name('inventory.stores.create');
@@ -53,6 +58,14 @@ Route::get('/inventory/suppliers', App\Livewire\Admin\Inventory\Supplier\Supplie
 Route::get('/inventory/suppliers/create', App\Livewire\Admin\Inventory\Supplier\SupplierForm::class)->name('inventory.suppliers.create');
 Route::get('/inventory/suppliers/{supplier}/edit', App\Livewire\Admin\Inventory\Supplier\SupplierForm::class)->name('inventory.suppliers.edit');
 
+//inventory purchase orders
+Route::get('/inventory/purchase-orders', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseOrderList::class)->name('inventory.purchase-orders.index');
+Route::get('/inventory/purchase-orders/create', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseOrderForm::class)->name('inventory.purchase-orders.create');
+Route::get('/inventory/purchase-orders/{purchaseOrder}/view', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseOrderView::class)->name('inventory.purchase-orders.view');
+Route::get('/inventory/purchase-orders/{purchaseOrder}/edit', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseOrderForm::class)->name('inventory.purchase-orders.edit');
+Route::get('/inventory/purchase-orders/{purchaseOrder}/funds', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseFundForm::class)->name('inventory.purchase-orders.funds');
+Route::get('/inventory/purchase-orders/{purchaseOrder}/settlement', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseSettlementForm::class)->name('inventory.purchase-orders.settlement');
+
 //inventory stock receives
 Route::get('/inventory/stock-receives', App\Livewire\Admin\Inventory\StockReceive\StockReceiveList::class)->name('inventory.stock-receives.index');
 Route::get('/inventory/stock-receives/create', App\Livewire\Admin\Inventory\StockReceive\StockReceiveForm::class)->name('inventory.stock-receives.create');
@@ -64,6 +77,26 @@ Route::get('/inventory/stock-transfers', App\Livewire\Admin\Inventory\StockTrans
 Route::get('/inventory/stock-transfers/create', App\Livewire\Admin\Inventory\StockTransfer\StockTransferForm::class)->name('inventory.stock-transfers.create');
 Route::get('/inventory/stock-transfers/{transferTransaction}/view', App\Livewire\Admin\Inventory\StockTransfer\StockTransferView::class)->name('inventory.stock-transfers.view');
 Route::get('/inventory/stock-transfers/{transferTransaction}/edit', App\Livewire\Admin\Inventory\StockTransfer\StockTransferForm::class)->name('inventory.stock-transfers.edit');
+
+//inventory stock adjustments
+Route::get('/inventory/stock-adjustments', App\Livewire\Admin\Inventory\StockAdjustment\StockAdjustmentList::class)->name('inventory.stock-adjustments.index');
+Route::get('/inventory/stock-adjustments/create', App\Livewire\Admin\Inventory\StockAdjustment\StockAdjustmentForm::class)->name('inventory.stock-adjustments.create');
+Route::get('/inventory/stock-adjustments/{stockAdjustment}/view', App\Livewire\Admin\Inventory\StockAdjustment\StockAdjustmentView::class)->name('inventory.stock-adjustments.view');
+Route::get('/inventory/stock-adjustments/{stockAdjustment}/edit', App\Livewire\Admin\Inventory\StockAdjustment\StockAdjustmentForm::class)->name('inventory.stock-adjustments.edit');
+
+//inventory reports
+Route::get('/inventory/reports/product-ledger', App\Livewire\Admin\Inventory\Reports\ProductLedger::class)->name('inventory.reports.product-ledger');
+Route::get('/inventory/reports/store-ledger', App\Livewire\Admin\Inventory\Reports\StoreLedger::class)->name('inventory.reports.store-ledger');
+Route::get('/inventory/reports/project-ledger', App\Livewire\Admin\Inventory\Reports\ProjectLedger::class)->name('inventory.reports.project-ledger');
+Route::get('/inventory/reports/supplier-purchase-history', App\Livewire\Admin\Inventory\Reports\SupplierPurchaseHistory::class)->name('inventory.reports.supplier-purchase-history');
+Route::get('/inventory/reports/stock-movement', App\Livewire\Admin\Inventory\Reports\StockMovementReport::class)->name('inventory.reports.stock-movement');
+Route::get('/inventory/reports/total-stock-summary', App\Livewire\Admin\Inventory\Reports\TotalStockSummary::class)->name('inventory.reports.total-stock-summary');
+Route::get('/inventory/reports/office-store-summary', App\Livewire\Admin\Inventory\Reports\OfficeStoreSummary::class)->name('inventory.reports.office-store-summary');
+Route::get('/inventory/reports/project-store-summary', App\Livewire\Admin\Inventory\Reports\ProjectStoreSummary::class)->name('inventory.reports.project-store-summary');
+Route::get('/inventory/reports/product-stock-summary', App\Livewire\Admin\Inventory\Reports\ProductStockSummary::class)->name('inventory.reports.product-stock-summary');
+Route::get('/inventory/reports/low-stock', App\Livewire\Admin\Inventory\Reports\LowStockReport::class)->name('inventory.reports.low-stock');
+Route::get('/inventory/reports/out-of-stock', App\Livewire\Admin\Inventory\Reports\OutOfStockReport::class)->name('inventory.reports.out-of-stock');
+Route::get('/inventory/reports/store-stock-value', App\Livewire\Admin\Inventory\Reports\StoreStockValueSummary::class)->name('inventory.reports.store-stock-value');
 
 //uploads
 Route::get('/uploads', App\Livewire\Admin\File\Uploads::class)->name('uploads');

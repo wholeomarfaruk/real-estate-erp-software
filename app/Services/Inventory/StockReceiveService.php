@@ -2,18 +2,22 @@
 
 namespace App\Services\Inventory;
 
+use App\Enums\Inventory\PurchaseOrderStatus;
 use App\Enums\Inventory\StockMovementDirection;
 use App\Enums\Inventory\StockMovementType;
 use App\Enums\Inventory\StockReceiveStatus;
 use App\Enums\Inventory\StoreType;
+use App\Models\PurchaseOrder;
 use App\Models\StockReceive;
+use App\Models\StockReceiveItem;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class StockReceiveService
 {
     public function __construct(
-        protected StockService $stockService
+        protected StockService $stockService,
+        protected PurchaseOrderService $purchaseOrderService
     ) {}
 
     public function generateReceiveNo(): string
@@ -51,6 +55,36 @@ class StockReceiveService
 
             if ($lockedReceive->items->isEmpty()) {
                 throw new \DomainException('At least one item is required before posting.');
+            }
+
+            $purchaseOrder = null;
+
+            if ($lockedReceive->purchase_order_id) {
+                $purchaseOrder = PurchaseOrder::query()
+                    ->with(['items', 'items.product'])
+                    ->lockForUpdate()
+                    ->find($lockedReceive->purchase_order_id);
+
+                if (! $purchaseOrder) {
+                    throw new \DomainException('Linked purchase order not found.');
+                }
+
+                if (! in_array($purchaseOrder->status, [
+                    PurchaseOrderStatus::APPROVED,
+                    PurchaseOrderStatus::PARTIALLY_RECEIVED,
+                ], true)) {
+                    throw new \DomainException('Stock receive can be posted only against approved or partially received purchase order.');
+                }
+
+                if ($purchaseOrder->supplier_id && $lockedReceive->supplier_id && (int) $purchaseOrder->supplier_id !== (int) $lockedReceive->supplier_id) {
+                    throw new \DomainException('Receive supplier does not match linked purchase order supplier.');
+                }
+
+                if (! $lockedReceive->supplier_id && $purchaseOrder->supplier_id) {
+                    $lockedReceive->supplier_id = (int) $purchaseOrder->supplier_id;
+                }
+
+                $this->validatePurchaseOrderItems($lockedReceive, $purchaseOrder);
             }
 
             foreach ($lockedReceive->items as $item) {
@@ -95,11 +129,69 @@ class StockReceiveService
 
             $lockedReceive->update([
                 'status' => StockReceiveStatus::POSTED->value,
+                'supplier_id' => $lockedReceive->supplier_id,
                 'posted_by' => $actorId,
                 'posted_at' => now(),
             ]);
 
+            if ($purchaseOrder) {
+                $this->purchaseOrderService->recalculateReceiveStatus($purchaseOrder);
+            }
+
             return $lockedReceive->refresh();
         });
+    }
+
+    protected function validatePurchaseOrderItems(StockReceive $stockReceive, PurchaseOrder $purchaseOrder): void
+    {
+        $poItems = $purchaseOrder->items->keyBy('id');
+
+        $postedReceivedByPoItem = StockReceiveItem::query()
+            ->selectRaw('purchase_order_item_id, SUM(quantity) as received_quantity')
+            ->whereIn('purchase_order_item_id', $poItems->keys()->all() === [] ? [0] : $poItems->keys()->all())
+            ->whereHas('stockReceive', function ($query): void {
+                $query->where('status', StockReceiveStatus::POSTED->value);
+            })
+            ->groupBy('purchase_order_item_id')
+            ->pluck('received_quantity', 'purchase_order_item_id');
+
+        $currentReceiveByPoItem = [];
+
+        foreach ($stockReceive->items as $item) {
+            $poItemId = (int) ($item->purchase_order_item_id ?? 0);
+            if ($poItemId <= 0) {
+                throw new \DomainException('Each stock receive row must be linked to a purchase order item for PO based receive.');
+            }
+
+            $poItem = $poItems->get($poItemId);
+            if (! $poItem) {
+                throw new \DomainException('Receive item references an invalid purchase order item.');
+            }
+
+            if ((int) $poItem->product_id !== (int) $item->product_id) {
+                throw new \DomainException('Receive product does not match linked purchase order item.');
+            }
+
+            $currentReceiveByPoItem[$poItemId] = ($currentReceiveByPoItem[$poItemId] ?? 0) + (float) $item->quantity;
+        }
+
+        foreach ($currentReceiveByPoItem as $poItemId => $currentQty) {
+            $poItem = $poItems->get($poItemId);
+
+            if (! $poItem) {
+                continue;
+            }
+
+            $requiredQty = (float) ($poItem->approved_quantity ?: $poItem->quantity);
+            $alreadyPostedQty = (float) ($postedReceivedByPoItem[$poItemId] ?? 0);
+
+            if ($alreadyPostedQty + $currentQty > $requiredQty + 0.0001) {
+                throw new \DomainException(
+                    ($poItem->product?->name ?? 'Purchase order item')
+                    .' receive quantity exceeds pending quantity. Pending: '
+                    .number_format(max(0, $requiredQty - $alreadyPostedQty), 3)
+                );
+            }
+        }
     }
 }

@@ -280,31 +280,74 @@
 
                     @php
                         $inventoryMenuRoutes = [
-                            'Product Categories' => Route::has('admin.inventory.product-categories.index') ? 'admin.inventory.product-categories.index' : 'admin.materials.categories',
-                            'Product Units' => Route::has('admin.inventory.product-units.index') ? 'admin.inventory.product-units.index' : 'admin.materials.units',
-                            'Products' => Route::has('admin.inventory.products.index') ? 'admin.inventory.products.index' : 'admin.materials.products',
-                            'Stores' => 'admin.inventory.stores.index',
-                            'Suppliers' => 'admin.inventory.suppliers.index',
-                            'Stock Receive' => 'admin.inventory.stock-receives.index',
-                            'Stock Transfer' => 'admin.inventory.stock-transfers.index',
-                            'Ledger Reports' => 'admin.inventory.reports.ledger',
-                            'Stock Summary' => 'admin.inventory.reports.summary',
+                            ['label' => 'Inventory Dashboard', 'route' => 'admin.inventory.dashboard', 'permission' => 'inventory.dashboard.view'],
+                            ['label' => 'Product Categories', 'route' => Route::has('admin.inventory.product-categories.index') ? 'admin.inventory.product-categories.index' : 'admin.materials.categories', 'permission' => 'inventory.product.view'],
+                            ['label' => 'Product Units', 'route' => Route::has('admin.inventory.product-units.index') ? 'admin.inventory.product-units.index' : 'admin.materials.units', 'permission' => 'inventory.product.view'],
+                            ['label' => 'Products', 'route' => Route::has('admin.inventory.products.index') ? 'admin.inventory.products.index' : 'admin.materials.products', 'permission' => 'inventory.product.view'],
+                            ['label' => 'Stores', 'route' => 'admin.inventory.stores.index', 'permission' => 'inventory.store.view'],
+                            ['label' => 'Suppliers', 'route' => 'admin.inventory.suppliers.index', 'permission' => 'inventory.supplier.view'],
+                            ['label' => 'Purchase Orders', 'route' => 'admin.inventory.purchase-orders.index', 'permission' => 'inventory.purchase_order.view'],
+                            ['label' => 'Stock Receive', 'route' => 'admin.inventory.stock-receives.index', 'permission' => 'inventory.stock.receive.view'],
+                            ['label' => 'Stock Transfer', 'route' => 'admin.inventory.stock-transfers.index', 'permission' => 'inventory.stock.transfer.view'],
+                            ['label' => 'Stock Adjustment', 'route' => 'admin.inventory.stock-adjustments.index', 'permission' => 'inventory.stock.adjustment.view'],
+                            ['label' => 'Stock Consumption', 'route' => 'admin.inventory.stock-consumptions.index', 'permission' => 'inventory.stock.consumption.view'],
+                        ];
+
+                        $ledgerReportRoutes = [
+                            'Product Ledger' => 'admin.inventory.reports.product-ledger',
+                            'Store Ledger' => 'admin.inventory.reports.store-ledger',
+                            'Project Ledger' => 'admin.inventory.reports.project-ledger',
+                            'Supplier Purchase History' => 'admin.inventory.reports.supplier-purchase-history',
+                            'Stock Movement Report' => 'admin.inventory.reports.stock-movement',
+                        ];
+
+                        $summaryReportRoutes = [
+                            'Total Stock Summary' => 'admin.inventory.reports.total-stock-summary',
+                            'Office Store Summary' => 'admin.inventory.reports.office-store-summary',
+                            'Project Store Summary' => 'admin.inventory.reports.project-store-summary',
+                            'Product Stock Summary' => 'admin.inventory.reports.product-stock-summary',
+                            'Low Stock Report' => 'admin.inventory.reports.low-stock',
+                            'Out Of Stock Report' => 'admin.inventory.reports.out-of-stock',
+                            'Store Stock Value Summary' => 'admin.inventory.reports.store-stock-value',
                         ];
                     @endphp
 
                     <div x-cloak x-show="open" @click.outside="open=false"
                         :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
-                        @foreach ($inventoryMenuRoutes as $label => $routeName)
-                            @if (Route::has($routeName))
-                                <a href="{{ route($routeName) }}" class="hover:text-gray-200 cursor-pointer text-xs">
-                                    {{ $label }}
+                        @foreach ($inventoryMenuRoutes as $item)
+                            @if (Route::has($item['route']) && auth()->user()?->can($item['permission']))
+                                <a href="{{ route($item['route']) }}" class="hover:text-gray-200 cursor-pointer text-xs">
+                                    {{ $item['label'] }}
                                 </a>
                             @endif
                         @endforeach
 
-                        <a href="{{ url('/admin/inventory/stock-consumptions') }}" class="hover:text-gray-200 cursor-pointer text-xs">
-                            Stock Consumption
-                        </a>
+                        @if (auth()->user()?->can('inventory.stock.ledger.view') || auth()->user()?->can('inventory.stock.report.view'))
+                            <div class="pt-1">
+                                <p class="text-[11px] uppercase tracking-wide text-gray-500">Reports</p>
+                                <div class="mt-2 space-y-2">
+                                    @can('inventory.stock.ledger.view')
+                                        @foreach ($ledgerReportRoutes as $label => $routeName)
+                                            @if (Route::has($routeName))
+                                                <a href="{{ route($routeName) }}" class="hover:text-gray-200 cursor-pointer block text-xs pl-2">
+                                                    {{ $label }}
+                                                </a>
+                                            @endif
+                                        @endforeach
+                                    @endcan
+
+                                    @can('inventory.stock.report.view')
+                                        @foreach ($summaryReportRoutes as $label => $routeName)
+                                            @if (Route::has($routeName))
+                                                <a href="{{ route($routeName) }}" class="hover:text-gray-200 cursor-pointer block text-xs pl-2">
+                                                    {{ $label }}
+                                                </a>
+                                            @endif
+                                        @endforeach
+                                    @endcan
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
 

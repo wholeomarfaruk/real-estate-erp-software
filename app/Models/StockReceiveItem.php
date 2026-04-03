@@ -13,6 +13,7 @@ class StockReceiveItem extends Model
     protected $fillable = [
         'stock_receive_id',
         'product_id',
+        'purchase_order_item_id',
         'quantity',
         'unit_price',
         'total_price',
@@ -33,5 +34,10 @@ class StockReceiveItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function purchaseOrderItem(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrderItem::class, 'purchase_order_item_id');
     }
 }

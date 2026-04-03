@@ -62,6 +62,10 @@
                     <p class="text-sm font-medium text-gray-800">{{ $stockReceive->supplier_voucher ?: 'N/A' }}</p>
                 </div>
                 <div>
+                    <p class="text-xs text-gray-500">Linked PO</p>
+                    <p class="text-sm font-medium text-gray-800">{{ $stockReceive->purchaseOrder?->po_no ?? 'N/A' }}</p>
+                </div>
+                <div>
                     <p class="text-xs text-gray-500">Created By</p>
                     <p class="text-sm font-medium text-gray-800">{{ $stockReceive->creator?->name ?? 'N/A' }}</p>
                 </div>
@@ -137,6 +141,7 @@
                     <thead>
                         <tr class="border-b border-gray-100 bg-gray-50">
                             <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Product</th>
+                            <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">PO Item</th>
                             <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Quantity</th>
                             <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Rate</th>
                             <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Total</th>
@@ -150,6 +155,9 @@
                                     <p class="text-sm font-medium text-gray-800">{{ $item->product?->name ?? 'N/A' }}</p>
                                     <p class="text-xs text-gray-500">{{ $item->product?->sku ?? 'No SKU' }}</p>
                                 </td>
+                                <td class="px-5 py-4 text-sm text-gray-700">
+                                    {{ $item->purchase_order_item_id ? 'Linked' : 'N/A' }}
+                                </td>
                                 <td class="px-5 py-4 text-sm text-gray-700">{{ number_format((float) $item->quantity, 3) }}</td>
                                 <td class="px-5 py-4 text-sm text-gray-700">{{ number_format((float) $item->unit_price, 2) }}</td>
                                 <td class="px-5 py-4 text-sm text-gray-700">{{ number_format((float) $item->total_price, 2) }}</td>
@@ -157,7 +165,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-5 py-10 text-center text-sm text-gray-500">No items found.</td>
+                                <td colspan="6" class="px-5 py-10 text-center text-sm text-gray-500">No items found.</td>
                             </tr>
                         @endforelse
                     </tbody>

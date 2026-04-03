@@ -99,6 +99,24 @@ class PermissionSeeder extends Seeder
 
             ['id' => 57, 'name' => 'inventory.stock.ledger.view'],
             ['id' => 58, 'name' => 'inventory.stock.report.view'],
+
+            ['id' => 59, 'name' => 'inventory.stock.adjustment.view'],
+            ['id' => 60, 'name' => 'inventory.stock.adjustment.create'],
+            ['id' => 61, 'name' => 'inventory.stock.adjustment.update'],
+            ['id' => 62, 'name' => 'inventory.stock.adjustment.post'],
+            ['id' => 63, 'name' => 'inventory.stock.adjustment.delete'],
+
+            ['id' => 64, 'name' => 'inventory.purchase_order.view'],
+            ['id' => 65, 'name' => 'inventory.purchase_order.create'],
+            ['id' => 66, 'name' => 'inventory.purchase_order.update'],
+            ['id' => 67, 'name' => 'inventory.purchase_order.submit'],
+            ['id' => 68, 'name' => 'inventory.purchase_order.engineer_approve'],
+            ['id' => 69, 'name' => 'inventory.purchase_order.chairman_approve'],
+            ['id' => 70, 'name' => 'inventory.purchase_order.accounts_approve'],
+            ['id' => 71, 'name' => 'inventory.purchase_order.fund_release'],
+            ['id' => 72, 'name' => 'inventory.purchase_order.settle'],
+            ['id' => 73, 'name' => 'inventory.purchase_order.complete'],
+            ['id' => 74, 'name' => 'inventory.purchase_order.delete'],
         ];
 
         foreach ($permissions as $permission) {

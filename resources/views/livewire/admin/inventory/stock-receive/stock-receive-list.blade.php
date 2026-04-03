@@ -41,7 +41,7 @@
                         id="search"
                         type="text"
                         wire:model.live.debounce.400ms="search"
-                        placeholder="No, supplier, voucher, remarks"
+                        placeholder="No, PO, supplier, voucher, remarks"
                         class="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none"
                     >
                 </div>
@@ -122,6 +122,9 @@
                                     <td class="px-5 py-4">
                                         <p class="text-sm font-medium text-gray-800">{{ $receive->receive_no }}</p>
                                         <p class="text-xs text-gray-500">{{ optional($receive->receive_date)->format('d M, Y') }}</p>
+                                        @if ($receive->purchaseOrder)
+                                            <p class="text-xs text-indigo-600">PO: {{ $receive->purchaseOrder->po_no }}</p>
+                                        @endif
                                         @if ($receive->supplier_voucher)
                                             <p class="text-xs text-gray-500">Voucher: {{ $receive->supplier_voucher }}</p>
                                         @endif
