@@ -46,4 +46,9 @@ class PurchaseOrderItem extends Model
     {
         return $this->hasMany(StockReceiveItem::class, 'purchase_order_item_id');
     }
+
+    public function purchaseReturnItems(): HasMany
+    {
+        return $this->hasMany(PurchaseReturnItem::class, 'purchase_order_item_id');
+    }
 }

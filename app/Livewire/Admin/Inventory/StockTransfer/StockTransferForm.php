@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Inventory\StockTransfer;
 use App\Enums\Inventory\TransferStatus;
 use App\Livewire\Admin\Inventory\Concerns\InteractsWithInventoryAccess;
 use App\Models\Product;
+use App\Models\StockRequest;
 use App\Models\Store;
 use App\Models\TransferTransaction;
 use App\Services\Inventory\StockService;
@@ -21,6 +22,8 @@ class StockTransferForm extends Component
     public ?TransferTransaction $transferRecord = null;
 
     public ?int $transferId = null;
+
+    public ?int $stock_request_id = null;
 
     public bool $editMode = false;
 
@@ -85,6 +88,8 @@ class StockTransferForm extends Component
         $this->transfer_no = app(StockTransferService::class)->generateTransferNo();
         $this->transfer_date = now()->toDateString();
         $this->items[] = $this->blankItem();
+
+        $this->prefillFromStockRequest();
     }
 
     public function addItem(): void
@@ -339,5 +344,58 @@ class StockTransferForm extends Component
             403,
             'You are not allowed to access this transfer.'
         );
+    }
+
+    protected function prefillFromStockRequest(): void
+    {
+        $stockRequestId = (int) request()->integer('stock_request_id');
+        if ($stockRequestId <= 0) {
+            return;
+        }
+
+        $stockRequest = StockRequest::query()
+            ->with('items')
+            ->find($stockRequestId);
+
+        if (! $stockRequest || ! in_array($stockRequest->status?->value, ['approved', 'partially_fulfilled'], true)) {
+            return;
+        }
+
+        if (! $this->canViewAllStores()) {
+            $storeIds = $this->getAccessibleStoreIds();
+
+            if (! in_array((int) $stockRequest->requester_store_id, $storeIds, true)
+                && ! ($stockRequest->source_store_id && in_array((int) $stockRequest->source_store_id, $storeIds, true))) {
+                return;
+            }
+        }
+
+        $this->stock_request_id = (int) $stockRequest->id;
+        $this->sender_store_id = $stockRequest->source_store_id ? (int) $stockRequest->source_store_id : null;
+        $this->receiver_store_id = (int) $stockRequest->requester_store_id;
+        $this->remarks = trim(($this->remarks ? $this->remarks.' ' : '').'Prefilled from stock request '.$stockRequest->request_no.'.');
+
+        $prefilledItems = [];
+        foreach ($stockRequest->items as $item) {
+            $targetQty = (float) ($item->approved_quantity ?? $item->quantity);
+            $remainingQty = round(max(0, $targetQty - (float) $item->fulfilled_quantity), 3);
+
+            if ($remainingQty <= 0) {
+                continue;
+            }
+
+            $prefilledItems[] = [
+                'product_id' => (int) $item->product_id,
+                'quantity' => $remainingQty,
+                'received_quantity' => null,
+                'unit_price' => 0,
+                'total_price' => 0,
+                'remarks' => $item->remarks,
+            ];
+        }
+
+        if ($prefilledItems !== []) {
+            $this->items = $prefilledItems;
+        }
     }
 }

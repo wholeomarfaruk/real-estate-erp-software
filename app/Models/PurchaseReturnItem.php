@@ -5,16 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class StockReceiveItem extends Model
+class PurchaseReturnItem extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'stock_receive_id',
-        'product_id',
+        'purchase_return_id',
+        'stock_receive_item_id',
         'purchase_order_item_id',
+        'product_id',
         'quantity',
         'unit_price',
         'total_price',
@@ -27,14 +27,14 @@ class StockReceiveItem extends Model
         'total_price' => 'decimal:2',
     ];
 
-    public function stockReceive(): BelongsTo
+    public function purchaseReturn(): BelongsTo
     {
-        return $this->belongsTo(StockReceive::class);
+        return $this->belongsTo(PurchaseReturn::class);
     }
 
-    public function product(): BelongsTo
+    public function stockReceiveItem(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(StockReceiveItem::class, 'stock_receive_item_id');
     }
 
     public function purchaseOrderItem(): BelongsTo
@@ -42,8 +42,8 @@ class StockReceiveItem extends Model
         return $this->belongsTo(PurchaseOrderItem::class, 'purchase_order_item_id');
     }
 
-    public function purchaseReturnItems(): HasMany
+    public function product(): BelongsTo
     {
-        return $this->hasMany(PurchaseReturnItem::class, 'stock_receive_item_id');
+        return $this->belongsTo(Product::class);
     }
 }

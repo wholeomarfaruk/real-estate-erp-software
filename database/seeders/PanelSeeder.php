@@ -12,12 +12,24 @@ class PanelSeeder extends Seeder
      */
     public function run(): void
     {
-        \App\Models\Panel::insert([
-            [
-                'id' => 1,
-                'name' => 'Admin',
-                'slug' => 'admin',
-            ]
-        ]);
+        $panels= [
+            ['id' => 1, 'name' => 'Admin', 'slug' => 'admin'],
+            ['id' => 2, 'name' => 'Engineers', 'slug' => 'engineers'],
+            ['id' => 3, 'name' => 'suppliers', 'slug' => 'suppliers'],
+            ['id' => 6, 'name' => 'Managing Director', 'slug' => 'managing-director'],
+            ['id' => 7, 'name' => 'Chairman', 'slug' => 'chairman'],
+        ];
+        foreach ($panels as $panel) {
+            \App\Models\Panel::updateOrCreate(
+                [
+                    'id' => $panel['id'],
+                ],
+                [
+                    'name' => $panel['name'],
+                    'slug' => $panel['slug'],
+                ]
+            );
+        }
     }
 }
+

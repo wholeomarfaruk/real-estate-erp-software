@@ -72,6 +72,18 @@ Route::get('/inventory/stock-receives/create', App\Livewire\Admin\Inventory\Stoc
 Route::get('/inventory/stock-receives/{stockReceive}/view', App\Livewire\Admin\Inventory\StockReceive\StockReceiveView::class)->name('inventory.stock-receives.view');
 Route::get('/inventory/stock-receives/{stockReceive}/edit', App\Livewire\Admin\Inventory\StockReceive\StockReceiveForm::class)->name('inventory.stock-receives.edit');
 
+//inventory purchase returns
+Route::get('/inventory/purchase-returns', App\Livewire\Admin\Inventory\PurchaseReturn\PurchaseReturnList::class)->name('inventory.purchase-returns.index');
+Route::get('/inventory/purchase-returns/create', App\Livewire\Admin\Inventory\PurchaseReturn\PurchaseReturnForm::class)->name('inventory.purchase-returns.create');
+Route::get('/inventory/purchase-returns/{purchaseReturn}/view', App\Livewire\Admin\Inventory\PurchaseReturn\PurchaseReturnView::class)->name('inventory.purchase-returns.view');
+Route::get('/inventory/purchase-returns/{purchaseReturn}/edit', App\Livewire\Admin\Inventory\PurchaseReturn\PurchaseReturnForm::class)->name('inventory.purchase-returns.edit');
+
+//inventory stock requests
+Route::get('/inventory/stock-requests', App\Livewire\Admin\Inventory\StockRequest\StockRequestList::class)->name('inventory.stock-requests.index');
+Route::get('/inventory/stock-requests/create', App\Livewire\Admin\Inventory\StockRequest\StockRequestForm::class)->name('inventory.stock-requests.create');
+Route::get('/inventory/stock-requests/{stockRequest}/view', App\Livewire\Admin\Inventory\StockRequest\StockRequestView::class)->name('inventory.stock-requests.view');
+Route::get('/inventory/stock-requests/{stockRequest}/edit', App\Livewire\Admin\Inventory\StockRequest\StockRequestForm::class)->name('inventory.stock-requests.edit');
+
 //inventory stock transfers
 Route::get('/inventory/stock-transfers', App\Livewire\Admin\Inventory\StockTransfer\StockTransferList::class)->name('inventory.stock-transfers.index');
 Route::get('/inventory/stock-transfers/create', App\Livewire\Admin\Inventory\StockTransfer\StockTransferForm::class)->name('inventory.stock-transfers.create');

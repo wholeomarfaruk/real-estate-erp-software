@@ -36,6 +36,18 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.purchase_order.settle',
                 'inventory.purchase_order.complete',
                 'inventory.purchase_order.delete',
+                'inventory.purchase_return.view',
+                'inventory.purchase_return.create',
+                'inventory.purchase_return.update',
+                'inventory.purchase_return.post',
+                'inventory.purchase_return.delete',
+                'inventory.stock_request.view',
+                'inventory.stock_request.create',
+                'inventory.stock_request.update',
+                'inventory.stock_request.submit',
+                'inventory.stock_request.approve',
+                'inventory.stock_request.reject',
+                'inventory.stock_request.delete',
             ])
             ->get();
 
@@ -51,6 +63,9 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.purchase_order.fund_release',
                 'inventory.purchase_order.settle',
                 'inventory.purchase_order.complete',
+                'inventory.purchase_return.view',
+                'inventory.purchase_return.post',
+                'inventory.stock_request.view',
             ])
             ->get();
 
@@ -69,6 +84,14 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.purchase_order.update',
                 'inventory.purchase_order.submit',
                 'inventory.purchase_order.delete',
+                'inventory.purchase_return.view',
+                'inventory.purchase_return.create',
+                'inventory.purchase_return.update',
+                'inventory.purchase_return.post',
+                'inventory.stock_request.view',
+                'inventory.stock_request.create',
+                'inventory.stock_request.update',
+                'inventory.stock_request.submit',
             ])
             ->get();
 
@@ -78,6 +101,9 @@ class AssignPermissionSeeder extends Seeder
             ->whereIn('name', [
                 'inventory.purchase_order.view',
                 'inventory.purchase_order.engineer_approve',
+                'inventory.stock_request.view',
+                'inventory.stock_request.approve',
+                'inventory.stock_request.reject',
             ])
             ->get();
 

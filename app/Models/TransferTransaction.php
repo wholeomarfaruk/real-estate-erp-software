@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class TransferTransaction extends Model
 {
@@ -69,6 +71,17 @@ class TransferTransaction extends Model
     public function items(): HasMany
     {
         return $this->hasMany(TransferItem::class);
+    }
+
+    public function stockRequestLink(): HasOne
+    {
+        return $this->hasOne(StockRequestTransferLink::class);
+    }
+
+    public function stockRequests(): BelongsToMany
+    {
+        return $this->belongsToMany(StockRequest::class, 'stock_request_transfer_links')
+            ->withTimestamps();
     }
 
     public function scopeDraft(Builder $query): Builder

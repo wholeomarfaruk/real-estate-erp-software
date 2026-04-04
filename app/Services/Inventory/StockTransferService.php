@@ -174,6 +174,8 @@ class StockTransferService
                 'received_at' => now(),
             ]);
 
+            app(StockRequestService::class)->recalculateLinkedRequestsForTransfer($lockedTransfer->refresh(), $actorId);
+
             return $lockedTransfer->refresh();
         });
     }

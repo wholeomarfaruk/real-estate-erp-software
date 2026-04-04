@@ -12,11 +12,16 @@ class ProductUnitSeeder extends Seeder
      */
     public function run(): void
     {
-        $units = ['pcs', 'kg', 'litre', 'm', 'cm', 'mm', 'g', 'fit', 'sqft', 'sqm'];
+        $units = ['pcs', 'kg', 'litre', 'm', 'cm', 'mm', 'g', 'fit', 'sqft', 'sqm','bag'];
         foreach ($units as $unit) {
-            \App\Models\ProductUnit::create([
-                'name' => $unit
-            ]);
+            \App\Models\ProductUnit::updateOrCreate(
+                [
+                    'name' => $unit
+                ],
+                [
+                    'name' => $unit
+                ]
+            );
         }
     }
 }

@@ -80,6 +80,10 @@ class StockReceiveService
                     throw new \DomainException('Receive supplier does not match linked purchase order supplier.');
                 }
 
+                if ((int) $purchaseOrder->store_id !== (int) $lockedReceive->store_id) {
+                    throw new \DomainException('Receive store does not match linked purchase order store.');
+                }
+
                 if (! $lockedReceive->supplier_id && $purchaseOrder->supplier_id) {
                     $lockedReceive->supplier_id = (int) $purchaseOrder->supplier_id;
                 }

@@ -288,6 +288,8 @@
                             ['label' => 'Suppliers', 'route' => 'admin.inventory.suppliers.index', 'permission' => 'inventory.supplier.view'],
                             ['label' => 'Purchase Orders', 'route' => 'admin.inventory.purchase-orders.index', 'permission' => 'inventory.purchase_order.view'],
                             ['label' => 'Stock Receive', 'route' => 'admin.inventory.stock-receives.index', 'permission' => 'inventory.stock.receive.view'],
+                            ['label' => 'Purchase Return', 'route' => 'admin.inventory.purchase-returns.index', 'permission' => 'inventory.purchase_return.view'],
+                            ['label' => 'Stock Request', 'route' => 'admin.inventory.stock-requests.index', 'permission' => 'inventory.stock_request.view'],
                             ['label' => 'Stock Transfer', 'route' => 'admin.inventory.stock-transfers.index', 'permission' => 'inventory.stock.transfer.view'],
                             ['label' => 'Stock Adjustment', 'route' => 'admin.inventory.stock-adjustments.index', 'permission' => 'inventory.stock.adjustment.view'],
                             ['label' => 'Stock Consumption', 'route' => 'admin.inventory.stock-consumptions.index', 'permission' => 'inventory.stock.consumption.view'],

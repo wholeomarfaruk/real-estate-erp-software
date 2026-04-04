@@ -117,6 +117,20 @@ class PermissionSeeder extends Seeder
             ['id' => 72, 'name' => 'inventory.purchase_order.settle'],
             ['id' => 73, 'name' => 'inventory.purchase_order.complete'],
             ['id' => 74, 'name' => 'inventory.purchase_order.delete'],
+
+            ['id' => 75, 'name' => 'inventory.purchase_return.view'],
+            ['id' => 76, 'name' => 'inventory.purchase_return.create'],
+            ['id' => 77, 'name' => 'inventory.purchase_return.update'],
+            ['id' => 78, 'name' => 'inventory.purchase_return.post'],
+            ['id' => 79, 'name' => 'inventory.purchase_return.delete'],
+
+            ['id' => 80, 'name' => 'inventory.stock_request.view'],
+            ['id' => 81, 'name' => 'inventory.stock_request.create'],
+            ['id' => 82, 'name' => 'inventory.stock_request.update'],
+            ['id' => 83, 'name' => 'inventory.stock_request.submit'],
+            ['id' => 84, 'name' => 'inventory.stock_request.approve'],
+            ['id' => 85, 'name' => 'inventory.stock_request.reject'],
+            ['id' => 86, 'name' => 'inventory.stock_request.delete'],
         ];
 
         foreach ($permissions as $permission) {

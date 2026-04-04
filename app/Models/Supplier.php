@@ -40,6 +40,11 @@ class Supplier extends Model
         return $this->hasMany(PurchaseOrder::class);
     }
 
+    public function purchaseReturns(): HasMany
+    {
+        return $this->hasMany(PurchaseReturn::class);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', true);

@@ -119,6 +119,81 @@ class PurchaseOrderView extends Component
         }
     }
 
+    public function engineerReject(string $remarks = null): void
+    {
+        $this->authorizePermission('inventory.purchase_order.engineer_approve');
+
+        if ($this->purchaseOrder->status !== PurchaseOrderStatus::PENDING_ENGINEER) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'This purchase order is not pending engineer approval.']);
+
+            return;
+        }
+
+        try {
+            app(PurchaseOrderService::class)->reject(
+                $this->purchaseOrder,
+                \App\Enums\Inventory\ApprovalStage::ENGINEER,
+                (int) auth()->id(),
+                \App\Enums\Inventory\ApprovalAction::REJECTED,
+                $remarks
+            );
+            $this->reloadPurchaseOrder();
+            $this->dispatch('toast', ['type' => 'success', 'message' => 'Purchase order rejected by engineer.']);
+        } catch (\Throwable $throwable) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
+        }
+    }
+
+    public function chairmanReject(string $remarks = null): void
+    {
+        $this->authorizePermission('inventory.purchase_order.chairman_approve');
+
+        if ($this->purchaseOrder->status !== PurchaseOrderStatus::PENDING_CHAIRMAN) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'This purchase order is not pending chairman approval.']);
+
+            return;
+        }
+
+        try {
+            app(PurchaseOrderService::class)->reject(
+                $this->purchaseOrder,
+                \App\Enums\Inventory\ApprovalStage::CHAIRMAN,
+                (int) auth()->id(),
+                \App\Enums\Inventory\ApprovalAction::REJECTED,
+                $remarks
+            );
+            $this->reloadPurchaseOrder();
+            $this->dispatch('toast', ['type' => 'success', 'message' => 'Purchase order rejected by chairman.']);
+        } catch (\Throwable $throwable) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
+        }
+    }
+
+    public function accountsReject(string $remarks = null): void
+    {
+        $this->authorizePermission('inventory.purchase_order.accounts_approve');
+
+        if ($this->purchaseOrder->status !== PurchaseOrderStatus::PENDING_ACCOUNTS) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'This purchase order is not pending accounts approval.']);
+
+            return;
+        }
+
+        try {
+            app(PurchaseOrderService::class)->reject(
+                $this->purchaseOrder,
+                \App\Enums\Inventory\ApprovalStage::ACCOUNTS,
+                (int) auth()->id(),
+                \App\Enums\Inventory\ApprovalAction::REJECTED,
+                $remarks
+            );
+            $this->reloadPurchaseOrder();
+            $this->dispatch('toast', ['type' => 'success', 'message' => 'Purchase order rejected by accounts.']);
+        } catch (\Throwable $throwable) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
+        }
+    }
+
     public function completeOrder(): void
     {
         $this->authorizePermission('inventory.purchase_order.complete');

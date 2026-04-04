@@ -106,6 +106,11 @@ class PurchaseOrder extends Model
         return $this->hasMany(StockReceive::class, 'purchase_order_id');
     }
 
+    public function purchaseReturns(): HasMany
+    {
+        return $this->hasMany(PurchaseReturn::class, 'purchase_order_id');
+    }
+
     public function scopeDraft(Builder $query): Builder
     {
         return $query->where('status', PurchaseOrderStatus::DRAFT->value);
