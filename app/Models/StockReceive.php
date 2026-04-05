@@ -68,6 +68,16 @@ class StockReceive extends Model
         return $this->hasMany(PurchaseReturn::class, 'stock_receive_id');
     }
 
+    public function supplierBills(): HasMany
+    {
+        return $this->hasMany(SupplierBill::class, 'stock_receive_id');
+    }
+
+    public function supplierReturns(): HasMany
+    {
+        return $this->hasMany(SupplierReturn::class, 'stock_receive_id');
+    }
+
     public function scopeDraft(Builder $query): Builder
     {
         return $query->where('status', StockReceiveStatus::DRAFT->value);

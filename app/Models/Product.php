@@ -66,6 +66,11 @@ class Product extends Model
         return $this->hasMany(PurchaseReturnItem::class);
     }
 
+    public function supplierBillItems(): HasMany
+    {
+        return $this->hasMany(SupplierBillItem::class);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', ProductStatus::ACTIVE->value);

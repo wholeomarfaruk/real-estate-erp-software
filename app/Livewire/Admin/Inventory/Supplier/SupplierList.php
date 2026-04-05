@@ -49,6 +49,8 @@ class SupplierList extends Component
         DB::transaction(function () use ($supplier): void {
             $supplier->update([
                 'status' => ! $supplier->status,
+                'is_blocked' => false,
+                'updated_by' => auth()->id(),
             ]);
         });
 
@@ -90,13 +92,16 @@ class SupplierList extends Component
                         ->where('name', 'like', '%'.$this->search.'%')
                         ->orWhere('contact_person', 'like', '%'.$this->search.'%')
                         ->orWhere('phone', 'like', '%'.$this->search.'%')
+                        ->orWhere('alternate_phone', 'like', '%'.$this->search.'%')
                         ->orWhere('secondary_phone', 'like', '%'.$this->search.'%')
                         ->orWhere('email', 'like', '%'.$this->search.'%')
                         ->orWhere('address', 'like', '%'.$this->search.'%');
                 });
             })
             ->when($this->statusFilter !== '', function (Builder $query): void {
-                $query->where('status', $this->statusFilter === 'active');
+                $query
+                    ->where('is_blocked', false)
+                    ->where('status', $this->statusFilter === 'active');
             })
             ->latest()
             ->paginate(15);

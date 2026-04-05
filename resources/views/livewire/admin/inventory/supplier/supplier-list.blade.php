@@ -82,7 +82,7 @@
 
                                     <td class="px-5 py-4 text-sm text-gray-700">
                                         <p>{{ $supplier->phone ?: 'N/A' }}</p>
-                                        <p class="text-xs text-gray-500">{{ $supplier->secondary_phone ?: 'N/A' }}</p>
+                                        <p class="text-xs text-gray-500">{{ $supplier->alternate_phone ?: $supplier->secondary_phone ?: 'N/A' }}</p>
                                     </td>
 
                                     <td class="px-5 py-4 text-sm text-gray-700">
@@ -90,8 +90,8 @@
                                     </td>
 
                                     <td class="px-5 py-4">
-                                        <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {{ $supplier->status ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
-                                            {{ $supplier->status ? 'Active' : 'Inactive' }}
+                                        <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {{ $supplier->status_badge_class }}">
+                                            {{ $supplier->status_label }}
                                         </span>
                                     </td>
 

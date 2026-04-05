@@ -241,7 +241,122 @@
                             class="hover:text-gray-200 cursor-pointer text-xs">Project Calendar</a>
                     </div>
                 </div>
-                <!-- Materials Management -->
+                <!-- Supplier Management -->
+                <div x-data="dropdown" class="relative">
+                    <div @click="toggle('supplier')" x-data="tooltip" @mouseover="show = true"
+                        @mouseleave="show = false"
+                        class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
+                        :class="{
+                            'justify-start': $store.sidebar.full,
+                            'sm:justify-center': !$store.sidebar.full,
+                            'text-gray-200 bg-gray-800': $store.sidebar.active == 'supplier',
+                            'text-gray-400': $store.sidebar.active != 'supplier'
+                        }">
+
+                        <div class="relative flex items-center gap-2">
+
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+</svg>
+
+                           
+
+
+                            <p x-cloak class="text-xs"
+                                :class="!$store.sidebar.full ? (show ? visibleClass : 'sm:hidden') : ''">
+                                Supplier Management
+                            </p>
+                        </div>
+
+                        <svg x-cloak :class="$store.sidebar.full ? '' : 'sm:hidden'"
+                            xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 size-6" viewBox="0 0 20 20"
+                            stroke-width="1.5" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                clip-rule="evenodd" />
+                        </svg>
+
+                    </div>
+
+                    @php
+                        $supplierMenuRoutes = [
+                            ['label' => 'Supplier Dashboard', 'route' => 'admin.supplier.dashboard', 'permission' => 'supplier.dashboard.view'],
+                            ['label' => 'Supplier Management', 'route' => 'admin.supplier.suppliers.index', 'permission' => 'supplier.list.view'],
+                            ['label' => 'Supplier Bills', 'route' => 'admin.supplier.bills.index', 'permission' => 'supplier.bill.list'],
+                            ['label' => 'Pending Bills', 'route' => 'admin.supplier.bills.pending', 'permission' => 'supplier.bill.pending.view'],
+                            ['label' => 'Supplier Payments', 'route' => 'admin.supplier.payments.index', 'permission' => 'supplier.payment.list'],
+                            ['label' => 'Supplier Returns', 'route' => 'admin.supplier.returns.index', 'permission' => 'supplier.return.list'],
+                            ['label' => 'Supplier Ledger', 'route' => 'admin.supplier.ledger.index', 'permission' => 'supplier.ledger.view'],
+                            ['label' => 'Supplier Statement', 'route' => 'admin.supplier.statement.index', 'permission' => 'supplier.statement.view'],
+                            ['label' => 'Supplier Wise Report', 'route' => 'admin.supplier.reports.supplier-wise', 'permission' => 'supplier.reports.supplier-wise'],
+                            ['label' => 'Product Wise Report', 'route' => 'admin.supplier.reports.product-wise', 'permission' => 'supplier.reports.product-wise'],
+                            ['label' => 'Supplier Due Report', 'route' => 'admin.supplier.reports.due', 'permission' => 'supplier.reports.due'],
+                            ['label' => 'Supplier Aging Report', 'route' => 'admin.supplier.reports.aging', 'permission' => 'supplier.reports.aging'],
+                            ['label' => 'Suppliers', 'route' => 'admin.inventory.suppliers.index', 'permission' => 'inventory.supplier.view'],
+                        ];
+
+                        $ledgerReportRoutes = [
+                            'Product Ledger' => 'admin.inventory.reports.product-ledger',
+                            'Store Ledger' => 'admin.inventory.reports.store-ledger',
+                            'Project Ledger' => 'admin.inventory.reports.project-ledger',
+                            'Supplier Purchase History' => 'admin.inventory.reports.supplier-purchase-history',
+                            'Stock Movement Report' => 'admin.inventory.reports.stock-movement',
+                        ];
+
+                        $summaryReportRoutes = [
+                            'Total Stock Summary' => 'admin.inventory.reports.total-stock-summary',
+                            'Office Store Summary' => 'admin.inventory.reports.office-store-summary',
+                            'Project Store Summary' => 'admin.inventory.reports.project-store-summary',
+                            'Product Stock Summary' => 'admin.inventory.reports.product-stock-summary',
+                            'Low Stock Report' => 'admin.inventory.reports.low-stock',
+                            'Out Of Stock Report' => 'admin.inventory.reports.out-of-stock',
+                            'Store Stock Value Summary' => 'admin.inventory.reports.store-stock-value',
+                        ];
+                    @endphp
+
+                    <div x-cloak x-show="open" @click.outside="open=false"
+                        :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                        @foreach ($supplierMenuRoutes as $item)
+                            @if (Route::has($item['route']) && auth()->user()?->can($item['permission']))
+                                <a href="{{ route($item['route']) }}" class="hover:text-gray-200 cursor-pointer text-xs">
+                                    {{ $item['label'] }}
+                                </a>
+                            @endif
+                        @endforeach
+
+                        @if (auth()->user()?->can('inventory.stock.ledger.view') || auth()->user()?->can('inventory.stock.report.view'))
+                            <div class="pt-1">
+                                <p class="text-[11px] uppercase tracking-wide text-gray-500">Reports</p>
+                                <div class="mt-2 space-y-2">
+                                    @can('inventory.stock.ledger.view')
+                                        @foreach ($ledgerReportRoutes as $label => $routeName)
+                                            @if (Route::has($routeName))
+                                                <a href="{{ route($routeName) }}" class="hover:text-gray-200 cursor-pointer block text-xs pl-2">
+                                                    {{ $label }}
+                                                </a>
+                                            @endif
+                                        @endforeach
+                                    @endcan
+
+                                    @can('inventory.stock.report.view')
+                                        @foreach ($summaryReportRoutes as $label => $routeName)
+                                            @if (Route::has($routeName))
+                                                <a href="{{ route($routeName) }}" class="hover:text-gray-200 cursor-pointer block text-xs pl-2">
+                                                    {{ $label }}
+                                                </a>
+                                            @endif
+                                        @endforeach
+                                    @endcan
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+
+
+
+                </div>
+                <!-- inventory Management -->
                 <div x-data="dropdown" class="relative">
                     <div @click="toggle('inventory')" x-data="tooltip" @mouseover="show = true"
                         @mouseleave="show = false"
@@ -281,6 +396,18 @@
                     @php
                         $inventoryMenuRoutes = [
                             ['label' => 'Inventory Dashboard', 'route' => 'admin.inventory.dashboard', 'permission' => 'inventory.dashboard.view'],
+                            ['label' => 'Supplier Dashboard', 'route' => 'admin.supplier.dashboard', 'permission' => 'supplier.dashboard.view'],
+                            ['label' => 'Supplier Management', 'route' => 'admin.supplier.suppliers.index', 'permission' => 'supplier.list.view'],
+                            ['label' => 'Supplier Bills', 'route' => 'admin.supplier.bills.index', 'permission' => 'supplier.bill.list'],
+                            ['label' => 'Pending Bills', 'route' => 'admin.supplier.bills.pending', 'permission' => 'supplier.bill.pending.view'],
+                            ['label' => 'Supplier Payments', 'route' => 'admin.supplier.payments.index', 'permission' => 'supplier.payment.list'],
+                            ['label' => 'Supplier Returns', 'route' => 'admin.supplier.returns.index', 'permission' => 'supplier.return.list'],
+                            ['label' => 'Supplier Ledger', 'route' => 'admin.supplier.ledger.index', 'permission' => 'supplier.ledger.view'],
+                            ['label' => 'Supplier Statement', 'route' => 'admin.supplier.statement.index', 'permission' => 'supplier.statement.view'],
+                            ['label' => 'Supplier Wise Report', 'route' => 'admin.supplier.reports.supplier-wise', 'permission' => 'supplier.reports.supplier-wise'],
+                            ['label' => 'Product Wise Report', 'route' => 'admin.supplier.reports.product-wise', 'permission' => 'supplier.reports.product-wise'],
+                            ['label' => 'Supplier Due Report', 'route' => 'admin.supplier.reports.due', 'permission' => 'supplier.reports.due'],
+                            ['label' => 'Supplier Aging Report', 'route' => 'admin.supplier.reports.aging', 'permission' => 'supplier.reports.aging'],
                             ['label' => 'Product Categories', 'route' => Route::has('admin.inventory.product-categories.index') ? 'admin.inventory.product-categories.index' : 'admin.materials.categories', 'permission' => 'inventory.product.view'],
                             ['label' => 'Product Units', 'route' => Route::has('admin.inventory.product-units.index') ? 'admin.inventory.product-units.index' : 'admin.materials.units', 'permission' => 'inventory.product.view'],
                             ['label' => 'Products', 'route' => Route::has('admin.inventory.products.index') ? 'admin.inventory.products.index' : 'admin.materials.products', 'permission' => 'inventory.product.view'],
