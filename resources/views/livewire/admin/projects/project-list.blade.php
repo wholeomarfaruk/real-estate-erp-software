@@ -105,6 +105,7 @@
                             <!-- table header end -->
                             <!-- table body start -->
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                            
                                 @forelse ($projects as $project)
                                     <tr>
                                         <td class="px-5 py-4 sm:px-6">
@@ -212,7 +213,7 @@
                                                                         if (result.isConfirmed) {
                                                                             $wire.deleteProject({{ $project->id }})
                                                                         }
-                                                                        
+
                                                                     })
                                                                 "
                                                             type="button"

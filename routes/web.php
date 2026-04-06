@@ -12,3 +12,6 @@ Route::middleware([
         return view('dashboard');
     })->name('dashboard');
 });
+Route::get('/projects/properties', function () {
+    return "test";
+})->name('projects.properties');

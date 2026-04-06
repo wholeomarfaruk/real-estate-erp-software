@@ -20,6 +20,8 @@ class StoreSeeder extends Seeder
                 'project_type' => ProjectType::RESIDENTIAL->value,
                 'status' => ProjectStatus::ONGOING->value,
                 'location' => 'Dhaka',
+                 'start_date' => now()->addDays(30),
+                'end_date' => now()->addDays(365),
             ]
         );
 
@@ -30,6 +32,8 @@ class StoreSeeder extends Seeder
                 'project_type' => ProjectType::COMMERCIAL->value,
                 'status' => ProjectStatus::UPCOMING->value,
                 'location' => 'Chattogram',
+                'start_date' => now()->addDays(30),
+                'end_date' => now()->addDays(365),
             ]
         );
 

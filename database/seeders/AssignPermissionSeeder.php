@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Panel;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -127,7 +129,7 @@ class AssignPermissionSeeder extends Seeder
             ])
             ->get();
 
-        Role::findByName('store manager')->givePermissionTo($storeManagerPermissions);
+        Role::findByName('storemanager')->givePermissionTo($storeManagerPermissions);
 
         $engineerPermissions = Permission::query()
             ->whereIn('name', [
@@ -139,7 +141,7 @@ class AssignPermissionSeeder extends Seeder
             ])
             ->get();
 
-        Role::findByName('engineers')->givePermissionTo($engineerPermissions);
+        Role::findByName('chiefengineer')->givePermissionTo($engineerPermissions);
 
         $chairmanPermissions = Permission::query()
             ->whereIn('name', [
@@ -149,5 +151,30 @@ class AssignPermissionSeeder extends Seeder
             ->get();
 
         Role::findByName('chairman')->givePermissionTo($chairmanPermissions);
+
+
+        $siteEngineerPermissions = Permission::query()
+            ->whereIn('name', [
+                'inventory.stock_request.view',
+                'inventory.stock_request.create',
+                'inventory.stock_request.update',
+                'inventory.stock_request.submit',
+            ])
+            ->get();
+
+        Role::findByName('engineer')->givePermissionTo($siteEngineerPermissions);
+
+        $superadminAssign = User::where('email', 'superadmin@gmail.com')->first();
+        $superadminAssign->assignRole('superadmin');
+        $superadminAssign->panels()->attach(Panel::where('slug', 'admin')->first()->id);
+
+        $adminAssign = User::where('email', 'admin@gmail.com')->first();
+        $adminAssign->assignRole('admin');
+        $adminAssign->panels()->attach(Panel::where('slug', 'admin')->first()->id);
+
+        $storeManagerAssign = User::where('email', 'storemanager@gmail.com')->first();
+        $storeManagerAssign->assignRole('storemanager');
+        $storeManagerAssign->panels()->attach(Panel::where('slug', 'admin')->first()->id);
+
     }
 }

@@ -16,7 +16,7 @@ class PanelSeeder extends Seeder
             ['id' => 1, 'name' => 'Admin', 'slug' => 'admin'],
             ['id' => 2, 'name' => 'Engineers', 'slug' => 'engineers'],
             ['id' => 3, 'name' => 'suppliers', 'slug' => 'suppliers'],
-            ['id' => 6, 'name' => 'Managing Director', 'slug' => 'managing-director'],
+            ['id' => 6, 'name' => 'Managing Director', 'slug' => 'managingdirector'],
             ['id' => 7, 'name' => 'Chairman', 'slug' => 'chairman'],
         ];
         foreach ($panels as $panel) {

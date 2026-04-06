@@ -16,9 +16,11 @@ class ProjectList extends Component
 
     public function mount()
     {
+
         if (!auth()->user()->can('project.view')) {
             abort(403, 'Unauthorized action.');
         }
+
     }
 
     public function render()

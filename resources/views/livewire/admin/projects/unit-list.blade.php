@@ -188,6 +188,7 @@
                                         <td class="px-5 py-4 sm:px-6">
                                             <div class="flex items-center gap-2">
                                                 <div class="inline-flex">
+                                                    <a href="{{ route('admin.units.view', $unit->id) }}" class="-ml-px border border-gray-200 px-3 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900">View</a>
                                                     @can('project.edit')
                                                         <a href="{{ route('admin.units.edit', $unit->id) }}"
                                                             class="-ml-px border border-gray-200 px-3 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900 focus:z-10 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white focus:outline-none disabled:pointer-events-auto disabled:opacity-50">

@@ -19,18 +19,11 @@ class DatabaseSeeder extends Seeder
             StockRequestPermissionSeeder::class,
             StockTransferPermissionSeeder::class,
             SupplierPermissionSeeder::class,
+            PropertyPermissionSeeder::class,
+
             //last one
+            UserSeeder::class,
              AssignPermissionSeeder::class,
         ]);
-
-        User::factory()->create([
-            'name' => 'superadmin',
-            'email' => 'superadmin@gmail.com',
-            'password' => bcrypt('password'),
-        ]);
-
-        $user = User::find(1);
-        $user->assignRole('superadmin');
-        $user->panels()->attach(1);
     }
 }

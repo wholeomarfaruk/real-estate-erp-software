@@ -20,16 +20,30 @@ Route::get('/permissions/role/edit/{id}', App\Livewire\Admin\Permissions\RoleEdi
 //projects
 Route::get('/projects', App\Livewire\Admin\Projects\ProjectList::class)->name('projects.list');
 Route::get('/projects/create', App\Livewire\Admin\Projects\ProjectCreate::class)->name('projects.create');
-Route::get('/projects/{project}', App\Livewire\Admin\Projects\ProjectDetails::class)->name('projects.details');
+Route::get('/projects/{project}/details', App\Livewire\Admin\Projects\ProjectDetails::class)->name('projects.details');
 
-//floors
-Route::get('/floors', App\Livewire\Admin\Projects\FloorList::class)->name('floors.list');
+// properties (linked to projects) - Property Management module
+Route::get('/projects/properties', App\Livewire\Admin\Properties\PropertyList::class)->name('projects.properties');
+Route::get('/projects/properties/create', App\Livewire\Admin\Properties\PropertyCreate::class)->name('projects.properties.create');
+Route::get('/projects/properties/{property}/details', App\Livewire\Admin\Properties\PropertyDetails::class)->name('projects.properties.details');
+Route::get('/projects/properties/{property}/floors', App\Livewire\Admin\Properties\FloorList::class)->name('projects.properties.floors');
+Route::get('/projects/properties/{property}/floors/create', App\Livewire\Admin\Properties\FloorForm::class)->name('projects.properties.floors.create');
+Route::get('/projects/properties/{property}/floors/{floor}/edit', App\Livewire\Admin\Properties\FloorForm::class)->name('projects.properties.floors.edit');
+Route::get('/projects/properties/{property}/floors/{floor}', App\Livewire\Admin\Properties\FloorView::class)->name('projects.properties.floors.view');
+Route::get('/projects/properties/{property}/units', App\Livewire\Admin\Properties\UnitList::class)->name('projects.properties.units');
+Route::get('/projects/properties/{property}/units/create', App\Livewire\Admin\Properties\UnitForm::class)->name('projects.properties.units.create');
+Route::get('/projects/properties/{property}/units/{unit}/edit', App\Livewire\Admin\Properties\UnitForm::class)->name('projects.properties.units.edit');
+Route::get('/projects/properties/{property}/units/{unit}', App\Livewire\Admin\Properties\UnitView::class)->name('projects.properties.units.view');
+Route::get('/projects/properties/{property}/overview', App\Livewire\Admin\Properties\Overview::class)->name('projects.properties.overview');
 
-//units
-Route::get('/units', App\Livewire\Admin\Projects\UnitList::class)->name('units.list');
 
 //project calendar
 Route::get('/project-calendar', App\Livewire\Admin\Projects\ProjectCalendar::class)->name('project.calendar');
+// units (project-level)
+Route::get('/units', App\Livewire\Admin\Projects\UnitList::class)->name('units.list');
+Route::get('/units/create', App\Livewire\Admin\Projects\UnitForm::class)->name('units.create');
+Route::get('/units/{unit}/edit', App\Livewire\Admin\Projects\UnitForm::class)->name('units.edit');
+Route::get('/units/{unit}', App\Livewire\Admin\Projects\UnitView::class)->name('units.view');
 
 //materials
 Route::get('/materials/categories', App\Livewire\Admin\Materials\ProductCategories::class)->name('materials.categories');

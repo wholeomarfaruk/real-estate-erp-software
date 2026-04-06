@@ -15,11 +15,12 @@ class PermissionSeeder extends Seeder
             'admin',
             'employee',
             'accounts',
-            'store manager',
-            'engineers',
+            'storemanager',
+            'chiefengineer',
+            'engineer',
             'chairman',
             'md',
-            'internal members',
+            'supplier',
         ];
 
         foreach ($roles as $role) {
