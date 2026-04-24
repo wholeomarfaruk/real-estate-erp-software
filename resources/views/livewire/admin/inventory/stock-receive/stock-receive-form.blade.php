@@ -55,11 +55,14 @@
                         <option value="">No purchase order</option>
                         @foreach ($purchaseOrders as $purchaseOrder)
                             <option value="{{ $purchaseOrder->id }}">
-                                {{ $purchaseOrder->po_no }} - {{ $purchaseOrder->supplier?->name ?? 'No Supplier' }}
+                                {{ $purchaseOrder->po_no }}
                             </option>
                         @endforeach
                     </select>
                     <x-input-error for="purchase_order_id" class="mt-1" />
+                    @if ($poSelectionNotice)
+                        <p class="mt-1 text-xs text-amber-600">{{ $poSelectionNotice }}</p>
+                    @endif
                     @if ($poLinked)
                         <p class="mt-1 text-xs text-indigo-600">Only pending PO items are allowed in this receive.</p>
                     @endif

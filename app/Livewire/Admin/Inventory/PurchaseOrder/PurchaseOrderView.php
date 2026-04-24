@@ -29,7 +29,8 @@ class PurchaseOrderView extends Component
             'engineerApprover:id,name',
             'chairmanApprover:id,name',
             'accountsApprover:id,name',
-            'items.product:id,name,sku',
+            'items.product:id,name',
+            'items.supplier:id,name,code,phone',
             'approvals.user:id,name',
             'funds.releaser:id,name',
             'funds.receiver:id,name',
@@ -81,7 +82,7 @@ class PurchaseOrderView extends Component
         }
     }
 
-    public function chairmanApprove(): void
+    public function chairmanApprove(float|int|string|null $approvedAmount = null): void
     {
         $this->authorizePermission('inventory.purchase_order.chairman_approve');
 
@@ -92,7 +93,15 @@ class PurchaseOrderView extends Component
         }
 
         try {
-            app(PurchaseOrderService::class)->chairmanApprove($this->purchaseOrder, (int) auth()->id());
+            if ($approvedAmount === null || trim((string) $approvedAmount) === '') {
+                throw new \DomainException('Approved amount is required.');
+            }
+
+            app(PurchaseOrderService::class)->chairmanApproveWithAmount(
+                $this->purchaseOrder,
+                (float) $approvedAmount,
+                (int) auth()->id()
+            );
             $this->reloadPurchaseOrder();
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Purchase order approved by chairman.']);
         } catch (\Throwable $throwable) {
@@ -280,7 +289,8 @@ class PurchaseOrderView extends Component
             'engineerApprover:id,name',
             'chairmanApprover:id,name',
             'accountsApprover:id,name',
-            'items.product:id,name,sku',
+            'items.product:id,name',
+            'items.supplier:id,name,code,phone',
             'approvals.user:id,name',
             'funds.releaser:id,name',
             'funds.receiver:id,name',

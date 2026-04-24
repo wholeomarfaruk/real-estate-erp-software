@@ -118,7 +118,7 @@ class PurchaseOrderList extends Component
         }
     }
 
-    public function chairmanApproveOrder(int $purchaseOrderId): void
+    public function chairmanApproveOrder(int $purchaseOrderId, float|int|string|null $approvedAmount = null): void
     {
         $this->authorizePermission('inventory.purchase_order.chairman_approve');
 
@@ -132,7 +132,15 @@ class PurchaseOrderList extends Component
         $this->ensurePurchaseOrderAccessible($purchaseOrder);
 
         try {
-            app(PurchaseOrderService::class)->chairmanApprove($purchaseOrder, (int) auth()->id());
+            if ($approvedAmount === null || trim((string) $approvedAmount) === '') {
+                throw new \DomainException('Approved amount is required.');
+            }
+
+            app(PurchaseOrderService::class)->chairmanApproveWithAmount(
+                $purchaseOrder,
+                (float) $approvedAmount,
+                (int) auth()->id()
+            );
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Purchase order approved by chairman.']);
         } catch (\Throwable $throwable) {
             $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
@@ -200,6 +208,51 @@ class PurchaseOrderList extends Component
         } catch (\Throwable $throwable) {
             $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
         }
+    }
+
+    public function makeDraft(int $purchaseOrderId): void
+    {
+        $this->authorizePermission('inventory.purchase_order.update');
+
+        $purchaseOrder = PurchaseOrder::query()->with('items')->find($purchaseOrderId);
+        if (! $purchaseOrder) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Purchase order not found.']);
+
+            return;
+        }
+
+        $this->ensurePurchaseOrderAccessible($purchaseOrder);
+
+        if (! in_array($purchaseOrder->status, [
+            PurchaseOrderStatus::PENDING_ENGINEER,
+            PurchaseOrderStatus::PENDING_CHAIRMAN,
+            PurchaseOrderStatus::PENDING_ACCOUNTS,
+        ], true)) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Only pending approval purchase orders can be moved to draft.']);
+
+            return;
+        }
+
+        DB::transaction(function () use ($purchaseOrder): void {
+            $purchaseOrder->update([
+                'status' => PurchaseOrderStatus::DRAFT->value,
+                'engineer_approved_by' => null,
+                'engineer_approved_at' => null,
+                'chairman_approved_by' => null,
+                'chairman_approved_at' => null,
+                'accounts_approved_by' => null,
+                'accounts_approved_at' => null,
+                'approved_amount' => 0,
+            ]);
+
+            $purchaseOrder->items()->update([
+                'approved_quantity' => null,
+                'approved_unit_price' => null,
+                'approved_total_price' => null,
+            ]);
+        });
+
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Purchase order moved back to draft.']);
     }
 
     public function deleteOrder(int $purchaseOrderId): void

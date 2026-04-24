@@ -16,7 +16,6 @@ return new class extends Migration
             $table->date('order_date');
             $table->foreignId('requested_by')->constrained('users')->restrictOnDelete();
             $table->foreignId('store_id')->constrained('stores')->restrictOnDelete();
-            $table->foreignId('supplier_id')->nullable()->constrained('suppliers')->nullOnDelete();
             $table->string('purchase_mode', 20)->default(PurchaseMode::CASH->value);
             $table->decimal('fund_request_amount', 14, 2)->default(0);
             $table->decimal('approved_amount', 14, 2)->default(0);
@@ -35,7 +34,7 @@ return new class extends Migration
 
             $table->index(['order_date', 'status']);
             $table->index(['store_id', 'status']);
-            $table->index(['supplier_id', 'status']);
+
             $table->index(['purchase_mode', 'status']);
         });
 
@@ -43,13 +42,17 @@ return new class extends Migration
             $table->id();
             $table->foreignId('purchase_order_id')->constrained('purchase_orders')->cascadeOnDelete();
             $table->foreignId('product_id')->constrained('products')->restrictOnDelete();
+            $table->foreignId('supplier_id')->nullable()->constrained('suppliers')->nullOnDelete();
             $table->decimal('quantity', 10, 3);
+            $table->string('unit', 255)->nullable();
             $table->decimal('estimated_unit_price', 12, 2)->default(0);
             $table->decimal('estimated_total_price', 14, 2)->default(0);
             $table->decimal('approved_quantity', 10, 3)->nullable();
             $table->decimal('approved_unit_price', 12, 2)->nullable();
             $table->decimal('approved_total_price', 14, 2)->nullable();
+
             $table->text('remarks')->nullable();
+            $table->index(['supplier_id']);
             $table->timestamps();
 
             $table->index(['product_id']);

@@ -19,4 +19,9 @@ class File extends Model
     {
         return $this->hasMany(FileItem::class);
     }
+
+    public function transactionAttachments()
+    {
+        return $this->hasMany(TransactionAttachment::class);
+    }
 }

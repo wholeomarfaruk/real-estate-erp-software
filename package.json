@@ -21,6 +21,7 @@
         "jquery": "^4.0.0",
         "laravel-vite-plugin": "^2.0",
         "notyf": "^3.10.0",
+        "pdfjs-dist": "^5.6.205",
         "sortablejs": "^1.15.7",
         "sweetalert2": "^11.26.18",
         "swiper": "^12.1.1",

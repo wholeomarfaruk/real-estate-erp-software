@@ -1,6 +1,11 @@
 <?php
 
+use App\Http\Controllers\Admin\Accounts\AccountingDocumentController;
+use App\Http\Controllers\Admin\Accounts\TransactionAttachmentController;
 use App\Http\Controllers\Admin\FileUploadController;
+use App\Http\Controllers\Admin\Hrm\PayrollDocumentController;
+use App\Http\Controllers\Admin\Inventory\PurchaseOrderDocumentController;
+use App\Http\Controllers\Admin\Inventory\SupplierPurchaseOrderDownloadController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/dashboard', \App\Livewire\Admin\Dashboard\Dashboard::class)->name('dashboard');
@@ -71,6 +76,9 @@ Route::get('/inventory/stock-consumptions/{stockConsumption}', App\Livewire\Admi
 Route::get('/inventory/suppliers', App\Livewire\Admin\Inventory\Supplier\SupplierList::class)->name('inventory.suppliers.index');
 Route::get('/inventory/suppliers/create', App\Livewire\Admin\Inventory\Supplier\SupplierForm::class)->name('inventory.suppliers.create');
 Route::get('/inventory/suppliers/{supplier}/edit', App\Livewire\Admin\Inventory\Supplier\SupplierForm::class)->name('inventory.suppliers.edit');
+Route::get('/inventory/suppliers/{supplier}/purchase-orders/download', [SupplierPurchaseOrderDownloadController::class, 'download'])
+    ->middleware('can:supplier.view')
+    ->name('inventory.suppliers.purchase-orders.download');
 
 //standalone supplier module
 Route::prefix('supplier')->name('supplier.')->group(function (): void {
@@ -171,11 +179,125 @@ Route::prefix('supplier')->name('supplier.')->group(function (): void {
         ->name('suppliers.edit');
 });
 
+//accounts module
+Route::prefix('accounts')->name('accounts.')->group(function (): void {
+    Route::get('/chart-of-accounts', App\Livewire\Admin\Accounts\Account\AccountList::class)
+        ->middleware('can:accounts.chart.list')
+        ->name('chart-of-accounts.index');
+
+    Route::get('/transactions', App\Livewire\Admin\Accounts\Transaction\TransactionList::class)
+        ->middleware('can:accounts.transaction.list')
+        ->name('transactions.index');
+
+    Route::get('/transactions/{transaction}/attachments/{file}/download', [TransactionAttachmentController::class, 'download'])
+        ->name('transactions.attachments.download');
+
+    Route::get('/payments', App\Livewire\Admin\Accounts\Payment\PaymentList::class)
+        ->middleware('can:accounts.payment.list')
+        ->name('payments.index');
+
+    Route::get('/payments/{payment}/print', [AccountingDocumentController::class, 'paymentPrint'])
+        ->middleware('can:accounts.payment.list')
+        ->name('payments.print');
+
+    Route::get('/payments/{payment}/pdf', [AccountingDocumentController::class, 'paymentPdf'])
+        ->middleware('can:accounts.payment.list')
+        ->name('payments.pdf');
+
+    Route::get('/collections', App\Livewire\Admin\Accounts\Collection\CollectionList::class)
+        ->middleware('can:accounts.collection.list')
+        ->name('collections.index');
+
+    Route::get('/collections/{collection}/print', [AccountingDocumentController::class, 'collectionPrint'])
+        ->middleware('can:accounts.collection.list')
+        ->name('collections.print');
+
+    Route::get('/collections/{collection}/pdf', [AccountingDocumentController::class, 'collectionPdf'])
+        ->middleware('can:accounts.collection.list')
+        ->name('collections.pdf');
+
+    Route::get('/expenses', App\Livewire\Admin\Accounts\Expense\ExpenseList::class)
+        ->middleware('can:accounts.expense.list')
+        ->name('expenses.index');
+
+    Route::get('/expenses/{expense}/print', [AccountingDocumentController::class, 'expensePrint'])
+        ->middleware('can:accounts.expense.list')
+        ->name('expenses.print');
+
+    Route::get('/expenses/{expense}/pdf', [AccountingDocumentController::class, 'expensePdf'])
+        ->middleware('can:accounts.expense.list')
+        ->name('expenses.pdf');
+
+    Route::get('/purchase-payables', App\Livewire\Admin\Accounts\PurchasePayable\PurchasePayableList::class)
+        ->middleware('can:accounts.purchase-payable.list')
+        ->name('purchase-payables.index');
+});
+
+//hrm module
+Route::prefix('hrm')->name('hrm.')->group(function (): void {
+    Route::get('/departments', App\Livewire\Admin\Hrm\Department\DepartmentList::class)
+        ->middleware('can:hrm.departments.view')
+        ->name('departments.index');
+
+    Route::get('/designations', App\Livewire\Admin\Hrm\Designation\DesignationList::class)
+        ->middleware('can:hrm.designations.view')
+        ->name('designations.index');
+
+    Route::get('/employees', App\Livewire\Admin\Hrm\Employee\EmployeeList::class)
+        ->middleware('can:hrm.employees.view')
+        ->name('employees.index');
+
+    Route::get('/employees/create', App\Livewire\Admin\Hrm\Employee\EmployeeForm::class)
+        ->middleware('can:hrm.employees.create')
+        ->name('employees.create');
+
+    Route::get('/employees/{employee}', App\Livewire\Admin\Hrm\Employee\EmployeeView::class)
+        ->middleware('can:hrm.employees.view')
+        ->name('employees.view');
+
+    Route::get('/employees/{employee}/edit', App\Livewire\Admin\Hrm\Employee\EmployeeForm::class)
+        ->middleware('can:hrm.employees.update')
+        ->name('employees.edit');
+
+    Route::get('/payrolls', App\Livewire\Admin\Hrm\Payroll\PayrollList::class)
+        ->middleware('can:hrm.payrolls.view')
+        ->name('payrolls.index');
+
+    Route::get('/payrolls/{payroll}', App\Livewire\Admin\Hrm\Payroll\PayrollView::class)
+        ->middleware('can:hrm.payrolls.view')
+        ->name('payrolls.view');
+
+    Route::get('/payrolls/{payroll}/payslip/print', [PayrollDocumentController::class, 'payslipPrint'])
+        ->middleware('can:hrm.payrolls.print')
+        ->name('payrolls.payslip.print');
+
+    Route::get('/employee-advances', App\Livewire\Admin\Hrm\EmployeeAdvance\EmployeeAdvanceList::class)
+        ->middleware('can:hrm.employee-advances.view')
+        ->name('employee-advances.index');
+
+    Route::get('/employee-advances/{employeeAdvance}', App\Livewire\Admin\Hrm\EmployeeAdvance\EmployeeAdvanceView::class)
+        ->middleware('can:hrm.employee-advances.view')
+        ->name('employee-advances.view');
+
+    Route::get('/payroll-payments', App\Livewire\Admin\Hrm\PayrollPayment\PayrollPaymentList::class)
+        ->middleware('can:hrm.payroll-payments.view')
+        ->name('payroll-payments.index');
+});
+
 //inventory purchase orders
 Route::get('/inventory/purchase-orders', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseOrderList::class)->name('inventory.purchase-orders.index');
 Route::get('/inventory/purchase-orders/create', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseOrderForm::class)->name('inventory.purchase-orders.create');
 Route::get('/inventory/purchase-orders/{purchaseOrder}/view', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseOrderView::class)->name('inventory.purchase-orders.view');
 Route::get('/inventory/purchase-orders/{purchaseOrder}/edit', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseOrderForm::class)->name('inventory.purchase-orders.edit');
+Route::get('/inventory/purchase-orders/{purchaseOrder}/print', [PurchaseOrderDocumentController::class, 'print'])
+    ->middleware('can:inventory.purchase_order.view')
+    ->name('inventory.purchase-orders.print');
+Route::get('/inventory/purchase-orders/{purchaseOrder}/pdf', [PurchaseOrderDocumentController::class, 'pdf'])
+    ->middleware('can:inventory.purchase_order.view')
+    ->name('inventory.purchase-orders.pdf');
+Route::get('/inventory/purchase-orders/{purchaseOrder}/download', [PurchaseOrderDocumentController::class, 'download'])
+    ->middleware('can:inventory.purchase_order.view')
+    ->name('inventory.purchase-orders.download');
 Route::get('/inventory/purchase-orders/{purchaseOrder}/funds', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseFundForm::class)->name('inventory.purchase-orders.funds');
 Route::get('/inventory/purchase-orders/{purchaseOrder}/settlement', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseSettlementForm::class)->name('inventory.purchase-orders.settlement');
 

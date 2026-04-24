@@ -73,9 +73,12 @@ class PurchaseOrderForm extends Component
                 ->map(fn ($item): array => [
                     'product_id' => $item->product_id,
                     'quantity' => (float) $item->quantity,
+                    'unit' => $item->product->unit ?? '',
                     'estimated_unit_price' => (float) $item->estimated_unit_price,
                     'estimated_total_price' => (float) $item->estimated_total_price,
+                    'supplier_id' => $item->supplier_id,
                     'remarks' => $item->remarks,
+                    'fund_request_amount' => (float) $item->fund_request_amount,
                 ])
                 ->values()
                 ->all();
@@ -94,6 +97,42 @@ class PurchaseOrderForm extends Component
         $this->purchase_mode = PurchaseMode::CASH->value;
         $this->fund_request_amount = 0;
         $this->items[] = $this->blankItem();
+
+        $copyPurchaseOrderId = (int) request()->integer('copy');
+        if ($copyPurchaseOrderId > 0) {
+            $copyFrom = PurchaseOrder::query()->with('items')->find($copyPurchaseOrderId);
+            if (! $copyFrom) {
+                return;
+            }
+
+            $this->ensureStoreAccessible((int) $copyFrom->store_id);
+
+            $this->order_date = now()->toDateString();
+            $this->store_id = $copyFrom->store_id;
+            $this->supplier_id = $copyFrom->supplier_id;
+            $this->purchase_mode = $copyFrom->purchase_mode?->value ?? PurchaseMode::CASH->value;
+            $this->fund_request_amount = (float) $copyFrom->fund_request_amount;
+            $this->remarks = $copyFrom->remarks;
+            $this->status = PurchaseOrderStatus::DRAFT->value;
+
+            $this->items = $copyFrom->items
+                ->map(fn ($item): array => [
+                    'product_id' => $item->product_id,
+                    'quantity' => (float) $item->quantity,
+                    'unit' => $item->product->unit ?? '',
+                    'estimated_unit_price' => (float) $item->estimated_unit_price,
+                    'estimated_total_price' => (float) $item->estimated_total_price,
+                    'supplier_id' => $item->supplier_id,
+                    'remarks' => $item->remarks,
+                    'fund_request_amount' => (float) $item->fund_request_amount,
+                ])
+                ->values()
+                ->all();
+
+            if ($this->items === []) {
+                $this->items[] = $this->blankItem();
+            }
+        }
     }
 
     public function updatedItems($value, string $name): void
@@ -103,8 +142,13 @@ class PurchaseOrderForm extends Component
         }
 
         [$index] = explode('.', $name);
+        $product = Product::query()->find($this->items[$index]['product_id'] ?? null);
+        $this->items[$index]['unit'] = $product->unit ?? '';
+
+
         $this->recalculateItem((int) $index);
     }
+
 
     public function addItem(): void
     {
@@ -185,7 +229,7 @@ class PurchaseOrderForm extends Component
         return view('livewire.admin.inventory.purchase-order.purchase-order-form', [
             'stores' => $storesQuery->get(['id', 'name', 'code', 'type']),
             'suppliers' => Supplier::query()->active()->orderBy('name')->get(['id', 'name']),
-            'products' => Product::query()->active()->orderBy('name')->get(['id', 'name', 'sku']),
+            'products' => Product::query()->active()->orderBy('name')->get(['id', 'name']),
             'purchaseModes' => PurchaseMode::cases(),
             'isLocked' => $this->isLocked,
             'grandTotal' => $this->grandTotal,
@@ -194,6 +238,7 @@ class PurchaseOrderForm extends Component
 
     protected function save(PurchaseOrderStatus $status): PurchaseOrder
     {
+
         if ($this->isLocked) {
             throw new \DomainException('Only draft purchase order can be edited.');
         }
@@ -219,7 +264,7 @@ class PurchaseOrderForm extends Component
                 'po_no' => $validated['po_no'],
                 'order_date' => $validated['order_date'],
                 'store_id' => $validated['store_id'],
-                'supplier_id' => $validated['supplier_id'],
+
                 'purchase_mode' => $validated['purchase_mode'],
                 'fund_request_amount' => $validated['fund_request_amount'],
                 'remarks' => $validated['remarks'],
@@ -249,6 +294,8 @@ class PurchaseOrderForm extends Component
                 $record->items()->create([
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
+                    'unit' => $item['unit'] ?? '',
+                    'supplier_id' => $item['supplier_id'] ?? null,
                     'estimated_unit_price' => $item['estimated_unit_price'],
                     'estimated_total_price' => $item['estimated_total_price'],
                     'approved_quantity' => null,
@@ -270,12 +317,13 @@ class PurchaseOrderForm extends Component
             'po_no' => ['required', 'string', 'max:100', Rule::unique('purchase_orders', 'po_no')->ignore($this->purchaseOrderId)],
             'order_date' => ['required', 'date'],
             'store_id' => ['required', 'integer', 'exists:stores,id'],
-            'supplier_id' => ['nullable', 'integer', 'exists:suppliers,id'],
             'purchase_mode' => ['required', Rule::in(array_map(fn (PurchaseMode $mode): string => $mode->value, PurchaseMode::cases()))],
             'fund_request_amount' => ['required', 'numeric', 'min:0'],
             'remarks' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
+            'items.*.supplier_id' => ['nullable', 'integer', 'exists:suppliers,id'],
+            'items.*.unit' => ['nullable', 'string', 'max:255'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.estimated_unit_price' => ['required', 'numeric', 'min:0'],
             'items.*.estimated_total_price' => ['required', 'numeric', 'min:0'],
@@ -299,6 +347,8 @@ class PurchaseOrderForm extends Component
     {
         return [
             'product_id' => null,
+            'unit' => '',
+            'supplier_id' => null,
             'quantity' => 1,
             'estimated_unit_price' => 0,
             'estimated_total_price' => 0,
@@ -316,6 +366,8 @@ class PurchaseOrderForm extends Component
         $unitPrice = (float) ($this->items[$index]['estimated_unit_price'] ?? 0);
 
         $this->items[$index]['estimated_total_price'] = round($quantity * $unitPrice, 2);
+        $this->items[$index][''] = $this->items[$index]['estimated_total_price'];
+        $this->fund_request_amount = $this->grandTotal;
     }
 
     protected function normalizeItems(): void

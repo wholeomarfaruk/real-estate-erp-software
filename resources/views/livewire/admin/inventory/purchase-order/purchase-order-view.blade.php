@@ -78,8 +78,8 @@
 
             <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div class="rounded-lg bg-gray-50 px-4 py-3">
-                    <p class="text-xs text-gray-500">Estimated Amount</p>
-                    <p class="text-lg font-semibold text-gray-800">{{ number_format($estimatedTotal, 2) }}</p>
+                    <p class="text-xs text-gray-500">Requested Amount</p>
+                    <p class="text-lg font-semibold text-gray-800">{{ number_format((float) $purchaseOrder->fund_request_amount, 2) }}</p>
                 </div>
                 <div class="rounded-lg bg-gray-50 px-4 py-3">
                     <p class="text-xs text-gray-500">Approved Amount</p>
@@ -110,6 +110,14 @@
             <div class="mt-4 space-y-2">
                 <a href="{{ route('admin.inventory.purchase-orders.index') }}" class="inline-flex w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
                     Back to List
+                </a>
+
+                <a href="{{ route('admin.inventory.purchase-orders.print', $purchaseOrder) }}" target="_blank" class="inline-flex w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                    Print Template
+                </a>
+
+                <a href="{{ route('admin.inventory.purchase-orders.pdf', $purchaseOrder) }}" class="inline-flex w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                    Download PDF
                 </a>
 
                 @can('inventory.purchase_order.update')
@@ -152,13 +160,12 @@
 
                 @can('inventory.purchase_order.chairman_approve')
                     @if ($purchaseOrder->status?->value === 'pending_chairman')
-                        <button type="button" x-data="livewireConfirm"
-                            @click="confirmAction({
-                                method: 'chairmanApprove',
-                                title: 'Chairman approve this PO?',
-                                text: 'This will move PO to accounts approval stage.',
-                                confirmText: 'Yes, approve'
-                            })"
+                        <button type="button"
+                            @click="
+                                const amount = prompt('Enter approved amount', '{{ number_format((float) $purchaseOrder->fund_request_amount, 2, '.', '') }}');
+                                if (amount === null) return;
+                                $wire.chairmanApprove(amount);
+                            "
                             class="inline-flex w-full items-center justify-center rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-700">
                             Chairman Approve
                         </button>
@@ -289,13 +296,14 @@
             <div class="max-w-full overflow-x-auto">
                 <table class="min-w-full">
                     <thead>
-                        <tr class="border-b border-gray-100 bg-gray-50">
-                            <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Product</th>
-                            <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Estimated</th>
-                            <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Approved</th>
-                            <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Required Qty</th>
-                            <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Received Qty</th>
-                            <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Remaining Qty</th>
+                            <tr class="border-b border-gray-100 bg-gray-50">
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Product</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Supplier</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Estimated</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Approved</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Required Qty</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Received Qty</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Remaining Qty</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -306,7 +314,13 @@
                             <tr>
                                 <td class="px-5 py-4">
                                     <p class="text-sm font-medium text-gray-800">{{ $item->product?->name ?? 'N/A' }}</p>
-                                    <p class="text-xs text-gray-500">{{ $item->product?->sku ?? 'No SKU' }}</p>
+                                </td>
+                                <td class="px-5 py-4">
+                                    <p class="text-sm font-medium text-gray-800">{{ $item->supplier?->name ?? $purchaseOrder->supplier?->name ?? 'N/A' }}</p>
+                                    <p class="text-xs text-gray-500">
+                                        {{ $item->supplier?->code ?? $purchaseOrder->supplier?->code ?? 'No code' }}
+                                        | {{ $item->supplier?->phone ?? $purchaseOrder->supplier?->phone ?? 'No phone' }}
+                                    </p>
                                 </td>
                                 <td class="px-5 py-4 text-sm text-gray-700">
                                     {{ number_format((float) $item->quantity, 3) }} x {{ number_format((float) $item->estimated_unit_price, 2) }}
@@ -324,7 +338,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-5 py-10 text-center text-sm text-gray-500">No items found.</td>
+                                <td colspan="7" class="px-5 py-10 text-center text-sm text-gray-500">No items found.</td>
                             </tr>
                         @endforelse
                     </tbody>

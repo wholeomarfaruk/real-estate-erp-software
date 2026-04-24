@@ -279,8 +279,329 @@ Table transfer_items{
   transfer_transaction_id bigint [ref:>transfer_transaction.id]
   product_id bigint [ref:>products.id]
   quantity decimal(10,3)
-  checked_by_sender boolean 
-  checked_by_reciever boolean 
+  checked_by_sender boolean
+  checked_by_reciever boolean
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table suppliers {
+  id bigint [pk, increment]
+  name varchar(150)
+}
+
+//For accounts Module
+// =========================
+// ACCOUNTS / COA
+// =========================
+Table accounts {
+  id bigint [pk, increment]
+  parent_id bigint [ref: > accounts.id, null]
+  code varchar(50) [null]
+  name varchar(150)
+  type varchar(30) // asset, liability, income, expense, equity
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+
+// =========================
+// ACCOUNTING TRANSACTION HEADER
+// =========================
+Table transactions {
+  id bigint [pk, increment]
+  date date
+  type varchar(50) // payment, collection, expense, journal
+  reference_type varchar(100) [null] // purchase_order, expense, payment, collection, payable, project, supplier etc
+  reference_id bigint [null]
+  notes text [null]
+  created_by bigint [ref: > users.id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+
+// =========================
+// ACCOUNTING TRANSACTION LINES
+// =========================
+Table transaction_lines {
+  id bigint [pk, increment]
+  transaction_id bigint [ref: > transactions.id]
+  account_id bigint [ref: > accounts.id]
+  debit decimal(15,3) [default: 0]
+  credit decimal(15,3) [default: 0]
+  description varchar(255) [null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+
+// =========================
+// PAYMENTS
+// =========================
+Table payments {
+  id bigint [pk, increment]
+  transaction_id bigint [ref: > transactions.id]
+  payment_no varchar(50) [null]
+  date date
+  method varchar(30) // cash, bank, cheque, mobile_banking
+  payment_account_id bigint [ref: > accounts.id] // cash/bank account
+  purpose_account_id bigint [ref: > accounts.id, null] // debit side account for double-entry
+  amount decimal(14,2)
+  payee_name varchar(150) [null]
+  reference_type varchar(100) [null]
+  reference_id bigint [null]
+
+  notes text [null]
+  created_by bigint [ref: > users.id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+
+// =========================
+// COLLECTIONS / RECEIPTS
+// =========================
+Table collections {
+  id bigint [pk, increment]
+  transaction_id bigint [ref: > transactions.id]
+
+  collection_no varchar(50) [null]
+  date date
+  method varchar(30) // cash, bank, cheque, mobile_banking
+
+  collection_account_id bigint [ref: > accounts.id] // cash/bank account
+  target_account_id bigint [ref: > accounts.id, null] // credit side account for double-entry
+  amount decimal(14,2)
+
+  payer_name varchar(150) [null]
+  collection_type varchar(50) // property_sale, rent, other
+
+  reference_type varchar(100) [null]
+  reference_id bigint [null]
+
+  notes text [null]
+  created_by bigint [ref: > users.id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+
+// =========================
+// EXPENSES
+// =========================
+Table expenses {
+  id bigint [pk, increment]
+  transaction_id bigint [ref: > transactions.id]
+
+  expense_no varchar(50) [null]
+  date date
+  title varchar(150)
+
+  reference_type varchar(100) [null]
+  reference_id bigint [null]
+
+  expense_account_id bigint [ref: > accounts.id]
+  payment_account_id bigint [ref: > accounts.id] // cash/bank account
+
+  amount decimal(14,2)
+  notes text [null]
+
+  created_by bigint [ref: > users.id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+
+// =========================
+// PURCHASE PAYABLES
+// =========================
+Table purchase_payables {
+  id bigint [pk, increment]
+
+  purchase_order_id bigint [ref: > purchase_orders.id]
+  supplier_id bigint [ref: > suppliers.id, null] // keep for double check
+
+  transaction_id bigint [ref: > transactions.id, null]
+
+  payable_amount decimal(14,2)
+  paid_amount decimal(14,2) [default: 0]
+  due_amount decimal(14,2)
+
+  status varchar(30) // unpaid, partial, paid
+
+  created_at timestamp
+  updated_at timestamp
+}
+
+
+// =========================
+// HRM + Payroll + Advance
+// =========================
+
+Table departments {
+  id bigint [pk, increment]
+  name varchar(150)
+  code varchar(50) [null]
+  status boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table designations {
+  id bigint [pk, increment]
+  department_id bigint [null, ref: > departments.id]
+  name varchar(150)
+  code varchar(50) [null]
+  status boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table employees {
+  id bigint [pk, increment]
+  department_id bigint [null, ref: > departments.id]
+  designation_id bigint [null, ref: > designations.id]
+  user_id bigint [null, unique, ref: > users.id]
+
+  employee_id varchar(50) [unique]
+  name varchar(150)
+  phone varchar(30) [null]
+  email varchar(150) [null]
+  gender varchar(20) [null]
+  date_of_birth date [null]
+
+  joining_date date
+  confirmation_date date [null]
+  exit_date date [null]
+
+  employment_type varchar(50) [null] // permanent, contractual, intern, daily
+  basic_salary decimal(14,2) [default: 0]
+
+  status varchar(30) [default: 'active'] // active, inactive, resigned, terminated
+  has_login boolean [default: false]
+
+  photo_file_id bigint [null, ref: > files.id]
+  address text [null]
+  notes text [null]
+
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table salary_structures {
+  id bigint [pk, increment]
+  employee_id bigint [ref: > employees.id]
+
+  effective_from date
+
+  basic_salary decimal(14,2) [default: 0]
+  house_rent decimal(14,2) [default: 0]
+  medical_allowance decimal(14,2) [default: 0]
+  transport_allowance decimal(14,2) [default: 0]
+  food_allowance decimal(14,2) [default: 0]
+  other_allowance decimal(14,2) [default: 0]
+
+  gross_salary decimal(14,2) [default: 0]
+
+  status boolean [default: true]
+  notes text [null]
+
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table payrolls {
+  id bigint [pk, increment]
+  employee_id bigint [ref: > employees.id]
+  salary_structure_id bigint [null, ref: > salary_structures.id]
+  transaction_id bigint [null] // accounts transaction for payroll generation
+
+  month tinyint
+  year smallint
+  payroll_date date [null]
+
+  basic_salary decimal(14,2) [default: 0]
+  allowance_total decimal(14,2) [default: 0]
+  bonus_total decimal(14,2) [default: 0]
+  deduction_total decimal(14,2) [default: 0]
+  gross_salary decimal(14,2) [default: 0]
+  net_salary decimal(14,2) [default: 0]
+
+  payment_status varchar(30) [default: 'pending'] // pending, partial, paid, cancelled
+  payment_date date [null] // optional summary field
+
+  notes text [null]
+  generated_by bigint [null, ref: > users.id]
+  approved_by bigint [null, ref: > users.id]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (employee_id, month, year) [unique]
+  }
+}
+
+Table payroll_items {
+  id bigint [pk, increment]
+  payroll_id bigint [ref: > payrolls.id]
+
+  type varchar(30) // earning, bonus, deduction
+  label varchar(100)
+  amount decimal(14,2) [default: 0]
+  sort_order int [default: 0]
+
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table employee_advances {
+  id bigint [pk, increment]
+  employee_id bigint [ref: > employees.id]
+  transaction_id bigint [null] // accounts transaction for advance payment
+
+  advance_date date
+  amount decimal(14,2) [default: 0]
+
+  adjusted_amount decimal(14,2) [default: 0]
+  remaining_amount decimal(14,2) [default: 0]
+
+  status varchar(30) [default: 'pending'] // pending, partial, cleared, cancelled
+  notes text [null]
+
+  created_by bigint [null, ref: > users.id]
+  approved_by bigint [null, ref: > users.id]
+
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table employee_advance_adjustments {
+  id bigint [pk, increment]
+  employee_advance_id bigint [ref: > employee_advances.id]
+  payroll_id bigint [ref: > payrolls.id]
+
+  amount decimal(14,2) [default: 0]
+  adjustment_date date
+  notes text [null]
+
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table payroll_payments {
+  id bigint [pk, increment]
+  payroll_id bigint [ref: > payrolls.id]
+  transaction_id bigint [null] // accounts transaction for actual salary payment
+
+  payment_date date
+  amount decimal(14,2) [default: 0]
+  payment_method varchar(50) [null] // cash, bank, mobile_banking
+  reference_no varchar(100) [null]
+  notes text [null]
+
+  received_by bigint [null, ref: > users.id]
   created_at timestamp
   updated_at timestamp
 }

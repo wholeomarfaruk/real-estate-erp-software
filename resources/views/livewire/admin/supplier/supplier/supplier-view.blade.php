@@ -6,6 +6,12 @@
         </div>
 
         <div class="flex items-center gap-3">
+            @can('supplier.view')
+                <a href="{{ route('admin.inventory.suppliers.purchase-orders.download', $supplier) }}" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                    Download PO
+                </a>
+            @endcan
+
             @can('supplier.edit')
                 <a href="{{ route('admin.supplier.suppliers.edit', $supplier) }}" class="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">
                     Edit Supplier
@@ -86,8 +92,19 @@
                     <div class="space-y-3">
                         @foreach ($latestPurchases as $purchase)
                             <div class="rounded-lg border border-gray-100 px-3 py-2">
-                                <p class="text-sm font-medium text-gray-700">{{ $purchase->po_no }}</p>
-                                <p class="text-xs text-gray-500">{{ optional($purchase->order_date)->format('d M, Y') }}</p>
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-700">{{ $purchase->po_no }}</p>
+                                        <p class="text-xs text-gray-500">{{ optional($purchase->order_date)->format('d M, Y') }}</p>
+                                    </div>
+
+                                    @can('inventory.purchase_order.view')
+                                        <a href="{{ route('admin.inventory.purchase-orders.download', $purchase) }}"
+                                            class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50">
+                                            Download PO
+                                        </a>
+                                    @endcan
+                                </div>
                             </div>
                         @endforeach
                     </div>

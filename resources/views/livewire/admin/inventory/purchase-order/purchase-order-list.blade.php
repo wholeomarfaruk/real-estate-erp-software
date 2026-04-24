@@ -182,13 +182,41 @@
                                                     <a href="{{ route('admin.inventory.purchase-orders.view', $order) }}" class="flex items-center rounded-lg px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100">
                                                         View
                                                     </a>
+                                                    <a href="{{ route('admin.inventory.purchase-orders.print', $order) }}" target="_blank" class="flex items-center rounded-lg px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100">
+                                                        Print
+                                                    </a>
+                                                    <a href="{{ route('admin.inventory.purchase-orders.pdf', $order) }}" class="flex items-center rounded-lg px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100">
+                                                        Download PDF
+                                                    </a>
+                                                @endcan
+
+                                                @can('inventory.purchase_order.create')
+                                                    <a href="{{ route('admin.inventory.purchase-orders.create', ['copy' => $order->id]) }}" class="flex items-center rounded-lg px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100">
+                                                        Make Copy
+                                                    </a>
                                                 @endcan
 
                                                 @can('inventory.purchase_order.update')
                                                     @if ($order->status?->value === 'draft')
                                                         <a href="{{ route('admin.inventory.purchase-orders.edit', $order) }}" class="flex items-center rounded-lg px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100">
-                                                            Edit Draft
+                                                            Edit
                                                         </a>
+                                                    @endif
+                                                @endcan
+
+                                                @can('inventory.purchase_order.update')
+                                                    @if (in_array($order->status?->value, ['pending_engineer', 'pending_chairman', 'pending_accounts'], true))
+                                                        <button type="button" x-data="livewireConfirm"
+                                                            @click="confirmAction({
+                                                                id: {{ $order->id }},
+                                                                method: 'makeDraft',
+                                                                title: 'Move this PO to draft?',
+                                                                text: 'This is allowed only for pending approval purchase orders.',
+                                                                confirmText: 'Yes, move to draft'
+                                                            })"
+                                                            class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
+                                                            Make Draft
+                                                        </button>
                                                     @endif
                                                 @endcan
 
@@ -226,14 +254,12 @@
 
                                                 @can('inventory.purchase_order.chairman_approve')
                                                     @if ($order->status?->value === 'pending_chairman')
-                                                        <button type="button" x-data="livewireConfirm"
-                                                            @click="confirmAction({
-                                                                id: {{ $order->id }},
-                                                                method: 'chairmanApproveOrder',
-                                                                title: 'Chairman approve this PO?',
-                                                                text: 'This will forward it to accounts stage.',
-                                                                confirmText: 'Yes, approve'
-                                                            })"
+                                                        <button type="button"
+                                                            @click="
+                                                                const amount = prompt('Enter approved amount', '{{ number_format((float) $order->fund_request_amount, 2, '.', '') }}');
+                                                                if (amount === null) return;
+                                                                $wire.chairmanApproveOrder({{ $order->id }}, amount);
+                                                            "
                                                             class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
                                                             Chairman Approve
                                                         </button>
@@ -287,6 +313,7 @@
                                                         </button>
                                                     @endif
                                                 @endcan
+
 
                                                 @can('inventory.purchase_order.update')
                                                     @if (in_array($order->status?->value, ['draft', 'pending_engineer', 'pending_chairman', 'pending_accounts'], true))

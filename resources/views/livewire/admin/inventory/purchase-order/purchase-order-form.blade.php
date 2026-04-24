@@ -62,7 +62,7 @@
                     <x-input-error for="store_id" class="mt-1" />
                 </div>
 
-                <div>
+                {{-- <div>
                     <label for="supplier_id" class="text-sm font-medium text-gray-700">Supplier</label>
                     <select id="supplier_id" wire:model="supplier_id" @disabled($isLocked)
                         class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
@@ -72,7 +72,7 @@
                         @endforeach
                     </select>
                     <x-input-error for="supplier_id" class="mt-1" />
-                </div>
+                </div> --}}
 
                 <div>
                     <label for="purchase_mode" class="text-sm font-medium text-gray-700">Purchase Mode *</label>
@@ -120,8 +120,10 @@
                             <tr class="border-b border-gray-100 bg-gray-50">
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Product *</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Quantity *</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Unit *</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Estimated Unit Price *</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Estimated Total *</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Supplier</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Remarks</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">Action</th>
                             </tr>
@@ -130,32 +132,47 @@
                             @foreach ($items as $index => $item)
                                 <tr>
                                     <td class="px-4 py-3 min-w-[260px]">
-                                        <select wire:model="items.{{ $index }}.product_id" @disabled($isLocked)
+                                        <select wire:model.live="items.{{ $index }}.product_id" @disabled($isLocked)
                                             class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                                             <option value="">Select product</option>
                                             @foreach ($products as $product)
-                                                <option value="{{ $product->id }}">{{ $product->name }}{{ $product->sku ? ' ('.$product->sku.')' : '' }}</option>
+                                                <option value="{{ $product->id }}">{{ $product->name }}</option>
                                             @endforeach
                                         </select>
                                         <x-input-error for="items.{{ $index }}.product_id" class="mt-1" />
                                     </td>
 
                                     <td class="px-4 py-3 min-w-[140px]">
-                                        <input type="number" min="0.001" step="0.001" wire:model.live="items.{{ $index }}.quantity" @disabled($isLocked)
+                                        <input type="number" min="0.001" step="0.001" wire:model.lazy="items.{{ $index }}.quantity" @disabled($isLocked)
                                             class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
+                                        <x-input-error for="items.{{ $index }}.quantity" class="mt-1" />
+                                    </td>
+                                    <td class="px-4 py-3 min-w-[140px]">
+                                        <input disabled type="text" wire:model="items.{{ $index }}.unit" @disabled($isLocked)
+                                            class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-700">
                                         <x-input-error for="items.{{ $index }}.quantity" class="mt-1" />
                                     </td>
 
                                     <td class="px-4 py-3 min-w-[160px]">
-                                        <input type="number" min="0" step="0.01" wire:model.live="items.{{ $index }}.estimated_unit_price" @disabled($isLocked)
+                                        <input type="number" min="0" step="0.01" wire:model.lazy="items.{{ $index }}.estimated_unit_price" @disabled($isLocked)
                                             class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                                         <x-input-error for="items.{{ $index }}.estimated_unit_price" class="mt-1" />
                                     </td>
 
                                     <td class="px-4 py-3 min-w-[160px]">
-                                        <input type="number" min="0" step="0.01" wire:model.live="items.{{ $index }}.estimated_total_price" @disabled($isLocked)
+                                        <input type="number" min="0" step="0.01" wire:model.lazy="items.{{ $index }}.estimated_total_price" @disabled($isLocked)
                                             class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                                         <x-input-error for="items.{{ $index }}.estimated_total_price" class="mt-1" />
+                                    </td>
+                                    <td class="px-4 py-3 min-w-[160px]">
+                                        <select wire:model.live="items.{{ $index }}.supplier_id" @disabled($isLocked)
+                                            class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
+                                            <option value="">Select supplier</option>
+                                            @foreach ($suppliers as $supplier)
+                                                <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <x-input-error for="items.{{ $index }}.supplier_id" class="mt-1" />
                                     </td>
 
                                     <td class="px-4 py-3 min-w-[220px]">

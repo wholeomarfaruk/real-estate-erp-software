@@ -121,6 +121,11 @@ class PurchaseOrder extends Model
         return $this->hasMany(SupplierReturn::class, 'purchase_order_id');
     }
 
+    public function purchasePayable(): HasOne
+    {
+        return $this->hasOne(PurchasePayable::class, 'purchase_order_id');
+    }
+
     public function scopeDraft(Builder $query): Builder
     {
         return $query->where('status', PurchaseOrderStatus::DRAFT->value);

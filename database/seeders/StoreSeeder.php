@@ -14,7 +14,7 @@ class StoreSeeder extends Seeder
     public function run(): void
     {
         $projectA = Project::query()->firstOrCreate(
-            ['code' => 'ERP-PROJ-001'],
+            ['code' => 'SUDP1'],
             [
                 'name' => 'Sample Project One',
                 'project_type' => ProjectType::RESIDENTIAL->value,
@@ -26,7 +26,7 @@ class StoreSeeder extends Seeder
         );
 
         $projectB = Project::query()->firstOrCreate(
-            ['code' => 'ERP-PROJ-002'],
+            ['code' => 'SUDP2'],
             [
                 'name' => 'Sample Project Two',
                 'project_type' => ProjectType::COMMERCIAL->value,

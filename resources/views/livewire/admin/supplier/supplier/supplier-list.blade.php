@@ -142,6 +142,9 @@
                                                     <a href="{{ route('admin.supplier.suppliers.view', $supplier) }}" class="flex items-center rounded-lg px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100">
                                                         View
                                                     </a>
+                                                    <a href="{{ route('admin.inventory.suppliers.purchase-orders.download', $supplier) }}" class="flex items-center rounded-lg px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100">
+                                                        Download PO
+                                                    </a>
                                                 @endcan
 
                                                 @can('supplier.edit')

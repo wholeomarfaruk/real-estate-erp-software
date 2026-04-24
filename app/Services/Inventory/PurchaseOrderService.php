@@ -108,10 +108,55 @@ class PurchaseOrderService
                 throw new \DomainException('Purchase order is not pending chairman approval.');
             }
 
+            $requestedAmount = round((float) $lockedOrder->fund_request_amount, 2);
+            $approvedAmount = round((float) $requestedAmount, 2);
+            $this->validateApprovedAmount($approvedAmount, $requestedAmount);
+
             $lockedOrder->update([
                 'status' => PurchaseOrderStatus::PENDING_ACCOUNTS->value,
                 'chairman_approved_by' => $actorId,
                 'chairman_approved_at' => now(),
+                'approved_amount' => $approvedAmount,
+            ]);
+
+            $this->createApprovalHistory(
+                purchaseOrderId: (int) $lockedOrder->id,
+                stage: ApprovalStage::CHAIRMAN,
+                userId: $actorId,
+                action: ApprovalAction::APPROVED,
+                remarks: $remarks
+            );
+
+            return $lockedOrder->refresh();
+        });
+    }
+
+    public function chairmanApproveWithAmount(
+        PurchaseOrder $purchaseOrder,
+        float|int|string $approvedAmount,
+        ?int $userId = null,
+        ?string $remarks = null
+    ): PurchaseOrder {
+        return DB::transaction(function () use ($purchaseOrder, $approvedAmount, $userId, $remarks): PurchaseOrder {
+            $actorId = $this->resolveActorId($userId);
+
+            $lockedOrder = PurchaseOrder::query()
+                ->lockForUpdate()
+                ->findOrFail($purchaseOrder->id);
+
+            if ($lockedOrder->status !== PurchaseOrderStatus::PENDING_CHAIRMAN) {
+                throw new \DomainException('Purchase order is not pending chairman approval.');
+            }
+
+            $requestedAmount = round((float) $lockedOrder->fund_request_amount, 2);
+            $finalApprovedAmount = round((float) $approvedAmount, 2);
+            $this->validateApprovedAmount($finalApprovedAmount, $requestedAmount);
+
+            $lockedOrder->update([
+                'status' => PurchaseOrderStatus::PENDING_ACCOUNTS->value,
+                'chairman_approved_by' => $actorId,
+                'chairman_approved_at' => now(),
+                'approved_amount' => $finalApprovedAmount,
             ]);
 
             $this->createApprovalHistory(
@@ -144,11 +189,9 @@ class PurchaseOrderService
                 throw new \DomainException('Purchase order is not pending accounts approval.');
             }
 
-            $defaultApprovedAmount = (float) $lockedOrder->items->sum(function ($item): float {
-                return (float) ($item->approved_total_price ?? $item->estimated_total_price);
-            });
-
-            $finalApprovedAmount = round((float) ($approvedAmount ?? $defaultApprovedAmount), 2);
+            $requestedAmount = round((float) $lockedOrder->fund_request_amount, 2);
+            $finalApprovedAmount = round((float) ($lockedOrder->approved_amount ?: ($approvedAmount ?? $requestedAmount)), 2);
+            $this->validateApprovedAmount($finalApprovedAmount, $requestedAmount);
 
             $lockedOrder->update([
                 'status' => PurchaseOrderStatus::APPROVED->value,
@@ -261,8 +304,10 @@ class PurchaseOrderService
                 throw new \DomainException('Released amount must be greater than zero.');
             }
 
-            if ($lockedOrder->purchase_mode === PurchaseMode::CREDIT && $releaseType !== PurchaseFundReleaseType::CREDIT) {
-                throw new \DomainException('Credit purchase order only allows credit fund release type.');
+            $approvedAmount = round((float) $lockedOrder->approved_amount, 2);
+            $alreadyReleased = round((float) $lockedOrder->funds()->sum('amount'), 2);
+            if ($approvedAmount > 0 && ($alreadyReleased + $amount) > $approvedAmount) {
+                throw new \DomainException('Released amount exceeds approved amount limit.');
             }
 
             return $lockedOrder->funds()->create([
@@ -368,9 +413,14 @@ class PurchaseOrderService
             $totalFundReleased = round((float) $lockedOrder->funds->sum('amount'), 2);
             $actualPurchaseAmount = round((float) ($payload['actual_purchase_amount'] ?? 0), 2);
             $returnedCash = round((float) ($payload['returned_cash_amount'] ?? 0), 2);
+            $approvedAmount = round((float) $lockedOrder->approved_amount, 2);
 
             if ($actualPurchaseAmount < 0 || $returnedCash < 0) {
                 throw new \DomainException('Settlement amounts cannot be negative.');
+            }
+
+            if ($approvedAmount > 0 && $actualPurchaseAmount > $approvedAmount) {
+                throw new \DomainException('Actual purchase amount cannot exceed approved amount.');
             }
 
             $calculatedDue = round(max(0, $actualPurchaseAmount - $totalFundReleased), 2);
@@ -482,5 +532,16 @@ class PurchaseOrderService
         }
 
         return $actorId;
+    }
+
+    protected function validateApprovedAmount(float $approvedAmount, float $requestedAmount): void
+    {
+        if ($approvedAmount <= 0) {
+            throw new \DomainException('Approved amount must be greater than zero.');
+        }
+
+        if ($requestedAmount > 0 && $approvedAmount > $requestedAmount) {
+            throw new \DomainException('Approved amount cannot be more than requested amount.');
+        }
     }
 }

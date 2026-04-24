@@ -3,7 +3,6 @@
 namespace App\Livewire\Admin\Inventory\PurchaseOrder;
 
 use App\Enums\Inventory\PurchaseFundReleaseType;
-use App\Enums\Inventory\PurchaseMode;
 use App\Livewire\Admin\Inventory\Concerns\InteractsWithInventoryAccess;
 use App\Models\PurchaseOrder;
 use App\Models\User;
@@ -40,10 +39,6 @@ class PurchaseFundForm extends Component
         ]);
 
         $this->ensurePurchaseOrderAccessible($this->purchaseOrder);
-
-        $this->release_type = $this->purchaseOrder->purchase_mode === PurchaseMode::CREDIT
-            ? PurchaseFundReleaseType::CREDIT->value
-            : PurchaseFundReleaseType::CASH->value;
 
         $this->release_date = now()->toDateString();
     }

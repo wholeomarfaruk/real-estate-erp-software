@@ -14,16 +14,14 @@ class DatabaseSeeder extends Seeder
             PanelSeeder::class,
             StoreSeeder::class,
             ProductUnitSeeder::class,
-            StockReceivePermissionSeeder::class,
-            PurchaseReturnPermissionSeeder::class,
-            StockRequestPermissionSeeder::class,
-            StockTransferPermissionSeeder::class,
-            SupplierPermissionSeeder::class,
-            PropertyPermissionSeeder::class,
+
+            ProductSeeder::class,
+            SupplierSeeder::class,
+            ChartOfAccountsSeeder::class,
 
             //last one
             UserSeeder::class,
-             AssignPermissionSeeder::class,
+            AssignPermissionSeeder::class,
         ]);
     }
 }
