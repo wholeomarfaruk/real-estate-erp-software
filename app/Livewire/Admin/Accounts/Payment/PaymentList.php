@@ -134,7 +134,7 @@ class PaymentList extends Component
 
     public function openAttachmentModal(int $id): void
     {
-        $this->authorizePermission('accounts.payment.list');
+        $this->authorizePermission('accounts.transaction-attachment.view');
 
         $exists = Payment::query()->whereKey($id)->exists();
 

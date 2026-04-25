@@ -146,7 +146,7 @@ class CollectionList extends Component
 
     public function openAttachmentModal(int $id): void
     {
-        $this->authorizePermission('accounts.collection.list');
+        $this->authorizePermission('accounts.transaction-attachment.view');
 
         $exists = AccountCollection::query()->whereKey($id)->exists();
 

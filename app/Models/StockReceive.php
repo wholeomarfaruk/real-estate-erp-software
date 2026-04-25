@@ -87,4 +87,23 @@ class StockReceive extends Model
     {
         return $query->where('status', StockReceiveStatus::POSTED->value);
     }
+
+    public function settlementCompleted(): bool
+    {
+        return (bool) $this->purchaseOrder?->settlement?->settled_at;
+    }
+
+    public function canAdjustPostedReceive(): bool
+    {
+        return $this->status === StockReceiveStatus::POSTED && ! $this->settlementCompleted();
+    }
+
+    public function canEditReceive(): bool
+    {
+        return match ($this->status) {
+            StockReceiveStatus::DRAFT => true,
+            StockReceiveStatus::POSTED => $this->canAdjustPostedReceive(),
+            default => false,
+        };
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Inventory;
 
 use App\Http\Controllers\Controller;
+use App\Livewire\Admin\Inventory\Concerns\InteractsWithInventoryAccess;
 use App\Models\PurchaseOrder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
@@ -10,6 +11,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class PurchaseOrderDocumentController extends Controller
 {
+    use InteractsWithInventoryAccess;
+
     public function print(PurchaseOrder $purchaseOrder): View
     {
         $this->authorizePermission('inventory.purchase_order.view');
@@ -106,17 +109,7 @@ class PurchaseOrderDocumentController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        $canViewAll = $user->hasRole('superadmin')
-            || $user->hasRole('admin')
-            || $user->hasRole('accounts')
-            || $user->hasRole('engineers')
-            || $user->hasRole('chairman')
-            || $user->hasRole('md')
-            || $user->can('inventory.purchase_order.engineer_approve')
-            || $user->can('inventory.purchase_order.chairman_approve')
-            || $user->can('inventory.purchase_order.accounts_approve');
-
-        if ($canViewAll) {
+        if ($this->hasInventoryWideAccess($this->purchaseOrderGlobalAccessPermissions())) {
             return;
         }
 

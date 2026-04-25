@@ -28,26 +28,28 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                @if ($canPreview && $file)
-                    <a
-                        href="{{ file_path($file->id) }}"
-                        data-fancybox="{{ $fancyboxGroup }}"
-                        @if ($isPdf) data-type="iframe" data-autosize="true" @endif
-                        data-caption="{{ $file->name ?? ('Attachment #'.$attachment->id) }}"
-                        class="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-50"
-                    >
-                        View
-                    </a>
-                @endif
+                @can('accounts.transaction-attachment.view')
+                    @if ($canPreview && $file)
+                        <a
+                            href="{{ file_path($file->id) }}"
+                            data-fancybox="{{ $fancyboxGroup }}"
+                            @if ($isPdf) data-type="iframe" data-autosize="true" @endif
+                            data-caption="{{ $file->name ?? ('Attachment #'.$attachment->id) }}"
+                            class="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-50"
+                        >
+                            View
+                        </a>
+                    @endif
 
-                @if ($file)
-                    <a
-                        href="{{ route('admin.accounts.transactions.attachments.download', ['transaction' => $attachment->transaction_id, 'file' => $file->id]) }}"
-                        class="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-50"
-                    >
-                        Download
-                    </a>
-                @endif
+                    @if ($file)
+                        <a
+                            href="{{ route('admin.accounts.transactions.attachments.download', ['transaction' => $attachment->transaction_id, 'file' => $file->id]) }}"
+                            class="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-50"
+                        >
+                            Download
+                        </a>
+                    @endif
+                @endcan
 
                 @if ($canRemove && $removeMethod)
                     <button
@@ -64,4 +66,3 @@
         <p class="text-sm text-gray-500">{{ $emptyMessage }}</p>
     @endforelse
 </div>
-

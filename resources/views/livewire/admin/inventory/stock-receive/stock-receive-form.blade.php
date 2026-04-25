@@ -1,4 +1,4 @@
-<div x-data x-init="$store.pageName = { name: '{{ $editMode ? 'Edit Stock Receive' : 'Create Stock Receive' }}', slug: 'stock-receives' }">
+<div x-data x-init="$store.pageName = { name: '{{ $isPostedAdjustmentMode ? 'Adjust Stock Receive' : ($editMode ? 'Edit Stock Receive' : 'Create Stock Receive') }}', slug: 'stock-receives' }">
     <div class="flex flex-wrap justify-between gap-6">
         <h1 class="text-gray-500 text-lg font-bold" x-cloak x-text="$store.pageName?.name ?? ''"></h1>
 
@@ -28,15 +28,19 @@
     <div class="mt-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 sm:px-6 sm:py-5">
         @if ($isLocked)
             <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                This stock receive is {{ $status }} and cannot be edited.
+                {{ $lockMessage ?: 'This stock receive is '.$status.' and cannot be edited.' }}
+            </div>
+        @elseif ($isPostedAdjustmentMode)
+            <div class="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700">
+                Posted stock receive can be adjusted before settlement. Purchase order, supplier, store, and item structure are locked to keep stock history consistent.
             </div>
         @endif
 
-        <form wire:submit.prevent="saveDraft">
+        <form wire:submit.prevent="saveChanges">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div>
                     <label for="receive_no" class="text-sm font-medium text-gray-700">Receive No *</label>
-                    <input id="receive_no" type="text" wire:model="receive_no" @disabled($isLocked)
+                    <input id="receive_no" type="text" wire:model="receive_no" @disabled($isLocked || $isPostedAdjustmentMode)
                         class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                     <x-input-error for="receive_no" class="mt-1" />
                 </div>
@@ -50,7 +54,7 @@
 
                 <div>
                     <label for="purchase_order_id" class="text-sm font-medium text-gray-700">Linked Purchase Order</label>
-                    <select id="purchase_order_id" wire:model.live="purchase_order_id" @disabled($isLocked)
+                    <select id="purchase_order_id" wire:model.live="purchase_order_id" @disabled($isLocked || $isStructureLocked)
                         class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                         <option value="">No purchase order</option>
                         @foreach ($purchaseOrders as $purchaseOrder)
@@ -70,7 +74,7 @@
 
                 <div>
                     <label for="supplier_id" class="text-sm font-medium text-gray-700">Supplier</label>
-                    <select id="supplier_id" wire:model="supplier_id" @disabled($isLocked)
+                    <select id="supplier_id" wire:model="supplier_id" @disabled($isLocked || $isStructureLocked)
                         class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                         <option value="">Select supplier</option>
                         @foreach ($suppliers as $supplier)
@@ -86,10 +90,16 @@
                         class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                     <x-input-error for="supplier_voucher" class="mt-1" />
                 </div>
+                <div>
+                    <label for="store_receive_number" class="text-sm font-medium text-gray-700">Store Receive Number</label>
+                    <input id="store_receive_number" type="text" wire:model="store_receive_number" @disabled($isLocked)
+                        class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
+                    <x-input-error for="store_receive_number" class="mt-1" />
+                </div>
 
                 <div>
                     <label for="store_id" class="text-sm font-medium text-gray-700">Office Store *</label>
-                    <select id="store_id" wire:model="store_id" @disabled($isLocked)
+                    <select id="store_id" wire:model="store_id" @disabled($isLocked || $isStructureLocked)
                         class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                         <option value="">Select office store</option>
                         @foreach ($stores as $store)
@@ -109,7 +119,7 @@
 
             <div class="mt-6 flex items-center justify-between">
                 <h3 class="text-base font-semibold text-gray-800">Receive Items</h3>
-                @if (! $isLocked && ! $poLinked)
+                @if (! $isLocked && ! $isStructureLocked && ! $poLinked)
                     <button type="button" wire:click="addItem" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50">
                         <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -126,7 +136,7 @@
                             <tr class="border-b border-gray-100 bg-gray-50">
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Product *</th>
                                 @if ($poLinked)
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">PO Pending</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">{{ $isPostedAdjustmentMode ? 'Max Qty' : 'PO Pending' }}</th>
                                 @endif
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Quantity *</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Unit Price *</th>
@@ -142,8 +152,9 @@
                                 @endphp
                                 <tr>
                                     <td class="px-4 py-3 min-w-[260px]">
+                                        <input type="hidden" wire:model="items.{{ $index }}.id">
                                         <input type="hidden" wire:model="items.{{ $index }}.purchase_order_item_id">
-                                        <select wire:model="items.{{ $index }}.product_id" @disabled($isLocked || $poLinked)
+                                        <select wire:model="items.{{ $index }}.product_id" @disabled($isLocked || $isStructureLocked || $poLinked)
                                             class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                                             <option value="">Select product</option>
                                             @foreach ($products as $product)
@@ -172,7 +183,7 @@
                                     </td>
 
                                     <td class="px-4 py-3 min-w-[140px]">
-                                        <input type="number" min="0" step="0.01" wire:model.live="items.{{ $index }}.total_price" @disabled($isLocked)
+                                        <input type="number" min="0" step="0.01" wire:model.live="items.{{ $index }}.total_price" @disabled($isLocked || $isPostedAdjustmentMode)
                                             class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                                         <x-input-error for="items.{{ $index }}.total_price" class="mt-1" />
                                     </td>
@@ -184,7 +195,7 @@
                                     </td>
 
                                     <td class="px-4 py-3 text-right">
-                                        @if (! $isLocked)
+                                        @if (! $isLocked && ! $isStructureLocked)
                                             <button type="button" wire:click="removeItem({{ $index }})"
                                                 class="inline-flex items-center rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50">
                                                 Remove
@@ -211,17 +222,25 @@
                 </a>
 
                 @if (! $isLocked)
-                    @can($editMode ? 'inventory.stock.receive.update' : 'inventory.stock.receive.create')
-                        <button type="submit" class="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800">
-                            Save Draft
-                        </button>
-                    @endcan
+                    @if ($isPostedAdjustmentMode)
+                        @can('inventory.stock.receive.update')
+                            <button type="submit" class="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800">
+                                Update Receive
+                            </button>
+                        @endcan
+                    @else
+                        @can($editMode ? 'inventory.stock.receive.update' : 'inventory.stock.receive.create')
+                            <button type="submit" class="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800">
+                                Save Draft
+                            </button>
+                        @endcan
 
-                    @can('inventory.stock.receive.post')
-                        <button type="button" wire:click="postNow" class="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700">
-                            Save & Post
-                        </button>
-                    @endcan
+                        @can('inventory.stock.receive.post')
+                            <button type="button" wire:click="postNow" class="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700">
+                                Save & Post
+                            </button>
+                        @endcan
+                    @endif
                 @endif
             </div>
         </form>

@@ -163,7 +163,7 @@
                                 :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
 
                                 <a href="{{ route('admin.materials.products') }}"
-                                    class="hover:text-gray-200 cursor-pointer text-xs">Products &amp; Variants</a>
+                                    class="hover:text-gray-200 cursor-pointer text-xs">Products</a>
                             </div>
                             <div x-cloak x-show="open" @click.outside="open=false"
                                 :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
@@ -539,6 +539,14 @@
                                         'permission' => 'accounts.purchase-payable.list',
                                     ],
                                 ];
+
+                                $accountsReportRoutes = [
+                                    [
+                                        'label' => 'Statement Sheet',
+                                        'route' => 'admin.accounts.reports.statement',
+                                        'permission' => 'accounts.reports.statement.view',
+                                    ],
+                                ];
                             @endphp
 
                             <div x-cloak x-show="open" @click.outside="open=false"
@@ -552,6 +560,22 @@
                                         </a>
                                     @endif
                                 @endforeach
+
+                                @if (auth()->user()?->can('accounts.reports.statement.view'))
+                                    <div class="pt-1">
+                                        <p class="text-[11px] uppercase tracking-wide text-gray-500">Reports</p>
+                                        <div class="mt-2 space-y-2">
+                                            @foreach ($accountsReportRoutes as $item)
+                                                @if (Route::has($item['route']) && auth()->user()?->can($item['permission']))
+                                                    <a href="{{ route($item['route']) }}"
+                                                        class="hover:text-gray-200 block cursor-pointer pl-2 text-xs">
+                                                        {{ $item['label'] }}
+                                                    </a>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     @endcan
@@ -808,7 +832,7 @@
                             x-transition>Ui Elements</h2>
                     </div>
 
-                    @can('ui_components.module.access')
+                    @can('module.ui_components.access')
                         <!-- UI Elements -->
                         <div x-data="dropdown" class="relative">
                             <!-- Dropdown head -->

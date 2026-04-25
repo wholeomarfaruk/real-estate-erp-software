@@ -137,6 +137,61 @@ class StockService
         ]);
     }
 
+    public function rebuildBalanceFromMovements(int $storeId, int $productId): StockBalance
+    {
+        return DB::transaction(function () use ($storeId, $productId): StockBalance {
+            $movements = StockMovement::query()
+                ->where('store_id', $storeId)
+                ->where('product_id', $productId)
+                ->orderBy('movement_date')
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            $runningQty = 0.0;
+            $runningValue = 0.0;
+
+            foreach ($movements as $movement) {
+                $quantity = $this->roundQty((float) $movement->quantity);
+                $totalPrice = $this->roundPrice((float) $movement->total_price);
+
+                if ($movement->direction === StockMovementDirection::IN) {
+                    $runningQty += $quantity;
+                    $runningValue += $totalPrice;
+                } else {
+                    $runningQty -= $quantity;
+                    $runningValue -= $totalPrice;
+                }
+
+                if ($runningQty < -0.0001 || $runningValue < -0.01) {
+                    throw new \DomainException('Edited receive would make stock negative for one or more items.');
+                }
+
+                $movement->update([
+                    'balance_after' => $this->roundQty(max(0, $runningQty)),
+                ]);
+            }
+
+            $finalQty = $this->roundQty(max(0, $runningQty));
+            $finalValue = $this->roundPrice(max(0, $runningValue));
+            $finalAvg = $finalQty > 0
+                ? $this->roundPrice($finalValue / $finalQty)
+                : 0.0;
+
+            return StockBalance::query()->updateOrCreate(
+                [
+                    'store_id' => $storeId,
+                    'product_id' => $productId,
+                ],
+                [
+                    'quantity' => $finalQty,
+                    'avg_unit_price' => $finalAvg,
+                    'total_value' => $finalValue,
+                ]
+            );
+        });
+    }
+
     protected function getOrCreateBalance(int $storeId, int $productId, bool $forUpdate = false): StockBalance
     {
         $query = StockBalance::query()

@@ -14,7 +14,7 @@ class AccountingDocumentController extends Controller
 {
     public function paymentPrint(Payment $payment): View
     {
-        $this->authorizePermission('accounts.payment.list');
+        $this->authorizePermission('accounts.payment.print');
 
         $payment->load($this->paymentRelations());
 
@@ -29,7 +29,7 @@ class AccountingDocumentController extends Controller
 
     public function paymentPdf(Payment $payment): Response
     {
-        $this->authorizePermission('accounts.payment.list');
+        $this->authorizePermission('accounts.payment.print');
 
         $payment->load($this->paymentRelations());
 
@@ -46,7 +46,7 @@ class AccountingDocumentController extends Controller
 
     public function collectionPrint(AccountCollection $collection): View
     {
-        $this->authorizePermission('accounts.collection.list');
+        $this->authorizePermission('accounts.collection.print');
 
         $collection->load($this->collectionRelations());
 
@@ -61,7 +61,7 @@ class AccountingDocumentController extends Controller
 
     public function collectionPdf(AccountCollection $collection): Response
     {
-        $this->authorizePermission('accounts.collection.list');
+        $this->authorizePermission('accounts.collection.print');
 
         $collection->load($this->collectionRelations());
 
@@ -78,7 +78,7 @@ class AccountingDocumentController extends Controller
 
     public function expensePrint(Expense $expense): View
     {
-        $this->authorizePermission('accounts.expense.list');
+        $this->authorizePermission('accounts.expense.print');
 
         $expense->load($this->expenseRelations());
 
@@ -93,7 +93,7 @@ class AccountingDocumentController extends Controller
 
     public function expensePdf(Expense $expense): Response
     {
-        $this->authorizePermission('accounts.expense.list');
+        $this->authorizePermission('accounts.expense.print');
 
         $expense->load($this->expenseRelations());
 

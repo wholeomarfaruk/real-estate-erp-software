@@ -12,16 +12,7 @@ class TransactionAttachmentController extends Controller
 {
     public function download(Transaction $transaction, File $file): StreamedResponse
     {
-        $user = auth()->user();
-        $canDownload = $user?->canAny([
-            'accounts.transaction.view',
-            'accounts.transaction.list',
-            'accounts.payment.list',
-            'accounts.collection.list',
-            'accounts.expense.list',
-        ]) ?? false;
-
-        abort_unless($canDownload, 403, 'Unauthorized action.');
+        abort_unless(auth()->user()?->can('accounts.transaction-attachment.view'), 403, 'Unauthorized action.');
 
         $isAttached = $transaction->attachments()->where('file_id', $file->id)->exists();
 

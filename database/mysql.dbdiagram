@@ -107,12 +107,6 @@
       "y": 2074
     },
     {
-      "name": "product_variants",
-      "schemaName": "public",
-      "x": 12,
-      "y": 2412
-    },
-    {
       "name": "product_units",
       "schemaName": "public",
       "x": 12,
@@ -403,21 +397,6 @@
         "brand_id"
       ],
       "secondTableName": "products",
-      "secondSchemaName": "public",
-      "secondRelation": "*",
-      "checkPoints": []
-    },
-    {
-      "firstFieldNames": [
-        "id"
-      ],
-      "firstTableName": "products",
-      "firstSchemaName": "public",
-      "firstRelation": "1",
-      "secondFieldNames": [
-        "product_id"
-      ],
-      "secondTableName": "product_variants",
       "secondSchemaName": "public",
       "secondRelation": "*",
       "checkPoints": []

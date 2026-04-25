@@ -262,6 +262,9 @@ class PermissionSeeder extends Seeder
             ['id' => 198, 'name' => 'supplier.reports.product-wise'],
             ['id' => 199, 'name' => 'supplier.reports.due'],
             ['id' => 200, 'name' => 'supplier.reports.aging'],
+            ['id' => 201, 'name' => 'accounts.reports.statement.view'],
+            ['id' => 202, 'name' => 'accounts.reports.statement.print'],
+            ['id' => 203, 'name' => 'accounts.reports.statement.export'],
 
 
         ];

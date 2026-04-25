@@ -101,6 +101,10 @@ class ExpenseList extends Component
         $this->resetForm();
         $this->showFormModal = true;
     }
+    public function updatedExpenseAccountId($id): void
+    {
+        
+    }
 
     public function openEditModal(int $id): void
     {
@@ -135,7 +139,7 @@ class ExpenseList extends Component
 
     public function openAttachmentModal(int $id): void
     {
-        $this->authorizePermission('accounts.expense.list');
+        $this->authorizePermission('accounts.transaction-attachment.view');
 
         $exists = Expense::query()->whereKey($id)->exists();
 

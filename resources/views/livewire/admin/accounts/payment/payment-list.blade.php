@@ -113,17 +113,21 @@
                                             </button>
 
                                             <div x-show="open" @click.away="open = false" style="display: none;" x-transition class="absolute right-0 z-40 mt-10 w-56 origin-top-right rounded-md border border-zinc-200 bg-white p-1 shadow-lg">
-                                                <a href="{{ route('admin.accounts.payments.print', $payment) }}" target="_blank" class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
-                                                    Print
-                                                </a>
+                                                @can('accounts.payment.print')
+                                                    <a href="{{ route('admin.accounts.payments.print', $payment) }}" target="_blank" class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
+                                                        Print
+                                                    </a>
 
-                                                <a href="{{ route('admin.accounts.payments.pdf', $payment) }}" class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
-                                                    Download PDF
-                                                </a>
+                                                    <a href="{{ route('admin.accounts.payments.pdf', $payment) }}" class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
+                                                        Download PDF
+                                                    </a>
+                                                @endcan
 
-                                                <button type="button" wire:click="openAttachmentModal({{ $payment->id }})" class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
-                                                    Attachments
-                                                </button>
+                                                @can('accounts.transaction-attachment.view')
+                                                    <button type="button" wire:click="openAttachmentModal({{ $payment->id }})" class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
+                                                        Attachments
+                                                    </button>
+                                                @endcan
 
                                                 @can('accounts.payment.edit')
                                                     <button type="button" wire:click="openEditModal({{ $payment->id }})" class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">

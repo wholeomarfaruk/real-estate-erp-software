@@ -219,15 +219,6 @@ Table products {
   created_at timestamp
   updated_at timestamp
 }
-Table product_variants {
-  id integer [pk]
-  image string [null]
-  product_id bigint [ref: > products.id]
-  name string
-  description text
-  created_at timestamp
-  updated_at timestamp
-}
 Table product_units{
   id integer [pk]
   name string
