@@ -36,6 +36,7 @@ trait InteractsWithInventoryAccess
             'inventory.dashboard.view',
             'inventory.stock.ledger.view',
             'inventory.stock.report.view',
+            'inventory.report.view',
             'inventory.stock.receive.view',
             'inventory.stock.receive.create',
             'inventory.stock.receive.update',

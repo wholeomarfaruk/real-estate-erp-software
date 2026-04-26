@@ -41,6 +41,11 @@ class AccountList extends Component
 
     public bool $is_active = true;
 
+    /**
+     * @var array<int, string>
+     */
+    public array $allowed_reference_keys = [];
+
     protected string $paginationTheme = 'tailwind';
 
     public function mount(): void
@@ -77,7 +82,9 @@ class AccountList extends Component
     {
         $this->authorizePermission('accounts.chart.edit');
 
-        $account = Account::query()->find($id);
+        $account = Account::query()
+            ->with('referenceKeys:id,account_id,reference_key')
+            ->find($id);
 
         if (! $account) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Account not found.']);
@@ -91,6 +98,10 @@ class AccountList extends Component
         $this->type = $account->type?->value ?? AccountType::ASSET->value;
         $this->parent_id = $account->parent_id ? (int) $account->parent_id : null;
         $this->is_active = (bool) $account->is_active;
+        $this->allowed_reference_keys = $account->referenceKeys
+            ->pluck('reference_key')
+            ->values()
+            ->all();
         $this->showFormModal = true;
     }
 
@@ -105,6 +116,12 @@ class AccountList extends Component
         $this->authorizePermission($permission);
 
         $validated = $this->validate($this->rules(), $this->messages());
+        $allowedReferenceKeys = collect($validated['allowed_reference_keys'] ?? [])
+            ->filter(static fn (mixed $key): bool => is_string($key) && $key !== '')
+            ->unique()
+            ->values()
+            ->all();
+        unset($validated['allowed_reference_keys']);
 
         $parentId = $validated['parent_id'] ? (int) $validated['parent_id'] : null;
 
@@ -120,13 +137,17 @@ class AccountList extends Component
             return;
         }
 
-        DB::transaction(function () use ($validated): void {
+        DB::transaction(function () use ($validated, $allowedReferenceKeys): void {
             if ($this->editingId) {
                 $account = Account::query()->findOrFail($this->editingId);
-                $account->update($validated);
             } else {
-                Account::query()->create($validated);
+                $account = new Account;
             }
+
+            $account->fill($validated);
+            $account->save();
+
+            $this->syncAllowedReferences($account, $allowedReferenceKeys);
         });
 
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Account saved successfully.']);
@@ -267,6 +288,9 @@ class AccountList extends Component
             'accounts' => $accounts,
             'types' => AccountType::cases(),
             'parentOptions' => $parentOptions,
+            'referenceOptions' => collect(account_reference_config())
+                ->mapWithKeys(static fn (array $reference, string $key): array => [$key => (string) ($reference['label'] ?? $key)])
+                ->all(),
             'cashBankAccounts' => $cashBankAccounts,
             'totalCashBalance' => $totalCashBalance,
             'totalBankBalance' => $totalBankBalance,
@@ -289,6 +313,8 @@ class AccountList extends Component
             'type' => ['required', Rule::in(array_map(static fn (AccountType $type): string => $type->value, AccountType::cases()))],
             'parent_id' => ['nullable', 'exists:accounts,id'],
             'is_active' => ['required', 'boolean'],
+            'allowed_reference_keys' => ['nullable', 'array'],
+            'allowed_reference_keys.*' => ['string', Rule::in(array_keys(account_reference_config()))],
         ];
     }
 
@@ -306,9 +332,27 @@ class AccountList extends Component
 
     protected function resetForm(): void
     {
-        $this->reset(['editingId', 'code', 'name', 'parent_id']);
+        $this->reset(['editingId', 'code', 'name', 'parent_id', 'allowed_reference_keys']);
         $this->type = AccountType::ASSET->value;
         $this->is_active = true;
+    }
+
+    /**
+     * @param  array<int, string>  $referenceKeys
+     */
+    protected function syncAllowedReferences(Account $account, array $referenceKeys): void
+    {
+        $account->referenceKeys()->delete();
+
+        if ($referenceKeys === []) {
+            return;
+        }
+
+        $account->referenceKeys()->createMany(
+            collect($referenceKeys)
+                ->map(static fn (string $referenceKey): array => ['reference_key' => $referenceKey])
+                ->all()
+        );
     }
 
     protected function wouldCreateParentCycle(?int $parentId, ?int $currentId): bool

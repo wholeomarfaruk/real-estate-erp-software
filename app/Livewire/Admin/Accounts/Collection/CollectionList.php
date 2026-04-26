@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Accounts\Collection;
 use App\Enums\Accounts\AccountType;
 use App\Enums\Accounts\CollectionType;
 use App\Enums\Accounts\EntryMethod;
+use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountReferences;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Livewire\Traits\WithMediaPicker;
 use App\Models\Account;
@@ -18,6 +19,7 @@ use Livewire\WithPagination;
 
 class CollectionList extends Component
 {
+    use InteractsWithAccountReferences;
     use InteractsWithAccountsAccess;
     use WithMediaPicker;
     use WithPagination;
@@ -101,6 +103,11 @@ class CollectionList extends Component
     public function updatedDateTo(): void
     {
         $this->resetPage();
+    }
+
+    public function updatedTargetAccountId($id): void
+    {
+        $this->resetReferenceSelectionIfUnavailable($id ? (int) $id : null);
     }
 
     public function openCreateModal(): void
@@ -211,6 +218,16 @@ class CollectionList extends Component
         $this->authorizePermission($permission);
 
         $validated = $this->validate($this->rules(), $this->messages());
+        $validated['reference_type'] = filled($validated['reference_type'] ?? null)
+            ? (string) $validated['reference_type']
+            : null;
+        $validated['reference_id'] = $validated['reference_type']
+            ? ($validated['reference_id'] ?? null)
+            : null;
+
+        if (! $this->selectedReferenceTypeIsAllowed((int) $validated['target_account_id'])) {
+            return;
+        }
 
         try {
             $collection = $this->editingId
@@ -312,6 +329,7 @@ class CollectionList extends Component
             'collectionTypes' => CollectionType::cases(),
             'types' => AccountType::cases(),
             'groupedAccounts' => $groupedAccounts,
+            'availableReferenceOptions' => $this->referenceOptionsForAccount($this->target_account_id),
             'attachmentCollection' => $attachmentCollection,
         ])->layout('layouts.admin.admin');
     }
@@ -335,7 +353,7 @@ class CollectionList extends Component
             'amount' => ['required', 'numeric', 'gt:0'],
             'payer_name' => ['nullable', 'string', 'max:150'],
             'collection_type' => ['required', Rule::in(array_map(static fn (CollectionType $type): string => $type->value, CollectionType::cases()))],
-            'reference_type' => ['nullable', 'string', 'max:100'],
+            'reference_type' => ['nullable', 'string', 'max:100', Rule::in($this->configuredReferenceKeys())],
             'reference_id' => ['nullable', 'integer', 'min:1'],
             'notes' => ['nullable', 'string'],
             'attachment_ids' => ['nullable', 'array'],

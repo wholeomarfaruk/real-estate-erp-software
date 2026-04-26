@@ -255,6 +255,30 @@
                     @error('is_active') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
+                <div class="sm:col-span-2">
+                    <label class="text-sm font-medium text-gray-700">Allowed References</label>
+                    <p class="mt-1 text-xs text-gray-500">Choose which reference types can be used with this account.</p>
+
+                    <div class="mt-2 grid grid-cols-1 gap-2 rounded-lg border border-gray-300 p-3 sm:grid-cols-2">
+                        @forelse ($referenceOptions as $referenceKey => $referenceLabel)
+                            <label class="flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-700 transition hover:bg-gray-50">
+                                <input
+                                    type="checkbox"
+                                    wire:model.defer="allowed_reference_keys"
+                                    value="{{ $referenceKey }}"
+                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                >
+                                <span>{{ $referenceLabel }}</span>
+                            </label>
+                        @empty
+                            <p class="text-sm text-gray-500">No reference types configured.</p>
+                        @endforelse
+                    </div>
+
+                    @error('allowed_reference_keys') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    @error('allowed_reference_keys.*') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
                 <div class="sm:col-span-2 mt-2 flex justify-end gap-2">
                     <button type="button" @click="open = false; $wire.closeFormModal()" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
                         Cancel

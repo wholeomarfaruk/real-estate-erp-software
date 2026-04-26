@@ -6,6 +6,7 @@ use App\Enums\Inventory\PurchaseOrderStatus;
 use App\Enums\Inventory\StockReceiveStatus;
 use App\Enums\Inventory\StoreType;
 use App\Livewire\Admin\Inventory\Concerns\InteractsWithInventoryAccess;
+use App\Livewire\Traits\WithMediaPicker;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\StockReceive;
@@ -22,6 +23,7 @@ use Livewire\Component;
 class StockReceiveForm extends Component
 {
     use InteractsWithInventoryAccess;
+    use WithMediaPicker;
 
     public ?StockReceive $stockReceiveRecord = null;
 
@@ -38,11 +40,14 @@ class StockReceiveForm extends Component
     public ?int $supplier_id = null;
 
     public ?string $supplier_voucher = null;
-    public ?string $store_receive_number = null;
+
+    public ?string $store_receiver_no = null;
 
     public ?int $store_id = null;
 
     public ?string $remarks = null;
+
+    public array $images = [];
 
     public string $status = 'draft';
 
@@ -79,12 +84,14 @@ class StockReceiveForm extends Component
             $this->stockReceiveId = $stockReceive->id;
 
             $this->receive_no = $stockReceive->receive_no;
+            $this->store_receiver_no = $stockReceive->store_receiver_no;
             $this->receive_date = optional($stockReceive->receive_date)->format('Y-m-d') ?: now()->toDateString();
             $this->purchase_order_id = $stockReceive->purchase_order_id;
             $this->supplier_id = $stockReceive->supplier_id;
             $this->supplier_voucher = $stockReceive->supplier_voucher;
             $this->store_id = $stockReceive->store_id;
             $this->remarks = $stockReceive->remarks;
+            $this->images = $stockReceive->images ?? [];
             $this->status = $stockReceive->status?->value ?? StockReceiveStatus::DRAFT->value;
 
             if ($stockReceive->status === StockReceiveStatus::POSTED) {
@@ -291,7 +298,6 @@ class StockReceiveForm extends Component
             ->latest('order_date')
             ->latest('id');
 
-            
         return view('livewire.admin.inventory.stock-receive.stock-receive-form', [
             'stores' => $storesQuery->get(['id', 'name', 'code']),
             'suppliers' => Supplier::query()->active()->orderBy('name')->get(['id', 'name', 'contact_person', 'phone']),
@@ -329,12 +335,14 @@ class StockReceiveForm extends Component
         $stockReceive = DB::transaction(function () use ($validated, $status): StockReceive {
             $header = [
                 'receive_no' => $validated['receive_no'],
+                'store_receiver_no' => $validated['store_receiver_no'],
                 'receive_date' => $validated['receive_date'],
                 'purchase_order_id' => $validated['purchase_order_id'],
                 'supplier_id' => $validated['supplier_id'],
                 'supplier_voucher' => $validated['supplier_voucher'],
                 'store_id' => $validated['store_id'],
                 'remarks' => $validated['remarks'],
+                'images' => $validated['images'] ?? [],
                 'status' => $status->value,
                 'created_by' => $this->editMode && $this->stockReceiveRecord
                     ? $this->stockReceiveRecord->created_by
@@ -380,6 +388,7 @@ class StockReceiveForm extends Component
     {
         return [
             'receive_no' => ['required', 'string', 'max:100', Rule::unique('stock_receives', 'receive_no')->ignore($this->stockReceiveId)],
+            'store_receiver_no' => ['nullable', 'string', 'max:255', Rule::unique('stock_receives', 'store_receiver_no')->ignore($this->stockReceiveId)],
             'receive_date' => ['required', 'date'],
             'purchase_order_id' => ['nullable', 'integer', 'exists:purchase_orders,id'],
             'supplier_id' => ['nullable', 'integer', 'exists:suppliers,id'],
@@ -390,6 +399,7 @@ class StockReceiveForm extends Component
                 Rule::exists('stores', 'id')->where(fn ($query) => $query->where('type', StoreType::OFFICE->value)),
             ],
             'remarks' => ['nullable', 'string'],
+            'images' => ['nullable', 'array'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.id' => ['nullable', 'integer', 'exists:stock_receive_items,id'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
@@ -404,6 +414,7 @@ class StockReceiveForm extends Component
     protected function messages(): array
     {
         return [
+            'store_receiver_no.unique' => 'Store receive no already exists.', // @phpstan-ignore-line store_receiver_no
             'store_id.required' => 'Please select an office store.',
             'store_id.exists' => 'Selected store is invalid or not an office store.',
             'items.*.id.required' => 'Invalid stock receive item selected.',
@@ -467,6 +478,7 @@ class StockReceiveForm extends Component
             'items',
             'purchaseOrder.settlement',
         ]);
+        $this->store_receiver_no = $updated->store_receiver_no;
 
         $this->receive_date = optional($updated->receive_date)->format('Y-m-d') ?: now()->toDateString();
         $this->supplier_voucher = $updated->supplier_voucher;
@@ -598,7 +610,6 @@ class StockReceiveForm extends Component
         if (! $purchaseOrder) {
             throw new \DomainException('Selected purchase order is not available for stock receive.');
         }
-
 
         $pendingQuantities = $this->pendingQuantitiesForPurchaseOrder($purchaseOrderId);
         $pendingSupplierIds = $this->supplierIdsFromPendingItems($purchaseOrder, $pendingQuantities);

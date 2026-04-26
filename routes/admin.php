@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\Accounts\AccountingDocumentController;
+use App\Http\Controllers\Admin\Accounts\AccountReportExportController;
 use App\Http\Controllers\Admin\Accounts\StatementReportController;
 use App\Http\Controllers\Admin\Accounts\TransactionAttachmentController;
 use App\Http\Controllers\Admin\FileUploadController;
@@ -11,19 +12,19 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/dashboard', \App\Livewire\Admin\Dashboard\Dashboard::class)->name('dashboard');
 
-//user managements
+// user managements
 Route::get('/users', App\Livewire\Admin\Users\Users::class)->name('users');
 
 // Profile and Settings
 Route::get('/profile', App\Livewire\Admin\Profile\Profile::class)->name('profile');
 Route::get('/settings', App\Livewire\Admin\Settings\Settings::class)->name('settings');
 
-//permissions
+// permissions
 Route::get('/permissions/roles', App\Livewire\Admin\Permissions\RoleList::class)->name('roles.list');
 Route::get('/permissions/role/create', App\Livewire\Admin\Permissions\RoleCreate::class)->name('roles.create');
 Route::get('/permissions/role/edit/{id}', App\Livewire\Admin\Permissions\RoleEdit::class)->name('roles.edit');
 
-//projects
+// projects
 Route::get('/projects', App\Livewire\Admin\Projects\ProjectList::class)->name('projects.list');
 Route::get('/projects/create', App\Livewire\Admin\Projects\ProjectCreate::class)->name('projects.create');
 Route::get('/projects/{project}/details', App\Livewire\Admin\Projects\ProjectDetails::class)->name('projects.details');
@@ -42,8 +43,7 @@ Route::get('/projects/properties/{property}/units/{unit}/edit', App\Livewire\Adm
 Route::get('/projects/properties/{property}/units/{unit}', App\Livewire\Admin\Properties\UnitView::class)->name('projects.properties.units.view');
 Route::get('/projects/properties/{property}/overview', App\Livewire\Admin\Properties\Overview::class)->name('projects.properties.overview');
 
-
-//project calendar
+// project calendar
 Route::get('/project-calendar', App\Livewire\Admin\Projects\ProjectCalendar::class)->name('project.calendar');
 // units (project-level)
 Route::get('/units', App\Livewire\Admin\Projects\UnitList::class)->name('units.list');
@@ -51,29 +51,29 @@ Route::get('/units/create', App\Livewire\Admin\Projects\UnitForm::class)->name('
 Route::get('/units/{unit}/edit', App\Livewire\Admin\Projects\UnitForm::class)->name('units.edit');
 Route::get('/units/{unit}', App\Livewire\Admin\Projects\UnitView::class)->name('units.view');
 
-//materials
+// materials
 Route::get('/materials/categories', App\Livewire\Admin\Materials\ProductCategories::class)->name('materials.categories');
 Route::get('/materials/brands', App\Livewire\Admin\Materials\ProductBrands::class)->name('materials.brands');
 Route::get('/materials/products', App\Livewire\Admin\Materials\Products::class)->name('materials.products');
 Route::get('/materials/units', App\Livewire\Admin\Materials\ProductUnits::class)->name('materials.units');
 
-//inventory dashboard
+// inventory dashboard
 Route::get('/inventory/dashboard', App\Livewire\Admin\Inventory\Dashboard\InventoryDashboard::class)
     ->middleware('can:inventory.dashboard.view')
     ->name('inventory.dashboard');
 
-//inventory stores
+// inventory stores
 Route::get('/inventory/stores', App\Livewire\Admin\Inventory\Store\StoreList::class)->name('inventory.stores.index');
 Route::get('/inventory/stores/create', App\Livewire\Admin\Inventory\Store\StoreForm::class)->name('inventory.stores.create');
 Route::get('/inventory/stores/{store}/edit', App\Livewire\Admin\Inventory\Store\StoreForm::class)->name('inventory.stores.edit');
 
-//inventory stock consumptions
+// inventory stock consumptions
 Route::get('/inventory/stock-consumptions', App\Livewire\Admin\Inventory\StockConsumption\StockConsumptionList::class)->name('inventory.stock-consumptions.index');
 Route::get('/inventory/stock-consumptions/create', App\Livewire\Admin\Inventory\StockConsumption\StockConsumptionForm::class)->name('inventory.stock-consumptions.create');
 Route::get('/inventory/stock-consumptions/{stockConsumption}/edit', App\Livewire\Admin\Inventory\StockConsumption\StockConsumptionForm::class)->name('inventory.stock-consumptions.edit');
 Route::get('/inventory/stock-consumptions/{stockConsumption}', App\Livewire\Admin\Inventory\StockConsumption\StockConsumptionView::class)->name('inventory.stock-consumptions.show');
 
-//inventory suppliers
+// inventory suppliers
 Route::get('/inventory/suppliers', App\Livewire\Admin\Inventory\Supplier\SupplierList::class)->name('inventory.suppliers.index');
 Route::get('/inventory/suppliers/create', App\Livewire\Admin\Inventory\Supplier\SupplierForm::class)->name('inventory.suppliers.create');
 Route::get('/inventory/suppliers/{supplier}/edit', App\Livewire\Admin\Inventory\Supplier\SupplierForm::class)->name('inventory.suppliers.edit');
@@ -81,7 +81,7 @@ Route::get('/inventory/suppliers/{supplier}/purchase-orders/download', [Supplier
     ->middleware('can:supplier.view')
     ->name('inventory.suppliers.purchase-orders.download');
 
-//standalone supplier module
+// standalone supplier module
 Route::prefix('supplier')->name('supplier.')->group(function (): void {
     Route::get('/dashboard', App\Livewire\Admin\Supplier\Dashboard\SupplierDashboard::class)
         ->middleware('can:supplier.dashboard.view')
@@ -180,7 +180,7 @@ Route::prefix('supplier')->name('supplier.')->group(function (): void {
         ->name('suppliers.edit');
 });
 
-//accounts module
+// accounts module
 Route::prefix('accounts')->name('accounts.')->group(function (): void {
     Route::get('/chart-of-accounts', App\Livewire\Admin\Accounts\Account\AccountList::class)
         ->middleware('can:accounts.chart.list')
@@ -245,9 +245,81 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
     Route::get('/reports/statement/pdf', [StatementReportController::class, 'export'])
         ->middleware('can:accounts.reports.statement.export')
         ->name('reports.statement.export');
+
+    Route::get('/reports/product-cost', App\Livewire\Admin\Accounts\Reports\ProductWiseCostReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.product-cost');
+
+    Route::get('/reports/assets', App\Livewire\Admin\Accounts\Reports\AssetReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.assets');
+
+    Route::get('/reports/payments', App\Livewire\Admin\Accounts\Reports\PaymentReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.payments');
+
+    Route::get('/reports/collections', App\Livewire\Admin\Accounts\Reports\CollectionReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.collections');
+
+    Route::get('/reports/expenses', App\Livewire\Admin\Accounts\Reports\ExpenseReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.expenses');
+
+    Route::get('/reports/liability', App\Livewire\Admin\Accounts\Reports\LiabilityReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.liability');
+
+    Route::get('/reports/cash-book', App\Livewire\Admin\Accounts\Reports\CashBookReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.cash-book');
+
+    Route::get('/reports/bank-book', App\Livewire\Admin\Accounts\Reports\BankBookReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.bank-book');
+
+    Route::get('/reports/supplier-ledger', App\Livewire\Admin\Accounts\Reports\SupplierLedgerReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.supplier-ledger');
+
+    Route::get('/reports/customer-ledger', App\Livewire\Admin\Accounts\Reports\CustomerLedgerReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.customer-ledger');
+
+    Route::get('/reports/trial-balance', App\Livewire\Admin\Accounts\Reports\TrialBalanceReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.trial-balance');
+
+    Route::get('/reports/profit-loss', App\Livewire\Admin\Accounts\Reports\ProfitLossReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.profit-loss');
+
+    Route::get('/reports/balance-sheet', App\Livewire\Admin\Accounts\Reports\BalanceSheetReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.balance-sheet');
+
+    Route::get('/reports/daily-summary', App\Livewire\Admin\Accounts\Reports\DailySummaryReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.daily-summary');
+
+    Route::get('/reports/account-ledger', App\Livewire\Admin\Accounts\Reports\AccountLedgerReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.account-ledger');
+
+    Route::get('/reports/project-wise-expense', App\Livewire\Admin\Accounts\Reports\ProjectWiseExpenseReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.project-wise-expense');
+
+    Route::get('/reports/export/{report}/excel', [AccountReportExportController::class, 'excel'])
+        ->middleware('can:accounts.report.view')
+        ->name('reports.export.excel');
+
+    Route::get('/reports/export/{report}/pdf', [AccountReportExportController::class, 'pdf'])
+        ->middleware('can:accounts.report.view')
+        ->name('reports.export.pdf');
 });
 
-//hrm module
+// hrm module
 Route::prefix('hrm')->name('hrm.')->group(function (): void {
     Route::get('/departments', App\Livewire\Admin\Hrm\Department\DepartmentList::class)
         ->middleware('can:hrm.departments.view')
@@ -298,7 +370,7 @@ Route::prefix('hrm')->name('hrm.')->group(function (): void {
         ->name('payroll-payments.index');
 });
 
-//inventory purchase orders
+// inventory purchase orders
 Route::get('/inventory/purchase-orders', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseOrderList::class)->name('inventory.purchase-orders.index');
 Route::get('/inventory/purchase-orders/create', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseOrderForm::class)->name('inventory.purchase-orders.create');
 Route::get('/inventory/purchase-orders/{purchaseOrder}/view', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseOrderView::class)->name('inventory.purchase-orders.view');
@@ -315,37 +387,37 @@ Route::get('/inventory/purchase-orders/{purchaseOrder}/download', [PurchaseOrder
 Route::get('/inventory/purchase-orders/{purchaseOrder}/funds', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseFundForm::class)->name('inventory.purchase-orders.funds');
 Route::get('/inventory/purchase-orders/{purchaseOrder}/settlement', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseSettlementForm::class)->name('inventory.purchase-orders.settlement');
 
-//inventory stock receives
+// inventory stock receives
 Route::get('/inventory/stock-receives', App\Livewire\Admin\Inventory\StockReceive\StockReceiveList::class)->name('inventory.stock-receives.index');
 Route::get('/inventory/stock-receives/create', App\Livewire\Admin\Inventory\StockReceive\StockReceiveForm::class)->name('inventory.stock-receives.create');
 Route::get('/inventory/stock-receives/{stockReceive}/view', App\Livewire\Admin\Inventory\StockReceive\StockReceiveView::class)->name('inventory.stock-receives.view');
 Route::get('/inventory/stock-receives/{stockReceive}/edit', App\Livewire\Admin\Inventory\StockReceive\StockReceiveForm::class)->name('inventory.stock-receives.edit');
 
-//inventory purchase returns
+// inventory purchase returns
 Route::get('/inventory/purchase-returns', App\Livewire\Admin\Inventory\PurchaseReturn\PurchaseReturnList::class)->name('inventory.purchase-returns.index');
 Route::get('/inventory/purchase-returns/create', App\Livewire\Admin\Inventory\PurchaseReturn\PurchaseReturnForm::class)->name('inventory.purchase-returns.create');
 Route::get('/inventory/purchase-returns/{purchaseReturn}/view', App\Livewire\Admin\Inventory\PurchaseReturn\PurchaseReturnView::class)->name('inventory.purchase-returns.view');
 Route::get('/inventory/purchase-returns/{purchaseReturn}/edit', App\Livewire\Admin\Inventory\PurchaseReturn\PurchaseReturnForm::class)->name('inventory.purchase-returns.edit');
 
-//inventory stock requests
+// inventory stock requests
 Route::get('/inventory/stock-requests', App\Livewire\Admin\Inventory\StockRequest\StockRequestList::class)->name('inventory.stock-requests.index');
 Route::get('/inventory/stock-requests/create', App\Livewire\Admin\Inventory\StockRequest\StockRequestForm::class)->name('inventory.stock-requests.create');
 Route::get('/inventory/stock-requests/{stockRequest}/view', App\Livewire\Admin\Inventory\StockRequest\StockRequestView::class)->name('inventory.stock-requests.view');
 Route::get('/inventory/stock-requests/{stockRequest}/edit', App\Livewire\Admin\Inventory\StockRequest\StockRequestForm::class)->name('inventory.stock-requests.edit');
 
-//inventory stock transfers
+// inventory stock transfers
 Route::get('/inventory/stock-transfers', App\Livewire\Admin\Inventory\StockTransfer\StockTransferList::class)->name('inventory.stock-transfers.index');
 Route::get('/inventory/stock-transfers/create', App\Livewire\Admin\Inventory\StockTransfer\StockTransferForm::class)->name('inventory.stock-transfers.create');
 Route::get('/inventory/stock-transfers/{transferTransaction}/view', App\Livewire\Admin\Inventory\StockTransfer\StockTransferView::class)->name('inventory.stock-transfers.view');
 Route::get('/inventory/stock-transfers/{transferTransaction}/edit', App\Livewire\Admin\Inventory\StockTransfer\StockTransferForm::class)->name('inventory.stock-transfers.edit');
 
-//inventory stock adjustments
+// inventory stock adjustments
 Route::get('/inventory/stock-adjustments', App\Livewire\Admin\Inventory\StockAdjustment\StockAdjustmentList::class)->name('inventory.stock-adjustments.index');
 Route::get('/inventory/stock-adjustments/create', App\Livewire\Admin\Inventory\StockAdjustment\StockAdjustmentForm::class)->name('inventory.stock-adjustments.create');
 Route::get('/inventory/stock-adjustments/{stockAdjustment}/view', App\Livewire\Admin\Inventory\StockAdjustment\StockAdjustmentView::class)->name('inventory.stock-adjustments.view');
 Route::get('/inventory/stock-adjustments/{stockAdjustment}/edit', App\Livewire\Admin\Inventory\StockAdjustment\StockAdjustmentForm::class)->name('inventory.stock-adjustments.edit');
 
-//inventory reports
+// inventory reports
 Route::get('/inventory/reports/product-ledger', App\Livewire\Admin\Inventory\Reports\ProductLedger::class)->name('inventory.reports.product-ledger');
 Route::get('/inventory/reports/store-ledger', App\Livewire\Admin\Inventory\Reports\StoreLedger::class)->name('inventory.reports.store-ledger');
 Route::get('/inventory/reports/project-ledger', App\Livewire\Admin\Inventory\Reports\ProjectLedger::class)->name('inventory.reports.project-ledger');
@@ -355,14 +427,17 @@ Route::get('/inventory/reports/total-stock-summary', App\Livewire\Admin\Inventor
 Route::get('/inventory/reports/office-store-summary', App\Livewire\Admin\Inventory\Reports\OfficeStoreSummary::class)->name('inventory.reports.office-store-summary');
 Route::get('/inventory/reports/project-store-summary', App\Livewire\Admin\Inventory\Reports\ProjectStoreSummary::class)->name('inventory.reports.project-store-summary');
 Route::get('/inventory/reports/product-stock-summary', App\Livewire\Admin\Inventory\Reports\ProductStockSummary::class)->name('inventory.reports.product-stock-summary');
+Route::get('/inventory/reports/product-cost', App\Livewire\Admin\Inventory\Reports\ProductWiseCostReport::class)
+    ->middleware('can:inventory.report.view')
+    ->name('inventory.reports.product-cost');
 Route::get('/inventory/reports/low-stock', App\Livewire\Admin\Inventory\Reports\LowStockReport::class)->name('inventory.reports.low-stock');
 Route::get('/inventory/reports/out-of-stock', App\Livewire\Admin\Inventory\Reports\OutOfStockReport::class)->name('inventory.reports.out-of-stock');
 Route::get('/inventory/reports/store-stock-value', App\Livewire\Admin\Inventory\Reports\StoreStockValueSummary::class)->name('inventory.reports.store-stock-value');
 
-//uploads
+// uploads
 Route::get('/uploads', App\Livewire\Admin\File\Uploads::class)->name('uploads');
 Route::post('/upload', [FileUploadController::class, 'storeAdmin']);
 Route::delete('/upload/revert', [FileUploadController::class, 'revertAdmin']);
 
-//Ui Components
+// Ui Components
 Route::get('/ui/layouts', App\Livewire\Admin\Ui\Layouts\Layouts::class)->name('ui.layouts');

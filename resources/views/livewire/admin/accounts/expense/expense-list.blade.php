@@ -212,7 +212,7 @@
 
                 <div>
                     <label class="text-sm font-medium text-gray-700">Expense Account (Debit) <span class="text-rose-500">*</span></label>
-                    <select wire:model.defer="expense_account_id" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                    <select wire:model.live="expense_account_id" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
                         <option value="">Select account</option>
                         @foreach ($types as $accountType)
                             @if (($groupedAccounts[$accountType->value] ?? collect())->count())
@@ -252,7 +252,15 @@
 
                 <div>
                     <label class="text-sm font-medium text-gray-700">Reference Type</label>
-                    <input type="text" wire:model.defer="reference_type" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none" placeholder="Optional reference type">
+                    <select wire:model.defer="reference_type" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                        <option value="">No reference</option>
+                        @foreach ($availableReferenceOptions as $referenceKey => $referenceLabel)
+                            <option value="{{ $referenceKey }}">{{ $referenceLabel }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">
+                        {{ $expense_account_id && empty($availableReferenceOptions) ? 'No reference types are linked to the selected expense account.' : 'Options are based on the selected expense account.' }}
+                    </p>
                     @error('reference_type') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 

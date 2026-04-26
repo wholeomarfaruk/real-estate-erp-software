@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Accounts\Payment;
 
 use App\Enums\Accounts\AccountType;
 use App\Enums\Accounts\EntryMethod;
+use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountReferences;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Livewire\Traits\WithMediaPicker;
 use App\Models\Account;
@@ -17,6 +18,7 @@ use Livewire\WithPagination;
 
 class PaymentList extends Component
 {
+    use InteractsWithAccountReferences;
     use InteractsWithAccountsAccess;
     use WithMediaPicker;
     use WithPagination;
@@ -90,6 +92,11 @@ class PaymentList extends Component
     public function updatedDateTo(): void
     {
         $this->resetPage();
+    }
+
+    public function updatedPurposeAccountId($id): void
+    {
+        $this->resetReferenceSelectionIfUnavailable($id ? (int) $id : null);
     }
 
     public function openCreateModal(): void
@@ -199,6 +206,16 @@ class PaymentList extends Component
         $this->authorizePermission($permission);
 
         $validated = $this->validate($this->rules(), $this->messages());
+        $validated['reference_type'] = filled($validated['reference_type'] ?? null)
+            ? (string) $validated['reference_type']
+            : null;
+        $validated['reference_id'] = $validated['reference_type']
+            ? ($validated['reference_id'] ?? null)
+            : null;
+
+        if (! $this->selectedReferenceTypeIsAllowed((int) $validated['purpose_account_id'])) {
+            return;
+        }
 
         try {
             $payment = $this->editingId
@@ -298,6 +315,7 @@ class PaymentList extends Component
             'methods' => EntryMethod::cases(),
             'types' => AccountType::cases(),
             'groupedAccounts' => $groupedAccounts,
+            'availableReferenceOptions' => $this->referenceOptionsForAccount($this->purpose_account_id),
             'attachmentPayment' => $attachmentPayment,
         ])->layout('layouts.admin.admin');
     }
@@ -320,7 +338,7 @@ class PaymentList extends Component
             'purpose_account_id' => ['required', 'exists:accounts,id'],
             'amount' => ['required', 'numeric', 'gt:0'],
             'payee_name' => ['nullable', 'string', 'max:150'],
-            'reference_type' => ['nullable', 'string', 'max:100'],
+            'reference_type' => ['nullable', 'string', 'max:100', Rule::in($this->configuredReferenceKeys())],
             'reference_id' => ['nullable', 'integer', 'min:1'],
             'notes' => ['nullable', 'string'],
             'attachment_ids' => ['nullable', 'array'],

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class Account extends Model
 {
@@ -33,6 +34,20 @@ class Account extends Model
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id')->orderBy('name');
+    }
+
+    public function referenceKeys(): HasMany
+    {
+        return $this->hasMany(AccountReferenceLink::class)->orderBy('reference_key');
+    }
+
+    public function allowedReferences(): Collection
+    {
+        $keys = $this->relationLoaded('referenceKeys')
+            ? $this->referenceKeys->pluck('reference_key')->all()
+            : $this->referenceKeys()->pluck('reference_key')->all();
+
+        return collect(account_reference_config())->only($keys);
     }
 
     public function transactionLines(): HasMany

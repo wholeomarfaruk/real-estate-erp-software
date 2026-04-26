@@ -113,6 +113,8 @@ class AssignPermissionSeeder extends Seeder
                 'accounts.reports.statement.view',
                 'accounts.reports.statement.print',
                 'accounts.reports.statement.export',
+                'accounts.report.view',
+                'inventory.report.view',
                 'accounts.transaction-attachment.view',
                 'accounts.transaction-attachment.create',
                 'accounts.transaction-attachment.delete',
@@ -223,6 +225,8 @@ class AssignPermissionSeeder extends Seeder
                 'accounts.reports.statement.view',
                 'accounts.reports.statement.print',
                 'accounts.reports.statement.export',
+                'accounts.report.view',
+                'inventory.report.view',
                 'accounts.transaction-attachment.view',
                 'accounts.transaction-attachment.create',
                 'accounts.transaction-attachment.delete',
@@ -286,7 +290,7 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.stock_request.create',
                 'inventory.stock_request.update',
                 'inventory.stock_request.submit',
-                //transfer
+                // transfer
                 'inventory.stock.transfer.view',
                 'inventory.stock.transfer.create',
                 'inventory.stock.transfer.update',
@@ -294,13 +298,13 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.stock.transfer.approve',
                 'inventory.stock.transfer.complete',
                 'inventory.stock.transfer.delete',
-                //adjustment
+                // adjustment
                 'inventory.stock.adjustment.view',
                 'inventory.stock.adjustment.create',
                 'inventory.stock.adjustment.update',
                 'inventory.stock.adjustment.post',
                 'inventory.stock.adjustment.delete',
-                //purchase order
+                // purchase order
                 'inventory.purchase_order.view',
                 'inventory.purchase_order.create',
                 'inventory.purchase_order.update',
@@ -312,9 +316,10 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.purchase_order.fund_release',
                 'inventory.purchase_order.settle',
                 'inventory.purchase_order.complete',
+                'inventory.report.view',
                 'inventory.purchase_order.delete',
 
-                //section and modules
+                // section and modules
                 'section.general.access',
                 'module.materials.access',
                 'module.suppliers.access',
@@ -350,6 +355,7 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.purchase_order.chairman_approve',
                 'inventory.stock.report.view',
                 'inventory.stock.ledger.view',
+                'inventory.report.view',
                 'module.materials.access',
                 'module.suppliers.access',
                 'module.hrm.access',
@@ -360,7 +366,6 @@ class AssignPermissionSeeder extends Seeder
             ->get();
 
         Role::findByName('chairman')->syncPermissions($chairmanPermissions);
-
 
         $siteEngineerPermissions = Permission::query()
             ->whereIn('name', [
@@ -391,7 +396,6 @@ class AssignPermissionSeeder extends Seeder
         Role::findByName('engineer')->syncPermissions(
             $siteEngineerPermissions->merge($engineerPermissions)->unique('id')->values()
         );
-
 
         $adminPanelId = Panel::where('slug', 'admin')->value('id');
 

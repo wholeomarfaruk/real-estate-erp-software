@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Accounts\Expense;
 
 use App\Enums\Accounts\AccountType;
+use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountReferences;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Livewire\Traits\WithMediaPicker;
 use App\Models\Account;
@@ -16,6 +17,7 @@ use Livewire\WithPagination;
 
 class ExpenseList extends Component
 {
+    use InteractsWithAccountReferences;
     use InteractsWithAccountsAccess;
     use WithMediaPicker;
     use WithPagination;
@@ -101,9 +103,10 @@ class ExpenseList extends Component
         $this->resetForm();
         $this->showFormModal = true;
     }
+
     public function updatedExpenseAccountId($id): void
     {
-        
+        $this->resetReferenceSelectionIfUnavailable($id ? (int) $id : null);
     }
 
     public function openEditModal(int $id): void
@@ -204,6 +207,16 @@ class ExpenseList extends Component
         $this->authorizePermission($permission);
 
         $validated = $this->validate($this->rules(), $this->messages());
+        $validated['reference_type'] = filled($validated['reference_type'] ?? null)
+            ? (string) $validated['reference_type']
+            : null;
+        $validated['reference_id'] = $validated['reference_type']
+            ? ($validated['reference_id'] ?? null)
+            : null;
+
+        if (! $this->selectedReferenceTypeIsAllowed((int) $validated['expense_account_id'])) {
+            return;
+        }
 
         try {
             $expense = $this->editingId
@@ -304,6 +317,7 @@ class ExpenseList extends Component
             'types' => AccountType::cases(),
             'accounts' => $accounts,
             'groupedAccounts' => $groupedAccounts,
+            'availableReferenceOptions' => $this->referenceOptionsForAccount($this->expense_account_id),
             'attachmentExpense' => $attachmentExpense,
         ])->layout('layouts.admin.admin');
     }
@@ -322,7 +336,7 @@ class ExpenseList extends Component
             ],
             'date' => ['required', 'date'],
             'title' => ['required', 'string', 'max:150'],
-            'reference_type' => ['nullable', 'string', 'max:100'],
+            'reference_type' => ['nullable', 'string', 'max:100', Rule::in($this->configuredReferenceKeys())],
             'reference_id' => ['nullable', 'integer', 'min:1'],
             'expense_account_id' => ['required', 'exists:accounts,id'],
             'payment_account_id' => ['required', 'exists:accounts,id'],
