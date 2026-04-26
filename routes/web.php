@@ -9,7 +9,7 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/dashboard', function () {
-        return view('dashboard');
+        return redirect()->route('admin.dashboard');
     })->name('dashboard');
 });
 Route::get('/projects/properties', function () {
