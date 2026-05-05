@@ -185,6 +185,9 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
         ->middleware('can:accounts.chart.list')
         ->name('chart-of-accounts.index');
 
+    Route::get('/banks', App\Livewire\Admin\Accounts\Assets\BankList::class)
+        ->name('banks.list');
+
     Route::get('/transactions', App\Livewire\Admin\Accounts\Transaction\TransactionList::class)
         ->middleware('can:accounts.transaction.list')
         ->name('transactions.index');

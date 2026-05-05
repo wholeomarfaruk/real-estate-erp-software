@@ -69,4 +69,8 @@ class Account extends Model
     {
         return $this->hasMany(Expense::class, 'payment_account_id');
     }
+    public function bankAccount()
+{
+    return $this->hasOne(BankAccount::class);
+}
 }

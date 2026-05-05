@@ -40,6 +40,7 @@ class AccountList extends Component
     public ?int $parent_id = null;
 
     public bool $is_active = true;
+    public ?string $sub_type = null;
 
     protected string $paginationTheme = 'tailwind';
 
@@ -289,6 +290,7 @@ class AccountList extends Component
             'type' => ['required', Rule::in(array_map(static fn (AccountType $type): string => $type->value, AccountType::cases()))],
             'parent_id' => ['nullable', 'exists:accounts,id'],
             'is_active' => ['required', 'boolean'],
+            'sub_type' => ['nullable', 'string'],
         ];
     }
 
@@ -301,12 +303,13 @@ class AccountList extends Component
             'name.required' => 'Account name is required.',
             'type.required' => 'Account type is required.',
             'code.unique' => 'Account code must be unique.',
+            'sub_type.string' => 'Account sub type must be a string.',
         ];
     }
 
     protected function resetForm(): void
     {
-        $this->reset(['editingId', 'code', 'name', 'parent_id']);
+        $this->reset(['editingId', 'code', 'name', 'parent_id', 'sub_type']);
         $this->type = AccountType::ASSET->value;
         $this->is_active = true;
     }

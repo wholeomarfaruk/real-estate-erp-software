@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('code', 50)->nullable()->unique();
             $table->string('name', 150);
             $table->string('type', 30)->default(AccountType::ASSET->value);
+            $table->string('sub_type')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 

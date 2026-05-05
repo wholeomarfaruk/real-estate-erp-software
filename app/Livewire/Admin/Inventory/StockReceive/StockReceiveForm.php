@@ -140,7 +140,7 @@ class StockReceiveForm extends Component
         if ($this->isLocked || ! $this->purchase_order_id) {
             return;
         }
-
+        
         $this->poSelectionNotice = null;
         $this->resetLinkedPoItems();
     if($this->purchase_order_id){

@@ -216,6 +216,12 @@
                     <input type="text" wire:model.defer="code" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none" placeholder="Optional code">
                     @error('code') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
+                
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Name <span class="text-rose-500">*</span></label>
+                    <input type="text" wire:model.defer="name" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none" placeholder="Account name">
+                    @error('name') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
 
                 <div>
                     <label class="text-sm font-medium text-gray-700">Type <span class="text-rose-500">*</span></label>
@@ -227,11 +233,17 @@
                     @error('type') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
-                <div class="sm:col-span-2">
-                    <label class="text-sm font-medium text-gray-700">Name <span class="text-rose-500">*</span></label>
-                    <input type="text" wire:model.defer="name" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none" placeholder="Account name">
-                    @error('name') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Sub Type</label>
+                    <select wire:model.defer="sub_type" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                       <option value="">Select sub type</option>
+                        @foreach (\App\Enums\Accounts\AccountSubType::options() as $key => $value)
+                            <option value="{{ $key }}">{{ $value }}</option>
+                        @endforeach
+                    </select>
+                    @error('sub_type') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
+
 
                 <div>
                     <label class="text-sm font-medium text-gray-700">Parent Account</label>
