@@ -18,6 +18,7 @@ class Account extends Model
         'name',
         'type',
         'is_active',
+        'sub_type',
     ];
 
     protected $casts = [

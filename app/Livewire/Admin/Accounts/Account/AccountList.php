@@ -92,6 +92,7 @@ class AccountList extends Component
         $this->type = $account->type?->value ?? AccountType::ASSET->value;
         $this->parent_id = $account->parent_id ? (int) $account->parent_id : null;
         $this->is_active = (bool) $account->is_active;
+        $this->sub_type = $account->sub_type;
         $this->showFormModal = true;
     }
 
@@ -123,6 +124,7 @@ class AccountList extends Component
 
         DB::transaction(function () use ($validated): void {
             if ($this->editingId) {
+        
                 $account = Account::query()->findOrFail($this->editingId);
                 $account->update($validated);
             } else {
