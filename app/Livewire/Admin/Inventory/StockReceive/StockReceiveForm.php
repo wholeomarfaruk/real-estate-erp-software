@@ -6,6 +6,7 @@ use App\Enums\Inventory\PurchaseOrderStatus;
 use App\Enums\Inventory\StockReceiveStatus;
 use App\Enums\Inventory\StoreType;
 use App\Livewire\Admin\Inventory\Concerns\InteractsWithInventoryAccess;
+use App\Livewire\Traits\WithMediaPicker;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\StockReceive;
@@ -22,6 +23,7 @@ use Livewire\Component;
 class StockReceiveForm extends Component
 {
     use InteractsWithInventoryAccess;
+    use WithMediaPicker;
 
     public ?StockReceive $stockReceiveRecord = null;
 
@@ -39,13 +41,24 @@ class StockReceiveForm extends Component
 
     public ?string $supplier_voucher = null;
 
+    public ?string $store_receiver_no = null;
+
     public ?int $store_id = null;
 
     public ?string $remarks = null;
 
+    public array $images = [];
+
     public string $status = 'draft';
 
     public bool $isLocked = false;
+
+    public bool $isPostedAdjustmentMode = false;
+
+    public bool $isStructureLocked = false;
+
+    public ?string $lockMessage = null;
+
     public ?string $poSelectionNotice = null;
 
     /**
@@ -54,7 +67,7 @@ class StockReceiveForm extends Component
     public array $pendingPoItemQuantities = [];
 
     /**
-     * @var array<int, array{product_id:int|string|null, purchase_order_item_id:int|string|null, quantity:float|int|string, unit_price:float|int|string, total_price:float|int|string, remarks:?string}>
+     * @var array<int, array{id:int|string|null, product_id:int|string|null, purchase_order_item_id:int|string|null, quantity:float|int|string, unit_price:float|int|string, total_price:float|int|string, remarks:?string}>
      */
     public array $items = [];
 
@@ -64,23 +77,41 @@ class StockReceiveForm extends Component
             $this->authorizePermission('inventory.stock.receive.update');
 
             $this->editMode = true;
-            $this->stockReceiveRecord = $stockReceive->load('items');
+            $this->stockReceiveRecord = $stockReceive->load([
+                'items',
+                'purchaseOrder.settlement',
+            ]);
             $this->stockReceiveId = $stockReceive->id;
 
             $this->receive_no = $stockReceive->receive_no;
+            $this->store_receiver_no = $stockReceive->store_receiver_no;
             $this->receive_date = optional($stockReceive->receive_date)->format('Y-m-d') ?: now()->toDateString();
             $this->purchase_order_id = $stockReceive->purchase_order_id;
             $this->supplier_id = $stockReceive->supplier_id;
             $this->supplier_voucher = $stockReceive->supplier_voucher;
             $this->store_id = $stockReceive->store_id;
             $this->remarks = $stockReceive->remarks;
+            $this->images = $stockReceive->images ?? [];
             $this->status = $stockReceive->status?->value ?? StockReceiveStatus::DRAFT->value;
-            $this->isLocked = in_array($stockReceive->status, [StockReceiveStatus::POSTED, StockReceiveStatus::CANCELLED], true);
+
+            if ($stockReceive->status === StockReceiveStatus::POSTED) {
+                if ($stockReceive->canAdjustPostedReceive()) {
+                    $this->isPostedAdjustmentMode = true;
+                    $this->isStructureLocked = true;
+                } else {
+                    $this->isLocked = true;
+                    $this->lockMessage = 'This stock receive cannot be edited after settlement is completed.';
+                }
+            } elseif ($stockReceive->status === StockReceiveStatus::CANCELLED) {
+                $this->isLocked = true;
+                $this->lockMessage = 'Cancelled stock receive cannot be edited.';
+            }
 
             $this->ensureStoreAccessible((int) $stockReceive->store_id);
 
             $this->items = $stockReceive->items
                 ->map(fn ($item): array => [
+                    'id' => $item->id,
                     'product_id' => $item->product_id,
                     'purchase_order_item_id' => $item->purchase_order_item_id,
                     'quantity' => (float) $item->quantity,
@@ -111,7 +142,7 @@ class StockReceiveForm extends Component
 
     public function updatedPurchaseOrderId($purchaseOrderId): void
     {
-        if ($this->isLocked) {
+        if ($this->isLocked || $this->isStructureLocked) {
             return;
         }
 
@@ -137,15 +168,13 @@ class StockReceiveForm extends Component
 
     public function updatedSupplierId($supplierId): void
     {
-        if ($this->isLocked || ! $this->purchase_order_id) {
+        if ($this->isLocked || $this->isStructureLocked || ! $this->purchase_order_id) {
             return;
         }
         
         $this->poSelectionNotice = null;
         $this->resetLinkedPoItems();
-    if($this->purchase_order_id){
-        $this->loadItemsFromPurchaseOrder((int) $this->purchase_order_id, $supplierId ? (int) $supplierId : null);
-    }
+
         try {
             $this->loadItemsFromPurchaseOrder((int) $this->purchase_order_id, $supplierId ? (int) $supplierId : null);
         } catch (\Throwable $throwable) {
@@ -155,7 +184,7 @@ class StockReceiveForm extends Component
 
     public function addItem(): void
     {
-        if ($this->isLocked || $this->purchase_order_id) {
+        if ($this->isLocked || $this->isStructureLocked || $this->purchase_order_id) {
             return;
         }
 
@@ -164,7 +193,7 @@ class StockReceiveForm extends Component
 
     public function removeItem(int $index): void
     {
-        if ($this->isLocked || count($this->items) <= 1) {
+        if ($this->isLocked || $this->isStructureLocked || count($this->items) <= 1) {
             return;
         }
 
@@ -182,16 +211,20 @@ class StockReceiveForm extends Component
         $this->recalculateItem((int) $index);
     }
 
-    public function saveDraft()
+    public function saveChanges()
     {
         if ($this->isLocked) {
-            $this->dispatch('toast', ['type' => 'error', 'message' => 'Posted or cancelled receive cannot be edited.']);
+            $this->dispatch('toast', ['type' => 'error', 'message' => $this->lockMessage ?: 'This stock receive cannot be edited.']);
 
             return;
         }
 
         try {
-            $this->save(StockReceiveStatus::DRAFT);
+            if ($this->isPostedAdjustmentMode) {
+                $this->savePostedAdjustment();
+            } else {
+                $this->save(StockReceiveStatus::DRAFT);
+            }
         } catch (\Throwable $throwable) {
             $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
 
@@ -203,7 +236,7 @@ class StockReceiveForm extends Component
 
     public function postNow()
     {
-        if ($this->isLocked) {
+        if ($this->isLocked || $this->isPostedAdjustmentMode) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Posted or cancelled receive cannot be edited.']);
 
             return;
@@ -236,7 +269,13 @@ class StockReceiveForm extends Component
             return 0;
         }
 
-        return (float) ($this->pendingPoItemQuantities[$purchaseOrderItemId] ?? 0);
+        $pendingQty = (float) ($this->pendingPoItemQuantities[$purchaseOrderItemId] ?? 0);
+
+        if ($this->isPostedAdjustmentMode) {
+            return round($pendingQty + (float) ($this->items[$index]['quantity'] ?? 0), 3);
+        }
+
+        return $pendingQty;
     }
 
     public function render(): View
@@ -266,6 +305,9 @@ class StockReceiveForm extends Component
             'purchaseOrders' => $purchaseOrdersQuery->get(['id', 'po_no', 'store_id', 'status']),
             'grandTotal' => $this->grandTotal,
             'isLocked' => $this->isLocked,
+            'isPostedAdjustmentMode' => $this->isPostedAdjustmentMode,
+            'isStructureLocked' => $this->isStructureLocked,
+            'lockMessage' => $this->lockMessage,
             'poLinked' => (bool) $this->purchase_order_id,
         ])->layout('layouts.admin.admin');
     }
@@ -293,12 +335,14 @@ class StockReceiveForm extends Component
         $stockReceive = DB::transaction(function () use ($validated, $status): StockReceive {
             $header = [
                 'receive_no' => $validated['receive_no'],
+                'store_receiver_no' => $validated['store_receiver_no'],
                 'receive_date' => $validated['receive_date'],
                 'purchase_order_id' => $validated['purchase_order_id'],
                 'supplier_id' => $validated['supplier_id'],
                 'supplier_voucher' => $validated['supplier_voucher'],
                 'store_id' => $validated['store_id'],
                 'remarks' => $validated['remarks'],
+                'images' => $validated['images'] ?? [],
                 'status' => $status->value,
                 'created_by' => $this->editMode && $this->stockReceiveRecord
                     ? $this->stockReceiveRecord->created_by
@@ -344,6 +388,7 @@ class StockReceiveForm extends Component
     {
         return [
             'receive_no' => ['required', 'string', 'max:100', Rule::unique('stock_receives', 'receive_no')->ignore($this->stockReceiveId)],
+            'store_receiver_no' => ['nullable', 'string', 'max:255', Rule::unique('stock_receives', 'store_receiver_no')->ignore($this->stockReceiveId)],
             'receive_date' => ['required', 'date'],
             'purchase_order_id' => ['nullable', 'integer', 'exists:purchase_orders,id'],
             'supplier_id' => ['nullable', 'integer', 'exists:suppliers,id'],
@@ -354,7 +399,9 @@ class StockReceiveForm extends Component
                 Rule::exists('stores', 'id')->where(fn ($query) => $query->where('type', StoreType::OFFICE->value)),
             ],
             'remarks' => ['nullable', 'string'],
+            'images' => ['nullable', 'array'],
             'items' => ['required', 'array', 'min:1'],
+            'items.*.id' => ['nullable', 'integer', 'exists:stock_receive_items,id'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.purchase_order_item_id' => ['nullable', 'integer', 'exists:purchase_order_items,id'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
@@ -367,18 +414,21 @@ class StockReceiveForm extends Component
     protected function messages(): array
     {
         return [
+            'store_receiver_no.unique' => 'Store receive no already exists.', // @phpstan-ignore-line store_receiver_no
             'store_id.required' => 'Please select an office store.',
             'store_id.exists' => 'Selected store is invalid or not an office store.',
+            'items.*.id.required' => 'Invalid stock receive item selected.',
             'items.*.product_id.required' => 'Please select a product for each row.',
         ];
     }
 
     /**
-     * @return array{product_id:null, purchase_order_item_id:null, quantity:float, unit_price:float, total_price:float, remarks:null}
+     * @return array{id:null, product_id:null, purchase_order_item_id:null, quantity:float, unit_price:float, total_price:float, remarks:null}
      */
     protected function blankItem(): array
     {
         return [
+            'id' => null,
             'product_id' => null,
             'purchase_order_item_id' => null,
             'quantity' => 1,
@@ -404,6 +454,69 @@ class StockReceiveForm extends Component
         foreach (array_keys($this->items) as $index) {
             $this->recalculateItem($index);
         }
+    }
+
+    protected function savePostedAdjustment(): StockReceive
+    {
+        $this->authorizePermission('inventory.stock.receive.update');
+
+        if (! $this->stockReceiveRecord) {
+            throw new \DomainException('Stock receive record not found.');
+        }
+
+        $this->normalizeItems();
+
+        $validated = $this->validate($this->postedAdjustmentRules(), $this->messages());
+
+        $updated = app(StockReceiveService::class)->updatePostedReceive(
+            stockReceive: $this->stockReceiveRecord,
+            payload: $validated,
+            userId: (int) auth()->id()
+        );
+
+        $this->stockReceiveRecord = $updated->load([
+            'items',
+            'purchaseOrder.settlement',
+        ]);
+        $this->store_receiver_no = $updated->store_receiver_no;
+
+        $this->receive_date = optional($updated->receive_date)->format('Y-m-d') ?: now()->toDateString();
+        $this->supplier_voucher = $updated->supplier_voucher;
+        $this->remarks = $updated->remarks;
+        $this->items = $updated->items
+            ->map(fn ($item): array => [
+                'id' => $item->id,
+                'product_id' => $item->product_id,
+                'purchase_order_item_id' => $item->purchase_order_item_id,
+                'quantity' => (float) $item->quantity,
+                'unit_price' => (float) $item->unit_price,
+                'total_price' => (float) $item->total_price,
+                'remarks' => $item->remarks,
+            ])
+            ->values()
+            ->all();
+
+        if ($this->purchase_order_id) {
+            $this->pendingPoItemQuantities = $this->pendingQuantitiesForPurchaseOrder((int) $this->purchase_order_id);
+        }
+
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Posted stock receive updated successfully.']);
+
+        return $updated;
+    }
+
+    protected function postedAdjustmentRules(): array
+    {
+        return [
+            'receive_date' => ['required', 'date'],
+            'supplier_voucher' => ['nullable', 'string', 'max:255'],
+            'remarks' => ['nullable', 'string'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.id' => ['required', 'integer', 'exists:stock_receive_items,id'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
+            'items.*.unit_price' => ['required', 'numeric', 'min:0'],
+            'items.*.remarks' => ['nullable', 'string'],
+        ];
     }
 
     protected function validatePurchaseOrderLink(array &$validated): void
@@ -497,7 +610,6 @@ class StockReceiveForm extends Component
         if (! $purchaseOrder) {
             throw new \DomainException('Selected purchase order is not available for stock receive.');
         }
-
 
         $pendingQuantities = $this->pendingQuantitiesForPurchaseOrder($purchaseOrderId);
         $pendingSupplierIds = $this->supplierIdsFromPendingItems($purchaseOrder, $pendingQuantities);
@@ -618,21 +730,7 @@ class StockReceiveForm extends Component
 
     protected function canViewAllStores(): bool
     {
-        $user = auth()->user();
-
-        if (! $user) {
-            return false;
-        }
-
-        return $user->hasRole('superadmin')
-            || $user->hasRole('admin')
-            || $user->hasRole('accounts')
-            || $user->hasRole('storemanager')
-            || $user->can('inventory.stock.report.view')
-            || $user->can('inventory.stock.receive.view')
-            || $user->can('inventory.stock.receive.create')
-            || $user->can('inventory.stock.receive.update')
-            || $user->can('inventory.stock.receive.post');
+        return $this->hasInventoryWideAccess($this->stockReceiveGlobalAccessPermissions());
     }
 
     protected function supplierIdsFromPendingItems(PurchaseOrder $purchaseOrder, array $pendingQuantities): array

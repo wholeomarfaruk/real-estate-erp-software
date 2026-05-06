@@ -6,7 +6,6 @@ use App\Models\Product;
 use App\Models\ProductBrand;
 use App\Models\ProductCategory;
 use App\Models\ProductUnit;
-use App\Models\ProductVariant;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -22,21 +21,12 @@ class Products extends Component
     public $description;
     public $image_id;
     public $editingId = null;
-    public $variantProductId;
-    public $variantName;
-    public $variantDescription;
-    public $variantImageId;
-    public $variantEditingId = null;
     public $addCategoryModalOpen = false;
     public $categoryName, $categoryParentId;
     public $addBrandModalOpen = false;
     public $brandName, $brandDescription, $brandImageId;
     public $addUnitModalOpen = false;
     public $unitName;
-    public $productVarientModalOpen = false;
-    public $productVariants = [];
-    public $selectedVariantProduct;
-    public $addVariantModalOpen = false;
     protected $paginationTheme = 'tailwind';
 
     public function updatingSearch(): void
@@ -47,7 +37,7 @@ class Products extends Component
     public function render()
     {
         $products = Product::query()
-            ->with(['category', 'brand', 'variants'])
+            ->with(['category', 'brand'])
             ->when($this->search, function ($query) {
                 $query->where('name', 'like', '%' . $this->search . '%');
             })
@@ -99,67 +89,6 @@ class Products extends Component
        
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Product deleted.']);
     }
-
-    public function startVariant(int $productId): void
-    {
-
-        $this->selectedVariantProduct = Product::find($productId);
-        if(!$this->selectedVariantProduct){
-          $this->dispatch('toast', ['type' => 'error', 'message' => 'Product not found.']);
-            return;
-        }
-        $this->variantProductId = $productId;
-        $this->productVarientModalOpen = true;
-        $this->variantEditingId = null;
-        $this->variantName = null;
-        $this->variantDescription = null;
-        $this->variantImageId = null;
-        $this->productVariants = ProductVariant::where('product_id', $productId)->get();
-
-    }
-
-    public function editVariant(int $variantId): void
-    {
-        $variant = ProductVariant::findOrFail($variantId);
-        $this->variantEditingId = $variant->id;
-        $this->variantProductId = $variant->product_id;
-        $this->variantName = $variant->name;
-        $this->variantDescription = $variant->description;
-        $this->variantImageId = $variant->image_id;
-    }
-
-    public function saveVariant(): void
-    {
-        $this->validate($this->variantRules());
-
-        ProductVariant::updateOrCreate(
-            ['id' => $this->variantEditingId],
-            [
-                'product_id' => $this->variantProductId,
-                'name' => $this->variantName,
-                'description' => $this->variantDescription,
-                'image_id' => $this->variantImageId,
-            ]
-        );
-
-        $this->resetVariantForm();
-       $this->productVariants = ProductVariant::where('product_id', $this->variantProductId)->get();
-       $this->addVariantModalOpen = false;
-        $this->dispatch('toast', ['type' => 'success', 'message' => 'Variant saved successfully.']);
-    }
-
-    public function deleteVariant(int $variantId): void
-    {
-        $variant = ProductVariant::find($variantId);
-        if (!$variant) {
-            return;
-        }
-
-        $variant->delete();
-        session()->flash('success', 'Variant deleted.');
-        $this->dispatch('toast', ['type' => 'success', 'message' => 'Variant deleted.']);
-    }
-
     protected function productRules(): array
     {
         return [
@@ -172,26 +101,9 @@ class Products extends Component
         ];
     }
 
-    protected function variantRules(): array
-    {
-        return [
-            'variantProductId' => 'required|exists:products,id',
-            'variantName' => 'required|string|max:255',
-            'variantDescription' => 'nullable|string',
-            'variantImageId' => 'nullable|exists:files,id',
-        ];
-    }
-
     protected function resetProductForm(): void
     {
         $this->reset(['name', 'category_id', 'brand_id', 'unit', 'description', 'editingId']);
-    }
-
-    protected function resetVariantForm(): void
-    {
-        $productId = $this->variantProductId;
-        $this->reset(['variantName', 'variantDescription', 'variantImageId', 'variantEditingId']);
-        $this->variantProductId = $productId;
     }
     public function saveCategory(): void
     {

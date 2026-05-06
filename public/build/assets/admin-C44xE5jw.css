@@ -1,0 +1,1 @@
+input,textarea,select{padding:.3rem;border-radius:.3rem;border:1px solid #ccc;width:100%}input:focus,textarea:focus,select:focus{outline:none;border:1px solid #9992d4}input::placeholder,textarea::placeholder,select::placeholder{color:#ccc}input:disabled,textarea:disabled,select:disabled{cursor:not-allowed;opacity:.5}

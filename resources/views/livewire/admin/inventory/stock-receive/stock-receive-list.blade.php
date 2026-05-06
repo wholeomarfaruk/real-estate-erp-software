@@ -166,9 +166,9 @@
                                                 @endcan
 
                                                 @can('inventory.stock.receive.update')
-                                                    @if ($receive->status?->value === 'draft')
+                                                    @if ($receive->canEditReceive())
                                                         <a href="{{ route('admin.inventory.stock-receives.edit', $receive) }}" class="flex items-center rounded-lg px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100">
-                                                            Edit
+                                                            {{ $receive->status?->value === 'posted' ? 'Adjust' : 'Edit' }}
                                                         </a>
                                                     @endif
                                                 @endcan

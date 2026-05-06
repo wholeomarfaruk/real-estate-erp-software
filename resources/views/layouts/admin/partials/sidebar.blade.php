@@ -52,7 +52,7 @@
                     <h2 class="text-gray-500 text-md font-semibold" :class="{ 'hidden': !$store.sidebar.full }"
                         x-transition>Quick Action</h2>
                 </div>
-                <a href="#" x-data="tooltip" x-on:mouseover="show = true" x-on:mouseleave="show = false"
+                <a href="{{ route('admin.dashboard') }}" x-data="tooltip" x-on:mouseover="show = true" x-on:mouseleave="show = false"
                     @click="$store.sidebar.active = 'dashboard' "
                     class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400 mb-2
                     {{ Route::currentRouteName() == 'admin.dashboard' ? 'text-gray-200 bg-gray-800' : '' }}">
@@ -163,7 +163,7 @@
                                 :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
 
                                 <a href="{{ route('admin.materials.products') }}"
-                                    class="hover:text-gray-200 cursor-pointer text-xs">Products &amp; Variants</a>
+                                    class="hover:text-gray-200 cursor-pointer text-xs">Products</a>
                             </div>
                             <div x-cloak x-show="open" @click.outside="open=false"
                                 :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
@@ -539,6 +539,94 @@
                                         'permission' => 'accounts.purchase-payable.list',
                                     ],
                                 ];
+
+                                $accountsReportRoutes = [
+                                    [
+                                        'label' => 'Statement Sheet',
+                                        'route' => 'admin.accounts.reports.statement',
+                                        'permission' => 'accounts.reports.statement.view',
+                                    ],
+                                    [
+                                        'label' => 'Assets Report',
+                                        'route' => 'admin.accounts.reports.assets',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                    [
+                                        'label' => 'Payment Report',
+                                        'route' => 'admin.accounts.reports.payments',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                    [
+                                        'label' => 'Collection Report',
+                                        'route' => 'admin.accounts.reports.collections',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                    [
+                                        'label' => 'Expense Report',
+                                        'route' => 'admin.accounts.reports.expenses',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                    [
+                                        'label' => 'Liability Report',
+                                        'route' => 'admin.accounts.reports.liability',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                    [
+                                        'label' => 'Cash Book',
+                                        'route' => 'admin.accounts.reports.cash-book',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                    [
+                                        'label' => 'Bank Book',
+                                        'route' => 'admin.accounts.reports.bank-book',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                    [
+                                        'label' => 'Supplier Ledger',
+                                        'route' => 'admin.accounts.reports.supplier-ledger',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                    [
+                                        'label' => 'Customer Ledger',
+                                        'route' => 'admin.accounts.reports.customer-ledger',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                    [
+                                        'label' => 'Trial Balance',
+                                        'route' => 'admin.accounts.reports.trial-balance',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                    [
+                                        'label' => 'Profit & Loss',
+                                        'route' => 'admin.accounts.reports.profit-loss',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                    [
+                                        'label' => 'Balance Sheet',
+                                        'route' => 'admin.accounts.reports.balance-sheet',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                    [
+                                        'label' => 'Daily Summary',
+                                        'route' => 'admin.accounts.reports.daily-summary',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                    [
+                                        'label' => 'Account Ledger',
+                                        'route' => 'admin.accounts.reports.account-ledger',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                    [
+                                        'label' => 'Project Wise Expense',
+                                        'route' => 'admin.accounts.reports.project-wise-expense',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                    [
+                                        'label' => 'Product Wise Cost',
+                                        'route' => 'admin.accounts.reports.product-cost',
+                                        'permission' => 'accounts.report.view',
+                                    ],
+                                ];
                             @endphp
 
                             <div x-cloak x-show="open" @click.outside="open=false"
@@ -552,6 +640,22 @@
                                         </a>
                                     @endif
                                 @endforeach
+
+                                @if (auth()->user()?->can('accounts.reports.statement.view') || auth()->user()?->can('accounts.report.view'))
+                                    <div class="pt-1">
+                                        <p class="text-[11px] uppercase tracking-wide text-gray-500">Reports</p>
+                                        <div class="mt-2 space-y-2">
+                                            @foreach ($accountsReportRoutes as $item)
+                                                @if (Route::has($item['route']) && auth()->user()?->can($item['permission']))
+                                                    <a href="{{ route($item['route']) }}"
+                                                        class="hover:text-gray-200 block cursor-pointer pl-2 text-xs">
+                                                        {{ $item['label'] }}
+                                                    </a>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     @endcan
@@ -676,6 +780,7 @@
                                     'Office Store Summary' => 'admin.inventory.reports.office-store-summary',
                                     'Project Store Summary' => 'admin.inventory.reports.project-store-summary',
                                     'Product Stock Summary' => 'admin.inventory.reports.product-stock-summary',
+                                    'Product Wise Cost' => 'admin.inventory.reports.product-cost',
                                     'Low Stock Report' => 'admin.inventory.reports.low-stock',
                                     'Out Of Stock Report' => 'admin.inventory.reports.out-of-stock',
                                     'Store Stock Value Summary' => 'admin.inventory.reports.store-stock-value',
@@ -693,7 +798,7 @@
                                     @endif
                                 @endforeach
 
-                                @if (auth()->user()?->can('inventory.stock.ledger.view') || auth()->user()?->can('inventory.stock.report.view'))
+                                @if (auth()->user()?->can('inventory.stock.ledger.view') || auth()->user()?->can('inventory.stock.report.view') || auth()->user()?->can('inventory.report.view'))
                                     <div class="pt-1">
                                         <p class="text-[11px] uppercase tracking-wide text-gray-500">Reports</p>
                                         <div class="mt-2 space-y-2">
@@ -708,7 +813,7 @@
                                                 @endforeach
                                             @endcan
 
-                                            @can('inventory.stock.report.view')
+                                            @if (auth()->user()?->can('inventory.stock.report.view') || auth()->user()?->can('inventory.report.view'))
                                                 @foreach ($summaryReportRoutes as $label => $routeName)
                                                     @if (Route::has($routeName))
                                                         <a href="{{ route($routeName) }}"
@@ -717,7 +822,7 @@
                                                         </a>
                                                     @endif
                                                 @endforeach
-                                            @endcan
+                                            @endif
                                         </div>
                                     </div>
                                 @endif
@@ -808,7 +913,7 @@
                             x-transition>Ui Elements</h2>
                     </div>
 
-                    @can('ui_components.module.access')
+                    @can('module.ui_components.access')
                         <!-- UI Elements -->
                         <div x-data="dropdown" class="relative">
                             <!-- Dropdown head -->

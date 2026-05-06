@@ -147,10 +147,14 @@ class StockReceiveList extends Component
 
     public function render(): View
     {
-        $this->authorizePermission('inventory.stock.receive.view');
 
         $query = StockReceive::query()
-            ->with(['supplier:id,name,contact_person,phone', 'store:id,name,code', 'purchaseOrder:id,po_no,status'])
+            ->with([
+                'supplier:id,name,contact_person,phone',
+                'store:id,name,code',
+                'purchaseOrder:id,po_no,status',
+                'purchaseOrder.settlement:id,purchase_order_id,settled_at',
+            ])
             ->withSum('items as grand_total', 'total_price')
             ->when($this->search !== '', function (Builder $builder): void {
                 $builder->where(function (Builder $subQuery): void {
@@ -193,5 +197,10 @@ class StockReceiveList extends Component
             'postedReceives' => $postedReceives,
             'draftReceives' => $draftReceives,
         ])->layout('layouts.admin.admin');
+    }
+
+    protected function canViewAllStores(): bool
+    {
+        return $this->hasInventoryWideAccess($this->stockReceiveGlobalAccessPermissions());
     }
 }

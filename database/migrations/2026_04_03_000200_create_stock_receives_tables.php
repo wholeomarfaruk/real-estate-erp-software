@@ -12,11 +12,13 @@ return new class extends Migration
         Schema::create('stock_receives', function (Blueprint $table): void {
             $table->id();
             $table->string('receive_no', 100)->unique();
+            $table->string('store_receiver_no')->nullable()->unique();
             $table->date('receive_date');
             $table->foreignId('supplier_id')->nullable()->constrained('suppliers')->nullOnDelete();
             $table->string('supplier_voucher')->nullable();
             $table->foreignId('store_id')->constrained('stores')->restrictOnDelete();
             $table->text('remarks')->nullable();
+            $table->json('images')->nullable();
             $table->string('status', 20)->default(StockReceiveStatus::DRAFT->value);
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('posted_by')->nullable()->constrained('users')->nullOnDelete();

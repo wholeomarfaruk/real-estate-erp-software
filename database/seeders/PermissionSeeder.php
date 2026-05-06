@@ -56,13 +56,10 @@ class PermissionSeeder extends Seeder
             ['id' => 21, 'name' => 'ui.show'],
             ['id' => 22, 'name' => 'ui_components.view'],
 
-
             ['id' => 23, 'name' => 'project.view'],
             ['id' => 24, 'name' => 'project.create'],
             ['id' => 25, 'name' => 'project.edit'],
             ['id' => 26, 'name' => 'project.delete'],
-
-
 
             ['id' => 27, 'name' => 'inventory.store.view'],
             ['id' => 28, 'name' => 'inventory.store.create'],
@@ -213,7 +210,7 @@ class PermissionSeeder extends Seeder
 
             // Inventory Permissions
             ['id' => 156, 'name' => 'inventory.purchase_order.edit'],
-            //property
+            // property
             ['id' => 157, 'name' => 'property.view'],
             ['id' => 158, 'name' => 'property.create'],
             ['id' => 159, 'name' => 'property.edit'],
@@ -229,7 +226,7 @@ class PermissionSeeder extends Seeder
             ['id' => 167, 'name' => 'property.unit.edit'],
             ['id' => 168, 'name' => 'property.unit.delete'],
 
-            //supplier
+            // supplier
             ['id' => 169, 'name' => 'supplier.view'],
             ['id' => 170, 'name' => 'supplier.create'],
             ['id' => 171, 'name' => 'supplier.edit'],
@@ -262,7 +259,11 @@ class PermissionSeeder extends Seeder
             ['id' => 198, 'name' => 'supplier.reports.product-wise'],
             ['id' => 199, 'name' => 'supplier.reports.due'],
             ['id' => 200, 'name' => 'supplier.reports.aging'],
-
+            ['id' => 201, 'name' => 'accounts.reports.statement.view'],
+            ['id' => 202, 'name' => 'accounts.reports.statement.print'],
+            ['id' => 203, 'name' => 'accounts.reports.statement.export'],
+            ['id' => 204, 'name' => 'accounts.report.view'],
+            ['id' => 205, 'name' => 'inventory.report.view'],
 
         ];
 

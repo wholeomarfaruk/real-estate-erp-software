@@ -23,6 +23,7 @@ class StockReceiveView extends Component
         $this->stockReceive = $stockReceive->load([
             'supplier:id,name,contact_person,phone',
             'purchaseOrder:id,po_no,status',
+            'purchaseOrder.settlement:id,purchase_order_id,settled_at',
             'store:id,name,code,type',
             'creator:id,name',
             'poster:id,name',
@@ -48,6 +49,7 @@ class StockReceiveView extends Component
             $this->stockReceive = $this->stockReceive->refresh()->load([
                 'supplier:id,name,contact_person,phone',
                 'purchaseOrder:id,po_no,status',
+                'purchaseOrder.settlement:id,purchase_order_id,settled_at',
                 'store:id,name,code,type',
                 'creator:id,name',
                 'poster:id,name',
@@ -79,6 +81,7 @@ class StockReceiveView extends Component
         $this->stockReceive = $this->stockReceive->refresh()->load([
             'supplier:id,name,contact_person,phone',
             'purchaseOrder:id,po_no,status',
+            'purchaseOrder.settlement:id,purchase_order_id,settled_at',
             'store:id,name,code,type',
             'creator:id,name',
             'poster:id,name',
@@ -96,5 +99,10 @@ class StockReceiveView extends Component
             'grandTotal' => round($grandTotal, 2),
         ])
             ->layout('layouts.admin.admin');
+    }
+
+    protected function canViewAllStores(): bool
+    {
+        return $this->hasInventoryWideAccess($this->stockReceiveGlobalAccessPermissions());
     }
 }

@@ -129,18 +129,6 @@ class PurchaseSettlementForm extends Component
 
     protected function canViewAllStores(): bool
     {
-        $user = auth()->user();
-
-        if (! $user) {
-            return false;
-        }
-
-        return $user->hasRole('superadmin')
-            || $user->hasRole('admin')
-            || $user->hasRole('accounts')
-            || $user->hasRole('engineers')
-            || $user->hasRole('chairman')
-            || $user->hasRole('md')
-            || $user->can('inventory.purchase_order.accounts_approve');
+        return $this->hasInventoryWideAccess($this->purchaseOrderGlobalAccessPermissions());
     }
 }

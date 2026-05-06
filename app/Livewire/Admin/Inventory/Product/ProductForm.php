@@ -9,6 +9,7 @@ use App\Models\ProductCategory;
 use App\Models\ProductUnit;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -95,7 +96,11 @@ class ProductForm extends Component
             'message' => $this->editMode ? 'Product updated successfully.' : 'Product created successfully.',
         ]);
 
-        return redirect()->route('admin.inventory.products.index');
+        return redirect()->route(
+            Route::has('admin.inventory.products.index')
+                ? 'admin.inventory.products.index'
+                : 'admin.materials.products'
+        );
     }
 
     public function render(): View

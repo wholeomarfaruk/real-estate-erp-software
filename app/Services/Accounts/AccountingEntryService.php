@@ -3,6 +3,7 @@
 namespace App\Services\Accounts;
 
 use App\Enums\Accounts\TransactionType;
+use App\Models\Account;
 use App\Models\AccountCollection;
 use App\Models\Expense;
 use App\Models\Payment;
@@ -21,6 +22,13 @@ class AccountingEntryService
     public function savePayment(array $payload, ?Payment $payment = null, ?int $actorId = null): Payment
     {
         $resolvedActorId = $this->resolveActorId($actorId);
+        $payload['reference_type'] = filled($payload['reference_type'] ?? null)
+            ? (string) $payload['reference_type']
+            : null;
+        $payload['reference_id'] = $payload['reference_type']
+            ? ($payload['reference_id'] ?? null)
+            : null;
+        $this->assertReferenceAllowedForAccount((int) ($payload['purpose_account_id'] ?? 0), $payload['reference_type']);
 
         return DB::transaction(function () use ($payload, $payment, $resolvedActorId): Payment {
             $attachmentIds = is_array($payload['attachment_ids'] ?? null) ? $payload['attachment_ids'] : [];
@@ -49,7 +57,7 @@ class AccountingEntryService
                 ]);
             }
 
-            $record ??= new Payment();
+            $record ??= new Payment;
             $record->fill($payload);
             $record->transaction_id = (int) $transaction->id;
             $record->payment_no = $record->payment_no ?: $this->generatePaymentNo();
@@ -119,6 +127,13 @@ class AccountingEntryService
     public function saveCollection(array $payload, ?AccountCollection $collection = null, ?int $actorId = null): AccountCollection
     {
         $resolvedActorId = $this->resolveActorId($actorId);
+        $payload['reference_type'] = filled($payload['reference_type'] ?? null)
+            ? (string) $payload['reference_type']
+            : null;
+        $payload['reference_id'] = $payload['reference_type']
+            ? ($payload['reference_id'] ?? null)
+            : null;
+        $this->assertReferenceAllowedForAccount((int) ($payload['target_account_id'] ?? 0), $payload['reference_type']);
 
         return DB::transaction(function () use ($payload, $collection, $resolvedActorId): AccountCollection {
             $attachmentIds = is_array($payload['attachment_ids'] ?? null) ? $payload['attachment_ids'] : [];
@@ -143,7 +158,7 @@ class AccountingEntryService
                 ]);
             }
 
-            $record ??= new AccountCollection();
+            $record ??= new AccountCollection;
             $record->fill($payload);
             $record->transaction_id = (int) $transaction->id;
             $record->collection_no = $record->collection_no ?: $this->generateCollectionNo();
@@ -200,6 +215,13 @@ class AccountingEntryService
     public function saveExpense(array $payload, ?Expense $expense = null, ?int $actorId = null): Expense
     {
         $resolvedActorId = $this->resolveActorId($actorId);
+        $payload['reference_type'] = filled($payload['reference_type'] ?? null)
+            ? (string) $payload['reference_type']
+            : null;
+        $payload['reference_id'] = $payload['reference_type']
+            ? ($payload['reference_id'] ?? null)
+            : null;
+        $this->assertReferenceAllowedForAccount((int) ($payload['expense_account_id'] ?? 0), $payload['reference_type']);
 
         return DB::transaction(function () use ($payload, $expense, $resolvedActorId): Expense {
             $attachmentIds = is_array($payload['attachment_ids'] ?? null) ? $payload['attachment_ids'] : [];
@@ -224,7 +246,7 @@ class AccountingEntryService
                 ]);
             }
 
-            $record ??= new Expense();
+            $record ??= new Expense;
             $record->fill($payload);
             $record->transaction_id = (int) $transaction->id;
             $record->expense_no = $record->expense_no ?: $this->generateExpenseNo();
@@ -427,5 +449,26 @@ class AccountingEntryService
         }
 
         return (int) $resolved;
+    }
+
+    protected function assertReferenceAllowedForAccount(int $accountId, ?string $referenceType): void
+    {
+        if (! $referenceType) {
+            return;
+        }
+
+        if (! array_key_exists($referenceType, account_reference_config())) {
+            throw new \DomainException('Selected reference type is invalid.');
+        }
+
+        $account = Account::query()->find($accountId);
+
+        if (! $account) {
+            throw new \DomainException('Selected account is invalid.');
+        }
+
+        if (! $account->allowedReferences()->has($referenceType)) {
+            throw new \DomainException('Selected reference type is not allowed for the chosen account.');
+        }
     }
 }

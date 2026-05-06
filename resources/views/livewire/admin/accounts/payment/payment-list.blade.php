@@ -113,17 +113,21 @@
                                             </button>
 
                                             <div x-show="open" @click.away="open = false" style="display: none;" x-transition class="absolute right-0 z-40 mt-10 w-56 origin-top-right rounded-md border border-zinc-200 bg-white p-1 shadow-lg">
-                                                <a href="{{ route('admin.accounts.payments.print', $payment) }}" target="_blank" class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
-                                                    Print
-                                                </a>
+                                                @can('accounts.payment.print')
+                                                    <a href="{{ route('admin.accounts.payments.print', $payment) }}" target="_blank" class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
+                                                        Print
+                                                    </a>
 
-                                                <a href="{{ route('admin.accounts.payments.pdf', $payment) }}" class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
-                                                    Download PDF
-                                                </a>
+                                                    <a href="{{ route('admin.accounts.payments.pdf', $payment) }}" class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
+                                                        Download PDF
+                                                    </a>
+                                                @endcan
 
-                                                <button type="button" wire:click="openAttachmentModal({{ $payment->id }})" class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
-                                                    Attachments
-                                                </button>
+                                                @can('accounts.transaction-attachment.view')
+                                                    <button type="button" wire:click="openAttachmentModal({{ $payment->id }})" class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
+                                                        Attachments
+                                                    </button>
+                                                @endcan
 
                                                 @can('accounts.payment.edit')
                                                     <button type="button" wire:click="openEditModal({{ $payment->id }})" class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
@@ -231,7 +235,7 @@
 
                 <div>
                     <label class="text-sm font-medium text-gray-700">Purpose Account (Debit) <span class="text-rose-500">*</span></label>
-                    <select wire:model.defer="purpose_account_id" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                    <select wire:model.live="purpose_account_id" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
                         <option value="">Select account</option>
                         @foreach ($types as $accountType)
                             @if (($groupedAccounts[$accountType->value] ?? collect())->count())
@@ -254,7 +258,15 @@
 
                 <div>
                     <label class="text-sm font-medium text-gray-700">Reference Type</label>
-                    <input type="text" wire:model.defer="reference_type" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none" placeholder="e.g. purchase_payable">
+                    <select wire:model.defer="reference_type" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                        <option value="">No reference</option>
+                        @foreach ($availableReferenceOptions as $referenceKey => $referenceLabel)
+                            <option value="{{ $referenceKey }}">{{ $referenceLabel }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">
+                        {{ $purpose_account_id && empty($availableReferenceOptions) ? 'No reference types are linked to the selected purpose account.' : 'Options are based on the selected purpose account.' }}
+                    </p>
                     @error('reference_type') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 

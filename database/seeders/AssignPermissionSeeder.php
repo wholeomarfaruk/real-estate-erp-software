@@ -110,6 +110,11 @@ class AssignPermissionSeeder extends Seeder
                 'accounts.purchase-payable.edit',
                 'accounts.purchase-payable.delete',
                 'accounts.purchase-payable.settle',
+                'accounts.reports.statement.view',
+                'accounts.reports.statement.print',
+                'accounts.reports.statement.export',
+                'accounts.report.view',
+                'inventory.report.view',
                 'accounts.transaction-attachment.view',
                 'accounts.transaction-attachment.create',
                 'accounts.transaction-attachment.delete',
@@ -142,11 +147,11 @@ class AssignPermissionSeeder extends Seeder
             ])
             ->get();
 
-        Role::findByName('admin')->givePermissionTo($adminPermissions);
+        Role::findByName('admin')->syncPermissions($adminPermissions);
 
         $accountsPermissions = Permission::query()
             ->whereIn('name', [
-                'module.supplier.access',
+                'module.suppliers.access',
                 'supplier.dashboard.view',
                 'supplier.list.view',
                 'supplier.create',
@@ -217,6 +222,11 @@ class AssignPermissionSeeder extends Seeder
                 'accounts.purchase-payable.edit',
                 'accounts.purchase-payable.delete',
                 'accounts.purchase-payable.settle',
+                'accounts.reports.statement.view',
+                'accounts.reports.statement.print',
+                'accounts.reports.statement.export',
+                'accounts.report.view',
+                'inventory.report.view',
                 'accounts.transaction-attachment.view',
                 'accounts.transaction-attachment.create',
                 'accounts.transaction-attachment.delete',
@@ -249,7 +259,7 @@ class AssignPermissionSeeder extends Seeder
             ])
             ->get();
 
-        Role::findByName('accounts')->givePermissionTo($accountsPermissions);
+        Role::findByName('accounts')->syncPermissions($accountsPermissions);
 
         $storeManagerPermissions = Permission::query()
             ->whereIn('name', [
@@ -280,7 +290,7 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.stock_request.create',
                 'inventory.stock_request.update',
                 'inventory.stock_request.submit',
-                //transfer
+                // transfer
                 'inventory.stock.transfer.view',
                 'inventory.stock.transfer.create',
                 'inventory.stock.transfer.update',
@@ -288,13 +298,13 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.stock.transfer.approve',
                 'inventory.stock.transfer.complete',
                 'inventory.stock.transfer.delete',
-                //adjustment
+                // adjustment
                 'inventory.stock.adjustment.view',
                 'inventory.stock.adjustment.create',
                 'inventory.stock.adjustment.update',
                 'inventory.stock.adjustment.post',
                 'inventory.stock.adjustment.delete',
-                //purchase order
+                // purchase order
                 'inventory.purchase_order.view',
                 'inventory.purchase_order.create',
                 'inventory.purchase_order.update',
@@ -306,9 +316,10 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.purchase_order.fund_release',
                 'inventory.purchase_order.settle',
                 'inventory.purchase_order.complete',
+                'inventory.report.view',
                 'inventory.purchase_order.delete',
 
-                //section and modules
+                // section and modules
                 'section.general.access',
                 'module.materials.access',
                 'module.suppliers.access',
@@ -316,7 +327,7 @@ class AssignPermissionSeeder extends Seeder
             ])
             ->get();
 
-        Role::findByName('storemanager')->givePermissionTo($storeManagerPermissions);
+        Role::findByName('storemanager')->syncPermissions($storeManagerPermissions);
 
         $engineerPermissions = Permission::query()
             ->whereIn('name', [
@@ -333,7 +344,7 @@ class AssignPermissionSeeder extends Seeder
             ])
             ->get();
 
-        Role::findByName('chiefengineer')->givePermissionTo($engineerPermissions);
+        Role::findByName('chiefengineer')->syncPermissions($engineerPermissions);
 
         $chairmanPermissions = Permission::query()
             ->whereIn('name', [
@@ -341,12 +352,20 @@ class AssignPermissionSeeder extends Seeder
                 'module.projects.access',
                 'module.inventory.access',
                 'inventory.purchase_order.view',
-                'inventory.purchase_order.engineer_approve',
+                'inventory.purchase_order.chairman_approve',
+                'inventory.stock.report.view',
+                'inventory.stock.ledger.view',
+                'inventory.report.view',
+                'module.materials.access',
+                'module.suppliers.access',
+                'module.hrm.access',
+                'hrm.payrolls.view',
+                'module.accounts.access',
+                'inventory.dashboard.view',
             ])
             ->get();
 
-        Role::findByName('chairman')->givePermissionTo($chairmanPermissions);
-
+        Role::findByName('chairman')->syncPermissions($chairmanPermissions);
 
         $siteEngineerPermissions = Permission::query()
             ->whereIn('name', [
@@ -354,10 +373,9 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.stock_request.create',
                 'inventory.stock_request.update',
                 'inventory.stock_request.submit',
+
             ])
             ->get();
-
-        Role::findByName('engineer')->givePermissionTo($siteEngineerPermissions);
 
         $engineerPermissions = Permission::query()
             ->whereIn('name', [
@@ -375,8 +393,9 @@ class AssignPermissionSeeder extends Seeder
 
             ])
             ->get();
-        Role::findByName('engineer')->givePermissionTo($siteEngineerPermissions);
-
+        Role::findByName('engineer')->syncPermissions(
+            $siteEngineerPermissions->merge($engineerPermissions)->unique('id')->values()
+        );
 
         $adminPanelId = Panel::where('slug', 'admin')->value('id');
 

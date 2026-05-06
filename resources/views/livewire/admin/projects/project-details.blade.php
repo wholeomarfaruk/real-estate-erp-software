@@ -97,7 +97,7 @@
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="text-base font-semibold text-gray-900 dark:text-white/90">Documents</h3>
                                 @if ($canEdit)
-                                    <button wire:click="saveDocuments"
+                                    <button type="button" wire:click="saveDocuments"
                                         class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
                                         Save Documents
                                     </button>

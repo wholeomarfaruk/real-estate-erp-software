@@ -40,7 +40,7 @@
                <div class="flex items-center justify-between border-b border-gray-300 pb-2 ">
                    <h2 class="text-xl font-bold">File Manager</h2>
 
-                   <button wire:click="mediapickerModal=false" class="p-2 rounded hover:bg-gray-100 ">
+                   <button type="button" wire:click="mediapickerModal=false" class="p-2 rounded hover:bg-gray-100 ">
                        ✕
                    </button>
                </div>
@@ -52,13 +52,13 @@
 
                    <div class="flex  border-b border-gray-300 justify-between items-center">
                        <div class="flex">
-                           <button @click="tab='library'"
+                           <button type="button" @click="tab='library'"
                                :class="tab == 'library' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-gray-500'"
                                class="px-6 py-3 font-medium">
                                Uploaded Files
                            </button>
 
-                           <button @click="tab='upload'"
+                           <button type="button" @click="tab='upload'"
                                :class="tab == 'upload' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-gray-500'"
                                class="px-6 py-3 font-medium">
                                Upload
@@ -152,7 +152,7 @@
                                        </div>
                                    </details>
                                    {{-- <div class="group">
-                           <button wire:click="mediapickerModal=true" type="button"
+                           <button  wire:click="mediapickerModal=true" type="button"
                                class="flex items-center gap-2  pb-1 text-gray-700 transition-colors hover:border-gray-400 hover:text-gray-900 cursor-pointer rounded border border-gray-300 px-4 py-2">
                                <span class="text-sm font-medium"> Add User</span>
                        </div> --}}

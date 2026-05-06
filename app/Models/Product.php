@@ -46,11 +46,6 @@ class Product extends Model
         return $this->belongsTo(ProductUnit::class, 'product_unit_id');
     }
 
-    public function variants(): HasMany
-    {
-        return $this->hasMany(ProductVariant::class, 'product_id');
-    }
-
     public function stockBalances(): HasMany
     {
         return $this->hasMany(StockBalance::class);

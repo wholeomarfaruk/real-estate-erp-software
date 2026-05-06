@@ -15,12 +15,14 @@ class StockReceive extends Model
 
     protected $fillable = [
         'receive_no',
+        'store_receiver_no',
         'receive_date',
         'supplier_id',
         'purchase_order_id',
         'supplier_voucher',
         'store_id',
         'remarks',
+        'images',
         'status',
         'created_by',
         'posted_by',
@@ -31,6 +33,7 @@ class StockReceive extends Model
         'receive_date' => 'date',
         'posted_at' => 'datetime',
         'status' => StockReceiveStatus::class,
+        'images' => 'array',
     ];
 
     public function supplier(): BelongsTo
@@ -86,5 +89,24 @@ class StockReceive extends Model
     public function scopePosted(Builder $query): Builder
     {
         return $query->where('status', StockReceiveStatus::POSTED->value);
+    }
+
+    public function settlementCompleted(): bool
+    {
+        return (bool) $this->purchaseOrder?->settlement?->settled_at;
+    }
+
+    public function canAdjustPostedReceive(): bool
+    {
+        return $this->status === StockReceiveStatus::POSTED && ! $this->settlementCompleted();
+    }
+
+    public function canEditReceive(): bool
+    {
+        return match ($this->status) {
+            StockReceiveStatus::DRAFT => true,
+            StockReceiveStatus::POSTED => $this->canAdjustPostedReceive(),
+            default => false,
+        };
     }
 }
