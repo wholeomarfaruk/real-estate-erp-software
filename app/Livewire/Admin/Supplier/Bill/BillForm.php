@@ -355,12 +355,25 @@ class BillForm extends Component
             $this->authorizePermission('supplier.bill.create');
         }
 
-        $purchaseOrdersQuery = PurchaseOrder::query()
-            ->with('supplier:id,name')
-            ->latest('order_date')
-            ->latest('id')
-            ->when($this->supplier_id, fn ($query) => $query->where('supplier_id', $this->supplier_id))
-            ->limit(200);
+$purchaseOrdersQuery = PurchaseOrder::query()
+    ->when($this->supplier_id, function ($query) {
+        // 1. Filter Purchase Orders
+        $query->whereHas('items', function ($q) {
+            $q->where('supplier_id', $this->supplier_id);
+        });
+    })
+    ->with([
+        'items' => function ($q) {
+            // 2. Load only filtered items
+            $q->when($this->supplier_id, function ($q) {
+                $q->where('supplier_id', $this->supplier_id);
+            })
+            ->with('supplier:id,name');
+        }
+    ])
+    ->latest('order_date')
+    ->latest('id')
+    ->limit(200);
 
         $stockReceivesQuery = StockReceive::query()
             ->with(['supplier:id,name', 'purchaseOrder:id,po_no'])
@@ -371,7 +384,7 @@ class BillForm extends Component
 
         return view('livewire.admin.supplier.bill.bill-form', [
             'suppliers' => Supplier::query()->orderBy('name')->get(['id', 'name', 'code']),
-            'purchaseOrders' => $purchaseOrdersQuery->get(['id', 'po_no', 'supplier_id', 'status']),
+            'purchaseOrders' => $purchaseOrdersQuery->get(['id', 'po_no', 'status']),
             'stockReceives' => $stockReceivesQuery->get(['id', 'receive_no', 'supplier_id', 'purchase_order_id', 'receive_date']),
             'products' => Product::query()->active()->orderBy('name')->get(['id', 'name', 'sku', 'product_unit_id']),
             'units' => ProductUnit::query()->active()->orderBy('name')->get(['id', 'name']),

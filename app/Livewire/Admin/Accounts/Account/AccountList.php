@@ -99,14 +99,7 @@ class AccountList extends Component
         $this->type = $account->type?->value ?? AccountType::ASSET->value;
         $this->parent_id = $account->parent_id ? (int) $account->parent_id : null;
         $this->is_active = (bool) $account->is_active;
-<<<<<<< HEAD
         $this->sub_type = $account->sub_type;
-=======
-        $this->allowed_reference_keys = $account->referenceKeys
-            ->pluck('reference_key')
-            ->values()
-            ->all();
->>>>>>> 1f61045f2fc333d18599d68b8aa652fcb6374283
         $this->showFormModal = true;
     }
 
@@ -144,7 +137,7 @@ class AccountList extends Component
 
         DB::transaction(function () use ($validated, $allowedReferenceKeys): void {
             if ($this->editingId) {
-        
+
                 $account = Account::query()->findOrFail($this->editingId);
             } else {
                 $account = new Account;
@@ -319,12 +312,7 @@ class AccountList extends Component
             'type' => ['required', Rule::in(array_map(static fn (AccountType $type): string => $type->value, AccountType::cases()))],
             'parent_id' => ['nullable', 'exists:accounts,id'],
             'is_active' => ['required', 'boolean'],
-<<<<<<< HEAD
             'sub_type' => ['nullable', 'string'],
-=======
-            'allowed_reference_keys' => ['nullable', 'array'],
-            'allowed_reference_keys.*' => ['string', Rule::in(array_keys(account_reference_config()))],
->>>>>>> 1f61045f2fc333d18599d68b8aa652fcb6374283
         ];
     }
 
@@ -343,11 +331,7 @@ class AccountList extends Component
 
     protected function resetForm(): void
     {
-<<<<<<< HEAD
         $this->reset(['editingId', 'code', 'name', 'parent_id', 'sub_type']);
-=======
-        $this->reset(['editingId', 'code', 'name', 'parent_id', 'allowed_reference_keys']);
->>>>>>> 1f61045f2fc333d18599d68b8aa652fcb6374283
         $this->type = AccountType::ASSET->value;
         $this->is_active = true;
     }
