@@ -228,3 +228,13 @@ import Chart from 'chart.js/auto';
 window.Chart = Chart;
 
 // ChartJs==================================================END
+
+// select2==================================================START
+import select2 from 'select2';
+import 'select2/dist/css/select2.min.css';
+window.select2 = select2;
+$(function () {
+    console.log('select2 loaded:', typeof select2);
+});
+
+// select2==================================================END

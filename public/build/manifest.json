@@ -3,8 +3,8 @@
     "file": "assets/fancybox-C6HAUHTn.css",
     "src": "_fancybox-C6HAUHTn.css"
   },
-  "_fancybox-OdU4McDn.js": {
-    "file": "assets/fancybox-OdU4McDn.js",
+  "_fancybox-GJFyfzIa.js": {
+    "file": "assets/fancybox-GJFyfzIa.js",
     "name": "fancybox",
     "css": [
       "assets/fancybox-C6HAUHTn.css"
@@ -31,7 +31,7 @@
     "src": "node_modules/boxicons/fonts/boxicons.woff2"
   },
   "resources/css/admin.css": {
-    "file": "assets/app-Dzmurajq.css",
+    "file": "assets/app-Cu3PY9ne.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "admin",
@@ -41,7 +41,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-Dzmurajq.css",
+    "file": "assets/app-Cu3PY9ne.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "admin",
@@ -51,21 +51,24 @@
     ]
   },
   "resources/js/admin.js": {
-    "file": "assets/admin-CDc1XWnY.js",
+    "file": "assets/admin-CS5C6EfU.js",
     "name": "admin",
     "src": "resources/js/admin.js",
     "isEntry": true,
     "imports": [
-      "_fancybox-OdU4McDn.js"
+      "_fancybox-GJFyfzIa.js"
+    ],
+    "css": [
+      "assets/admin-Dc_9RrAu.css"
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-Dj-Vm6AA.js",
+    "file": "assets/app-PfVEkbHK.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_fancybox-OdU4McDn.js"
+      "_fancybox-GJFyfzIa.js"
     ]
   },
   "resources/sass/admin.scss": {

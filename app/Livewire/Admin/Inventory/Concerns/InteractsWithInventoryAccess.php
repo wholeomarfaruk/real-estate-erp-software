@@ -140,9 +140,11 @@ trait InteractsWithInventoryAccess
         }
 
         return Store::query()
-            ->managedBy($user->id)
-            ->pluck('id')
-            ->all();
+            ->whereHas('projects.engineer', function (Builder $query) use ($user): void {
+                $query->where('users.id', $user->id);
+            })
+            ->pluck('id')->all();
+        
     }
 
     protected function applyStoreRestriction(Builder $query, string $column = 'store_id'): Builder

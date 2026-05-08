@@ -407,6 +407,12 @@ Route::get('/inventory/stock-requests', App\Livewire\Admin\Inventory\StockReques
 Route::get('/inventory/stock-requests/create', App\Livewire\Admin\Inventory\StockRequest\StockRequestForm::class)->name('inventory.stock-requests.create');
 Route::get('/inventory/stock-requests/{stockRequest}/view', App\Livewire\Admin\Inventory\StockRequest\StockRequestView::class)->name('inventory.stock-requests.view');
 Route::get('/inventory/stock-requests/{stockRequest}/edit', App\Livewire\Admin\Inventory\StockRequest\StockRequestForm::class)->name('inventory.stock-requests.edit');
+//for site engineer
+// inventory stock requests
+Route::get('/inventory/site-engineer/stock-requests', App\Livewire\Admin\Inventory\SiteEngineer\StockRequest\StockRequestList::class)->name('inventory.site_engineer.stock-requests.index');
+Route::get('/inventory/site-engineer/stock-requests/create', App\Livewire\Admin\Inventory\SiteEngineer\StockRequest\StockRequestForm::class)->name('inventory.site_engineer.stock-requests.create');
+Route::get('/inventory/site-engineer/stock-requests/{stockRequest}/view', App\Livewire\Admin\Inventory\SiteEngineer\StockRequest\StockRequestView::class)->name('inventory.site_engineer.stock-requests.view');
+Route::get('/inventory/site-engineer/stock-requests/{stockRequest}/edit', App\Livewire\Admin\Inventory\SiteEngineer\StockRequest\StockRequestForm::class)->name('inventory.site_engineer.stock-requests.edit');
 
 // inventory stock transfers
 Route::get('/inventory/stock-transfers', App\Livewire\Admin\Inventory\StockTransfer\StockTransferList::class)->name('inventory.stock-transfers.index');
@@ -444,3 +450,7 @@ Route::delete('/upload/revert', [FileUploadController::class, 'revertAdmin']);
 
 // Ui Components
 Route::get('/ui/layouts', App\Livewire\Admin\Ui\Layouts\Layouts::class)->name('ui.layouts');
+
+
+//Site engineers
+Route::get('/site-engineers', App\Livewire\Admin\SiteEngineer\Engineer::class)->name('engineers');

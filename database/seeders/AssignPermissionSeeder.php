@@ -381,15 +381,12 @@ class AssignPermissionSeeder extends Seeder
             ->whereIn('name', [
                 'section.general.access',
                 'module.inventory.access',
-                'module.suppliers.access',
-                'module.materials.access',
                 'module.projects.access',
-                'inventory.purchase_order.view',
-                'inventory.purchase_order.engineer_approve',
-                'inventory.stock_request.view',
-                'inventory.stock_request.approve',
-                'inventory.stock_request.reject',
-                'inventory.purchase_return.view',
+                 'inventory.site_engineer.stock_request.create',
+                'inventory.site_engineer.stock_request.update',
+                'inventory.site_engineer.stock_request.view',
+                'inventory.site_engineer.stock_request.delete',
+                'inventory.site_engineer.stock_request.submit',
             ])
             ->get();
         Role::findByName('engineer')->syncPermissions(

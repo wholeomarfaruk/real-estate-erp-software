@@ -55,7 +55,7 @@ class PermissionSeeder extends Seeder
 
             ['id' => 21, 'name' => 'ui.show'],
             ['id' => 22, 'name' => 'ui_components.view'],
-            
+
             ['id' => 23, 'name' => 'project.view'],
             ['id' => 24, 'name' => 'project.create'],
             ['id' => 25, 'name' => 'project.edit'],
@@ -264,7 +264,13 @@ class PermissionSeeder extends Seeder
             ['id' => 203, 'name' => 'accounts.reports.statement.export'],
             ['id' => 204, 'name' => 'accounts.report.view'],
             ['id' => 205, 'name' => 'inventory.report.view'],
-
+            ['id' => 206, 'name' => 'inventory.site_engineer.stock_request.received'],
+            ['id' => 207, 'name' => 'inventory.site_engineer.stock_request.reject'],
+            ['id' => 208, 'name' => 'inventory.site_engineer.stock_request.create'],
+            ['id' => 209, 'name' => 'inventory.site_engineer.stock_request.update'],
+            ['id' => 210, 'name' => 'inventory.site_engineer.stock_request.view'],
+            ['id' => 211, 'name' => 'inventory.site_engineer.stock_request.delete'],
+            ['id' => 212, 'name' => 'inventory.site_engineer.stock_request.submit'],
         ];
 
         foreach ($permissions as $permission) {

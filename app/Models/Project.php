@@ -75,4 +75,9 @@ class Project extends Model
     {
         return $this->hasMany(StockMovement::class);
     }
+ 
+    public function engineers()
+    {
+        return $this->belongsToMany(User::class, 'engineer_projects', 'project_id', 'user_id');
+    }
 }
