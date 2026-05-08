@@ -390,7 +390,6 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.stock_request.approve',
                 'inventory.stock_request.reject',
                 'inventory.purchase_return.view',
-
             ])
             ->get();
         Role::findByName('engineer')->syncPermissions(
@@ -405,6 +404,8 @@ class AssignPermissionSeeder extends Seeder
         $this->assignRoleAndPanel('chiefengineer@gmail.com', 'chiefengineer', $adminPanelId);
         $this->assignRoleAndPanel('chairman@gmail.com', 'chairman', $adminPanelId);
         $this->assignRoleAndPanel('accountant@gmail.com', 'accounts', $adminPanelId);
+        $this->assignRoleAndPanel('engineer@gmail.com', 'engineer', $adminPanelId);
+        $this->assignRoleAndPanel('md@gmail.com', 'md', $adminPanelId);
 
     }
 

@@ -110,5 +110,9 @@ class User extends Authenticatable
         return $this->managedStores()->whereKey($storeId)->exists()
             || $this->assignedStores()->where('stores.id', $storeId)->exists();
     }
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'engineer_projects', 'user_id', 'project_id');
+    }
 
 }

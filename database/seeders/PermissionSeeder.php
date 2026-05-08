@@ -55,7 +55,7 @@ class PermissionSeeder extends Seeder
 
             ['id' => 21, 'name' => 'ui.show'],
             ['id' => 22, 'name' => 'ui_components.view'],
-
+            
             ['id' => 23, 'name' => 'project.view'],
             ['id' => 24, 'name' => 'project.create'],
             ['id' => 25, 'name' => 'project.edit'],
