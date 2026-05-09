@@ -65,7 +65,7 @@ class StockRequestForm extends Component
             $this->priority = $stockRequest->priority?->value ?? StockRequestPriority::NORMAL->value;
             $this->remarks = $stockRequest->remarks;
             $this->status = $stockRequest->status?->value ?? StockRequestStatus::DRAFT->value;
-            $this->isLocked = $stockRequest->status !== StockRequestStatus::DRAFT;
+            $this->isLocked = !in_array($stockRequest->status?->value, [StockRequestStatus::PENDING->value, StockRequestStatus::APPROVED->value], true);
 
             $this->ensureStoreAccessible((int) $stockRequest->requester_store_id);
 

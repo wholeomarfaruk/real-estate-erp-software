@@ -10,6 +10,7 @@ use App\Models\TransferTransaction;
 use App\Services\Inventory\StockRequestService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class StockRequestView extends Component
@@ -193,7 +194,7 @@ class StockRequestView extends Component
         $fulfilledQty = (float) $this->stockRequest->items->sum('fulfilled_quantity');
         $remainingQty = max(0, round($targetQty - $fulfilledQty, 3));
 
-        return view('livewire.admin.inventory.stock-request.stock-request-view', [
+        return view('livewire.admin.inventory.site-engineer.stock-request.stock-request-view', [
             'targetQty' => round($targetQty, 3),
             'fulfilledQty' => round($fulfilledQty, 3),
             'remainingQty' => round($remainingQty, 3),
@@ -221,7 +222,37 @@ class StockRequestView extends Component
             ->latest('id')
             ->get(['id', 'transfer_no', 'transfer_date', 'status', 'sender_store_id', 'receiver_store_id']);
     }
+    public function deleteRequest()
+    {
+ 
+        $this->authorizePermission('inventory.site_engineer.stock_request.delete');
 
+        $stockRequest = $this->stockRequest;
+
+        if (! $stockRequest) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Stock request not found.']);
+
+            return;
+        }
+
+        $this->ensureRequestAccessible($stockRequest);
+
+        if ( !in_array($stockRequest->status?->value, [StockRequestStatus::DRAFT->value, StockRequestStatus::PENDING->value], true)) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Only draft stock request can be deleted.']);
+
+            return;
+        }
+
+        DB::transaction(function () use ($stockRequest): void {
+            $stockRequest->items()->delete();
+            $stockRequest->transferLinks()->delete();
+            $stockRequest->delete();
+        });
+
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Stock request deleted successfully.']);
+
+        return redirect()->route('admin.inventory.site_engineer.stock-requests.index');
+        }
     protected function reloadStockRequest(): void
     {
         $this->stockRequest = $this->stockRequest->fresh([

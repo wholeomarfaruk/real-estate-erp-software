@@ -62,7 +62,7 @@
                     <x-input-error for="store_id" class="mt-1" />
                 </div>
 
-                {{-- <div>
+                <div>
                     <label for="supplier_id" class="text-sm font-medium text-gray-700">Supplier</label>
                     <select id="supplier_id" wire:model="supplier_id" @disabled($isLocked)
                         class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
@@ -72,7 +72,7 @@
                         @endforeach
                     </select>
                     <x-input-error for="supplier_id" class="mt-1" />
-                </div> --}}
+                </div>
 
                 <div>
                     <label for="purchase_mode" class="text-sm font-medium text-gray-700">Purchase Mode *</label>
@@ -123,8 +123,8 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Unit *</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Estimated Unit Price *</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Estimated Total *</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Supplier</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Remarks</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Linked Requests</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">Action</th>
                             </tr>
                         </thead>
@@ -164,21 +164,32 @@
                                             class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                                         <x-input-error for="items.{{ $index }}.estimated_total_price" class="mt-1" />
                                     </td>
-                                    <td class="px-4 py-3 min-w-[160px]">
-                                        <select wire:model.live="items.{{ $index }}.supplier_id" @disabled($isLocked)
-                                            class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
-                                            <option value="">Select supplier</option>
-                                            @foreach ($suppliers as $supplier)
-                                                <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
-                                            @endforeach
-                                        </select>
-                                        <x-input-error for="items.{{ $index }}.supplier_id" class="mt-1" />
-                                    </td>
+
 
                                     <td class="px-4 py-3 min-w-[220px]">
                                         <input type="text" wire:model="items.{{ $index }}.remarks" @disabled($isLocked)
                                             class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                                         <x-input-error for="items.{{ $index }}.remarks" class="mt-1" />
+                                    </td>
+                                    <td class="px-4 py-3 min-w-[220px]">
+                                        @if (! empty($item['linked_requests']))
+                                            <ul class="list-disc pl-5 text-sm text-gray-700">
+                                                @foreach ($item['linked_requests'] as $request)
+                                                    <li>
+                                                        <a href="{{ route('admin.inventory.stock-requests.view', $request) }}" class="text-indigo-600 hover:underline">
+                                                            {{ $request->request_no }} ({{ $request->status?->label() }})
+                                                        </a>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @else
+                                            <p class="text-sm text-gray-500">No linked requests</p>
+
+                                        @endif
+                                        <button class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50" type="button">
+                                            Add/Update
+                                        </button>
+                                        <x-input-error for="" class="mt-1" />
                                     </td>
 
                                     <td class="px-4 py-3 text-right">

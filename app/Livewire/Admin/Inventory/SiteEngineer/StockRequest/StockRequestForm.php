@@ -54,7 +54,7 @@ class StockRequestForm extends Component
     public function mount(?StockRequest $stockRequest = null): void
     {
         if ($stockRequest && $stockRequest->exists) {
-            $this->authorizePermission('inventory.stock_request.update');
+            $this->authorizePermission('inventory.site_engineer.stock_request.update');
 
             $this->editMode = true;
             $this->stockRequestRecord = $stockRequest->load('items');
@@ -88,7 +88,7 @@ class StockRequestForm extends Component
             return;
         }
 
-        $this->authorizePermission('inventory.stock_request.create');
+        $this->authorizePermission('inventory.site_engineer.stock_request.create');
 
         $this->request_no = app(StockRequestService::class)->generateRequestNo();
         $this->request_date = now()->toDateString();
@@ -143,7 +143,7 @@ class StockRequestForm extends Component
         if ($this->isLocked) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Only draft stock request can be edited.']);
 
-        
+
             return ;
         }
 
@@ -200,7 +200,9 @@ class StockRequestForm extends Component
         return view('livewire.admin.inventory.site-engineer.stock-request.stock-request-form', [
             'requesterStores' => $requesterStoresQuery->get(['id', 'name', 'code', 'type', 'project_id']),
             'sourceStores' => Store::query()->where('type', '=', StoreType::OFFICE)->active()->orderBy('name')->get(['id', 'name', 'code', 'type']),
-            'projects' => Project::query()->orderBy('name')->get(['id', 'name', 'code']),
+            'projects' => Project::query()->whereHas('engineers', function (Builder $query) {
+                $query->where('users.id', auth()->id());
+            })->orderBy('name')->get(['id', 'name', 'code']),
             'products' => Product::query()->active()->orderBy('name')->get(['id', 'name', 'sku']),
             'priorities' => StockRequestPriority::cases(),
             'isLocked' => $this->isLocked,

@@ -188,6 +188,7 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.stock.report.view',
                 'inventory.purchase_order.view',
                 'inventory.purchase_order.accounts_approve',
+                'inventory.purchase_order.chiefengineer_update',
                 'inventory.purchase_order.fund_release',
                 'inventory.purchase_order.settle',
                 'inventory.purchase_order.complete',
@@ -287,9 +288,6 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.purchase_return.update',
                 'inventory.purchase_return.post',
                 'inventory.stock_request.view',
-                'inventory.stock_request.create',
-                'inventory.stock_request.update',
-                'inventory.stock_request.submit',
                 // transfer
                 'inventory.stock.transfer.view',
                 'inventory.stock.transfer.create',
@@ -298,24 +296,20 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.stock.transfer.approve',
                 'inventory.stock.transfer.complete',
                 'inventory.stock.transfer.delete',
+
                 // adjustment
                 'inventory.stock.adjustment.view',
                 'inventory.stock.adjustment.create',
                 'inventory.stock.adjustment.update',
                 'inventory.stock.adjustment.post',
                 'inventory.stock.adjustment.delete',
+
                 // purchase order
                 'inventory.purchase_order.view',
                 'inventory.purchase_order.create',
                 'inventory.purchase_order.update',
                 'inventory.purchase_order.edit',
                 'inventory.purchase_order.submit',
-                'inventory.purchase_order.engineer_approve',
-                'inventory.purchase_order.chairman_approve',
-                'inventory.purchase_order.accounts_approve',
-                'inventory.purchase_order.fund_release',
-                'inventory.purchase_order.settle',
-                'inventory.purchase_order.complete',
                 'inventory.report.view',
                 'inventory.purchase_order.delete',
 
@@ -337,9 +331,15 @@ class AssignPermissionSeeder extends Seeder
                 'module.materials.access',
                 'inventory.purchase_order.view',
                 'inventory.purchase_order.engineer_approve',
+                'inventory.purchase_order.chiefengineer_update',
                 'inventory.stock_request.view',
                 'inventory.stock_request.approve',
                 'inventory.stock_request.reject',
+                'inventory.stock_request.create',
+                'inventory.stock_request.update',
+                'inventory.stock_request.submit',
+                'inventory.stock_request.delete',
+
 
             ])
             ->get();
@@ -353,6 +353,7 @@ class AssignPermissionSeeder extends Seeder
                 'module.inventory.access',
                 'inventory.purchase_order.view',
                 'inventory.purchase_order.chairman_approve',
+                'inventory.purchase_order.chairman_update',
                 'inventory.stock.report.view',
                 'inventory.stock.ledger.view',
                 'inventory.report.view',
@@ -367,31 +368,29 @@ class AssignPermissionSeeder extends Seeder
 
         Role::findByName('chairman')->syncPermissions($chairmanPermissions);
 
-        $siteEngineerPermissions = Permission::query()
-            ->whereIn('name', [
-                'inventory.stock_request.view',
-                'inventory.stock_request.create',
-                'inventory.stock_request.update',
-                'inventory.stock_request.submit',
-
-            ])
-            ->get();
 
         $engineerPermissions = Permission::query()
             ->whereIn('name', [
-                'section.general.access',
+                'module.dashboard.access',
                 'module.inventory.access',
                 'module.projects.access',
-                 'inventory.site_engineer.stock_request.create',
+                'dashboard.view',
+                // 'inventory.stock_request.view',
+                // 'inventory.stock_request.create',
+                // 'inventory.stock_request.update',
+                // 'inventory.stock_request.submit',
+                // 'inventory.stock_request.delete',
+                'section.general.access',
+
+                'inventory.site_engineer.stock_request.create',
                 'inventory.site_engineer.stock_request.update',
                 'inventory.site_engineer.stock_request.view',
                 'inventory.site_engineer.stock_request.delete',
                 'inventory.site_engineer.stock_request.submit',
             ])
             ->get();
-        Role::findByName('engineer')->syncPermissions(
-            $siteEngineerPermissions->merge($engineerPermissions)->unique('id')->values()
-        );
+
+        Role::findByName('engineer')->syncPermissions($engineerPermissions);
 
         $adminPanelId = Panel::where('slug', 'admin')->value('id');
 

@@ -203,7 +203,7 @@
 
                                             <div x-show="open" @click.away="open = false" style="display: none;" x-transition class="absolute right-0 z-40 mt-10 w-56 origin-top-right rounded-md border border-zinc-200 bg-white p-1 shadow-lg">
                                                 @can('inventory.site_engineer.stock_request.view')
-                                                    <a href="{{ route('admin.inventory.stock-requests.view', $stockRequest) }}" class="flex items-center rounded-lg px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100">
+                                                    <a href="{{ route('admin.inventory.site_engineer.stock-requests.view', $stockRequest) }}" class="flex items-center rounded-lg px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100">
                                                         View
                                                     </a>
                                                 @endcan
@@ -231,7 +231,7 @@
                                                         </button>
                                                     @endif
                                                 @endcan
-                                               
+
 
 
                                                 @can('inventory.site_engineer.stock_request.delete')

@@ -44,7 +44,7 @@
         document.addEventListener('alpine:init', () => {
             // Stores variable globally
             Alpine.store('sidebar', {
-                full: false,
+                full: true,
                 active: 'dashboard',
                 navOpen: false,
             });

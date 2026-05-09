@@ -209,7 +209,7 @@
                                                 @endcan
 
                                                 @can('inventory.stock_request.update')
-                                                    @if ($stockRequest->status?->value === 'draft')
+                                                    @if (in_array($stockRequest->status?->value, ['draft', 'pending'], true))
                                                         <a href="{{ route('admin.inventory.stock-requests.edit', $stockRequest) }}" class="flex items-center rounded-lg px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100">
                                                             Edit
                                                         </a>

@@ -122,7 +122,6 @@ class PurchaseOrderForm extends Component
                     'unit' => $item->product->unit ?? '',
                     'estimated_unit_price' => (float) $item->estimated_unit_price,
                     'estimated_total_price' => (float) $item->estimated_total_price,
-                    'supplier_id' => $item->supplier_id,
                     'remarks' => $item->remarks,
                     'fund_request_amount' => (float) $item->fund_request_amount,
                 ])
@@ -264,6 +263,7 @@ class PurchaseOrderForm extends Component
                 'po_no' => $validated['po_no'],
                 'order_date' => $validated['order_date'],
                 'store_id' => $validated['store_id'],
+                'supplier_id' => $validated['supplier_id'] ?? null,
 
                 'purchase_mode' => $validated['purchase_mode'],
                 'fund_request_amount' => $validated['fund_request_amount'],
@@ -295,7 +295,6 @@ class PurchaseOrderForm extends Component
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
                     'unit' => $item['unit'] ?? '',
-                    'supplier_id' => $item['supplier_id'] ?? null,
                     'estimated_unit_price' => $item['estimated_unit_price'],
                     'estimated_total_price' => $item['estimated_total_price'],
                     'approved_quantity' => null,
@@ -316,13 +315,13 @@ class PurchaseOrderForm extends Component
         return [
             'po_no' => ['required', 'string', 'max:100', Rule::unique('purchase_orders', 'po_no')->ignore($this->purchaseOrderId)],
             'order_date' => ['required', 'date'],
+            'supplier_id' => ['nullable', 'integer', 'exists:suppliers,id'],
             'store_id' => ['required', 'integer', 'exists:stores,id'],
             'purchase_mode' => ['required', Rule::in(array_map(fn (PurchaseMode $mode): string => $mode->value, PurchaseMode::cases()))],
             'fund_request_amount' => ['required', 'numeric', 'min:0'],
             'remarks' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
-            'items.*.supplier_id' => ['nullable', 'integer', 'exists:suppliers,id'],
             'items.*.unit' => ['nullable', 'string', 'max:255'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.estimated_unit_price' => ['required', 'numeric', 'min:0'],

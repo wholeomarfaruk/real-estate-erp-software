@@ -124,7 +124,7 @@
                     @endif
                 @endcan
 
-                @can('inventory.stock_request.submit')
+                @can('inventory.site_engineer.stock_request.submit')
                     @if ($stockRequest->status?->value === 'draft')
                         <button type="button" x-data="livewireConfirm"
                             @click="confirmAction({
@@ -139,52 +139,25 @@
                     @endif
                 @endcan
 
-                @can('inventory.stock_request.approve')
-                    @if ($stockRequest->status?->value === 'pending')
-                        <button type="button" x-data="livewireConfirm"
-                            @click="confirmAction({
-                                method: 'approveRequest',
-                                title: 'Approve this stock request?',
-                                text: 'Approved request can be fulfilled via stock transfers.',
-                                confirmText: 'Yes, approve'
-                            })"
-                            class="inline-flex w-full items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700">
-                            Approve Request
-                        </button>
-                    @endif
-                @endcan
 
-                @can('inventory.stock_request.reject')
-                    @if ($stockRequest->status?->value === 'pending')
-                        <button type="button" x-data="livewireConfirm"
-                            @click="confirmAction({
-                                method: 'rejectRequest',
-                                title: 'Reject this stock request?',
-                                text: 'Rejected request cannot be fulfilled.',
-                                confirmText: 'Yes, reject'
-                            })"
-                            class="inline-flex w-full items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700">
-                            Reject Request
-                        </button>
-                    @endif
-                @endcan
 
-                @can('inventory.stock_request.update')
+
+                @can('inventory.site_engineer.stock_request.delete')
                     @if (in_array($stockRequest->status?->value, ['draft', 'pending', 'approved'], true))
                         <button type="button" x-data="livewireConfirm"
                             @click="confirmAction({
-                                method: 'cancelRequest',
-                                title: 'Cancel this stock request?',
-                                text: 'Cancelled request cannot be edited or fulfilled.',
-                                confirmText: 'Yes, cancel'
+                                method: 'deleteRequest',
+                                title: 'Delete this stock request?',
+                                text: 'Deleted request cannot be edited or fulfilled.',
+                                confirmText: 'Yes, delete'
                             })"
-                            class="inline-flex w-full items-center justify-center rounded-lg bg-zinc-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800">
-                            Cancel Request
+                            class="inline-flex w-full items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 cursor-pointer">
+                            Delete Request
                         </button>
                     @endif
                 @endcan
 
-                @can('inventory.stock.transfer.create')
+                @can('inventory.site_engineer.stock.transfer.create')
                     @if (in_array($stockRequest->status?->value, ['approved', 'partially_fulfilled'], true))
                         <a href="{{ route('admin.inventory.stock-transfers.create', ['stock_request_id' => $stockRequest->id]) }}" class="inline-flex w-full items-center justify-center rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 transition hover:bg-indigo-100">
                             Create Transfer From Request
@@ -192,20 +165,6 @@
                     @endif
                 @endcan
 
-                @can('inventory.stock_request.approve')
-                    @if (in_array($stockRequest->status?->value, ['approved', 'partially_fulfilled'], true))
-                        <button type="button" x-data="livewireConfirm"
-                            @click="confirmAction({
-                                method: 'recalculateFulfillment',
-                                title: 'Recalculate fulfillment now?',
-                                text: 'This will sync fulfilled quantities from linked completed transfers.',
-                                confirmText: 'Yes, recalculate'
-                            })"
-                            class="inline-flex w-full items-center justify-center rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100">
-                            Recalculate Fulfillment
-                        </button>
-                    @endif
-                @endcan
             </div>
         </div>
     </div>
@@ -228,7 +187,7 @@
         </div>
     </div>
 
-    @if ($stockRequest->status?->value === 'pending' && (auth()->user()?->can('inventory.stock_request.approve') || auth()->user()?->can('inventory.stock_request.reject')))
+    @if ($stockRequest->status?->value === 'pending' && (auth()->user()?->can('inventory.site_engineer.stock_request.approve') || auth()->user()?->can('inventory.site_engineer.stock_request.reject')))
         <div class="mt-4 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
             <h3 class="text-base font-semibold text-gray-800">Approval Section</h3>
             <p class="mt-1 text-xs text-gray-500">You can adjust approved quantities before approving.</p>
@@ -252,7 +211,7 @@
                                     </td>
                                     <td class="px-4 py-3 text-sm text-gray-700">{{ number_format((float) $item->quantity, 3) }}</td>
                                     <td class="px-4 py-3 min-w-[160px]">
-                                        @can('inventory.stock_request.approve')
+                                        @can('inventory.site_engineer.stock_request.approve')
                                             <input type="number" min="0" step="0.001" wire:model="approvalQuantities.{{ $item->id }}"
                                                 class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
                                         @else
@@ -267,7 +226,7 @@
             </div>
 
             <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                @can('inventory.stock_request.approve')
+                @can('inventory.site_engineer.stock_request.approve')
                     <div>
                         <label for="approvalRemarks" class="text-sm font-medium text-gray-700">Approval Remarks (optional)</label>
                         <textarea id="approvalRemarks" wire:model="approvalRemarks" rows="2"
@@ -276,7 +235,7 @@
                     </div>
                 @endcan
 
-                @can('inventory.stock_request.reject')
+                @can('inventory.site_engineer.stock_request.reject')
                     <div>
                         <label for="rejectionRemarks" class="text-sm font-medium text-gray-700">Rejection Remarks (optional)</label>
                         <textarea id="rejectionRemarks" wire:model="rejectionRemarks" rows="2"
@@ -291,7 +250,7 @@
     <div class="mt-4 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
         <h3 class="text-base font-semibold text-gray-800">Linked Transfers</h3>
 
-        @if (in_array($stockRequest->status?->value, ['approved', 'partially_fulfilled'], true) && auth()->user()?->can('inventory.stock_request.update'))
+        @if (in_array($stockRequest->status?->value, ['approved', 'partially_fulfilled'], true) && auth()->user()?->can('inventory.site_engineer.stock_request.update'))
             <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div class="md:col-span-2">
                     <label for="transfer_transaction_id" class="text-sm font-medium text-gray-700">Link Transfer</label>

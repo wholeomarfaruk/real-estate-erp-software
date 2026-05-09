@@ -41,8 +41,10 @@ class StockRequestList extends Component
 
     public function mount(): void
     {
-        $this->authorizePermission('inventory.stock_request.view');
-    }
+
+        $this->authorizePermission('inventory.site_engineer.stock_request.view');
+
+        }
 
     public function updatedSearch(): void
     {
@@ -86,7 +88,7 @@ class StockRequestList extends Component
 
     public function submitRequest(int $stockRequestId): void
     {
-        $this->authorizePermission('inventory.stock_request.submit');
+        $this->authorizePermission('inventory.site_engineer.stock_request.submit');
 
         $stockRequest = StockRequest::query()->find($stockRequestId);
 
@@ -225,7 +227,7 @@ class StockRequestList extends Component
 
     public function render(): View
     {
-        $this->authorizePermission('inventory.stock_request.view');
+        $this->authorizePermission('inventory.site_engineer.stock_request.view');
 
         $query = StockRequest::query()
         ->whereHas('project.engineers', function (Builder $query) {
@@ -263,7 +265,7 @@ class StockRequestList extends Component
 
         $statsQuery = StockRequest::query()->whereHas('project.engineers', function (Builder $query) {
             $query->where('users.id', auth()->id());
-        }); 
+        });
         $this->applyRequestAccessRestriction($statsQuery);
 
         $totalRequests = (clone $statsQuery)->count();
