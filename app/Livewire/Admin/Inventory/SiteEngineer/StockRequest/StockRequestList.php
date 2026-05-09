@@ -108,7 +108,7 @@ class StockRequestList extends Component
 
     public function approveRequest(int $stockRequestId): void
     {
-        $this->authorizePermission('inventory.stock_request.approve');
+        $this->authorizePermission('inventory.site_engineer.stock_request.approve');
 
         $stockRequest = StockRequest::query()->find($stockRequestId);
 
@@ -130,7 +130,7 @@ class StockRequestList extends Component
 
     public function rejectRequest(int $stockRequestId): void
     {
-        $this->authorizePermission('inventory.stock_request.reject');
+        $this->authorizePermission('inventory.site_engineer.stock_request.reject');
 
         $stockRequest = StockRequest::query()->find($stockRequestId);
 
@@ -152,7 +152,7 @@ class StockRequestList extends Component
 
     public function cancelRequest(int $stockRequestId): void
     {
-        $this->authorizePermission('inventory.stock_request.update');
+        $this->authorizePermission('inventory.site_engineer.stock_request.update');
 
         $stockRequest = StockRequest::query()->find($stockRequestId);
 
@@ -174,7 +174,7 @@ class StockRequestList extends Component
 
     public function recalculateFulfillment(int $stockRequestId): void
     {
-        $this->authorizePermission('inventory.stock_request.approve');
+        $this->authorizePermission('inventory.site_engineer.stock_request.approve');
 
         $stockRequest = StockRequest::query()->find($stockRequestId);
 
@@ -196,7 +196,7 @@ class StockRequestList extends Component
 
     public function deleteRequest(int $stockRequestId): void
     {
-        $this->authorizePermission('inventory.stock_request.delete');
+        $this->authorizePermission('inventory.site_engineer.stock_request.delete');
 
         $stockRequest = StockRequest::query()->find($stockRequestId);
 
@@ -208,7 +208,7 @@ class StockRequestList extends Component
 
         $this->ensureRequestAccessible($stockRequest);
 
-        if ($stockRequest->status !== StockRequestStatus::DRAFT) {
+        if ( !in_array($stockRequest->status?->value, [StockRequestStatus::DRAFT->value, StockRequestStatus::PENDING->value], true)) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Only draft stock request can be deleted.']);
 
             return;
@@ -294,7 +294,7 @@ class StockRequestList extends Component
         ])->layout('layouts.admin.admin');
     }
 
-    protected function applyRequestAccessRestriction(Builder $query): Builder
+      protected function applyRequestAccessRestriction(Builder $query): Builder
     {
         if ($this->canViewAllStores()) {
             return $query;

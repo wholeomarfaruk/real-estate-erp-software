@@ -231,10 +231,11 @@
                                                         </button>
                                                     @endif
                                                 @endcan
+                                               
 
 
                                                 @can('inventory.site_engineer.stock_request.delete')
-                                                    @if ($stockRequest->status?->value === 'draft')
+                                                    @if (in_array($stockRequest->status?->value, ['draft', 'pending','cancelled','rejected']))
                                                         <button type="button" x-data="livewireConfirm"
                                                             @click="confirmAction({
                                                                 id: {{ $stockRequest->id }},
