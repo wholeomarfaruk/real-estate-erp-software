@@ -8,6 +8,7 @@ use App\Livewire\Admin\Inventory\Concerns\InteractsWithInventoryAccess;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\StockBalance;
+use App\Models\StockRequest;
 use App\Models\Store;
 use App\Models\Supplier;
 use App\Services\Inventory\PurchaseOrderService;
@@ -90,6 +91,10 @@ class PurchaseOrderForm extends Component
                     'supplier_id' => $item->supplier_id,
                     'remarks' => $item->remarks,
                     'fund_request_amount' => (float) $item->fund_request_amount,
+                    'stock_request_ids' => $purchaseOrder->stockRequests()
+                        ->wherePivot('product_id', $item->product_id)
+                        ->pluck('stock_requests.id')
+                        ->toArray(),
                 ])
                 ->values()
                 ->all();
@@ -276,20 +281,32 @@ class PurchaseOrderForm extends Component
 
     private function buildLinkedRequestDetails(int $index): array
     {
+
         $item = $this->items[$index] ?? null;
-        if (!$item || !$item['product_id'] || !$this->purchaseOrderRecord) {
+        if(!$item || !$item['product_id'] || isset($item['stock_request_ids']) && empty($item['stock_request_ids'])) {
+            return [];
+        }
+
+        $stockRequestIds = $item['stock_request_ids'] ?? [];
+        if(!is_array($stockRequestIds) || empty($stockRequestIds)) {
             return [];
         }
 
         $productId = (int) $item['product_id'];
         $product = Product::query()->find($productId);
-        $linkedRequests = $this->purchaseOrderRecord->stockRequests()
-            ->wherePivot('product_id', $productId)
-            ->with([
-                'items' => fn ($query) => $query->where('product_id', $productId),
-                'requesterStore',
-            ])
+
+        $linkedRequests = StockRequest::query()
+            ->with(['items' => fn ($query) => $query->where('product_id', $productId), 'requesterStore'])
+            ->whereIn('id', $stockRequestIds)
             ->get();
+
+        // $linkedRequests = $this->purchaseOrderRecord->stockRequests()
+        //     ->wherePivot('product_id', $productId)
+        //     ->with([
+        //         'items' => fn ($query) => $query->where('product_id', $productId),
+        //         'requesterStore',
+        //     ])
+        //     ->get();
 
         $requestDetails = $linkedRequests->map(fn ($request) => [
             'id' => $request->id,
@@ -333,6 +350,7 @@ class PurchaseOrderForm extends Component
             return;
         }
 
+
         $details = $this->quantityDetails;
         $itemIndex = $details['itemIndex'] ?? null;
         $stockRequestIds = $details['stockRequestIds'] ?? [];
@@ -347,27 +365,31 @@ class PurchaseOrderForm extends Component
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Invalid item.']);
             return;
         }
+        $item['stock_request_ids'] = $stockRequestIds;
+        $this->items[$itemIndex] = $item;
+        $this->closeQuantityModal();
+        $this->openLinkedRequestDetails($itemIndex);
+        // dd($item, $stockRequestIds);
+        // try {
+        //     if ($this->purchaseOrderRecord) {
+        //         foreach ($stockRequestIds as $stockRequestId) {
+        //             \App\Models\StockRequestPurchaseOrderLink::updateOrCreate([
+        //                 'stock_request_id' => $stockRequestId,
+        //                 'purchase_order_id' => $this->purchaseOrderRecord->id,
+        //                 'product_id' => $item['product_id'],
+        //             ], [
+        //                 'linked_quantity' => $item['quantity'],
+        //                 'remarks' => $item['remarks'] ?? null,
+        //             ]);
+        //         }
+        //     }
 
-        try {
-            if ($this->purchaseOrderRecord) {
-                foreach ($stockRequestIds as $stockRequestId) {
-                    \App\Models\StockRequestPurchaseOrderLink::updateOrCreate([
-                        'stock_request_id' => $stockRequestId,
-                        'purchase_order_id' => $this->purchaseOrderRecord->id,
-                        'product_id' => $item['product_id'],
-                    ], [
-                        'linked_quantity' => $item['quantity'],
-                        'remarks' => $item['remarks'] ?? null,
-                    ]);
-                }
-            }
-
-            $this->dispatch('toast', ['type' => 'success', 'message' => 'Stock request(s) linked successfully.']);
-            $this->closeQuantityModal();
-            $this->openLinkedRequestDetails($itemIndex);
-        } catch (\Exception $e) {
-            $this->dispatch('toast', ['type' => 'error', 'message' => 'Failed to link stock request: ' . $e->getMessage()]);
-        }
+        //     $this->dispatch('toast', ['type' => 'success', 'message' => 'Stock request(s) linked successfully.']);
+        //     $this->closeQuantityModal();
+        //     $this->openLinkedRequestDetails($itemIndex);
+        // } catch (\Exception $e) {
+        //     $this->dispatch('toast', ['type' => 'error', 'message' => 'Failed to link stock request: ' . $e->getMessage()]);
+        // }
     }
 
     public function render(): View
@@ -393,6 +415,7 @@ class PurchaseOrderForm extends Component
             'grandTotal' => $this->grandTotal,
             'availableStockRequests' => $this->availableStockRequests,
         ])->layout('layouts.admin.admin');
+
     }
 
     protected function save(PurchaseOrderStatus $status): PurchaseOrder
@@ -432,12 +455,13 @@ class PurchaseOrderForm extends Component
                 'requested_by' => $this->editMode && $this->purchaseOrderRecord
                     ? $this->purchaseOrderRecord->requested_by
                     : auth()->id(),
+
             ];
 
             $record = $this->purchaseOrderRecord;
 
             if ($this->editMode && $record) {
-                if ($record->status !== PurchaseOrderStatus::DRAFT) {
+                if (!in_array($record->status, [PurchaseOrderStatus::DRAFT->value], true)) {
                     throw new \DomainException('Only draft purchase order can be edited.');
                 }
 
@@ -449,6 +473,7 @@ class PurchaseOrderForm extends Component
                 $this->purchaseOrderId = $record->id;
                 $this->editMode = true;
             }
+
 
             foreach ($validated['items'] as $item) {
                 $record->items()->create([
@@ -462,7 +487,18 @@ class PurchaseOrderForm extends Component
                     'approved_total_price' => null,
                     'remarks' => $item['remarks'] ?? null,
                 ]);
+                foreach ($item['stock_request_ids'] as $stockRequestId) {
+                    \App\Models\StockRequestPurchaseOrderLink::updateOrCreate([
+                        'stock_request_id' => $stockRequestId,
+                        'purchase_order_id' => $this->purchaseOrderRecord->id,
+                        'product_id' => $item['product_id'],
+                    ], [
+                        'linked_quantity' => $item['quantity'],
+                        'remarks' => $item['remarks'] ?? null,
+                    ]);
+                }
             }
+
 
             return $record->refresh();
         });
@@ -487,6 +523,7 @@ class PurchaseOrderForm extends Component
             'items.*.estimated_unit_price' => ['required', 'numeric', 'min:0'],
             'items.*.estimated_total_price' => ['required', 'numeric', 'min:0'],
             'items.*.remarks' => ['nullable', 'string'],
+            'items.*.stock_request_ids' => ['required', 'array', 'min:1'],
         ];
     }
 
@@ -500,7 +537,7 @@ class PurchaseOrderForm extends Component
     }
 
     /**
-     * @return array{product_id:null, quantity:float, estimated_unit_price:float, estimated_total_price:float, remarks:null}
+     * @return array{product_id:null, quantity:float, estimated_unit_price:float, estimated_total_price:float, remarks:null, stock_request_ids:array}
      */
     protected function blankItem(): array
     {
@@ -512,6 +549,7 @@ class PurchaseOrderForm extends Component
             'estimated_unit_price' => 0,
             'estimated_total_price' => 0,
             'remarks' => null,
+            'stock_request_ids' => [],
         ];
     }
 

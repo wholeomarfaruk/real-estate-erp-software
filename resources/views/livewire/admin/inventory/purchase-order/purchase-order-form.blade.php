@@ -173,9 +173,20 @@
                                     </td>
                                     <td class="px-4 py-3 min-w-[220px]">
                                         @php
-                                            $linkedRequests = $this->purchaseOrderRecord
-                                                ? $this->purchaseOrderRecord->stockRequests()->wherePivot('product_id', $item['product_id'])->with('requesterStore')->get()
-                                                : collect();
+                                        $item = $items[$index] ?? null;
+                                        if ($item) {
+                                            $linkedRequestIds = $item['stock_request_ids'] ?? [];
+                                        } else {
+                                            $linkedRequestIds = [];
+                                        }
+
+                                        $linkedRequests = collect();
+                                        if ($linkedRequestIds && is_array($linkedRequestIds) && count($linkedRequestIds)) {
+                                            $linkedRequests = \App\Models\StockRequest::whereIn('id', $linkedRequestIds)->with('requesterStore')->get();
+                                        }
+                                            // $linkedRequests = $this->purchaseOrderRecord
+                                            //     ? $this->purchaseOrderRecord->stockRequests()->wherePivot('product_id', $item['product_id'])->with('requesterStore')->get()
+                                            //     : collect();
                                         @endphp
                                         @if ($linkedRequests->isNotEmpty())
                                             <ul class="list-disc pl-5 text-sm text-gray-700">
