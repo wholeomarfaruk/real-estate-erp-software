@@ -172,9 +172,14 @@
                                         <x-input-error for="items.{{ $index }}.remarks" class="mt-1" />
                                     </td>
                                     <td class="px-4 py-3 min-w-[220px]">
-                                        @if (! empty($item['linked_requests']))
+                                        @php
+                                            $linkedRequests = $this->purchaseOrderRecord
+                                                ? $this->purchaseOrderRecord->stockRequests()->wherePivot('product_id', $item['product_id'])->with('requesterStore')->get()
+                                                : collect();
+                                        @endphp
+                                        @if ($linkedRequests->isNotEmpty())
                                             <ul class="list-disc pl-5 text-sm text-gray-700">
-                                                @foreach ($item['linked_requests'] as $request)
+                                                @foreach ($linkedRequests as $request)
                                                     <li>
                                                         <a href="{{ route('admin.inventory.stock-requests.view', $request) }}" class="text-indigo-600 hover:underline">
                                                             {{ $request->request_no }} ({{ $request->status?->label() }})
@@ -182,11 +187,13 @@
                                                     </li>
                                                 @endforeach
                                             </ul>
+                                            <button class="mt-2 inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50" type="button" wire:click="openLinkedRequestDetails({{ $index }})">
+                                                View Details
+                                            </button>
                                         @else
                                             <p class="text-sm text-gray-500">No linked requests</p>
-
                                         @endif
-                                        <button class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50" type="button">
+                                        <button class="mt-2 inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50" type="button" wire:click="openLinkModal({{ $index }})">
                                             Add/Update
                                         </button>
                                         <x-input-error for="" class="mt-1" />
@@ -235,4 +242,239 @@
             </div>
         </form>
     </div>
+
+    <!-- Link Stock Request Modal -->
+    @if ($selectedItemIndex !== null)
+        @php
+            $selectedItem = $items[$selectedItemIndex] ?? null;
+            $selectedProduct = $selectedItem ? \App\Models\Product::find($selectedItem['product_id']) : null;
+        @endphp
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" wire:click="closeLinkModal">
+            <div class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-5 sm:p-6" @click.stop>
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800">Link Stock Request</h3>
+                    <button type="button" wire:click="closeLinkModal"
+                        class="text-gray-400 transition hover:text-gray-600">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                @if ($selectedProduct)
+                    <div class="mt-4">
+                        <p class="text-sm text-gray-600">
+                            <span class="font-medium">Product:</span> {{ $selectedProduct->name }}
+                            @if ($selectedProduct->sku)
+                                ({{ $selectedProduct->sku }})
+                            @endif
+                        </p>
+                        <p class="text-sm text-gray-600">
+                            <span class="font-medium">Requested Quantity:</span> {{ number_format((float) $selectedItem['quantity'], 3) }}
+                        </p>
+                    </div>
+                @endif
+
+                <div class="mt-4">
+                    <label for="stock_request_select" class="text-sm font-medium text-gray-700">Select Stock Request(s)</label>
+                    <select id="stock_request_select" wire:model="selectedStockRequestIds" multiple
+                        class="mt-1 h-44 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
+                        @foreach ($availableStockRequests as $request)
+                            @php
+                                $matchingItems = $request->items->filter(fn($item) => $item->product_id == ($selectedItem['product_id'] ?? null));
+                                $totalRequested = $matchingItems->sum('approved_quantity') ?: $matchingItems->sum('quantity');
+                            @endphp
+                            <option value="{{ $request->id }}">
+                                {{ $request->request_no }} - {{ $request->requesterStore?->name }} ({{ number_format($totalRequested, 3) }} {{ $selectedProduct?->unit }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" wire:click="closeLinkModal"
+                        class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="button" wire:click="linkStockRequest"
+                        class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700">
+                        Link Request
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Quantity Details Modal -->
+    @if ($quantityDetails)
+        @php
+            $details = $quantityDetails;
+            $itemIndex = $details['itemIndex'] ?? null;
+            $stockRequestIds = $details['stockRequestIds'] ?? [];
+            $item = $itemIndex !== null ? ($items[$itemIndex] ?? null) : null;
+            $product = $item ? \App\Models\Product::find($item['product_id']) : null;
+            $stockRequests = collect();
+
+            if ($product && is_array($stockRequestIds) && count($stockRequestIds)) {
+                $stockRequests = \App\Models\StockRequest::with('items.product')
+                    ->whereIn('id', $stockRequestIds)
+                    ->get();
+            }
+        @endphp
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" wire:click="closeQuantityModal">
+            <div class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-5 sm:p-6" @click.stop>
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800">Quantity Details</h3>
+                    <button type="button" wire:click="closeQuantityModal"
+                        class="text-gray-400 transition hover:text-gray-600">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                @if ($product && $stockRequests->isNotEmpty())
+                    <div class="mt-4 space-y-4">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500">Product</p>
+                            <p class="mt-1 text-sm font-medium text-gray-800">{{ $product->name }}</p>
+                        </div>
+
+                        <div class="grid gap-3">
+                            @foreach ($stockRequests as $stockRequest)
+                                @php
+                                    $requestItem = $stockRequest->items->firstWhere('product_id', $product->id);
+                                    $requestedQty = $requestItem ? ($requestItem->approved_quantity ?: $requestItem->quantity) : 0;
+                                    $fulfilledQty = $requestItem ? $requestItem->fulfilled_quantity : 0;
+                                    $remainingQty = $requestedQty - $fulfilledQty;
+                                    $currentStock = 0;
+                                    $toPurchase = max(0, $remainingQty - $currentStock);
+                                @endphp
+
+                                <div class="rounded-2xl border border-gray-200 bg-slate-50 p-4">
+                                    <p class="text-xs font-medium text-gray-500">Stock Request</p>
+                                    <p class="mt-1 text-sm font-semibold text-gray-800">{{ $stockRequest->request_no }} - {{ $stockRequest->requesterStore?->name }}</p>
+
+                                    <div class="mt-4 grid grid-cols-2 gap-3">
+                                        <div class="rounded-lg bg-blue-50 px-3 py-2">
+                                            <p class="text-xs text-blue-700">Total Requested</p>
+                                            <p class="mt-1 text-sm font-semibold text-blue-700">{{ number_format($requestedQty, 3) }}</p>
+                                        </div>
+                                        <div class="rounded-lg bg-emerald-50 px-3 py-2">
+                                            <p class="text-xs text-emerald-700">Already Fulfilled</p>
+                                            <p class="mt-1 text-sm font-semibold text-emerald-700">{{ number_format($fulfilledQty, 3) }}</p>
+                                        </div>
+                                        <div class="rounded-lg bg-amber-50 px-3 py-2">
+                                            <p class="text-xs text-amber-700">Remaining</p>
+                                            <p class="mt-1 text-sm font-semibold text-amber-700">{{ number_format($remainingQty, 3) }}</p>
+                                        </div>
+                                        <div class="rounded-lg bg-gray-50 px-3 py-2">
+                                            <p class="text-xs text-gray-700">Current Stock</p>
+                                            <p class="mt-1 text-sm font-semibold text-gray-700">{{ number_format($currentStock, 3) }}</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-4 rounded-lg bg-indigo-50 px-3 py-2">
+                                        <p class="text-xs text-indigo-700">Quantity to Purchase</p>
+                                        <p class="mt-1 text-lg font-semibold text-indigo-700">{{ number_format($toPurchase, 3) }}</p>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" wire:click="closeQuantityModal"
+                        class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="button" wire:click="confirmLink"
+                        class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700">
+                        Confirm Link
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if ($linkedRequestDetails)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" wire:click="closeLinkedRequestDetails">
+            <div class="w-full max-w-3xl rounded-2xl border border-gray-200 bg-white p-5 sm:p-6" @click.stop>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">Linked Request Details</h3>
+                        <p class="text-sm text-gray-500">Product: {{ $linkedRequestDetails['product_name'] ?? 'N/A' }} {{ $linkedRequestDetails['product_unit'] ?? '' }}</p>
+                    </div>
+                    <button type="button" wire:click="closeLinkedRequestDetails"
+                        class="text-gray-400 transition hover:text-gray-600">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="mt-4 space-y-4">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div class="rounded-lg bg-blue-50 px-4 py-3">
+                            <p class="text-xs font-medium text-blue-700">Total Requested</p>
+                            <p class="mt-1 text-lg font-semibold text-blue-900">{{ number_format($linkedRequestDetails['total_requested'] ?? 0, 3) }}</p>
+                        </div>
+                        <div class="rounded-lg bg-emerald-50 px-4 py-3">
+                            <p class="text-xs font-medium text-emerald-700">Already Fulfilled</p>
+                            <p class="mt-1 text-lg font-semibold text-emerald-900">{{ number_format($linkedRequestDetails['total_fulfilled'] ?? 0, 3) }}</p>
+                        </div>
+                        <div class="rounded-lg bg-amber-50 px-4 py-3">
+                            <p class="text-xs font-medium text-amber-700">Remaining Qty</p>
+                            <p class="mt-1 text-lg font-semibold text-amber-900">{{ number_format($linkedRequestDetails['total_remaining'] ?? 0, 3) }}</p>
+                        </div>
+                        <div class="rounded-lg bg-slate-50 px-4 py-3">
+                            <p class="text-xs font-medium text-slate-700">Office Stock</p>
+                            <p class="mt-1 text-lg font-semibold text-slate-900">{{ number_format($linkedRequestDetails['office_stock'] ?? 0, 3) }}</p>
+                        </div>
+                    </div>
+
+                    <div class="rounded-lg bg-indigo-50 px-4 py-3">
+                        <p class="text-xs font-medium text-indigo-700">Need to Purchase</p>
+                        <p class="mt-1 text-2xl font-semibold text-indigo-900">{{ number_format($linkedRequestDetails['need_to_purchase'] ?? 0, 3) }}</p>
+                    </div>
+
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                        <h4 class="text-sm font-semibold text-gray-800">Linked Requests</h4>
+                        <div class="mt-3 space-y-3">
+                            @foreach ($linkedRequestDetails['requests'] ?? [] as $request)
+                                <div class="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+                                    <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-700">
+                                        <span class="font-medium text-gray-900">{{ $request['request_no'] }}</span>
+                                        <span>{{ $request['requester_name'] ?? 'Unknown' }}</span>
+                                    </div>
+                                    <div class="mt-3 grid gap-3 sm:grid-cols-3">
+                                        <div class="rounded-lg bg-blue-50 px-3 py-2">
+                                            <p class="text-xs text-blue-700">Requested</p>
+                                            <p class="mt-1 text-sm font-semibold text-blue-900">{{ number_format($request['requested_quantity'], 3) }}</p>
+                                        </div>
+                                        <div class="rounded-lg bg-emerald-50 px-3 py-2">
+                                            <p class="text-xs text-emerald-700">Fulfilled</p>
+                                            <p class="mt-1 text-sm font-semibold text-emerald-900">{{ number_format($request['fulfilled_quantity'], 3) }}</p>
+                                        </div>
+                                        <div class="rounded-lg bg-amber-50 px-3 py-2">
+                                            <p class="text-xs text-amber-700">Remaining</p>
+                                            <p class="mt-1 text-sm font-semibold text-amber-900">{{ number_format($request['remaining_quantity'], 3) }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button type="button" wire:click="closeLinkedRequestDetails"
+                        class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

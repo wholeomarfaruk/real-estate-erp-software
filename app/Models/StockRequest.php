@@ -93,6 +93,18 @@ class StockRequest extends Model
             ->withTimestamps();
     }
 
+    public function purchaseOrderLinks(): HasMany
+    {
+        return $this->hasMany(StockRequestPurchaseOrderLink::class);
+    }
+
+    public function purchaseOrders(): BelongsToMany
+    {
+        return $this->belongsToMany(PurchaseOrder::class, 'stock_request_purchase_order_links')
+            ->withPivot('product_id', 'linked_quantity', 'remarks')
+            ->withTimestamps();
+    }
+
     public function scopeDraft(Builder $query): Builder
     {
         return $query->where('status', StockRequestStatus::DRAFT->value);

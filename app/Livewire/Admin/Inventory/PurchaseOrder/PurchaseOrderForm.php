@@ -7,6 +7,7 @@ use App\Enums\Inventory\PurchaseOrderStatus;
 use App\Livewire\Admin\Inventory\Concerns\InteractsWithInventoryAccess;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
+use App\Models\StockBalance;
 use App\Models\Store;
 use App\Models\Supplier;
 use App\Services\Inventory\PurchaseOrderService;
@@ -47,6 +48,16 @@ class PurchaseOrderForm extends Component
      * @var array<int, array{product_id:int|string|null, quantity:float|int|string, estimated_unit_price:float|int|string, estimated_total_price:float|int|string, remarks:?string}>
      */
     public array $items = [];
+
+    public ?int $selectedItemIndex = null;
+
+    public array $selectedStockRequestIds = [];
+
+    public ?array $quantityDetails = null;
+
+    public ?int $linkedRequestItemIndex = null;
+
+    public ?array $linkedRequestDetails = null;
 
     public function mount(?PurchaseOrder $purchaseOrder = null): void
     {
@@ -211,6 +222,154 @@ class PurchaseOrderForm extends Component
         return redirect()->route('admin.inventory.purchase-orders.index');
     }
 
+    public function openLinkModal(int $index): void
+    {
+        $this->selectedItemIndex = $index;
+        $this->selectedStockRequestIds = [];
+    }
+
+    public function closeLinkModal(): void
+    {
+        $this->selectedItemIndex = null;
+        $this->selectedStockRequestIds = [];
+    }
+
+    public function linkStockRequest(): void
+    {
+        if ($this->selectedItemIndex === null || empty($this->selectedStockRequestIds)) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Please select one or more stock requests to link.']);
+            return;
+        }
+
+        $item = $this->items[$this->selectedItemIndex] ?? null;
+        if (!$item || !$item['product_id']) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Invalid item selected.']);
+            return;
+        }
+
+        $this->quantityDetails = [
+            'itemIndex' => $this->selectedItemIndex,
+            'stockRequestIds' => $this->selectedStockRequestIds,
+        ];
+
+        $this->closeLinkModal();
+
+        $this->dispatch('showQuantityDetails', $this->quantityDetails);
+    }
+
+    public function closeQuantityModal(): void
+    {
+        $this->quantityDetails = null;
+    }
+
+    public function openLinkedRequestDetails(int $index): void
+    {
+        $this->linkedRequestItemIndex = $index;
+        $this->linkedRequestDetails = $this->buildLinkedRequestDetails($index);
+    }
+
+    public function closeLinkedRequestDetails(): void
+    {
+        $this->linkedRequestItemIndex = null;
+        $this->linkedRequestDetails = null;
+    }
+
+    private function buildLinkedRequestDetails(int $index): array
+    {
+        $item = $this->items[$index] ?? null;
+        if (!$item || !$item['product_id'] || !$this->purchaseOrderRecord) {
+            return [];
+        }
+
+        $productId = (int) $item['product_id'];
+        $product = Product::query()->find($productId);
+        $linkedRequests = $this->purchaseOrderRecord->stockRequests()
+            ->wherePivot('product_id', $productId)
+            ->with([
+                'items' => fn ($query) => $query->where('product_id', $productId),
+                'requesterStore',
+            ])
+            ->get();
+
+        $requestDetails = $linkedRequests->map(fn ($request) => [
+            'id' => $request->id,
+            'request_no' => $request->request_no,
+            'status' => $request->status?->label(),
+            'requester_name' => $request->requesterStore?->name,
+            'requested_quantity' => (float) ($request->items->first()?->approved_quantity ?: $request->items->first()?->quantity ?: 0),
+            'fulfilled_quantity' => (float) ($request->items->first()?->fulfilled_quantity ?: 0),
+        ])->map(function ($request) {
+            $request['remaining_quantity'] = max(0, $request['requested_quantity'] - $request['fulfilled_quantity']);
+            return $request;
+        });
+
+        $officeStoreIds = Store::query()->office()->pluck('id')->toArray();
+        $officeStock = (float) StockBalance::query()
+            ->where('product_id', $productId)
+            ->whereIn('store_id', $officeStoreIds)
+            ->sum('quantity');
+
+        $totalRequested = $requestDetails->sum('requested_quantity');
+        $totalFulfilled = $requestDetails->sum('fulfilled_quantity');
+        $totalRemaining = $requestDetails->sum('remaining_quantity');
+        $needToPurchase = max(0, $totalRemaining - $officeStock);
+
+        return [
+            'product_id' => $productId,
+            'product_name' => $product?->name,
+            'product_unit' => $product?->unit,
+            'requests' => $requestDetails->toArray(),
+            'total_requested' => $totalRequested,
+            'total_fulfilled' => $totalFulfilled,
+            'total_remaining' => $totalRemaining,
+            'office_stock' => $officeStock,
+            'need_to_purchase' => $needToPurchase,
+        ];
+    }
+
+    public function confirmLink(): void
+    {
+        if (!$this->quantityDetails) {
+            return;
+        }
+
+        $details = $this->quantityDetails;
+        $itemIndex = $details['itemIndex'] ?? null;
+        $stockRequestIds = $details['stockRequestIds'] ?? [];
+
+        if ($itemIndex === null || empty($stockRequestIds)) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Invalid link details.']);
+            return;
+        }
+
+        $item = $this->items[$itemIndex] ?? null;
+        if (!$item || !$item['product_id']) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Invalid item.']);
+            return;
+        }
+
+        try {
+            if ($this->purchaseOrderRecord) {
+                foreach ($stockRequestIds as $stockRequestId) {
+                    \App\Models\StockRequestPurchaseOrderLink::updateOrCreate([
+                        'stock_request_id' => $stockRequestId,
+                        'purchase_order_id' => $this->purchaseOrderRecord->id,
+                        'product_id' => $item['product_id'],
+                    ], [
+                        'linked_quantity' => $item['quantity'],
+                        'remarks' => $item['remarks'] ?? null,
+                    ]);
+                }
+            }
+
+            $this->dispatch('toast', ['type' => 'success', 'message' => 'Stock request(s) linked successfully.']);
+            $this->closeQuantityModal();
+            $this->openLinkedRequestDetails($itemIndex);
+        } catch (\Exception $e) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Failed to link stock request: ' . $e->getMessage()]);
+        }
+    }
+
     public function render(): View
     {
         if ($this->editMode) {
@@ -232,6 +391,7 @@ class PurchaseOrderForm extends Component
             'purchaseModes' => PurchaseMode::cases(),
             'isLocked' => $this->isLocked,
             'grandTotal' => $this->grandTotal,
+            'availableStockRequests' => $this->availableStockRequests,
         ])->layout('layouts.admin.admin');
     }
 
@@ -380,6 +540,52 @@ class PurchaseOrderForm extends Component
         $total = collect($this->items)->sum(fn (array $item): float => (float) ($item['estimated_total_price'] ?? 0));
 
         return round($total, 2);
+    }
+
+    public function getAvailableStockRequestsProperty()
+    {
+        if ($this->selectedItemIndex === null) {
+            return collect();
+        }
+
+        $item = $this->items[$this->selectedItemIndex] ?? null;
+        $productId = $item['product_id'] ?? null;
+
+        if (! $productId) {
+            return collect();
+        }
+
+        return \App\Models\StockRequest::query()
+            ->with(['items.product', 'requesterStore'])
+            ->whereHas('items', fn ($query) => $query->where('product_id', $productId))
+            ->whereIn('status', [
+                \App\Enums\Inventory\StockRequestStatus::APPROVED->value,
+                \App\Enums\Inventory\StockRequestStatus::PARTIALLY_FULFILLED->value,
+            ])
+            ->orderBy('request_date', 'desc')
+            ->get();
+    }
+
+    public function getLinkedRequestsForItemProperty()
+    {
+        if ($this->selectedItemIndex === null) {
+            return collect();
+        }
+
+        $item = $this->items[$this->selectedItemIndex] ?? null;
+        if (!$item || !$item['product_id']) {
+            return collect();
+        }
+
+        // If we have an existing purchase order, get linked requests for this product
+        if ($this->purchaseOrderRecord) {
+            return $this->purchaseOrderRecord->stockRequests()
+                ->wherePivot('product_id', $item['product_id'])
+                ->with('requesterStore')
+                ->get();
+        }
+
+        return collect();
     }
 
     protected function canViewAllStores(): bool

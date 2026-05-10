@@ -140,7 +140,7 @@
                 @endcan
 
                 @can('inventory.stock_request.approve')
-                    @if ($stockRequest->status?->value === 'pending')
+                    @if ($stockRequest->status?->value === 'pending' || $stockRequest->status?->value === 'approved' )
                         <button type="button" x-data="livewireConfirm"
                             @click="confirmAction({
                                 method: 'approveRequest',
@@ -149,7 +149,7 @@
                                 confirmText: 'Yes, approve'
                             })"
                             class="inline-flex w-full items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700">
-                            Approve Request
+                            {{ $stockRequest->status?->value === 'approved' ? 'Re-Approve Request' : 'Approve Request' }}
                         </button>
                     @endif
                 @endcan
@@ -165,6 +165,35 @@
                             })"
                             class="inline-flex w-full items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700">
                             Reject Request
+                        </button>
+                    @endif
+                @endcan
+                @can('inventory.stock_request.make_pending')
+                    @if ($stockRequest->status?->value === 'approved')
+                        <button type="button" x-data="livewireConfirm"
+                            @click="confirmAction({
+                                method: 'makePending',
+                                title: 'Make this stock request pending?',
+                                text: 'This will move the request back to pending status.',
+                                confirmText: 'Yes, make pending'
+                            })"
+                            class="inline-flex w-full items-center justify-center rounded-lg bg-yellow-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-yellow-600">
+                            Make Pending
+                        </button>
+                    @endif
+                @endcan
+
+                @can('inventory.stock_request.update')
+                    @if (in_array($stockRequest->status?->value, ['draft', 'pending', 'approved'], true))
+                        <button type="button" x-data="livewireConfirm"
+                            @click="confirmAction({
+                                method: 'editRequest',
+                                title: 'Edit this stock request?',
+                                text: 'You can edit requests in draft, pending, or approved status.',
+                                confirmText: 'Yes, edit'
+                            })"
+                            class="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">
+                            Edit Request
                         </button>
                     @endif
                 @endcan
@@ -228,7 +257,10 @@
         </div>
     </div>
 
-    @if ($stockRequest->status?->value === 'pending' && (auth()->user()?->can('inventory.stock_request.approve') || auth()->user()?->can('inventory.stock_request.reject')))
+    @if (($stockRequest->status?->value === 'pending' && (auth()->user()?->can('inventory.stock_request.approve') || auth()->user()?->can('inventory.stock_request.reject'))) ||
+         ($stockRequest->status?->value === 'approved' && auth()->user()?->can('inventory.stock_request.approve'))
+    
+    )
         <div class="mt-4 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
             <h3 class="text-base font-semibold text-gray-800">Approval Section</h3>
             <p class="mt-1 text-xs text-gray-500">You can adjust approved quantities before approving.</p>
@@ -247,8 +279,19 @@
                             @foreach ($stockRequest->items as $item)
                                 <tr>
                                     <td class="px-4 py-3 text-sm text-gray-700">
-                                        <p class="font-medium text-gray-800">{{ $item->product?->name ?? 'N/A' }}</p>
-                                        <p class="text-xs text-gray-500">{{ $item->product?->sku ?? 'No SKU' }}</p>
+                                        <div class="flex items-center gap-2">
+                                            <div class="flex-1">
+                                                <p class="font-medium text-gray-800">{{ $item->product?->name ?? 'N/A' }}</p>
+                                               
+                                            </div>
+                                            <button type="button" wire:click="openProductModal({{ $item->id }})"
+                                                class="inline-flex items-center justify-center rounded-lg bg-blue-100 p-2 text-blue-600 transition hover:bg-blue-200"
+                                                title="View product quantities">
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </td>
                                     <td class="px-4 py-3 text-sm text-gray-700">{{ number_format((float) $item->quantity, 3) }}</td>
                                     <td class="px-4 py-3 min-w-[160px]">
@@ -409,4 +452,71 @@
             </div>
         </div>
     </div>
+
+    <!-- Product Quantities Modal -->
+    @if ($this->selectedProductItem)
+        @php
+            $item = $this->selectedProductItem;
+            $target = (float) ($item->approved_quantity ?? $item->quantity);
+            $remaining = max(0, round($target - (float) $item->fulfilled_quantity, 3));
+        @endphp
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" wire:click="closeProductModal">
+            <div class="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 sm:p-6" @click.stop>
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800">Product Quantities</h3>
+                    <button type="button" wire:click="closeProductModal"
+                        class="text-gray-400 transition hover:text-gray-600">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="mt-4 space-y-4">
+                    <div>
+                        <p class="text-xs font-medium text-gray-500">Product Name</p>
+                        <p class="mt-1 text-sm font-medium text-gray-800">{{ $item->product?->name ?? 'N/A' }}</p>
+                    </div>
+
+                   
+
+                    <div class="border-t border-gray-200 pt-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="rounded-lg bg-gray-50 px-3 py-2">
+                                <p class="text-xs text-gray-500">Requested Qty</p>
+                                <p class="mt-1 text-sm font-semibold text-gray-800">{{ number_format((float) $item->quantity, 3) }}</p>
+                            </div>
+                            <div class="rounded-lg bg-gray-50 px-3 py-2">
+                                <p class="text-xs text-gray-500">Approved Qty</p>
+                                <p class="mt-1 text-sm font-semibold text-gray-800">{{ number_format($target, 3) }}</p>
+                            </div>
+                            <div class="rounded-lg bg-emerald-50 px-3 py-2">
+                                <p class="text-xs text-emerald-700">Fulfilled Qty</p>
+                                <p class="mt-1 text-sm font-semibold text-emerald-700">{{ number_format((float) $item->fulfilled_quantity, 3) }}</p>
+                            </div>
+                            <div class="rounded-lg bg-indigo-50 px-3 py-2">
+                                <p class="text-xs text-indigo-700">Remaining Qty</p>
+                                <p class="mt-1 text-sm font-semibold text-indigo-700">{{ number_format($remaining, 3) }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if ($item->remarks)
+                        <div class="border-t border-gray-200 pt-4">
+                            <p class="text-xs font-medium text-gray-500">Remarks</p>
+                            <p class="mt-1 text-sm text-gray-700">{{ $item->remarks }}</p>
+                        </div>
+                    @endif
+                    
+                </div>
+
+                <div class="mt-6">
+                    <button type="button" wire:click="closeProductModal"
+                        class="inline-flex w-full items-center justify-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-200">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

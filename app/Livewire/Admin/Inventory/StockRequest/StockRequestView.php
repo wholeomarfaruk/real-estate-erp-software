@@ -29,6 +29,8 @@ class StockRequestView extends Component
 
     public ?int $transfer_transaction_id = null;
 
+    public ?int $selectedProductItemId = null;
+
     public function mount(StockRequest $stockRequest): void
     {
         $this->authorizePermission('inventory.stock_request.view');
@@ -80,6 +82,10 @@ class StockRequestView extends Component
         } catch (\Throwable $throwable) {
             $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
         }
+    }
+    public function makePending(){
+        $this->stockRequest->status = StockRequestStatus::PENDING;
+        $this->stockRequest->save();
     }
 
     public function rejectRequest(): void
@@ -182,6 +188,25 @@ class StockRequestView extends Component
         } catch (\Throwable $throwable) {
             $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
         }
+    }
+
+    public function openProductModal(int $itemId): void
+    {
+        $this->selectedProductItemId = $itemId;
+    }
+
+    public function closeProductModal(): void
+    {
+        $this->selectedProductItemId = null;
+    }
+
+    public function getSelectedProductItemProperty()
+    {
+        if (! $this->selectedProductItemId) {
+            return null;
+        }
+
+        return $this->stockRequest->items->firstWhere('id', $this->selectedProductItemId);
     }
 
     public function render(): View

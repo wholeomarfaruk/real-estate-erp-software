@@ -339,7 +339,7 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.stock_request.update',
                 'inventory.stock_request.submit',
                 'inventory.stock_request.delete',
-
+                'inventory.stock_request.make_pending',
 
             ])
             ->get();
@@ -369,7 +369,7 @@ class AssignPermissionSeeder extends Seeder
         Role::findByName('chairman')->syncPermissions($chairmanPermissions);
 
 
-        $engineerPermissions = Permission::query()
+        $siteengineerPermissions = Permission::query()
             ->whereIn('name', [
                 'module.dashboard.access',
                 'module.inventory.access',
@@ -390,7 +390,7 @@ class AssignPermissionSeeder extends Seeder
             ])
             ->get();
 
-        Role::findByName('engineer')->syncPermissions($engineerPermissions);
+        Role::findByName('engineer')->syncPermissions($siteengineerPermissions);
 
         $adminPanelId = Panel::where('slug', 'admin')->value('id');
 

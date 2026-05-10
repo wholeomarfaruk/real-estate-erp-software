@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -99,6 +100,18 @@ class PurchaseOrder extends Model
     public function settlement(): HasOne
     {
         return $this->hasOne(PurchaseSettlement::class);
+    }
+
+    public function stockRequestLinks(): HasMany
+    {
+        return $this->hasMany(StockRequestPurchaseOrderLink::class);
+    }
+
+    public function stockRequests(): BelongsToMany
+    {
+        return $this->belongsToMany(StockRequest::class, 'stock_request_purchase_order_links')
+            ->withPivot('product_id', 'linked_quantity', 'remarks')
+            ->withTimestamps();
     }
 
     public function stockReceives(): HasMany

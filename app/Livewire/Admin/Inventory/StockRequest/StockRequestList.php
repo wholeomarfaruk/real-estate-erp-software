@@ -83,6 +83,7 @@ class StockRequestList extends Component
         $this->resetPage();
     }
 
+
     public function submitRequest(int $stockRequestId): void
     {
         $this->authorizePermission('inventory.stock_request.submit');

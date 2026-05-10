@@ -85,12 +85,12 @@ class StockRequestService
                     throw new \DomainException('Approved quantity cannot be negative.');
                 }
 
-                if ($approvedQty > $requestedQty + 0.0001) {
-                    throw new \DomainException(
-                        ($item->product?->name ?? 'Selected item').
-                        ' approved quantity cannot exceed requested quantity.'
-                    );
-                }
+                // if ($approvedQty > $requestedQty + 0.0001) {
+                //     throw new \DomainException(
+                //         ($item->product?->name ?? 'Selected item').
+                //         ' approved quantity cannot exceed requested quantity.'
+                //     );
+                // }
 
                 if ($approvedQty > 0) {
                     $hasPositiveApprovedQty = true;
