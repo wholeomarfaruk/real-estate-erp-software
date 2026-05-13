@@ -270,7 +270,6 @@ class PurchaseOrderList extends Component
 
         if ($purchaseOrder->status !== PurchaseOrderStatus::DRAFT) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Only draft purchase order can be deleted.']);
-
             return;
         }
 
@@ -300,6 +299,7 @@ class PurchaseOrderList extends Component
             ->withCount('items')
             ->withSum('items as estimated_total', 'estimated_total_price')
             ->withSum('funds as released_total', 'amount')
+            ->withSum('items as engineer_approved_amount', 'eng_approved_total_price')
             ->when($this->search !== '', function (Builder $builder): void {
                 $builder->where(function (Builder $subQuery): void {
                     $subQuery->where('po_no', 'like', '%'.$this->search.'%')

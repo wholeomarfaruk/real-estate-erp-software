@@ -22,7 +22,7 @@ class PurchaseOrderService
     {
         $lastId = (int) PurchaseOrder::query()->max('id');
 
-        return 'PO-'.str_pad((string) ($lastId + 1), 6, '0', STR_PAD_LEFT);
+        return 'PO-' . str_pad((string) ($lastId + 1), 6, '0', STR_PAD_LEFT);
     }
 
     public function submitForEngineerApproval(PurchaseOrder $purchaseOrder, ?int $userId = null): PurchaseOrder
@@ -97,6 +97,7 @@ class PurchaseOrderService
 
     public function chairmanApprove(PurchaseOrder $purchaseOrder, ?int $userId = null, ?string $remarks = null): PurchaseOrder
     {
+
         return DB::transaction(function () use ($purchaseOrder, $userId, $remarks): PurchaseOrder {
             $actorId = $this->resolveActorId($userId);
 
@@ -109,14 +110,19 @@ class PurchaseOrderService
             }
 
             $requestedAmount = round((float) $lockedOrder->fund_request_amount, 2);
+  $approvedTotal = round(
+    $lockedOrder->items->sum('approved_total_price'),
+    2
+);
+
             $approvedAmount = round((float) $requestedAmount, 2);
-            $this->validateApprovedAmount($approvedAmount, $requestedAmount);
+            // $this->validateApprovedAmount($approvedTotal, $requestedAmount);
 
             $lockedOrder->update([
                 'status' => PurchaseOrderStatus::PENDING_ACCOUNTS->value,
                 'chairman_approved_by' => $actorId,
                 'chairman_approved_at' => now(),
-                'approved_amount' => $approvedAmount,
+                'approved_amount' => $approvedTotal,
             ]);
 
             $this->createApprovalHistory(
@@ -224,7 +230,7 @@ class PurchaseOrderService
             $approvalStage = is_string($stage) ? ApprovalStage::from($stage) : $stage;
             $approvalAction = is_string($action) ? ApprovalAction::from($action) : $action;
 
-            if (! in_array($approvalAction, [ApprovalAction::REJECTED, ApprovalAction::RETURNED], true)) {
+            if (!in_array($approvalAction, [ApprovalAction::REJECTED, ApprovalAction::RETURNED], true)) {
                 throw new \DomainException('Invalid approval action for reject workflow.');
             }
 
@@ -285,16 +291,20 @@ class PurchaseOrderService
      */
     public function releaseFund(PurchaseOrder $purchaseOrder, array $payload, ?int $userId = null): PurchaseFund
     {
+
+
         return DB::transaction(function () use ($purchaseOrder, $payload, $userId): PurchaseFund {
             $actorId = $this->resolveActorId($userId);
 
             $lockedOrder = PurchaseOrder::query()->lockForUpdate()->findOrFail($purchaseOrder->id);
 
-            if (! in_array($lockedOrder->status, [
-                PurchaseOrderStatus::APPROVED,
-                PurchaseOrderStatus::PARTIALLY_RECEIVED,
-                PurchaseOrderStatus::RECEIVED,
-            ], true)) {
+            if (
+                !in_array($lockedOrder->status, [
+                    PurchaseOrderStatus::APPROVED,
+                    PurchaseOrderStatus::PARTIALLY_RECEIVED,
+                    PurchaseOrderStatus::RECEIVED,
+                ], true)
+            ) {
                 throw new \DomainException('Fund can be released only for approved or receiving purchase orders.');
             }
 
@@ -314,11 +324,11 @@ class PurchaseOrderService
                 'release_type' => $releaseType->value,
                 'amount' => $amount,
                 'released_by' => $actorId,
-                'received_by' => isset($payload['received_by']) && $payload['received_by'] !== ''
-                    ? (int) $payload['received_by']
-                    : null,
                 'release_date' => $payload['release_date'],
                 'remarks' => $payload['remarks'] ?? null,
+                'payto' => $payload['Payee_type'] ?? null,
+                'receiver_type' => $payload['receiver_type'] ?? null,
+                'receiver_id' => $payload['receiver_id'] ?? null,
             ]);
         });
     }
@@ -331,12 +341,14 @@ class PurchaseOrderService
                 ->lockForUpdate()
                 ->findOrFail($purchaseOrder->id);
 
-            if (! in_array($lockedOrder->status, [
-                PurchaseOrderStatus::APPROVED,
-                PurchaseOrderStatus::PARTIALLY_RECEIVED,
-                PurchaseOrderStatus::RECEIVED,
-                PurchaseOrderStatus::COMPLETED,
-            ], true)) {
+            if (
+                !in_array($lockedOrder->status, [
+                    PurchaseOrderStatus::APPROVED,
+                    PurchaseOrderStatus::PARTIALLY_RECEIVED,
+                    PurchaseOrderStatus::RECEIVED,
+                    PurchaseOrderStatus::COMPLETED,
+                ], true)
+            ) {
                 return $lockedOrder->refresh();
             }
 
@@ -351,7 +363,7 @@ class PurchaseOrderService
 
                 $receivedQty = (float) StockReceiveItem::query()
                     ->where('purchase_order_item_id', $item->id)
-                    ->whereHas('stockReceive', fn ($query) => $query->where('status', StockReceiveStatus::POSTED->value))
+                    ->whereHas('stockReceive', fn($query) => $query->where('status', StockReceiveStatus::POSTED->value))
                     ->sum('quantity');
 
                 $totalRequiredQty += $requiredQty;
@@ -402,11 +414,13 @@ class PurchaseOrderService
                 ->lockForUpdate()
                 ->findOrFail($purchaseOrder->id);
 
-            if (! in_array($lockedOrder->status, [
-                PurchaseOrderStatus::APPROVED,
-                PurchaseOrderStatus::PARTIALLY_RECEIVED,
-                PurchaseOrderStatus::RECEIVED,
-            ], true)) {
+            if (
+                !in_array($lockedOrder->status, [
+                    PurchaseOrderStatus::APPROVED,
+                    PurchaseOrderStatus::PARTIALLY_RECEIVED,
+                    PurchaseOrderStatus::RECEIVED,
+                ], true)
+            ) {
                 throw new \DomainException('Settlement is allowed only for approved or received purchase orders.');
             }
 
@@ -466,7 +480,7 @@ class PurchaseOrderService
                 throw new \DomainException('Only received purchase order can be completed.');
             }
 
-            if (! $lockedOrder->settlement) {
+            if (!$lockedOrder->settlement) {
                 throw new \DomainException('Purchase order settlement is required before completion.');
             }
 
@@ -490,12 +504,14 @@ class PurchaseOrderService
         return DB::transaction(function () use ($purchaseOrder): PurchaseOrder {
             $lockedOrder = PurchaseOrder::query()->lockForUpdate()->findOrFail($purchaseOrder->id);
 
-            if (! in_array($lockedOrder->status, [
-                PurchaseOrderStatus::DRAFT,
-                PurchaseOrderStatus::PENDING_ENGINEER,
-                PurchaseOrderStatus::PENDING_CHAIRMAN,
-                PurchaseOrderStatus::PENDING_ACCOUNTS,
-            ], true)) {
+            if (
+                !in_array($lockedOrder->status, [
+                    PurchaseOrderStatus::DRAFT,
+                    PurchaseOrderStatus::PENDING_ENGINEER,
+                    PurchaseOrderStatus::PENDING_CHAIRMAN,
+                    PurchaseOrderStatus::PENDING_ACCOUNTS,
+                ], true)
+            ) {
                 throw new \DomainException('This purchase order cannot be cancelled.');
             }
 

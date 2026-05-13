@@ -183,6 +183,7 @@
 
                                     <td class="px-5 py-4 text-sm text-gray-700">
                                         <p>Req: {{ number_format((float) ($stockRequest->total_requested_qty ?? 0), 3) }}</p>
+                                        <p>App: {{ number_format((float) ($stockRequest->total_approved_qty ?? 0), 3) }}</p>
                                         <p class="text-xs text-gray-500">Fulfilled: {{ number_format((float) ($stockRequest->total_fulfilled_qty ?? 0), 3) }}</p>
                                     </td>
 

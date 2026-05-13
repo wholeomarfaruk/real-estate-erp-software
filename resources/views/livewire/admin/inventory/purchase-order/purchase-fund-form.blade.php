@@ -57,15 +57,26 @@
                 </div>
 
                 <div>
-                    <label for="received_by" class="text-sm font-medium text-gray-700">Received By</label>
-                    <select id="received_by" wire:model="received_by"
+                    <label for="Payee_type" class="text-sm font-medium text-gray-700">Payee Type</label>
+                    <select id="Payee_type" wire:model.live="Payee_type"
                         class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
-                        <option value="">Select user</option>
-                        @foreach ($users as $user)
-                            <option value="{{ $user->id }}">{{ $user->name }}</option>
+                        <option value="">Select payee type</option>
+                        <option value="supplier">Supplier</option>
+                        <option value="employee">Employee</option>
+                    </select>
+                    <x-input-error for="Payee_type" class="mt-1" />
+                </div>
+
+                <div  x-show="$wire.Payee_type === 'employee' || $wire.Payee_type === 'supplier'">
+                    <label for="receiver_id" class="text-sm font-medium text-gray-700">Received By</label>
+                    <select id="receiver_id" wire:model="receiver_id" {{ $Payee_type === 'supplier' ? 'disabled' : '' }}
+                        class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
+                        <option value="">Select {{ $Payee_type }}</option>
+                        @foreach ($receicers as $receiver_option)
+                            <option value="{{ $receiver_option->id }}" {{ $Payee_type === 'supplier' ? ' selected' : '' }}>{{ $receiver_option->name }}</option>
                         @endforeach
                     </select>
-                    <x-input-error for="received_by" class="mt-1" />
+                    <x-input-error for="receiver_id" class="mt-1" />
                 </div>
 
                 <div class="md:col-span-2">
@@ -109,6 +120,10 @@
                 <div class="rounded-lg bg-gray-50 px-4 py-3">
                     <p class="text-xs text-gray-500">Total Released</p>
                     <p class="font-medium text-gray-800">{{ number_format($totalReleased, 2) }}</p>
+                </div>
+                <div class="rounded-lg bg-gray-50 px-4 py-3">
+                    <p class="text-xs text-gray-500">Actual Purchase</p>
+                    <p class="font-medium text-gray-800">{{ number_format($actual_purchase_amount, 2) }}</p>
                 </div>
             </div>
         </div>

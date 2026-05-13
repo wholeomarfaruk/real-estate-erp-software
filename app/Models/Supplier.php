@@ -209,4 +209,8 @@ class Supplier extends Model
             },
         );
     }
+    public function purchaseFunds()
+    {
+        return $this->morphMany(PurchaseFund::class, 'receiver');
+    }
 }

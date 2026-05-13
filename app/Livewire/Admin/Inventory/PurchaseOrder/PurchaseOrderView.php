@@ -6,8 +6,12 @@ use App\Enums\Inventory\PurchaseMode;
 use App\Enums\Inventory\PurchaseOrderStatus;
 use App\Enums\Inventory\StockReceiveStatus;
 use App\Livewire\Admin\Inventory\Concerns\InteractsWithInventoryAccess;
+use App\Models\Product;
 use App\Models\PurchaseOrder;
+use App\Models\StockBalance;
 use App\Models\StockReceiveItem;
+use App\Models\StockRequest;
+use App\Models\Store;
 use App\Services\Inventory\PurchaseOrderService;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
@@ -17,7 +21,11 @@ class PurchaseOrderView extends Component
     use InteractsWithInventoryAccess;
 
     public PurchaseOrder $purchaseOrder;
-
+    public array $engineerItemApprovals = [];
+    public array $chairmanItemApprovals = [];
+    public $linkedRequestItemIndex = null;
+    public $linkedRequestDetails = null;
+    public $quantityDetails = null;
     public function mount(PurchaseOrder $purchaseOrder): void
     {
         $this->authorizePermission('inventory.purchase_order.view');
@@ -35,15 +43,102 @@ class PurchaseOrderView extends Component
             'funds.releaser:id,name',
             'funds.receiver:id,name',
             'settlement.settler:id,name',
-            'stockReceives' => fn ($query) => $query
+            'stockReceives' => fn($query) => $query
                 ->with(['store:id,name,code', 'supplier:id,name'])
                 ->withSum('items as grand_total', 'total_price')
                 ->latest('receive_date'),
         ]);
 
         $this->ensurePurchaseOrderAccessible($this->purchaseOrder);
+        $this->syncItemApprovals();
     }
 
+    public function updatedEngineerItemApprovals($value, string $name): void
+    {
+        if (!str_ends_with($name, '.approved_total_price')) {
+            return;
+        }
+
+        [$itemId] = explode('.', $name);
+        $qty = (float) ($this->engineerItemApprovals[$itemId]['approved_quantity'] ?? 0);
+        $unit = (float) ($this->engineerItemApprovals[$itemId]['approved_unit_price'] ?? 0);
+        $this->engineerItemApprovals[$itemId]['approved_total_price'] = round($qty * $unit, 2);
+        
+    }
+
+    public function updatedChairmanItemApprovals($value, string $name): void
+    {
+        if (!str_ends_with($name, '.approved_total_price')) {
+            return;
+        }
+
+        [$itemId] = explode('.', $name);
+        $qty = (float) ($this->chairmanItemApprovals[$itemId]['approved_quantity'] ?? 0);
+        $unit = (float) ($this->chairmanItemApprovals[$itemId]['approved_unit_price'] ?? 0);
+        $this->chairmanItemApprovals[$itemId]['approved_total_price'] = round($qty * $unit, 2);
+    }
+
+    public function saveEngineerItemApprovals(): void
+    {
+        $this->authorizePermission('inventory.purchase_order.engineer_approve');
+
+        if ($this->purchaseOrder->status !== PurchaseOrderStatus::PENDING_ENGINEER) {
+            return;
+        }
+
+        foreach ($this->purchaseOrder->items as $item) {
+            $input = $this->engineerItemApprovals[$item->id] ?? null;
+            if (!is_array($input)) {
+                continue;
+            }
+
+            $qty = (float) ($input['eng_approved_quantity'] ?? 0);
+            $unit = (float) ($input['eng_approved_unit_price'] ?? 0);
+
+            $item->update([
+                'eng_approved_quantity' => $qty,
+                'eng_approved_unit_price' => $unit,
+                'eng_approved_total_price' => round($qty * $unit, 2),
+            ]);
+        }
+
+
+        $this->reloadPurchaseOrder();
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Engineer item approvals saved.']);
+    }
+
+    public function saveChairmanItemApprovals(): void
+    {
+        $this->authorizePermission('inventory.purchase_order.chairman_approve');
+
+        if ($this->purchaseOrder->status !== PurchaseOrderStatus::PENDING_CHAIRMAN) {
+            return;
+        }
+
+        foreach ($this->purchaseOrder->items as $item) {
+            $input = $this->chairmanItemApprovals[$item->id] ?? null;
+            if (!is_array($input)) {
+                continue;
+            }
+
+            $qty = (float) ($input['approved_quantity'] ?? 0);
+            $unit = (float) ($input['approved_unit_price'] ?? 0);
+
+            $item->update([
+                'approved_quantity' => $qty,
+                'approved_unit_price' => $unit,
+                'approved_total_price' => round($qty * $unit, 2),
+            ]);
+        }
+
+        $this->reloadPurchaseOrder();
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Chairman item approvals saved.']);
+    }
+
+    public function closeQuantityModal(): void
+    {
+        $this->quantityDetails = null;
+    }
     public function submitOrder(): void
     {
         $this->authorizePermission('inventory.purchase_order.submit');
@@ -82,7 +177,7 @@ class PurchaseOrderView extends Component
         }
     }
 
-    public function chairmanApprove(float|int|string|null $approvedAmount = null): void
+    public function chairmanApprove(float|int|string|null $remarks = null): void
     {
         $this->authorizePermission('inventory.purchase_order.chairman_approve');
 
@@ -92,17 +187,17 @@ class PurchaseOrderView extends Component
             return;
         }
 
+    
         try {
-            if ($approvedAmount === null || trim((string) $approvedAmount) === '') {
-                throw new \DomainException('Approved amount is required.');
-            }
-
-            app(PurchaseOrderService::class)->chairmanApproveWithAmount(
+           
+            app(PurchaseOrderService::class)->chairmanApprove(
                 $this->purchaseOrder,
-                (float) $approvedAmount,
-                (int) auth()->id()
+                (int) auth()->id(),
+                $remarks
             );
+             
             $this->reloadPurchaseOrder();
+            
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Purchase order approved by chairman.']);
         } catch (\Throwable $throwable) {
             $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
@@ -262,11 +357,11 @@ class PurchaseOrderView extends Component
             })
             ->values();
 
-        $estimatedTotal = (float) $this->purchaseOrder->items->sum(fn ($item): float => (float) $item->estimated_total_price);
-        $approvedTotal = (float) $this->purchaseOrder->items->sum(fn ($item): float => (float) ($item->approved_total_price ?? $item->estimated_total_price));
-        $fundReleasedTotal = (float) $this->purchaseOrder->funds->sum(fn ($fund): float => (float) $fund->amount);
+        $estimatedTotal = (float) $this->purchaseOrder->items->sum(fn($item): float => (float) $item->estimated_total_price);
+        $approvedTotal = (float) $this->purchaseOrder->items->sum(fn($item): float => (float) ($item->approved_total_price ?? $item->estimated_total_price));
+        $fundReleasedTotal = (float) $this->purchaseOrder->funds->sum(fn($fund): float => (float) $fund->amount);
         $receivedValueTotal = (float) $this->purchaseOrder->stockReceives
-            ->sum(fn ($receive): float => $receive->status === StockReceiveStatus::POSTED
+            ->sum(fn($receive): float => $receive->status === StockReceiveStatus::POSTED
                 ? (float) ($receive->grand_total ?? 0)
                 : 0.0);
 
@@ -295,11 +390,104 @@ class PurchaseOrderView extends Component
             'funds.releaser:id,name',
             'funds.receiver:id,name',
             'settlement.settler:id,name',
-            'stockReceives' => fn ($query) => $query
+            'stockReceives' => fn($query) => $query
                 ->with(['store:id,name,code', 'supplier:id,name'])
                 ->withSum('items as grand_total', 'total_price')
                 ->latest('receive_date'),
+            'stockRequests' => fn($query) =>$query->select('stock_requests.id', 'request_no'),
         ]);
+        $this->syncItemApprovals();
+    }
+
+    protected function syncItemApprovals(): void
+    {
+        $mapped = $this->purchaseOrder->items->mapWithKeys(function ($item): array {
+            $qty = (float) ($item->approved_quantity ?? $item->quantity ?? 0);
+            $unit = (float) ($item->approved_unit_price ?? $item->estimated_unit_price ?? 0);
+
+            return [
+                (string) $item->id => [
+                    'approved_quantity' => $qty,
+                    'approved_unit_price' => $unit,
+                    'approved_total_price' => round($qty * $unit, 2),
+                ],
+            ];
+        })->toArray();
+
+        $this->engineerItemApprovals = $mapped;
+        $this->chairmanItemApprovals = $mapped;
+    }
+    public function openLinkedRequestDetails(int $itemId): void
+    {
+        $this->linkedRequestItemIndex = $itemId;
+        $this->linkedRequestDetails = $this->buildLinkedRequestDetails($itemId);
+
+    }
+
+    public function closeLinkedRequestDetails(): void
+    {
+        $this->linkedRequestItemIndex = null;
+        $this->linkedRequestDetails = null;
+    }
+
+    private function buildLinkedRequestDetails(int $itemId): array
+    {
+
+        $item = $this->purchaseOrder->items->where('id', $itemId)->first();
+
+        if (!$item) {
+            return [];
+        }
+
+
+
+        $productId = (int) $item['product_id'];
+        $product = Product::query()->find($productId);
+
+        $linkedRequests = $this->purchaseOrder->stockRequests()->wherePivot('product_id', $item['product_id'])->with('requesterStore')->get() ?? [];
+
+        // $linkedRequests = $this->purchaseOrderRecord->stockRequests()
+        //     ->wherePivot('product_id', $productId)
+        //     ->with([
+        //         'items' => fn ($query) => $query->where('product_id', $productId),
+        //         'requesterStore',
+        //     ])
+        //     ->get();
+
+        $requestDetails = $linkedRequests->map(fn($request) => [
+            'id' => $request->id,
+            'request_no' => $request->request_no,
+            'status' => $request->status?->label(),
+            'requester_name' => $request->requesterStore?->name,
+            'requested_quantity' => (float) ($request->items->first()?->approved_quantity ?: $request->items->first()?->quantity ?: 0),
+            'fulfilled_quantity' => (float) ($request->items->first()?->fulfilled_quantity ?: 0),
+        ])->map(function ($request) {
+            $request['remaining_quantity'] = max(0, $request['requested_quantity'] - $request['fulfilled_quantity']);
+            return $request;
+        });
+
+        $officeStoreIds = Store::query()->office()->pluck('id')->toArray();
+        $officeStock = (float) StockBalance::query()
+            ->where('product_id', $productId)
+            ->whereIn('store_id', $officeStoreIds)
+            ->sum('quantity');
+
+        $totalRequested = $requestDetails->sum('requested_quantity');
+        $totalFulfilled = $requestDetails->sum('fulfilled_quantity');
+        $totalRemaining = $requestDetails->sum('remaining_quantity');
+        $needToPurchase = max(0, $totalRemaining - $officeStock);
+
+        return [
+            'product_id' => $productId,
+            'product_name' => $product?->name,
+            'product_unit' => $product?->unit,
+            'requests' => $requestDetails->toArray(),
+            'total_requested' => $totalRequested,
+            'total_fulfilled' => $totalFulfilled,
+            'total_remaining' => $totalRemaining,
+            'office_stock' => $officeStock,
+            'need_to_purchase' => $needToPurchase,
+        ];
     }
 
     protected function ensurePurchaseOrderAccessible(PurchaseOrder $purchaseOrder): void

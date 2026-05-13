@@ -283,5 +283,6 @@ class PermissionSeeder extends Seeder
                 ['name' => $permission['name'] ?? null]
             );
         }
+        
     }
 }

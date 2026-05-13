@@ -162,9 +162,9 @@
                     @if ($purchaseOrder->status?->value === 'pending_chairman')
                         <button type="button"
                             @click="
-                                const amount = prompt('Enter approved amount', '{{ number_format((float) $purchaseOrder->fund_request_amount, 2, '.', '') }}');
-                                if (amount === null) return;
-                                $wire.chairmanApprove(amount);
+                                const remarks = prompt('Enter remarks for chairman approval (optional):');
+                                if (remarks === null) return;
+                                $wire.chairmanApprove(remarks);
                             "
                             class="inline-flex w-full items-center justify-center rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-700">
                             Chairman Approve
@@ -300,7 +300,9 @@
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Product</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Supplier</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Estimated</th>
-                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Approved</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Current Approved</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Engineer Approval</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Approval</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Required Qty</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Received Qty</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Remaining Qty</th>
@@ -313,7 +315,20 @@
                             @endphp
                             <tr>
                                 <td class="px-5 py-4">
-                                    <p class="text-sm font-medium text-gray-800">{{ $item->product?->name ?? 'N/A' }}</p>
+
+                                      <div class="flex items-center gap-2">
+                                            <div class="flex-1">
+                                                <p class="font-medium text-gray-800">{{ $item->product?->name ?? 'N/A' }}</p>
+
+                                            </div>
+                                            <button type="button" wire:click="openLinkedRequestDetails({{ $item->id }})"
+                                                class="inline-flex items-center justify-center rounded-lg bg-blue-100 p-2 text-blue-600 transition hover:bg-blue-200"
+                                                title="View product quantities">
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </button>
+                                        </div>
                                 </td>
                                 <td class="px-5 py-4">
                                     <p class="text-sm font-medium text-gray-800">{{ $item->supplier?->name ?? $purchaseOrder->supplier?->name ?? 'N/A' }}</p>
@@ -326,9 +341,43 @@
                                     {{ number_format((float) $item->quantity, 3) }} x {{ number_format((float) $item->estimated_unit_price, 2) }}
                                     <p class="text-xs text-gray-500">{{ number_format((float) $item->estimated_total_price, 2) }}</p>
                                 </td>
-                                <td class="px-5 py-4 text-sm text-gray-700">
+                                <td class="px-5 py-4 text-xs text-gray-700">
                                     {{ number_format((float) ($item->approved_quantity ?? $item->quantity), 3) }} x {{ number_format((float) ($item->approved_unit_price ?? $item->estimated_unit_price), 2) }}
                                     <p class="text-xs text-gray-500">{{ number_format((float) ($item->approved_total_price ?? $item->estimated_total_price), 2) }}</p>
+                                </td>
+                                <td class="px-5 py-4 text-xs text-gray-700">
+                                    @can('inventory.purchase_order.engineer_approve')
+                                        @if ($purchaseOrder->status?->value === 'pending_engineer')
+                                            <div class="grid grid-cols-1 gap-1">
+                                                <input type="number" step="0.001" min="0" wire:model.live.debounce.300ms="engineerItemApprovals.{{ $item->id }}.approved_quantity" class="w-24 rounded border-gray-300 px-2 py-1 text-xs" placeholder="Qty">
+                                                <input type="number" step="0.01" min="0" wire:model.live.debounce.300ms="engineerItemApprovals.{{ $item->id }}.approved_unit_price" class="w-24 rounded border-gray-300 px-2 py-1 text-xs" placeholder="Unit">
+                                                <input type="number" step="0.01" min="0" wire:model.live.debounce.300ms="engineerItemApprovals.{{ $item->id }}.approved_total_price" class="w-24 rounded border-gray-300 bg-gray-50 px-2 py-1 text-xs" placeholder="Total" readonly>
+                                            </div>
+                                        @else
+                                            {{ number_format((float) ($item->eng_approved_quantity ?? 0.000), 3) }} x {{ number_format((float) ($item->eng_approved_unit_price ?? 0.00), 2) }}
+                                            <p class="text-xs text-gray-500">{{ number_format((float) ($item->eng_approved_total_price ?? 0.00), 2) }}</p>
+                                        @endif
+                                    @else
+                                        {{ number_format((float) ($item->eng_approved_quantity ?? 0.000), 3) }} x {{ number_format((float) ($item->eng_approved_unit_price ?? 0.00), 2) }}
+                                        <p class="text-xs text-gray-500">{{ number_format((float) ($item->eng_approved_total_price ?? 0.00), 2) }}</p>
+                                    @endcan
+                                </td>
+                                <td class="px-5 py-4 text-xs text-gray-700">
+                                    @can('inventory.purchase_order.chairman_approve')
+                                        @if ($purchaseOrder->status?->value === 'pending_chairman')
+                                            <div class="grid grid-cols-1 gap-1">
+                                                <input type="number" step="0.001" min="0" wire:model.live.debounce.300ms="chairmanItemApprovals.{{ $item->id }}.approved_quantity" class="w-24 rounded border-gray-300 px-2 py-1 text-xs" placeholder="Qty">
+                                                <input type="number" step="0.01" min="0" wire:model.live.debounce.300ms="chairmanItemApprovals.{{ $item->id }}.approved_unit_price" class="w-24 rounded border-gray-300 px-2 py-1 text-xs" placeholder="Unit">
+                                                <input type="number" step="0.01" min="0" wire:model.live.debounce.300ms="chairmanItemApprovals.{{ $item->id }}.approved_total_price" class="w-24 rounded border-gray-300 bg-gray-50 px-2 py-1 text-xs" placeholder="Total" readonly>
+                                            </div>
+                                        @else
+                                            {{ number_format((float) ($item->approved_quantity ?? 0.000), 3) }} x {{ number_format((float) ($item->approved_unit_price ?? 0.00), 2) }}
+                                            <p class="text-xs text-gray-500">{{ number_format((float) ($item->approved_total_price ?? 0.00), 2) }}</p>
+                                        @endif
+                                    @else
+                                        {{ number_format((float) ($item->approved_quantity ?? 0.000), 3) }} x {{ number_format((float) ($item->approved_unit_price ?? 0.00), 2) }}
+                                        <p class="text-xs text-gray-500">{{ number_format((float) ($item->approved_total_price ?? 0.00), 2) }}</p>
+                                    @endcan
                                 </td>
                                 <td class="px-5 py-4 text-sm text-gray-700">{{ number_format($summary['required_qty'], 3) }}</td>
                                 <td class="px-5 py-4 text-sm text-emerald-700">{{ number_format($summary['received_qty'], 3) }}</td>
@@ -338,12 +387,28 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-5 py-10 text-center text-sm text-gray-500">No items found.</td>
+                                <td colspan="9" class="px-5 py-10 text-center text-sm text-gray-500">No items found.</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-2">
+            @can('inventory.purchase_order.engineer_approve')
+                @if ($purchaseOrder->status?->value === 'pending_engineer')
+                    <button type="button" wire:click="saveEngineerItemApprovals" class="inline-flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">
+                        Save Engineer Item Approvals
+                    </button>
+                @endif
+            @endcan
+            @can('inventory.purchase_order.chairman_approve')
+                @if ($purchaseOrder->status?->value === 'pending_chairman')
+                    <button type="button" wire:click="saveChairmanItemApprovals" class="inline-flex items-center rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-cyan-700">
+                        Save Chairman Item Approvals
+                    </button>
+                @endif
+            @endcan
         </div>
     </div>
 
@@ -429,4 +494,176 @@
             </div>
         </div>
     </div>
+        <!-- Quantity Details Modal -->
+    @if ($quantityDetails)
+        @php
+            $details = $quantityDetails;
+            $itemIndex = $details['itemIndex'] ?? null;
+            $stockRequestIds = $details['stockRequestIds'] ?? [];
+            $item = $itemIndex !== null ? ($items[$itemIndex] ?? null) : null;
+            $product = $item ? \App\Models\Product::find($item['product_id']) : null;
+            $stockRequests = collect();
+
+            if ($product && is_array($stockRequestIds) && count($stockRequestIds)) {
+                $stockRequests = \App\Models\StockRequest::with('items.product')
+                    ->whereIn('id', $stockRequestIds)
+                    ->get();
+            }
+        @endphp
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" wire:click="closeQuantityModal">
+            <div class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-5 sm:p-6" @click.stop>
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800">Quantity Details</h3>
+                    <button type="button" wire:click="closeQuantityModal"
+                        class="text-gray-400 transition hover:text-gray-600">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                @if ($product && $stockRequests->isNotEmpty())
+                    <div class="mt-4 space-y-4">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500">Product</p>
+                            <p class="mt-1 text-sm font-medium text-gray-800">{{ $product->name }}</p>
+                        </div>
+
+                        <div class="grid gap-3">
+                            @foreach ($stockRequests as $stockRequest)
+                                @php
+                                    $requestItem = $stockRequest->items->firstWhere('product_id', $product->id);
+                                    $requestedQty = $requestItem ? ($requestItem->approved_quantity ?: $requestItem->quantity) : 0;
+                                    $fulfilledQty = $requestItem ? $requestItem->fulfilled_quantity : 0;
+                                    $remainingQty = $requestedQty - $fulfilledQty;
+                                    $currentStock = 0;
+                                    $toPurchase = max(0, $remainingQty - $currentStock);
+                                @endphp
+
+                                <div class="rounded-2xl border border-gray-200 bg-slate-50 p-4">
+                                    <p class="text-xs font-medium text-gray-500">Stock Request</p>
+                                    <p class="mt-1 text-sm font-semibold text-gray-800">{{ $stockRequest->request_no }} - {{ $stockRequest->requesterStore?->name }}</p>
+
+                                    <div class="mt-4 grid grid-cols-2 gap-3">
+                                        <div class="rounded-lg bg-blue-50 px-3 py-2">
+                                            <p class="text-xs text-blue-700">Total Requested</p>
+                                            <p class="mt-1 text-sm font-semibold text-blue-700">{{ number_format($requestedQty, 3) }}</p>
+                                        </div>
+                                        <div class="rounded-lg bg-emerald-50 px-3 py-2">
+                                            <p class="text-xs text-emerald-700">Already Fulfilled</p>
+                                            <p class="mt-1 text-sm font-semibold text-emerald-700">{{ number_format($fulfilledQty, 3) }}</p>
+                                        </div>
+                                        <div class="rounded-lg bg-amber-50 px-3 py-2">
+                                            <p class="text-xs text-amber-700">Remaining</p>
+                                            <p class="mt-1 text-sm font-semibold text-amber-700">{{ number_format($remainingQty, 3) }}</p>
+                                        </div>
+                                        <div class="rounded-lg bg-gray-50 px-3 py-2">
+                                            <p class="text-xs text-gray-700">Current Stock</p>
+                                            <p class="mt-1 text-sm font-semibold text-gray-700">{{ number_format($currentStock, 3) }}</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-4 rounded-lg bg-indigo-50 px-3 py-2">
+                                        <p class="text-xs text-indigo-700">Quantity to Purchase</p>
+                                        <p class="mt-1 text-lg font-semibold text-indigo-700">{{ number_format($toPurchase, 3) }}</p>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" wire:click="closeQuantityModal"
+                        class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="button" wire:click="confirmLink"
+                        class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700">
+                        Confirm Link
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if ($linkedRequestDetails)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" wire:click="closeLinkedRequestDetails">
+            <div class="w-full max-w-3xl rounded-2xl border border-gray-200 bg-white p-5 sm:p-6" @click.stop>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">Linked Request Details</h3>
+                        <p class="text-sm text-gray-500">Product: {{ $linkedRequestDetails['product_name'] ?? 'N/A' }} {{ $linkedRequestDetails['product_unit'] ?? '' }}</p>
+                    </div>
+                    <button type="button" wire:click="closeLinkedRequestDetails"
+                        class="text-gray-400 transition hover:text-gray-600">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="mt-4 space-y-4">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div class="rounded-lg bg-blue-50 px-4 py-3">
+                            <p class="text-xs font-medium text-blue-700">Total Requested</p>
+                            <p class="mt-1 text-lg font-semibold text-blue-900">{{ number_format($linkedRequestDetails['total_requested'] ?? 0, 3) }}</p>
+                        </div>
+                        <div class="rounded-lg bg-emerald-50 px-4 py-3">
+                            <p class="text-xs font-medium text-emerald-700">Already Fulfilled</p>
+                            <p class="mt-1 text-lg font-semibold text-emerald-900">{{ number_format($linkedRequestDetails['total_fulfilled'] ?? 0, 3) }}</p>
+                        </div>
+                        <div class="rounded-lg bg-amber-50 px-4 py-3">
+                            <p class="text-xs font-medium text-amber-700">Remaining Qty</p>
+                            <p class="mt-1 text-lg font-semibold text-amber-900">{{ number_format($linkedRequestDetails['total_remaining'] ?? 0, 3) }}</p>
+                        </div>
+                        <div class="rounded-lg bg-slate-50 px-4 py-3">
+                            <p class="text-xs font-medium text-slate-700">Office Stock</p>
+                            <p class="mt-1 text-lg font-semibold text-slate-900">{{ number_format($linkedRequestDetails['office_stock'] ?? 0, 3) }}</p>
+                        </div>
+                    </div>
+
+                    <div class="rounded-lg bg-indigo-50 px-4 py-3">
+                        <p class="text-xs font-medium text-indigo-700">Need to Purchase</p>
+                        <p class="mt-1 text-2xl font-semibold text-indigo-900">{{ number_format($linkedRequestDetails['need_to_purchase'] ?? 0, 3) }}</p>
+                    </div>
+
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                        <h4 class="text-sm font-semibold text-gray-800">Linked Requests</h4>
+                        <div class="mt-3 space-y-3">
+                            @foreach ($linkedRequestDetails['requests'] ?? [] as $request)
+                                <div class="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+                                    <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-700">
+                                        <span class="font-medium text-gray-900">{{ $request['request_no'] }}</span>
+                                        <span>{{ $request['requester_name'] ?? 'Unknown' }}</span>
+                                    </div>
+                                    <div class="mt-3 grid gap-3 sm:grid-cols-3">
+                                        <div class="rounded-lg bg-blue-50 px-3 py-2">
+                                            <p class="text-xs text-blue-700">Requested</p>
+                                            <p class="mt-1 text-sm font-semibold text-blue-900">{{ number_format($request['requested_quantity'], 3) }}</p>
+                                        </div>
+                                        <div class="rounded-lg bg-emerald-50 px-3 py-2">
+                                            <p class="text-xs text-emerald-700">Fulfilled</p>
+                                            <p class="mt-1 text-sm font-semibold text-emerald-900">{{ number_format($request['fulfilled_quantity'], 3) }}</p>
+                                        </div>
+                                        <div class="rounded-lg bg-amber-50 px-3 py-2">
+                                            <p class="text-xs text-amber-700">Remaining</p>
+                                            <p class="mt-1 text-sm font-semibold text-amber-900">{{ number_format($request['remaining_quantity'], 3) }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button type="button" wire:click="closeLinkedRequestDetails"
+                        class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

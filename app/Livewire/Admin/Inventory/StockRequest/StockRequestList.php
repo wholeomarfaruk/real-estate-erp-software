@@ -236,6 +236,7 @@ class StockRequestList extends Component
             ])
             ->withCount('transfers')
             ->withSum('items as total_requested_qty', 'quantity')
+            ->withSum('items as total_approved_qty', 'approved_quantity')
             ->withSum('items as total_fulfilled_qty', 'fulfilled_quantity')
             ->when($this->search !== '', function (Builder $builder): void {
                 $builder->where(function (Builder $subQuery): void {

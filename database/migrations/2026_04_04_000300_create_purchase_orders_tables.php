@@ -78,9 +78,11 @@ return new class extends Migration
             $table->string('release_type', 20);
             $table->decimal('amount', 14, 2);
             $table->foreignId('released_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('received_by')->nullable()->constrained('users')->nullOnDelete();
             $table->date('release_date');
+            $table->string('payto')->nullable();//type of payee, e.g., supplier, employee, etc.
             $table->text('remarks')->nullable();
+            // receiver_type + receiver_id
+            $table->nullableMorphs('receiver');
             $table->timestamps();
 
             $table->index(['purchase_order_id', 'release_date']);

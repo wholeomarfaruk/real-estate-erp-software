@@ -158,6 +158,7 @@
 
                                     <td class="px-5 py-4 text-sm text-gray-700">
                                         <p>Request: {{ number_format((float) $order->fund_request_amount, 2) }}</p>
+                                        <p class="text-xs text-gray-500">Engineer Approved: {{ number_format((float) $order->engineer_approved_amount, 2) }}</p>
                                         <p class="text-xs text-gray-500">Approved: {{ number_format((float) $order->approved_amount, 2) }}</p>
                                         <p class="text-xs text-gray-500">Actual: {{ number_format((float) $order->actual_purchase_amount, 2) }}</p>
                                     </td>

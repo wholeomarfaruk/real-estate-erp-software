@@ -22,6 +22,9 @@ class PurchaseOrderItem extends Model
         'approved_quantity',
         'approved_unit_price',
         'approved_total_price',
+        'eng_approved_quantity',
+        'eng_approved_unit_price',
+        'eng_approved_total_price',
         'remarks',
     ];
 
@@ -32,6 +35,9 @@ class PurchaseOrderItem extends Model
         'approved_quantity' => 'decimal:3',
         'approved_unit_price' => 'decimal:2',
         'approved_total_price' => 'decimal:2',
+        'eng_approved_quantity' => 'decimal:3',
+        'eng_approved_unit_price' => 'decimal:2',
+        'eng_approved_total_price' => 'decimal:2',
     ];
 
     public function purchaseOrder(): BelongsTo

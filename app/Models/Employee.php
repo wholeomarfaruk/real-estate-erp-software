@@ -83,5 +83,9 @@ class Employee extends Model
     {
         return $this->hasMany(EmployeeAdvance::class)->orderByDesc('advance_date')->orderByDesc('id');
     }
+    public function purchaseFunds()
+    {
+        return $this->morphMany(PurchaseFund::class, 'receiver');
+    }
 }
 

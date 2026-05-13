@@ -82,7 +82,7 @@
 
                 <div>
                     <label for="supplier_id" class="text-sm font-medium text-gray-700">Supplier</label>
-                    <select id="supplier_id" wire:model="supplier_id" @disabled($isLocked || $isStructureLocked)
+                    <select id="supplier_id" wire:model.live="supplier_id" @disabled($isLocked || $isStructureLocked)
                         class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                         <option value="">Select supplier</option>
                         @foreach ($suppliers as $supplier)
@@ -128,8 +128,8 @@
                 <div class="md:col-span-2 xl:col-span-2">
                    <div class="md:col-span-2 xl:col-span-4" x-data="{ openImageModal: false }">
                     <label for="image_receipt" class="text-sm font-medium text-gray-700">Upload Receipt</label>
-    
-    
+
+
                     <button type="button" id="image_receipt"
         @click="openImageModal = true"
         class="flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">

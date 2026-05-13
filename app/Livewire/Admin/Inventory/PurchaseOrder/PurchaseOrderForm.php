@@ -77,7 +77,7 @@ class PurchaseOrderForm extends Component
             $this->fund_request_amount = (float) $purchaseOrder->fund_request_amount;
             $this->remarks = $purchaseOrder->remarks;
             $this->status = $purchaseOrder->status?->value ?? PurchaseOrderStatus::DRAFT->value;
-            $this->isLocked = $purchaseOrder->status !== PurchaseOrderStatus::DRAFT;
+            $this->isLocked = $purchaseOrder->status?->value !== PurchaseOrderStatus::DRAFT->value;
 
             $this->ensureStoreAccessible((int) $purchaseOrder->store_id);
 
@@ -186,6 +186,7 @@ class PurchaseOrderForm extends Component
 
     public function saveDraft()
     {
+
         if ($this->isLocked) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Only draft purchase order can be edited.']);
 
@@ -461,7 +462,7 @@ class PurchaseOrderForm extends Component
             $record = $this->purchaseOrderRecord;
 
             if ($this->editMode && $record) {
-                if (!in_array($record->status, [PurchaseOrderStatus::DRAFT->value], true)) {
+                if (!in_array($record->status->value, [PurchaseOrderStatus::DRAFT->value], true)) {
                     throw new \DomainException('Only draft purchase order can be edited.');
                 }
 
@@ -473,7 +474,6 @@ class PurchaseOrderForm extends Component
                 $this->purchaseOrderId = $record->id;
                 $this->editMode = true;
             }
-
 
             foreach ($validated['items'] as $item) {
                 $record->items()->create([

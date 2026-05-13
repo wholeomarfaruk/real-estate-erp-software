@@ -38,7 +38,8 @@ class StockReceiveService
         }
 
         return DB::transaction(function () use ($stockReceive, $actorId): StockReceive {
-            $lockedReceive = StockReceive::query()
+
+        $lockedReceive = StockReceive::query()
                 ->with(['store', 'items', 'items.product'])
                 ->lockForUpdate()
                 ->findOrFail($stockReceive->id);

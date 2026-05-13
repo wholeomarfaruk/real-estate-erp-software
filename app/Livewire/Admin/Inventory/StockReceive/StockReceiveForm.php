@@ -148,17 +148,34 @@ class StockReceiveForm extends Component
 
         $this->poSelectionNotice = null;
 
+
         if (! $purchaseOrderId) {
             $this->supplier_id = null;
             $this->resetLinkedPoItems();
 
             return;
         }
+        $purchaseOrder = PurchaseOrder::query()->find($purchaseOrderId);
+
+        if (!$purchaseOrder) {
+
+            $this->purchase_order_id = null;
+            $this->supplier_id = null;
+            $this->resetLinkedPoItems();
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Selected purchase order not found.']);
+
+            return;
+        }
+
+        $this->supplier_id= $purchaseOrder->supplier_id;
 
         try {
             $this->resetLinkedPoItems();
+
             $this->loadItemsFromPurchaseOrder((int) $purchaseOrderId, $this->supplier_id ? (int) $this->supplier_id : null);
-        } catch (\Throwable $throwable) {
+
+            } catch (\Throwable $throwable) {
+
             $this->purchase_order_id = null;
             $this->supplier_id = null;
             $this->resetLinkedPoItems();
@@ -171,7 +188,7 @@ class StockReceiveForm extends Component
         if ($this->isLocked || $this->isStructureLocked || ! $this->purchase_order_id) {
             return;
         }
-        
+
         $this->poSelectionNotice = null;
         $this->resetLinkedPoItems();
 
@@ -294,7 +311,11 @@ class StockReceiveForm extends Component
         }
 
         $purchaseOrdersQuery = $this->selectablePurchaseOrdersQuery()
+            ->whereIn('status', [PurchaseOrderStatus::APPROVED->value, PurchaseOrderStatus::PARTIALLY_RECEIVED->value]) // Include only approved POs
             ->with(['supplier:id,name', 'store:id,name,code'])
+            ->when($this->supplier_id, function (Builder $query): void {
+                $query->where('supplier_id', (int) $this->supplier_id);
+            })
             ->latest('order_date')
             ->latest('id');
 
@@ -546,17 +567,13 @@ class StockReceiveForm extends Component
         }
 
         $pendingQuantities = $this->pendingQuantitiesForPurchaseOrder((int) $purchaseOrder->id);
-        $pendingSupplierIds = $this->supplierIdsFromPendingItems($purchaseOrder, $pendingQuantities);
+        $poSupplierId = (int) ($purchaseOrder->supplier_id ?? 0);
 
-        if (count($pendingSupplierIds) > 1 && ! $validated['supplier_id']) {
-            throw new \DomainException('Please select supplier first.');
+        if (! $validated['supplier_id'] && $poSupplierId > 0) {
+            $validated['supplier_id'] = $poSupplierId;
         }
 
-        if (count($pendingSupplierIds) === 1 && ! $validated['supplier_id']) {
-            $validated['supplier_id'] = $pendingSupplierIds[0];
-        }
-
-        if ($validated['supplier_id'] && ! in_array((int) $validated['supplier_id'], $pendingSupplierIds, true)) {
+        if ($validated['supplier_id'] && $poSupplierId > 0 && (int) $validated['supplier_id'] !== $poSupplierId) {
             throw new \DomainException('Selected supplier does not match the linked purchase order supplier.');
         }
 
@@ -576,10 +593,6 @@ class StockReceiveForm extends Component
 
             if ((int) $poItem->product_id !== (int) $item['product_id']) {
                 throw new \DomainException('Product mismatch found between receive item and purchase order item.');
-            }
-
-            if (! empty($validated['supplier_id']) && (int) ($poItem->supplier_id ?? 0) !== (int) $validated['supplier_id']) {
-                throw new \DomainException('Only selected supplier items are allowed for this purchase order.');
             }
 
             $requestedByPoItem[$purchaseOrderItemId] = ($requestedByPoItem[$purchaseOrderItemId] ?? 0) + (float) $item['quantity'];
@@ -612,21 +625,14 @@ class StockReceiveForm extends Component
         }
 
         $pendingQuantities = $this->pendingQuantitiesForPurchaseOrder($purchaseOrderId);
-        $pendingSupplierIds = $this->supplierIdsFromPendingItems($purchaseOrder, $pendingQuantities);
+        $poSupplierId = (int) ($purchaseOrder->supplier_id ?? 0);
 
-        if (count($pendingSupplierIds) === 1 && ! $supplierId) {
-            $supplierId = $pendingSupplierIds[0];
+        if (! $supplierId && $poSupplierId > 0) {
+            $supplierId = $poSupplierId;
             $this->supplier_id = $supplierId;
         }
 
-        if (count($pendingSupplierIds) > 1 && ! $supplierId) {
-            $this->poSelectionNotice = 'Please select supplier first.';
-            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Please select supplier first.']);
-
-            return;
-        }
-
-        if ($supplierId && ! in_array((int) $supplierId, $pendingSupplierIds, true)) {
+        if ($supplierId && $poSupplierId > 0 && (int) $supplierId !== $poSupplierId) {
             $this->poSelectionNotice = 'Please select supplier first.';
             $this->dispatch('toast', ['type' => 'warning', 'message' => 'Please select supplier first.']);
 
@@ -639,10 +645,6 @@ class StockReceiveForm extends Component
             $pendingQty = (float) ($pendingQuantities[$item->id] ?? 0);
 
             if ($pendingQty <= 0) {
-                continue;
-            }
-
-            if ($supplierId && (int) ($item->supplier_id ?? 0) !== (int) $supplierId) {
                 continue;
             }
 
@@ -714,10 +716,7 @@ class StockReceiveForm extends Component
             });
 
         if ($this->supplier_id) {
-            $selectedSupplierId = (int) $this->supplier_id;
-            $query->whereHas('items', function (Builder $builder) use ($selectedSupplierId): void {
-                $builder->where('supplier_id', $selectedSupplierId);
-            });
+            $query->where('supplier_id', (int) $this->supplier_id);
         }
 
         if (! $this->canViewAllStores()) {
@@ -735,14 +734,9 @@ class StockReceiveForm extends Component
 
     protected function supplierIdsFromPendingItems(PurchaseOrder $purchaseOrder, array $pendingQuantities): array
     {
-        return $purchaseOrder->items
-            ->filter(fn ($item) => (float) ($pendingQuantities[$item->id] ?? 0) > 0)
-            ->pluck('supplier_id')
-            ->filter(fn ($id) => $id !== null && $id !== '')
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
+        $supplierId = (int) ($purchaseOrder->supplier_id ?? 0);
+
+        return $supplierId > 0 ? [$supplierId] : [];
     }
 
     protected function resetLinkedPoItems(): void

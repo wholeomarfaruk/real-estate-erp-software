@@ -19,6 +19,10 @@ class PurchaseFund extends Model
         'received_by',
         'release_date',
         'remarks',
+        'payto',
+        'remarks',
+        'receiver_type',
+        'receiver_id',
     ];
 
     protected $casts = [
@@ -37,8 +41,12 @@ class PurchaseFund extends Model
         return $this->belongsTo(User::class, 'released_by');
     }
 
-    public function receiver(): BelongsTo
+    public function receivedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'received_by');
+    }
+    public function receiver()
+    {
+        return $this->morphTo();
     }
 }
