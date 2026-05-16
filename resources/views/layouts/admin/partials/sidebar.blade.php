@@ -159,8 +159,14 @@
                             </a>
                             @can('property_sale.view')
                                 <a href="{{ route('admin.properties.sales.index') }}"
-                                    class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.properties.sales.*') ? 'text-gray-200' : '' }}">
+                                    class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.properties.sales.*') && !Route::is('admin.properties.sales.create') ? 'text-gray-200' : '' }}">
                                     Property Sales
+                                </a>
+                            @endcan
+                            @can('property_sale.create')
+                                <a href="{{ route('admin.properties.sales.create') }}"
+                                    class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.properties.sales.create') ? 'text-gray-200' : '' }}">
+                                    + New Sale
                                 </a>
                             @endcan
                         </div>

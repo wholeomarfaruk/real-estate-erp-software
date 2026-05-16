@@ -1,6 +1,7 @@
 <div
     x-data="{
         drawerOpen: $wire.entangle('drawerOpen'),
+        scheduleDrawerOpen: $wire.entangle('scheduleDrawerOpen'),
         dSaleAmount: $wire.entangle('dSaleAmount'),
         dDiscountAmount: $wire.entangle('dDiscountAmount'),
         dTaxAmount: $wire.entangle('dTaxAmount'),
@@ -147,6 +148,137 @@
                         </div>
                     @endforeach
                 </div>
+            </div>
+
+            {{-- Payment Schedule --}}
+            @php
+                $schedules       = $sale->paymentSchedules;
+                $totalScheduled  = $schedules->sum('amount');
+                $totalPaid       = $schedules->sum('paid_amount');
+                $totalDue        = $schedules->sum('due_amount');
+                $schedStatusColors = [
+                    'pending'  => ['bg'=>'var(--bk-bg)','fg'=>'var(--bk-fg)'],
+                    'partial'  => ['bg'=>'var(--sd-bg)','fg'=>'var(--sd-fg)'],
+                    'paid'     => ['bg'=>'var(--av-bg)','fg'=>'var(--av-fg)'],
+                    'overdue'  => ['bg'=>'var(--rj-bg)','fg'=>'var(--rj-fg)'],
+                ];
+            @endphp
+            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; overflow:hidden;">
+                <div style="padding:14px 20px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0; font-size:13px; font-weight:600;">Payment Schedule</h3>
+                    @can('property_sale.edit')
+                        <button wire:click="openAddSchedule"
+                            style="appearance:none; border:1px solid var(--rule); background:transparent; color:var(--ink-2);
+                                   padding:5px 11px; font:500 11.5px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
+                                   display:inline-flex; align-items:center; gap:5px;">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add Entry
+                        </button>
+                    @endcan
+                </div>
+
+                {{-- Summary strip --}}
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:var(--rule);">
+                    <div style="background:var(--paper); padding:12px 16px;">
+                        <div style="font:600 9.5px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px;">Scheduled</div>
+                        <div style="font:600 16px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($totalScheduled, 2) }}</div>
+                    </div>
+                    <div style="background:var(--paper); padding:12px 16px;">
+                        <div style="font:600 9.5px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--av-fg); margin-bottom:4px;">Paid</div>
+                        <div style="font:600 16px var(--mono); color:var(--av-fg); font-variant-numeric:tabular-nums;">৳ {{ number_format($totalPaid, 2) }}</div>
+                    </div>
+                    <div style="background:var(--paper); padding:12px 16px;">
+                        <div style="font:600 9.5px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--rj-fg); margin-bottom:4px;">Due</div>
+                        <div style="font:600 16px var(--mono); color:{{ $totalDue > 0 ? 'var(--rj-fg)' : 'var(--ink-3)' }}; font-variant-numeric:tabular-nums;">৳ {{ number_format($totalDue, 2) }}</div>
+                    </div>
+                </div>
+
+                {{-- Schedule rows --}}
+                @if($schedules->isEmpty())
+                    <div style="padding:28px 20px; text-align:center; color:var(--ink-3); font-size:13px;">
+                        No payment schedule entries yet.
+                        @can('property_sale.edit')
+                            <button wire:click="openAddSchedule" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:13px; text-decoration:underline; padding:0 0 0 4px;">Add the first entry.</button>
+                        @endcan
+                    </div>
+                @else
+                    <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                        <thead>
+                            <tr style="background:var(--canvas);">
+                                <th style="padding:8px 16px; text-align:left; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Description</th>
+                                <th style="padding:8px 12px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Due Date</th>
+                                <th style="padding:8px 12px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Amount</th>
+                                <th style="padding:8px 12px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Paid</th>
+                                <th style="padding:8px 12px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Due</th>
+                                <th style="padding:8px 12px; text-align:center; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Status</th>
+                                <th style="padding:8px 12px; text-align:center; border-bottom:1px solid var(--rule);"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($schedules as $sched)
+                                @php
+                                    $isOverdue = $sched->status === 'pending' && $sched->due_date->isPast();
+                                    $displayStatus = $isOverdue ? 'overdue' : $sched->status;
+                                    $sc2 = $schedStatusColors[$displayStatus] ?? $schedStatusColors['pending'];
+                                @endphp
+                                <tr style="border-bottom:1px solid var(--rule);" class="hover:bg-black/1.5">
+                                    <td style="padding:10px 16px; font-weight:500;">
+                                        {{ $sched->label() }}
+                                        @if($sched->remarks)
+                                            <div style="font:11px 'Inter', sans-serif; color:var(--ink-3); margin-top:2px;">{{ $sched->remarks }}</div>
+                                        @endif
+                                    </td>
+                                    <td style="padding:10px 12px; text-align:right; font-family:var(--mono); color:var(--ink-2);">
+                                        {{ $sched->due_date->format('d M Y') }}
+                                    </td>
+                                    <td style="padding:10px 12px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums;">
+                                        ৳ {{ number_format($sched->amount, 2) }}
+                                    </td>
+                                    <td style="padding:10px 12px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; color:var(--av-fg);">
+                                        ৳ {{ number_format($sched->paid_amount, 2) }}
+                                    </td>
+                                    <td style="padding:10px 12px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; color:{{ $sched->due_amount > 0 ? 'var(--rj-fg)' : 'var(--ink-3)' }};">
+                                        ৳ {{ number_format($sched->due_amount, 2) }}
+                                    </td>
+                                    <td style="padding:10px 12px; text-align:center;">
+                                        <span style="padding:2px 8px; border-radius:999px; background:{{ $sc2['bg'] }}; color:{{ $sc2['fg'] }}; font:600 9.5px 'Inter', sans-serif; letter-spacing:.04em; text-transform:uppercase;">
+                                            {{ ucfirst($displayStatus) }}
+                                        </span>
+                                    </td>
+                                    <td style="padding:10px 12px; text-align:center;">
+                                        @can('property_sale.edit')
+                                            <div style="display:inline-flex; align-items:center; gap:6px;">
+                                                @if($sched->status !== 'paid')
+                                                    <button wire:click="markSchedulePaid({{ $sched->id }})"
+                                                        title="Mark as Paid"
+                                                        style="appearance:none; border:1px solid var(--av-fg); background:transparent; color:var(--av-fg);
+                                                               padding:3px 8px; font:500 10.5px 'Inter', sans-serif; border-radius:5px; cursor:pointer; white-space:nowrap;">
+                                                        ✓ Paid
+                                                    </button>
+                                                @endif
+                                                <button wire:click="openEditSchedule({{ $sched->id }})"
+                                                    title="Edit"
+                                                    style="appearance:none; border:1px solid var(--rule); background:transparent; color:var(--ink-2);
+                                                           width:26px; height:26px; border-radius:5px; cursor:pointer;
+                                                           display:inline-flex; align-items:center; justify-content:center;">
+                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                                </button>
+                                                <button wire:click="deleteSchedule({{ $sched->id }})"
+                                                    wire:confirm="Remove this schedule entry?"
+                                                    title="Delete"
+                                                    style="appearance:none; border:1px solid var(--rule); background:transparent; color:var(--rj-fg);
+                                                           width:26px; height:26px; border-radius:5px; cursor:pointer;
+                                                           display:inline-flex; align-items:center; justify-content:center;">
+                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                                                </button>
+                                            </div>
+                                        @endcan
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
             </div>
 
             {{-- Notes --}}
@@ -320,6 +452,164 @@
 
         </div>
     </div>
+
+    {{-- ─── SCHEDULE DRAWER SCRIM ─────────────────────────────────────────── --}}
+    <div
+        x-show="scheduleDrawerOpen"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        @click="$wire.closeScheduleDrawer()"
+        style="position:fixed; inset:0; background:rgba(20,18,16,.45); backdrop-filter:blur(4px); z-index:50;"
+        x-cloak
+    ></div>
+
+    {{-- ─── SCHEDULE DRAWER ─────────────────────────────────────────────────── --}}
+    <aside
+        x-show="scheduleDrawerOpen"
+        x-transition:enter="transition ease-out duration-250"
+        x-transition:enter-start="transform translate-x-full"
+        x-transition:enter-end="transform translate-x-0"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="transform translate-x-0"
+        x-transition:leave-end="transform translate-x-full"
+        style="position:fixed; top:0; right:0; bottom:0; width:520px; max-width:100vw;
+               background:var(--canvas); z-index:51; display:flex; flex-direction:column;
+               box-shadow:-20px 0 40px -20px rgba(0,0,0,.25);"
+        x-cloak
+    >
+        {{-- Head --}}
+        <div style="padding:18px 24px; border-bottom:1px solid var(--rule); background:var(--paper);
+                    display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <h3 style="margin:0; font-size:16px; font-weight:600;">
+                    {{ $editingScheduleId ? 'Edit Schedule Entry' : 'Add Schedule Entry' }}
+                </h3>
+                <div style="margin-top:2px; font:500 11px var(--mono); color:var(--ink-3); letter-spacing:.04em; text-transform:uppercase;">
+                    {{ $sale->sale_number }}
+                </div>
+            </div>
+            <button @click="$wire.closeScheduleDrawer()"
+                style="appearance:none; border:0; background:transparent; color:var(--ink-2);
+                       width:32px; height:32px; border-radius:6px; cursor:pointer;
+                       display:flex; align-items:center; justify-content:center;"
+                class="hover:bg-black/5 transition-colors">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+
+        {{-- Body --}}
+        <div style="flex:1; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:18px;">
+
+            {{-- Category & Sequence --}}
+            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                <h4 style="margin:0 0 14px; font-size:13px; font-weight:600;">Payment Type</h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 14px;">
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                            Category <span style="color:var(--rj-fg)">*</span>
+                        </label>
+                        <select wire:model.live="sPaymentCategory"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;">
+                            <option value="down_payment">Down Payment</option>
+                            <option value="installment">Installment</option>
+                            <option value="monthly_rent">Monthly Rent</option>
+                            <option value="security_deposit">Security Deposit</option>
+                        </select>
+                        @error('sPaymentCategory') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Sequence No.</label>
+                        <input wire:model="sSequenceNo" type="number" min="1" placeholder="e.g. 1"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
+                    </div>
+                </div>
+            </div>
+
+            {{-- Date & Status --}}
+            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                <h4 style="margin:0 0 14px; font-size:13px; font-weight:600;">Schedule</h4>
+                <div>
+                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                        Due Date <span style="color:var(--rj-fg)">*</span>
+                    </label>
+                    <input wire:model="sDueDate" type="date"
+                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
+                    @error('sDueDate') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                </div>
+            </div>
+
+            {{-- Financial --}}
+            <div style="background:#F5F2E8; border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
+                    <h4 style="margin:0; font-size:13px; font-weight:600;">Amount</h4>
+                    <span style="font:11px var(--mono); color:var(--ink-3);">BDT (৳)</span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 14px;">
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                            Amount <span style="color:var(--rj-fg)">*</span>
+                        </label>
+                        <input wire:model="sAmount" type="number" min="0" step="0.01" placeholder="0.00"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
+                        @error('sAmount') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Paid Amount</label>
+                        <input wire:model="sPaidAmount" type="number" min="0" step="0.01" placeholder="0.00"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
+                    </div>
+                </div>
+                <div style="margin-top:10px; padding:10px 14px; background:var(--paper); border:1px solid var(--rule); border-radius:7px; font:11.5px 'Inter', sans-serif; color:var(--ink-3);">
+                    Status is auto-set: 0 paid = <strong>Pending</strong> · partial = <strong>Partial</strong> · full = <strong>Paid</strong>
+                </div>
+            </div>
+
+            {{-- Remarks --}}
+            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                <h4 style="margin:0 0 12px; font-size:13px; font-weight:600;">Remarks</h4>
+                <textarea wire:model="sRemarks" placeholder="Optional notes for this entry…" rows="3"
+                    style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif; resize:vertical; min-height:72px;"></textarea>
+            </div>
+        </div>
+
+        {{-- Footer --}}
+        <div style="border-top:1px solid var(--rule); background:var(--paper);">
+            @if($errors->any())
+                <div style="padding:9px 24px; background:var(--rj-bg); border-bottom:1px solid rgba(0,0,0,.06);">
+                    <ul style="margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:3px;">
+                        @foreach($errors->all() as $error)
+                            <li style="font:500 11.5px 'Inter', sans-serif; color:var(--rj-fg); display:flex; align-items:center; gap:6px;">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                {{ $error }}
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            <div style="padding:14px 24px; display:flex; justify-content:flex-end; align-items:center; gap:10px;">
+                <button @click="$wire.closeScheduleDrawer()"
+                    style="appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2);
+                           padding:7px 16px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;">
+                    Cancel
+                </button>
+                <button wire:click="saveSchedule"
+                    wire:loading.attr="disabled"
+                    style="appearance:none; border:1px solid var(--accent); background:var(--accent); color:#fff;
+                           padding:7px 18px; font:600 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
+                           display:inline-flex; align-items:center; gap:6px;">
+                    <span wire:loading.remove wire:target="saveSchedule" style="display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        {{ $editingScheduleId ? 'Update Entry' : 'Add Entry' }}
+                    </span>
+                    <span wire:loading wire:target="saveSchedule">Saving…</span>
+                </button>
+            </div>
+        </div>
+    </aside>
 
     {{-- ─── DRAWER SCRIM ────────────────────────────────────────────────────── --}}
     <div

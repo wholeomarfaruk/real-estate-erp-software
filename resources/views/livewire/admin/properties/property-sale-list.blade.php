@@ -36,13 +36,13 @@
         </div>
         <div class="flex gap-2">
             @can('property_sale.create')
-                <button wire:click="openCreate"
+                <a href="{{ route('admin.properties.sales.create') }}"
                     style="appearance:none; border:1px solid var(--ink-1); background:var(--ink-1); color:var(--paper);
                            padding:7px 14px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
-                           display:inline-flex; align-items:center; gap:6px;">
+                           display:inline-flex; align-items:center; gap:6px; text-decoration:none;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 4.5v15m7.5-7.5h-15"/></svg>
                     New Sale
-                </button>
+                </a>
             @endcan
         </div>
     </div>
@@ -298,11 +298,9 @@
         <div style="padding:18px 24px; border-bottom:1px solid var(--rule); background:var(--paper);
                     display:flex; justify-content:space-between; align-items:center;">
             <div>
-                <h3 style="margin:0; font-size:16px; font-weight:600;">
-                    {{ $editingId ? 'Edit Sale' : 'New Sale' }}
-                </h3>
+                <h3 style="margin:0; font-size:16px; font-weight:600;">Edit Sale</h3>
                 <div style="margin-top:2px; font:500 11px var(--mono); color:var(--ink-3); letter-spacing:.04em; text-transform:uppercase;">
-                    {{ $editingId ? 'Update sale details' : 'Record a new property sale' }}
+                    Update sale details
                 </div>
             </div>
             <button @click="$wire.closeDrawer()"
@@ -323,23 +321,66 @@
                     <h4 style="margin:0; font-size:13px; font-weight:600;">Property &amp; Customer</h4>
                     <span style="font:11px var(--mono); color:var(--ink-3);">required</span>
                 </div>
+
+                {{-- Sale Type (full width) --}}
+                <div style="margin-bottom:12px;">
+                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                        Sale Type <span style="color:var(--rj-fg)">*</span>
+                    </label>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+                        @foreach(['property_sale' => 'Property Sale', 'land_share' => 'Land Share', 'rent' => 'Rent'] as $val => $label)
+                            <label style="display:flex; align-items:center; gap:8px; padding:9px 12px; border-radius:7px; cursor:pointer;
+                                          border:1.5px solid {{ $dSaleType === $val ? 'var(--accent)' : 'var(--rule)' }};
+                                          background:{{ $dSaleType === $val ? 'rgba(31,58,104,.06)' : 'transparent' }};">
+                                <input type="radio" wire:model.live="dSaleType" value="{{ $val }}" style="accent-color:var(--accent);">
+                                <span style="font:500 12.5px 'Inter', sans-serif; color:{{ $dSaleType === $val ? 'var(--accent)' : 'var(--ink-2)' }};">{{ $label }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    @error('dSaleType') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                </div>
+
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 14px;">
+                    {{-- Property select --}}
                     <div>
                         <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
-                            Property Unit <span style="color:var(--rj-fg)">*</span>
+                            Property <span style="color:var(--rj-fg)">*</span>
+                        </label>
+                        <select wire:model.live="dPropertyId"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;">
+                            <option value="">— Select property —</option>
+                            @foreach($properties as $property)
+                                <option value="{{ $property->id }}">{{ $property->name }} ({{ $property->code }})</option>
+                            @endforeach
+                        </select>
+                        @error('dPropertyId') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- Unit select — filtered by selected property --}}
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                            Unit <span style="color:var(--rj-fg)">*</span>
                         </label>
                         <select wire:model="dPropertyUnitId"
-                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;">
-                            <option value="">— Select unit —</option>
+                            @if(!$dPropertyId) disabled @endif
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule);
+                                   background:{{ $dPropertyId ? 'var(--paper)' : 'var(--canvas)' }};
+                                   color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;
+                                   opacity:{{ $dPropertyId ? '1' : '.5' }};">
+                            <option value="">{{ $dPropertyId ? '— Select unit —' : '— Select property first —' }}</option>
                             @foreach($units as $unit)
                                 <option value="{{ $unit->id }}">
-                                    {{ $unit->property?->name ?? 'No Property' }} — {{ $unit->code ?? $unit->unit_number }} ({{ $unit->type ?? $unit->unit_type ?? '' }})
+                                    {{ $unit->code ?? $unit->unit_number }}
+                                    ({{ ucfirst($unit->type ?? $unit->unit_type ?? '') }},
+                                    {{ ucfirst($unit->status ?? $unit->availability_status ?? '') }})
                                 </option>
                             @endforeach
                         </select>
                         @error('dPropertyUnitId') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
                     </div>
-                    <div>
+
+                    {{-- Customer select (full width) --}}
+                    <div style="grid-column:span 2;">
                         <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
                             Customer <span style="color:var(--rj-fg)">*</span>
                         </label>
@@ -501,7 +542,7 @@
                            display:inline-flex; align-items:center; gap:6px;">
                     <span wire:loading.remove wire:target="savePropertySale" style="display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                        {{ $editingId ? 'Update Sale' : 'Save Sale' }}
+                        Update Sale
                     </span>
                     <span wire:loading wire:target="savePropertySale">Saving…</span>
                 </button>

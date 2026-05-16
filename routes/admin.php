@@ -462,6 +462,7 @@ Route::get('/site-engineers', App\Livewire\Admin\SiteEngineer\Engineer::class)->
 // ─── Real Estate ──────────────────────────────────────────────────────────────
 Route::get('/properties', App\Livewire\Admin\Properties\PropertyCatalog::class)->name('properties.index');
 Route::get('/properties/sales', App\Livewire\Admin\Properties\PropertySaleList::class)->name('properties.sales.index');
+Route::get('/properties/sales/create', App\Livewire\Admin\Properties\PropertySaleCreate::class)->name('properties.sales.create');
 Route::get('/properties/sales/{sale}', App\Livewire\Admin\Properties\PropertySaleDetails::class)->name('properties.sales.show');
 Route::get('/properties/{property}', App\Livewire\Admin\Properties\PropertyShow::class)->name('properties.show');
 

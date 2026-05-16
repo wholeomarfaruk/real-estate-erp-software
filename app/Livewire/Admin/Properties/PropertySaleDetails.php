@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Properties;
 
 use App\Models\Customer;
+use App\Models\PaymentSchedule;
 use App\Models\PropertySale;
 use App\Models\PropertyUnit;
 use Illuminate\Support\Facades\Auth;
@@ -13,10 +14,10 @@ class PropertySaleDetails extends Component
 {
     public PropertySale $sale;
 
-    // ── Drawer UI state ──────────────────────────────────────────────────────
+    // ── Sale edit drawer ─────────────────────────────────────────────────────
     public bool $drawerOpen = false;
 
-    // ── Drawer fields ────────────────────────────────────────────────────────
+    // ── Sale edit drawer fields ──────────────────────────────────────────────
     public $dPropertyUnitId     = '';
     public $dCustomerId         = '';
     public $dSaleDate           = '';
@@ -31,10 +32,21 @@ class PropertySaleDetails extends Component
     public $dSalesRepresentative = '';
     public $dNotes              = '';
 
+    // ── Schedule drawer ──────────────────────────────────────────────────────
+    public bool $scheduleDrawerOpen = false;
+    public ?int $editingScheduleId  = null;
+    public $sPaymentCategory = 'installment';
+    public $sSequenceNo      = '';
+    public $sDueDate         = '';
+    public $sAmount          = '0';
+    public $sPaidAmount      = '0';
+    public $sStatus          = 'pending';
+    public $sRemarks         = '';
+
     public function mount(PropertySale $sale): void
     {
         abort_unless(Auth::user()?->can('property_sale.view'), 403);
-        $this->sale = $sale->load(['propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser']);
+        $this->sale = $sale->load(['propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser', 'paymentSchedules']);
     }
 
     // ── Financial auto-calculation ───────────────────────────────────────────
@@ -133,6 +145,126 @@ class PropertySaleDetails extends Component
         $this->sale = $this->sale->fresh(['propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser']);
         $this->closeDrawer();
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Sale updated successfully.']);
+    }
+
+    // ── Schedule drawer ──────────────────────────────────────────────────────
+    public function openAddSchedule(): void
+    {
+        abort_unless(Auth::user()?->can('property_sale.edit'), 403);
+        $this->editingScheduleId = null;
+        $this->sPaymentCategory  = 'installment';
+        $this->sSequenceNo       = '';
+        $this->sDueDate          = '';
+        $this->sAmount           = '0';
+        $this->sPaidAmount       = '0';
+        $this->sStatus           = 'pending';
+        $this->sRemarks          = '';
+        $this->scheduleDrawerOpen = true;
+    }
+
+    public function openEditSchedule(int $id): void
+    {
+        abort_unless(Auth::user()?->can('property_sale.edit'), 403);
+        $schedule = PaymentSchedule::findOrFail($id);
+        $this->editingScheduleId = $id;
+        $this->sPaymentCategory  = $schedule->payment_category;
+        $this->sSequenceNo       = (string) ($schedule->sequence_no ?? '');
+        $this->sDueDate          = $schedule->due_date->format('Y-m-d');
+        $this->sAmount           = (string) $schedule->amount;
+        $this->sPaidAmount       = (string) $schedule->paid_amount;
+        $this->sStatus           = $schedule->status;
+        $this->sRemarks          = $schedule->remarks ?? '';
+        $this->scheduleDrawerOpen = true;
+    }
+
+    public function closeScheduleDrawer(): void
+    {
+        $this->scheduleDrawerOpen = false;
+        $this->editingScheduleId  = null;
+        $this->resetValidation();
+    }
+
+    public function saveSchedule(): void
+    {
+        abort_unless(Auth::user()?->can('property_sale.edit'), 403);
+
+        $validator = Validator::make([
+            'sPaymentCategory' => $this->sPaymentCategory,
+            'sDueDate'         => $this->sDueDate,
+            'sAmount'          => $this->sAmount,
+        ], [
+            'sPaymentCategory' => 'required|in:down_payment,installment,monthly_rent,security_deposit',
+            'sDueDate'         => 'required|date',
+            'sAmount'          => 'required|numeric|min:0',
+        ], [
+            'sPaymentCategory.required' => 'Payment category is required.',
+            'sDueDate.required'         => 'Due date is required.',
+            'sAmount.required'          => 'Amount is required.',
+            'sAmount.numeric'           => 'Amount must be a number.',
+        ]);
+
+        if ($validator->fails()) {
+            $this->setErrorBag($validator->errors());
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Please fix the validation errors.']);
+            return;
+        }
+
+        $paid      = (float) $this->sPaidAmount;
+        $total     = (float) $this->sAmount;
+        $due       = round($total - $paid, 2);
+        $autoStatus = $this->sStatus;
+        if ($paid <= 0) {
+            $autoStatus = 'pending';
+        } elseif ($due <= 0) {
+            $autoStatus = 'paid';
+        } else {
+            $autoStatus = 'partial';
+        }
+
+        $data = [
+            'property_sale_id'  => $this->sale->id,
+            'payment_category'  => $this->sPaymentCategory,
+            'sequence_no'       => $this->sSequenceNo !== '' ? (int) $this->sSequenceNo : null,
+            'due_date'          => $this->sDueDate,
+            'amount'            => $total,
+            'paid_amount'       => $paid,
+            'due_amount'        => $due,
+            'status'            => $autoStatus,
+            'is_auto_generated' => false,
+            'remarks'           => $this->sRemarks ?: null,
+        ];
+
+        if ($this->editingScheduleId) {
+            PaymentSchedule::findOrFail($this->editingScheduleId)->update($data);
+            $this->dispatch('toast', ['type' => 'success', 'message' => 'Schedule entry updated.']);
+        } else {
+            PaymentSchedule::create($data);
+            $this->dispatch('toast', ['type' => 'success', 'message' => 'Schedule entry added.']);
+        }
+
+        $this->sale = $this->sale->fresh(['propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser', 'paymentSchedules']);
+        $this->closeScheduleDrawer();
+    }
+
+    public function deleteSchedule(int $id): void
+    {
+        abort_unless(Auth::user()?->can('property_sale.edit'), 403);
+        PaymentSchedule::findOrFail($id)->delete();
+        $this->sale = $this->sale->fresh(['propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser', 'paymentSchedules']);
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Schedule entry removed.']);
+    }
+
+    public function markSchedulePaid(int $id): void
+    {
+        abort_unless(Auth::user()?->can('property_sale.edit'), 403);
+        $schedule = PaymentSchedule::findOrFail($id);
+        $schedule->update([
+            'paid_amount' => $schedule->amount,
+            'due_amount'  => 0,
+            'status'      => 'paid',
+        ]);
+        $this->sale = $this->sale->fresh(['propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser', 'paymentSchedules']);
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Marked as paid.']);
     }
 
     public function render()

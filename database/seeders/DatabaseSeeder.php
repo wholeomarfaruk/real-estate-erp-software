@@ -19,11 +19,14 @@ class DatabaseSeeder extends Seeder
             ProductSeeder::class,
             SupplierSeeder::class,
             ChartOfAccountsSeeder::class,
+            PropertySeeder::class,
 
             //last one
             UserSeeder::class,
             EmployeeSeeder::class,
+            CustomerSeeder::class,
             AssignPermissionSeeder::class,
+
         ]);
     }
 }
