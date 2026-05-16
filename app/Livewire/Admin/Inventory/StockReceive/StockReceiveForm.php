@@ -61,6 +61,17 @@ class StockReceiveForm extends Component
 
     public ?string $poSelectionNotice = null;
 
+    public ?float $subTotalAmount;
+    public ?float $discountAmount = 0.00;
+    public ?float $totalAmount;
+    public ?float $shippingCost = 0.00;
+
+    public ?float $paidAmount = 0.00;
+    public ?float $dueAmount = 0.00;
+    public ?float $grandTotal = 0.00;
+
+
+
     /**
      * @var array<int, float>
      */
@@ -110,7 +121,7 @@ class StockReceiveForm extends Component
             $this->ensureStoreAccessible((int) $stockReceive->store_id);
 
             $this->items = $stockReceive->items
-                ->map(fn ($item): array => [
+                ->map(fn($item): array => [
                     'id' => $item->id,
                     'product_id' => $item->product_id,
                     'purchase_order_item_id' => $item->purchase_order_item_id,
@@ -167,13 +178,13 @@ class StockReceiveForm extends Component
             return;
         }
 
-        $this->supplier_id= $purchaseOrder->supplier_id;
+        $this->supplier_id = $purchaseOrder->supplier_id;
 
         try {
             $this->resetLinkedPoItems();
 
             $this->loadItemsFromPurchaseOrder((int) $purchaseOrderId, $this->supplier_id ? (int) $this->supplier_id : null);
-
+            $this->recalculateSummary();
             } catch (\Throwable $throwable) {
 
             $this->purchase_order_id = null;
@@ -226,6 +237,33 @@ class StockReceiveForm extends Component
 
         [$index] = explode('.', $name);
         $this->recalculateItem((int) $index);
+    }
+    public function updatedDiscountAmount($value): void
+    {
+        if ($value >= $this->subTotalAmount) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Discount amount cannot be greater than or equal to sub total amount.']);
+            $this->discountAmount = 0.00;
+        }
+
+        $this->recalculateSummary();
+    }
+    public function updatedShippingCost($value): void
+    {
+        if ($value >= $this->grandTotal) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Shipping cost cannot be greater than or equal to grand total amount.']);
+            $this->shippingCost = 0.00;
+        }
+
+        $this->recalculateSummary();
+    }
+    public function updatedPaidAmount($value): void
+    {
+        if ($value > $this->grandTotal) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Paid amount cannot be greater than or equal to grand total amount.']);
+            $this->paidAmount = 0.00;
+        }
+
+        $this->recalculateSummary();
     }
 
     public function saveChanges()
@@ -345,7 +383,9 @@ class StockReceiveForm extends Component
             $this->authorizePermission('inventory.stock.receive.create');
         }
 
+
         $this->normalizeItems();
+
 
         $validated = $this->validate($this->rules(), $this->messages());
 
@@ -417,7 +457,7 @@ class StockReceiveForm extends Component
             'store_id' => [
                 'required',
                 'integer',
-                Rule::exists('stores', 'id')->where(fn ($query) => $query->where('type', StoreType::OFFICE->value)),
+                Rule::exists('stores', 'id')->where(fn($query) => $query->where('type', StoreType::OFFICE->value)),
             ],
             'remarks' => ['nullable', 'string'],
             'images' => ['nullable', 'array'],
@@ -468,6 +508,15 @@ class StockReceiveForm extends Component
         $quantity = (float) ($this->items[$index]['quantity'] ?? 0);
         $unitPrice = (float) ($this->items[$index]['unit_price'] ?? 0);
         $this->items[$index]['total_price'] = round($quantity * $unitPrice, 2);
+        $this->recalculateSummary();
+    }
+    public function recalculateSummary(): void
+    {
+        $this->subTotalAmount = $this->subTotal();
+        $this->totalAmount = $this->discountAmount ? round($this->subTotalAmount - $this->discountAmount, 2) : $this->subTotalAmount;
+        $grandTotal = $this->totalAmount + ($this->shippingCost ?? 0);
+        $this->grandTotal = round($grandTotal, 2);
+        $this->dueAmount = $this->grandTotal - ($this->paidAmount ?? 0);
     }
 
     protected function normalizeItems(): void
@@ -505,7 +554,7 @@ class StockReceiveForm extends Component
         $this->supplier_voucher = $updated->supplier_voucher;
         $this->remarks = $updated->remarks;
         $this->items = $updated->items
-            ->map(fn ($item): array => [
+            ->map(fn($item): array => [
                 'id' => $item->id,
                 'product_id' => $item->product_id,
                 'purchase_order_item_id' => $item->purchase_order_item_id,
@@ -605,7 +654,7 @@ class StockReceiveForm extends Component
                 $poItem = $poItems->get($purchaseOrderItemId);
                 throw new \DomainException(
                     'Receive quantity exceeds pending quantity for product '
-                    .($poItem->product?->name ?? 'item').'. Pending: '.number_format($pendingQty, 3)
+                        . ($poItem->product?->name ?? 'item') . '. Pending: ' . number_format($pendingQty, 3)
                 );
             }
         }
@@ -745,9 +794,10 @@ class StockReceiveForm extends Component
         $this->items = [$this->blankItem()];
     }
 
-    public function getGrandTotalProperty(): float
+
+    public function subTotal(): float
     {
-        $total = collect($this->items)->sum(fn (array $item): float => (float) ($item['total_price'] ?? 0));
+        $total = collect($this->items)->sum(fn(array $item): float => (float) ($item['total_price'] ?? 0));
 
         return round($total, 2);
     }

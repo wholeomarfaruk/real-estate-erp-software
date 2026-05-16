@@ -79,6 +79,7 @@ class AccountList extends Component
         $this->showFormModal = true;
     }
 
+
     public function openEditModal(int $id): void
     {
         $this->authorizePermission('accounts.chart.edit');
@@ -101,6 +102,7 @@ class AccountList extends Component
         $this->is_active = (bool) $account->is_active;
         $this->sub_type = $account->sub_type;
         $this->showFormModal = true;
+        $this->allowed_reference_keys = $account->referenceKeys->pluck('reference_key')->all();
     }
 
     public function closeFormModal(): void
@@ -119,6 +121,7 @@ class AccountList extends Component
             ->unique()
             ->values()
             ->all();
+        
         unset($validated['allowed_reference_keys']);
 
         $parentId = $validated['parent_id'] ? (int) $validated['parent_id'] : null;
@@ -145,7 +148,7 @@ class AccountList extends Component
 
             $account->fill($validated);
             $account->save();
-
+       
             $this->syncAllowedReferences($account, $allowedReferenceKeys);
         });
 
@@ -283,6 +286,7 @@ class AccountList extends Component
             ->filter(fn (Account $account): bool => Str::contains(Str::lower($account->name.' '.$account->code), 'bank'))
             ->sum('computed_balance'), 3);
 
+    
         return view('livewire.admin.accounts.account.account-list', [
             'accounts' => $accounts,
             'types' => AccountType::cases(),
@@ -313,6 +317,7 @@ class AccountList extends Component
             'parent_id' => ['nullable', 'exists:accounts,id'],
             'is_active' => ['required', 'boolean'],
             'sub_type' => ['nullable', 'string'],
+            'allowed_reference_keys' => ['array'],
         ];
     }
 

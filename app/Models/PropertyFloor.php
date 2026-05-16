@@ -11,12 +11,24 @@ class PropertyFloor extends Model
     protected $table = 'property_floors';
 
     protected $fillable = [
-        'property_id',
+        // legacy
         'floor_name',
         'floor_number',
         'floor_type',
         'status',
         'notes',
+        // new
+        'property_id',
+        'code',
+        'label',
+        'sort_order',
+        'floor_area',
+        'remarks',
+    ];
+
+    protected $casts = [
+        'sort_order' => 'integer',
+        'floor_area' => 'decimal:2',
     ];
 
     public function property(): BelongsTo
@@ -26,6 +38,8 @@ class PropertyFloor extends Model
 
     public function units(): HasMany
     {
-        return $this->hasMany(PropertyUnit::class, 'property_floor_id');
+        return $this->hasMany(PropertyUnit::class, 'property_floor_id')
+            ->orderBy('sort_order')
+            ->orderBy('id');
     }
 }

@@ -71,11 +71,7 @@ return [
         'multiple' => true,
     ],
 
-    'Payroll' => [
-        'label' => 'Employee',
-        'model' => App\Models\Payroll::class,
-        'multiple' => false,
-    ],
+
 
     /*
     |--------------------------------------------------------------------------

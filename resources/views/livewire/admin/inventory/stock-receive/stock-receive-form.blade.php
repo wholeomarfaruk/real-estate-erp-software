@@ -126,75 +126,71 @@
                     <x-input-error for="remarks" class="mt-1" />
                 </div>
                 <div class="md:col-span-2 xl:col-span-2">
-                   <div class="md:col-span-2 xl:col-span-4" x-data="{ openImageModal: false }">
-                    <label for="image_receipt" class="text-sm font-medium text-gray-700">Upload Receipt</label>
+                    <div class="md:col-span-2 xl:col-span-4" x-data="{ openImageModal: false }">
+                        <label for="image_receipt" class="text-sm font-medium text-gray-700">Upload Receipt</label>
 
 
-                    <button type="button" id="image_receipt"
-        @click="openImageModal = true"
-        class="flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-        Manage Receipt
-    </button>
+                        <button type="button" id="image_receipt" @click="openImageModal = true"
+                            class="flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            Manage Receipt
+                        </button>
 
-    <div x-show="openImageModal"
-        x-cloak
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div @click.outside="openImageModal = false"
-            class="w-full max-w-4xl rounded-2xl bg-white p-6 shadow-xl">
+                        <div x-show="openImageModal" x-cloak
+                            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                            <div @click.outside="openImageModal = false"
+                                class="w-full max-w-4xl rounded-2xl bg-white p-6 shadow-xl">
 
-            <div class="mb-4 flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-gray-800">Stock Receive Images</h2>
+                                <div class="mb-4 flex items-center justify-between">
+                                    <h2 class="text-lg font-semibold text-gray-800">Stock Receive Images</h2>
 
-                <button type="button"
-                    @click="openImageModal = false"
-                    class="rounded-lg px-3 py-1 text-sm text-gray-500 hover:bg-gray-100">
-                    Close
-                </button>
-            </div>
+                                    <button type="button" @click="openImageModal = false"
+                                        class="rounded-lg px-3 py-1 text-sm text-gray-500 hover:bg-gray-100">
+                                        Close
+                                    </button>
+                                </div>
 
-            {{-- Media Picker --}}
-  <x-media-picker-field field="images" :value="$images"
+                                {{-- Media Picker --}}
+                                <x-media-picker-field field="images" :value="$images"
                                     placeholder="Click to upload files" :multiple="true" type="all"
                                     label="Manage images" required="false" />
                                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Add or remove attachments;
                                     Upto 2MB Size Allowed. saved when you click "Save or save post".</p>
 
-            {{-- Saved Images --}}
-            @if (!empty($images))
-                <div class="mt-6">
-                    <h3 class="mb-3 text-sm font-semibold text-gray-700">Saved Images</h3>
+                                {{-- Saved Images --}}
+                                @if (!empty($images))
+                                    <div class="mt-6">
+                                        <h3 class="mb-3 text-sm font-semibold text-gray-700">Saved Images</h3>
 
-                    <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-                        @foreach ($images as $index => $imageId)
-                            <div class="rounded-xl border border-gray-200 bg-gray-50 p-3">
-                                <img src="{{ file_path($imageId) }}"
-                                    class="h-28 w-full rounded-lg object-cover"
-                                    alt="Stock receive image">
+                                        <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+                                            @foreach ($images as $index => $imageId)
+                                                <div class="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                                                    <img src="{{ file_path($imageId) }}"
+                                                        class="h-28 w-full rounded-lg object-cover"
+                                                        alt="Stock receive image">
 
-                                <div class="mt-3 flex items-center gap-2">
-                                    <a href="{{ file_path($imageId) }}"
-                                        data-fancybox="stock-receive-images"
-                                        data-caption="Stock Receive Image {{ $index + 1 }}"
-                                        class="flex-1 rounded-lg bg-indigo-600 px-3 py-2 text-center text-xs font-medium text-white hover:bg-indigo-700">
-                                        View
-                                    </a>
+                                                    <div class="mt-3 flex items-center gap-2">
+                                                        <a href="{{ file_path($imageId) }}"
+                                                            data-fancybox="stock-receive-images"
+                                                            data-caption="Stock Receive Image {{ $index + 1 }}"
+                                                            class="flex-1 rounded-lg bg-indigo-600 px-3 py-2 text-center text-xs font-medium text-white hover:bg-indigo-700">
+                                                            View
+                                                        </a>
 
-                                    <a href="{{ file_path($imageId) }}"
-                                        download
-                                        class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-center text-xs font-medium text-gray-700 hover:bg-gray-100">
-                                        Download
-                                    </a>
-                                </div>
+                                                        <a href="{{ file_path($imageId) }}" download
+                                                            class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-center text-xs font-medium text-gray-700 hover:bg-gray-100">
+                                                            Download
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @else
+                                    <p class="mt-4 text-sm text-gray-500">No images selected yet.</p>
+                                @endif
                             </div>
-                        @endforeach
+                        </div>
                     </div>
-                </div>
-            @else
-                <p class="mt-4 text-sm text-gray-500">No images selected yet.</p>
-            @endif
-        </div>
-    </div>
-</div>
                 </div>
             </div>
 
@@ -268,7 +264,7 @@
 
                                     <td class="px-4 py-3 min-w-[140px]">
                                         <input type="number" min="0" step="0.01"
-                                            wire:model.live="items.{{ $index }}.unit_price"
+                                            wire:model.lazy="items.{{ $index }}.unit_price"
                                             @disabled($isLocked)
                                             class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                                         <x-input-error for="items.{{ $index }}.unit_price" class="mt-1" />
@@ -303,14 +299,114 @@
                     </table>
                 </div>
             </div>
+            <div class="mt-6 w-full max-w-md rounded-xl border border-gray-200 bg-gray-50 p-4 ml-auto">
 
-            <div class="mt-4 flex items-center justify-end">
-                <div class="rounded-lg bg-gray-50 px-4 py-3 text-right">
-                    <p class="text-xs text-gray-500">Grand Total</p>
-                    <p class="text-lg font-semibold text-gray-800">{{ number_format($grandTotal, 2) }}</p>
+                <h3 class="mb-3 text-sm font-semibold text-gray-700">Summary</h3>
+                <div class="mb-1 flex items-center justify-between">
+                    <div class="rounded-lg bg-gray-50 px-2 py-1 text-right">
+                        <p class="text-xs text-gray-500">Sub Total</p>
+                    </div>
+                    <div>
+                        <p class="text-lg font-semibold text-gray-800">{{ number_format($subTotalAmount, 2) }}</p>
+                    </div>
                 </div>
-            </div>
+                <div class="mb-1 flex items-center justify-between" x-data="{ editingDiscount: false }">
+                    <div class="rounded-lg bg-gray-50 px-2 py-1 text-right">
+                        <p class="text-xs text-gray-500 inline-flex items-center">Discount Amount 
+                            <span class="text-xs text-gray-400 ml-1  cursor-pointer hover:text-black"
+                                @click="editingDiscount = !editingDiscount">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" class="size-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                                </svg>
+                            </span>
+                        </p>
+                    </div>
+                    <div>
+                        <p x-show="!editingDiscount" class="text-lg font-semibold text-gray-800">
+                            {{ number_format($discountAmount, 2) }}</p>
 
+                        <input x-show="editingDiscount" type="text" wire:model.lazy="discountAmount"
+                            @disabled($isLocked) placeholder="0.00"
+                            class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500 text-right">
+                    </div>
+                </div>
+                <div class="mb-1 flex items-center justify-between">
+                    <div class="rounded-lg bg-gray-50 px-2 py-1 text-right">
+                        <p class="text-xs text-gray-500">Total Amount</p>
+                    </div>
+                    <div>
+                        <p class="text-lg font-semibold text-gray-800">{{ number_format($totalAmount, 2) }}</p>
+                    </div>
+                </div>
+                <div class="mb-1 flex items-center justify-between" x-data="{ editingDiscount: false }">
+                    <div class="rounded-lg bg-gray-50 px-2 py-1 text-right">
+                        <p class="text-xs text-gray-500 inline-flex items-center">Shipping Cost 
+                            <span class="text-xs text-gray-400 ml-1  cursor-pointer hover:text-black"
+                                @click="editingDiscount = !editingDiscount">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" class="size-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                                </svg>
+                            </span>
+                        </p>
+                    </div>
+                    <div>
+                        <p x-show="!editingDiscount" class="text-lg font-semibold text-gray-800">
+                            {{ number_format($shippingCost, 2) }}</p>
+
+                        <input x-show="editingDiscount" type="text" wire:model.lazy="shippingCost"
+                            @disabled($isLocked) placeholder="0.00"
+                            class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500 text-right">
+                    </div>
+                </div>
+                <hr class="my-2 border-gray-300">
+
+                <div class="mb-1 flex items-center justify-between">
+                    <div class="rounded-lg bg-gray-50 px-2 py-1 text-right">
+                        <p class="text-xs text-gray-800">Grand Total</p>
+                    </div>
+                    <div>
+                        <p class="text-lg font-semibold text-gray-800">{{ number_format($grandTotal, 2) }}</p>
+                    </div>
+                </div>
+                                <div class="mb-1 flex items-center justify-between" x-data="{ editingDiscount: false }">
+                    <div class="rounded-lg bg-gray-50 px-2 py-1 text-right">
+                        <p class="text-xs text-gray-500 inline-flex items-center">Paid Amount
+                            <span class="text-xs text-gray-400 ml-1  cursor-pointer hover:text-black"
+                                @click="editingDiscount = !editingDiscount">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" class="size-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                                </svg>
+                            </span>
+                        </p>
+                    </div>
+                    <div>
+                        <p x-show="!editingDiscount" class="text-lg font-semibold text-gray-800">
+                            {{ number_format($paidAmount, 2) }}</p>
+
+                        <input x-show="editingDiscount" type="text" wire:model.lazy="paidAmount"
+                            @disabled($isLocked) placeholder="0.00"
+                            class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500 text-right">
+                    </div>
+                </div>
+                <hr class="my-2 border-gray-300">
+
+                <div class="mb-1 flex items-center justify-between">
+                    <div class="rounded-lg bg-gray-50 px-2 py-1 text-right">
+                        <p class="text-xs text-gray-800">Due Amount</p>
+                    </div>
+                    <div>
+                        <p class="text-lg font-semibold text-gray-800">{{ number_format($dueAmount, 2) }}</p>
+                    </div>
+                </div>
+
+
+            </div>
             <div class="mt-6 flex flex-wrap items-center justify-end gap-3">
                 <a href="{{ route('admin.inventory.stock-receives.index') }}"
                     class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">

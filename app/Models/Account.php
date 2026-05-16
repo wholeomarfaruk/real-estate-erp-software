@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
+use App\Models\AccountReferenceLink;
 
 class Account extends Model
 {
@@ -50,6 +51,10 @@ class Account extends Model
 
         return collect(account_reference_config())->only($keys);
     }
+    public function referenceLinks()
+    {
+        return $this->hasMany(AccountReferenceLink::class);
+    }
 
     public function transactionLines(): HasMany
     {
@@ -86,7 +91,14 @@ class Account extends Model
         return $this->hasMany(Expense::class, 'payment_account_id');
     }
     public function bankAccount()
-{
-    return $this->hasOne(BankAccount::class);
-}
+    {
+        return $this->hasOne(BankAccount::class);
+    }
+    public function getBalanceAttribute(): float
+    {
+        $debits = $this->transactionLines()->sum('debit');
+        $credits = $this->transactionLines()->sum('credit');
+
+        return (float) ($debits - $credits);
+    }
 }

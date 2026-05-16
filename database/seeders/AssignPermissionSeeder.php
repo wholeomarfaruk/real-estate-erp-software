@@ -144,6 +144,10 @@ class AssignPermissionSeeder extends Seeder
                 'hrm.employee-advances.update',
                 'hrm.payroll-payments.view',
                 'hrm.payroll-payments.create',
+                'customer.view',
+                'customer.create',
+                'customer.edit',
+                'customer.delete',
             ])
             ->get();
 

@@ -24,7 +24,6 @@ return new class extends Migration
             $table->foreignId('posted_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('posted_at')->nullable();
             $table->timestamps();
-
             $table->index(['receive_date', 'status']);
             $table->index(['store_id', 'status']);
         });

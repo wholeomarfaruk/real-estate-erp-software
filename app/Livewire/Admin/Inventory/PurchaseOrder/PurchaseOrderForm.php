@@ -60,6 +60,10 @@ class PurchaseOrderForm extends Component
 
     public ?array $linkedRequestDetails = null;
 
+    public bool $showLinkModal          = false;
+    public bool $showQuantityModal      = false;
+    public bool $showLinkedDetailsModal = false;
+
     public function mount(?PurchaseOrder $purchaseOrder = null): void
     {
         if ($purchaseOrder && $purchaseOrder->exists) {
@@ -156,10 +160,27 @@ class PurchaseOrderForm extends Component
             return;
         }
 
-        [$index] = explode('.', $name);
+        [$index, $field] = array_pad(explode('.', $name, 2), 2, '');
+
+        // Duplicate product check — fires only when product_id is changed
+        if ($field === 'product_id' && $value) {
+            $productId = (int) $value;
+            foreach ($this->items as $i => $item) {
+                if ((int) $i !== (int) $index && (int) ($item['product_id'] ?? 0) === $productId) {
+                    // Reset the duplicate selection
+                    $this->items[(int) $index]['product_id'] = null;
+                    $this->items[(int) $index]['unit']        = '';
+                    $this->dispatch('toast', [
+                        'type'    => 'error',
+                        'message' => 'This item is already added to the purchase order.',
+                    ]);
+                    return;
+                }
+            }
+        }
+
         $product = Product::query()->find($this->items[$index]['product_id'] ?? null);
         $this->items[$index]['unit'] = $product->unit ?? '';
-
 
         $this->recalculateItem((int) $index);
     }
@@ -230,14 +251,16 @@ class PurchaseOrderForm extends Component
 
     public function openLinkModal(int $index): void
     {
-        $this->selectedItemIndex = $index;
-        $this->selectedStockRequestIds = [];
+        $this->selectedItemIndex        = $index;
+        $this->selectedStockRequestIds  = [];
+        $this->showLinkModal            = true;
     }
 
     public function closeLinkModal(): void
     {
-        $this->selectedItemIndex = null;
+        $this->selectedItemIndex       = null;
         $this->selectedStockRequestIds = [];
+        $this->showLinkModal           = false;
     }
 
     public function linkStockRequest(): void
@@ -259,25 +282,27 @@ class PurchaseOrderForm extends Component
         ];
 
         $this->closeLinkModal();
-
-        $this->dispatch('showQuantityDetails', $this->quantityDetails);
+        $this->showQuantityModal = true;
     }
 
     public function closeQuantityModal(): void
     {
-        $this->quantityDetails = null;
+        $this->quantityDetails   = null;
+        $this->showQuantityModal = false;
     }
 
     public function openLinkedRequestDetails(int $index): void
     {
-        $this->linkedRequestItemIndex = $index;
-        $this->linkedRequestDetails = $this->buildLinkedRequestDetails($index);
+        $this->linkedRequestItemIndex   = $index;
+        $this->linkedRequestDetails     = $this->buildLinkedRequestDetails($index);
+        $this->showLinkedDetailsModal   = true;
     }
 
     public function closeLinkedRequestDetails(): void
     {
         $this->linkedRequestItemIndex = null;
-        $this->linkedRequestDetails = null;
+        $this->linkedRequestDetails   = null;
+        $this->showLinkedDetailsModal = false;
     }
 
     private function buildLinkedRequestDetails(int $index): array
@@ -367,6 +392,36 @@ class PurchaseOrderForm extends Component
             return;
         }
         $item['stock_request_ids'] = $stockRequestIds;
+
+        // Auto-fill quantity with "need to purchase" from linked stock requests.
+        // The user may still edit the quantity freely after this.
+        $productId = (int) $item['product_id'];
+
+        $linkedRequests = StockRequest::query()
+            ->with(['items' => fn ($q) => $q->where('product_id', $productId)])
+            ->whereIn('id', $stockRequestIds)
+            ->get();
+
+        $totalRemaining = $linkedRequests->sum(function ($req) {
+            $reqItem = $req->items->first();
+            if (! $reqItem) {
+                return 0;
+            }
+            $requested = (float) ($reqItem->approved_quantity ?: $reqItem->quantity ?: 0);
+            $fulfilled  = (float) ($reqItem->fulfilled_quantity ?: 0);
+            return max(0, $requested - $fulfilled);
+        });
+
+        $officeStoreIds = Store::query()->office()->pluck('id')->toArray();
+        $officeStock    = (float) StockBalance::query()
+            ->where('product_id', $productId)
+            ->whereIn('store_id', $officeStoreIds)
+            ->sum('quantity');
+
+        $needToPurchase = round(max(0, $totalRemaining - $officeStock), 3);
+
+        $item['quantity'] = $needToPurchase;
+
         $this->items[$itemIndex] = $item;
         $this->closeQuantityModal();
         $this->openLinkedRequestDetails($itemIndex);
@@ -523,7 +578,7 @@ class PurchaseOrderForm extends Component
             'items.*.estimated_unit_price' => ['required', 'numeric', 'min:0'],
             'items.*.estimated_total_price' => ['required', 'numeric', 'min:0'],
             'items.*.remarks' => ['nullable', 'string'],
-            'items.*.stock_request_ids' => ['required', 'array', 'min:1'],
+            'items.*.stock_request_ids' => ['nullable', 'array'],
         ];
     }
 

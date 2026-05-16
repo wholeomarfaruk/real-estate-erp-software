@@ -101,7 +101,7 @@ class PurchaseOrderList extends Component
     {
         $this->authorizePermission('inventory.purchase_order.engineer_approve');
 
-        $purchaseOrder = PurchaseOrder::query()->find($purchaseOrderId);
+        $purchaseOrder = PurchaseOrder::query()->with('items')->find($purchaseOrderId);
         if (! $purchaseOrder) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Purchase order not found.']);
 
@@ -111,6 +111,14 @@ class PurchaseOrderList extends Component
         $this->ensurePurchaseOrderAccessible($purchaseOrder);
 
         try {
+            // Populate eng_approved_* columns from estimated values before approving,
+            // matching the same logic used in PurchaseOrderView::engineerApprove().
+            app(PurchaseOrderService::class)->updateItemApprovals(
+                $purchaseOrder,
+                $this->buildEngineerItemApprovals($purchaseOrder),
+                'chief_engineer'
+            );
+
             app(PurchaseOrderService::class)->engineerApprove($purchaseOrder, (int) auth()->id());
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Purchase order approved by engineer.']);
         } catch (\Throwable $throwable) {
@@ -118,11 +126,11 @@ class PurchaseOrderList extends Component
         }
     }
 
-    public function chairmanApproveOrder(int $purchaseOrderId, float|int|string|null $approvedAmount = null): void
+    public function chairmanApproveOrder(int $purchaseOrderId, ?string $remarks = null): void
     {
         $this->authorizePermission('inventory.purchase_order.chairman_approve');
 
-        $purchaseOrder = PurchaseOrder::query()->find($purchaseOrderId);
+        $purchaseOrder = PurchaseOrder::query()->with('items')->find($purchaseOrderId);
         if (! $purchaseOrder) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Purchase order not found.']);
 
@@ -132,19 +140,57 @@ class PurchaseOrderList extends Component
         $this->ensurePurchaseOrderAccessible($purchaseOrder);
 
         try {
-            if ($approvedAmount === null || trim((string) $approvedAmount) === '') {
-                throw new \DomainException('Approved amount is required.');
-            }
-
-            app(PurchaseOrderService::class)->chairmanApproveWithAmount(
+            app(PurchaseOrderService::class)->updateItemApprovals(
                 $purchaseOrder,
-                (float) $approvedAmount,
-                (int) auth()->id()
+                $this->buildChairmanItemApprovals($purchaseOrder),
+                'approval'
+            );
+
+            app(PurchaseOrderService::class)->chairmanApprove(
+                $purchaseOrder,
+                (int) auth()->id(),
+                $remarks ?: null
             );
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Purchase order approved by chairman.']);
         } catch (\Throwable $throwable) {
             $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
+
+    /** Build the engineer item approval payload from each item's estimated values. */
+    private function buildEngineerItemApprovals(PurchaseOrder $purchaseOrder): array
+    {
+        return $purchaseOrder->items->mapWithKeys(function ($item): array {
+            $qty  = (float) ($item->eng_approved_quantity  ?? $item->quantity           ?? 0);
+            $unit = (float) ($item->eng_approved_unit_price ?? $item->estimated_unit_price ?? 0);
+
+            return [
+                (string) $item->id => [
+                    'approved_quantity'   => $qty,
+                    'approved_unit_price' => $unit,
+                ],
+            ];
+        })->toArray();
+    }
+
+    /** Build the chairman item approval payload from eng-approved (or estimated) values. */
+    private function buildChairmanItemApprovals(PurchaseOrder $purchaseOrder): array
+    {
+        return $purchaseOrder->items->mapWithKeys(function ($item): array {
+            $qty  = (float) ($item->approved_quantity   ?? $item->eng_approved_quantity   ?? $item->quantity           ?? 0);
+            $unit = (float) ($item->approved_unit_price ?? $item->eng_approved_unit_price ?? $item->estimated_unit_price ?? 0);
+
+            return [
+                (string) $item->id => [
+                    'approved_quantity'   => $qty,
+                    'approved_unit_price' => $unit,
+                ],
+            ];
+        })->toArray();
     }
 
     public function accountsApproveOrder(int $purchaseOrderId): void
@@ -268,13 +314,20 @@ class PurchaseOrderList extends Component
 
         $this->ensurePurchaseOrderAccessible($purchaseOrder);
 
-        if ($purchaseOrder->status !== PurchaseOrderStatus::DRAFT) {
-            $this->dispatch('toast', ['type' => 'error', 'message' => 'Only draft purchase order can be deleted.']);
+        if ($purchaseOrder->stockReceives()->exists()) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Cannot delete: stock has been received against this order.']);
+
             return;
         }
 
-        if ($purchaseOrder->stockReceives()->exists()) {
-            $this->dispatch('toast', ['type' => 'error', 'message' => 'Linked stock receive exists. Draft cannot be deleted.']);
+        if ($purchaseOrder->funds()->exists()) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Cannot delete: payment/fund has been released against this order.']);
+
+            return;
+        }
+
+        if (! auth()->user()->hasRole('superadmin') && $purchaseOrder->status !== PurchaseOrderStatus::DRAFT) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Only draft purchase orders can be deleted.']);
 
             return;
         }
@@ -296,7 +349,7 @@ class PurchaseOrderList extends Component
                 'store:id,name,code,type',
                 'supplier:id,name',
             ])
-            ->withCount('items')
+            ->withCount(['items', 'stockReceives'])
             ->withSum('items as estimated_total', 'estimated_total_price')
             ->withSum('funds as released_total', 'amount')
             ->withSum('items as engineer_approved_amount', 'eng_approved_total_price')

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan *)",
+      "Bash(php -r ' *)",
+      "Bash(ls /mnt/f/projects/erp-software/.claude/worktrees/)",
+      "Read(//mnt/f/projects/erp-software/.claude/**)",
+      "Bash(php -l /f/projects/erp-software/.claude/worktrees/agent-ab0a1d2394be13cb1/app/Models/Customer.php)",
+      "Bash(php -l /f/projects/erp-software/.claude/worktrees/agent-ab0a1d2394be13cb1/app/Livewire/Admin/Customers/CustomerList.php)",
+      "Bash(php -l /f/projects/erp-software/.claude/worktrees/agent-ab0a1d2394be13cb1/app/Livewire/Admin/Customers/CustomerShow.php)",
+      "Bash(php -l /f/projects/erp-software/.claude/worktrees/agent-ab0a1d2394be13cb1/database/migrations/2026_05_16_230000_create_customers_table.php)"
+    ]
+  }
+}

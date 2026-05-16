@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Properties · Star Unity ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FCFBF7; --canvas:#F2EFE7;
+    --ink-1:#1A1814; --ink-2:#5C5648; --ink-3:#9B9686;
+    --rule:#EAE5D9; --accent:#1F3A68;
+    --mono:"IBM Plex Mono", ui-monospace, monospace;
+
+    --av-bg:#D2E7D5; --av-fg:#1F5A2C;
+    --bk-bg:#F7E6C4; --bk-fg:#7A5418;
+    --sd-bg:#D8E4F5; --sd-fg:#1F3D72;
+    --rt-bg:#DCD9F2; --rt-fg:#3A3582;
+    --in-bg:#EFEAE0; --in-fg:#5C5648;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:"Inter", system-ui, sans-serif;
+    color:var(--ink-1); background:var(--canvas);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ─── TOPBAR ──────────────────────────────────────────────────────────── */
+  .topbar{
+    position:sticky; top:0; z-index:10;
+    display:flex; justify-content:space-between; align-items:center;
+    height:56px; padding:0 24px;
+    background:rgba(252,251,247,.9); backdrop-filter: blur(12px) saturate(140%);
+    border-bottom:1px solid var(--rule);
+  }
+  .tb-left{ display:flex; align-items:center; gap:14px; }
+  .tb-logo{
+    width:28px; height:28px; background:var(--accent); color:var(--paper);
+    border-radius:6px; display:flex; align-items:center; justify-content:center;
+    font:600 14px var(--mono);
+  }
+  .tb-title{ font-size:13px; font-weight:600; }
+  .tb-sub{ font-size:11.5px; color:var(--ink-3); font-family:var(--mono); }
+  .tb-right{ display:flex; align-items:center; gap:10px; }
+
+  .btn{
+    appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1);
+    padding:7px 14px; font:500 12px "Inter", sans-serif; border-radius:6px; cursor:pointer;
+  }
+  .btn:hover{ background:rgba(0,0,0,.03); }
+  .btn-primary{ background:var(--ink-1); color:var(--paper); border-color:var(--ink-1); }
+  .btn-primary:hover{ background:#000; }
+  .btn-ghost{ background:transparent; border-color:transparent; color:var(--ink-2); }
+
+  /* ─── PAGE ────────────────────────────────────────────────────────────── */
+  .page{ max-width:1320px; margin:0 auto; padding:28px 24px 48px; }
+
+  .crumb{
+    font-size:11.5px; color:var(--ink-3); font-family:var(--mono);
+    display:flex; gap:6px; align-items:center; margin-bottom:14px;
+  }
+  .crumb .sep{ color:var(--ink-3); opacity:.5; }
+  .crumb-now{ color:var(--ink-1); }
+
+  .page-head{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    gap:24px; margin-bottom:22px;
+  }
+  .page-title{ font-size:24px; font-weight:600; letter-spacing:-.01em; }
+  .page-sub{ margin-top:4px; font-size:13px; color:var(--ink-2); }
+  .page-head .right{ display:flex; gap:8px; align-items:center; }
+
+  /* ─── KPI STRIP ───────────────────────────────────────────────────────── */
+  .kpi-strip{
+    display:grid; grid-template-columns:repeat(5, 1fr); gap:1px;
+    background:var(--rule); border:1px solid var(--rule); border-radius:10px;
+    overflow:hidden; margin-bottom:24px;
+  }
+  .kpi{
+    background:var(--paper); padding:16px 18px;
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .kpi-lbl{
+    font:600 10px "Inter", sans-serif; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--ink-3);
+  }
+  .kpi-val{ font:600 24px var(--mono); font-variant-numeric:tabular-nums; line-height:1.1; }
+  .kpi-foot{ font-size:11px; color:var(--ink-2); font-family:var(--mono); }
+  .kpi-foot .delta{ color:var(--av-fg); }
+  .kpi-foot .muted{ color:var(--ink-3); }
+
+  /* tiny stacked bar */
+  .stack{ display:flex; height:6px; border-radius:3px; overflow:hidden; background:var(--canvas); margin-top:2px; }
+  .stack span{ display:block; height:100%; }
+  .stack .av{ background:var(--av-fg); }
+  .stack .bk{ background:var(--bk-fg); }
+  .stack .sd{ background:var(--sd-fg); }
+  .stack .rt{ background:var(--rt-fg); }
+
+  /* ─── FILTERS ─────────────────────────────────────────────────────────── */
+  .filters{
+    background:var(--paper); border:1px solid var(--rule); border-radius:10px;
+    padding:10px; display:flex; align-items:center; gap:10px; margin-bottom:18px;
+  }
+  .search{
+    flex:1; display:flex; align-items:center; gap:8px;
+    padding:0 12px; height:34px; background:var(--canvas);
+    border-radius:6px; border:1px solid transparent;
+  }
+  .search:focus-within{ border-color:var(--ink-3); background:var(--paper); }
+  .search input{
+    border:0; background:transparent; outline:none; width:100%;
+    font:13px "Inter", sans-serif; color:var(--ink-1);
+  }
+  .search svg{ width:14px; height:14px; color:var(--ink-3); flex-shrink:0; }
+
+  .pill-group{ display:flex; gap:4px; background:var(--canvas); border-radius:6px; padding:3px; }
+  .pill-group button{
+    appearance:none; border:0; background:transparent;
+    padding:6px 12px; font:500 12px "Inter", sans-serif;
+    color:var(--ink-2); cursor:pointer; border-radius:4px;
+  }
+  .pill-group button.active{ background:var(--paper); color:var(--ink-1); box-shadow:0 1px 2px rgba(0,0,0,.05); }
+
+  /* ─── PROPERTY CARDS ─────────────────────────────────────────────────── */
+  .grid{
+    display:grid; grid-template-columns:repeat(2, 1fr); gap:16px;
+  }
+  @media (max-width: 980px){ .grid{ grid-template-columns:1fr; } }
+
+  .card{
+    background:var(--paper); border:1px solid var(--rule); border-radius:10px;
+    overflow:hidden; transition:box-shadow .15s, transform .15s;
+    display:flex; flex-direction:column;
+  }
+  .card:hover{ box-shadow: 0 1px 0 rgba(0,0,0,.02), 0 12px 32px -20px rgba(0,0,0,.2); }
+
+  .card-head{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    gap:12px; padding:18px 20px 14px; border-bottom:1px solid var(--rule);
+  }
+  .card-head .left{ flex:1; min-width:0; }
+  .prop-code{
+    font:500 11px var(--mono); color:var(--ink-3);
+    letter-spacing:.04em; text-transform:uppercase;
+  }
+  .prop-name{ margin-top:4px; font-size:16px; font-weight:600; }
+  .prop-addr{ margin-top:4px; font-size:11.5px; color:var(--ink-2); line-height:1.5; }
+
+  .status-pill{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:3px 9px; border-radius:999px; flex-shrink:0;
+    font:600 10px "Inter", sans-serif; letter-spacing:.04em; text-transform:uppercase;
+  }
+  .status-pill .dot{ width:5px; height:5px; border-radius:50%; }
+  .status-pill.active{ background:var(--av-bg); color:var(--av-fg); }
+  .status-pill.active .dot{ background:var(--av-fg); }
+  .status-pill.inactive{ background:var(--in-bg); color:var(--in-fg); }
+  .status-pill.inactive .dot{ background:var(--in-fg); }
+
+  /* Body: occupancy bar + 3-col breakdown */
+  .card-body{ padding:14px 20px 16px; }
+
+  .occ-row{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-bottom:8px;
+  }
+  .occ-label{
+    font:600 10px "Inter", sans-serif; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--ink-3);
+  }
+  .occ-pct{ font:600 13px var(--mono); }
+
+  .occ-bar{
+    display:flex; height:8px; border-radius:4px; overflow:hidden;
+    background:var(--canvas); border:1px solid var(--rule);
+  }
+  .occ-bar span{ display:block; height:100%; }
+  .occ-bar .av{ background:var(--av-fg); }
+  .occ-bar .bk{ background:var(--bk-fg); }
+  .occ-bar .sd{ background:var(--sd-fg); }
+  .occ-bar .rt{ background:var(--rt-fg); }
+
+  .legend{
+    display:flex; gap:14px; margin-top:8px; flex-wrap:wrap;
+    font-size:10.5px; color:var(--ink-2); font-family:var(--mono);
+  }
+  .legend i{
+    display:inline-block; width:8px; height:8px; border-radius:2px;
+    margin-right:5px; vertical-align:middle;
+  }
+  .legend .av{ background:var(--av-fg); }
+  .legend .bk{ background:var(--bk-fg); }
+  .legend .sd{ background:var(--sd-fg); }
+  .legend .rt{ background:var(--rt-fg); }
+
+  .breakdown{
+    display:grid; grid-template-columns:repeat(3, 1fr);
+    gap:1px; background:var(--rule); border:1px solid var(--rule);
+    border-radius:8px; overflow:hidden; margin-top:14px;
+  }
+  .bd-cell{ background:var(--paper); padding:10px 12px; }
+  .bd-lbl{
+    font:600 10px "Inter", sans-serif; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--ink-3);
+  }
+  .bd-val{ font:600 16px var(--mono); margin-top:2px; }
+  .bd-sub{
+    margin-top:3px; font-size:10.5px; color:var(--ink-2); font-family:var(--mono);
+    display:flex; gap:8px;
+  }
+  .bd-sub .av{ color:var(--av-fg); }
+  .bd-sub .bk{ color:var(--bk-fg); }
+  .bd-sub .sd{ color:var(--sd-fg); }
+  .bd-sub .rt{ color:var(--rt-fg); }
+
+  .meta-row{
+    margin-top:14px; padding-top:14px; border-top:1px solid var(--rule);
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    font-size:11.5px; color:var(--ink-2);
+  }
+  .meta-row .mono{ font-family:var(--mono); color:var(--ink-1); }
+  .meta-row .value{ font:600 13px var(--mono); }
+
+  .card-actions{
+    padding:10px 20px; border-top:1px solid var(--rule);
+    display:flex; justify-content:space-between; align-items:center;
+    background:rgba(0,0,0,.015);
+  }
+  .card-actions .links{ display:flex; gap:14px; }
+  .card-actions .engineer{
+    display:flex; align-items:center; gap:9px; min-width:0;
+  }
+  .card-actions .eng-avatar{
+    width:28px; height:28px; border-radius:50%;
+    background:var(--accent); color:var(--paper);
+    display:flex; align-items:center; justify-content:center;
+    font:600 11px var(--mono); letter-spacing:.02em; flex-shrink:0;
+  }
+  .card-actions .eng-meta{ display:flex; flex-direction:column; line-height:1.2; min-width:0; }
+  .card-actions .eng-lbl{
+    font:600 9px "Inter", sans-serif; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--ink-3);
+  }
+  .card-actions .eng-name{
+    font:500 12px "Inter", sans-serif; color:var(--ink-1);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .card-actions a{
+    color:var(--ink-2); text-decoration:none; font-size:12px;
+    display:inline-flex; align-items:center; gap:4px;
+  }
+  .card-actions a:hover{ color:var(--ink-1); }
+  .card-actions .btn-primary{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 12px; font:600 12px "Inter", sans-serif;
+    border-radius:6px; text-decoration:none;
+    background:var(--ink-1); color:var(--paper); border:1px solid var(--ink-1);
+  }
+  .card-actions .btn-primary:hover{ background:#000; color:var(--paper); }
+  .card-actions .btn-primary svg{ transition: transform .15s; }
+  .card-actions .btn-primary:hover svg{ transform: translateX(2px); }
+
+  /* ─── FOOTER ─────────────────────────────────────────────────────────── */
+  .foot{
+    margin-top:28px; padding-top:16px; border-top:1px solid var(--rule);
+    display:flex; justify-content:space-between;
+    font:11px var(--mono); color:var(--ink-3);
+  }
+
+  @media (max-width: 820px){
+    .kpi-strip{ grid-template-columns: repeat(2,1fr); }
+    .page-head{ flex-direction:column; align-items:flex-start; }
+  }
+</style>
+</head>
+<body style="background-color: rgb(244, 244, 244)">
+
+<main class="page">
+
+  <!-- breadcrumb + header -->
+  <div class="crumb">
+    <span>Real Estate</span><span class="sep">/</span>
+    <span class="crumb-now">Properties</span>
+  </div>
+
+  <div class="page-head">
+    <div>
+      <div class="page-title">Properties</div>
+      <div class="page-sub">All registered projects, their floors and unit inventory.</div>
+    </div>
+    <div class="right">
+      <button class="btn">Floors</button>
+      <button class="btn">Units</button>
+      <button class="btn btn-primary">+ New property</button>
+    </div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <section class="kpi-strip" id="kpis"></section>
+
+  <!-- FILTERS -->
+  <section class="filters">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="q" placeholder="Search by property name, code or location…" />
+    </div>
+    <div class="pill-group" id="statusFilter">
+      <button data-v="all" class="active">All</button>
+      <button data-v="active">Active</button>
+      <button data-v="inactive">Inactive</button>
+    </div>
+    <button class="btn">Filters</button>
+  </section>
+
+  <!-- PROPERTY GRID -->
+  <section class="grid" id="grid"></section>
+
+  <div class="foot">
+    <span>Showing <span id="shown">5</span> of <span id="total">5</span> properties</span>
+    <span>Updated 2026-05-16 09:42</span>
+  </div>
+</main>
+
+<!-- ─── DATA ───────────────────────────────────────────────────────────── -->
+<script id="data" type="application/json">
+{
+  "properties": [
+    {
+      "code": "P-101",
+      "name": "Shyamnagar Complex",
+      "address": "Shyamnagar Road · Mohammadpur, Dhaka",
+      "status": "active",
+      "type": "Residential + Commercial",
+      "floors": 6,
+      "units": {
+        "flat":    { "total": 8, "available": 4, "booked": 2, "sold": 1, "rented": 1 },
+        "shop":    { "total": 2, "available": 1, "booked": 0, "sold": 0, "rented": 1 },
+        "parking": { "total": 2, "available": 1, "booked": 1, "sold": 0, "rented": 0 }
+      },
+      "value": { "available": 3920000, "booked": 689000, "sold": 360000, "rented": 540000 },
+      "engineer": "Tareq Hossain",
+      "since": "2024-03-12"
+    },
+    {
+      "code": "P-102",
+      "name": "Gulshan Heights",
+      "address": "Plot 24, Gulshan Avenue · Dhaka 1212",
+      "status": "active",
+      "type": "Residential",
+      "floors": 3,
+      "units": {
+        "flat":    { "total": 6, "available": 3, "booked": 2, "sold": 0, "rented": 1 },
+        "shop":    { "total": 0, "available": 0, "booked": 0, "sold": 0, "rented": 0 },
+        "parking": { "total": 1, "available": 1, "booked": 0, "sold": 0, "rented": 0 }
+      },
+      "value": { "available": 2580000, "booked": 700000, "sold": 0, "rented": 520000 },
+      "engineer": "Nadia Rahman",
+      "since": "2024-08-04"
+    },
+    {
+      "code": "P-103",
+      "name": "Dhanmondi Plaza",
+      "address": "Road 7/A · Dhanmondi, Dhaka 1209",
+      "status": "active",
+      "type": "Commercial",
+      "floors": 2,
+      "units": {
+        "flat":    { "total": 0, "available": 0, "booked": 0, "sold": 0, "rented": 0 },
+        "shop":    { "total": 2, "available": 1, "booked": 0, "sold": 0, "rented": 1 },
+        "parking": { "total": 1, "available": 1, "booked": 0, "sold": 0, "rented": 0 }
+      },
+      "value": { "available": 1180000, "booked": 0, "sold": 0, "rented": 630000 },
+      "engineer": "Faria Chowdhury",
+      "since": "2025-02-19"
+    },
+    {
+      "code": "P-104",
+      "name": "Banani Towers",
+      "address": "Block C · Banani, Dhaka 1213",
+      "status": "inactive",
+      "type": "Residential",
+      "floors": 2,
+      "units": {
+        "flat":    { "total": 4, "available": 4, "booked": 0, "sold": 0, "rented": 0 },
+        "shop":    { "total": 0, "available": 0, "booked": 0, "sold": 0, "rented": 0 },
+        "parking": { "total": 0, "available": 0, "booked": 0, "sold": 0, "rented": 0 }
+      },
+      "value": { "available": 1644000, "booked": 0, "sold": 0, "rented": 0 },
+      "engineer": "Md. Anwar",
+      "since": "2025-05-30"
+    },
+    {
+      "code": "P-105",
+      "name": "Mirpur Residency",
+      "address": "Section 10 · Mirpur, Dhaka 1216",
+      "status": "active",
+      "type": "Residential",
+      "floors": 2,
+      "units": {
+        "flat":    { "total": 2, "available": 1, "booked": 0, "sold": 0, "rented": 1 },
+        "shop":    { "total": 0, "available": 0, "booked": 0, "sold": 0, "rented": 0 },
+        "parking": { "total": 0, "available": 0, "booked": 0, "sold": 0, "rented": 0 }
+      },
+      "value": { "available": 200000, "booked": 0, "sold": 0, "rented": 220000 },
+      "engineer": "Sajid Karim",
+      "since": "2025-09-12"
+    }
+  ]
+}
+</script>
+
+<script>
+  const DATA = JSON.parse(document.getElementById('data').textContent);
+
+  // ─── Aggregate ──────────────────────────────────────────────────────────
+  const fmtN = n => n.toLocaleString('en-US');
+  const fmtBDT = n => '৳ ' + n.toLocaleString('en-US');
+
+  function totals(p) {
+    const u = p.units;
+    const t = (k) => u.flat[k] + u.shop[k] + u.parking[k];
+    return { total: t('total'), available: t('available'), booked: t('booked'), sold: t('sold'), rented: t('rented') };
+  }
+
+  function aggregate(props) {
+    const out = {
+      properties: props.length,
+      active: props.filter(p => p.status === 'active').length,
+      floors: props.reduce((a,p)=>a+p.floors, 0),
+      total: 0, available: 0, booked: 0, sold: 0, rented: 0,
+      v_available: 0, v_booked: 0, v_sold: 0, v_rented: 0
+    };
+    for (const p of props) {
+      const t = totals(p);
+      out.total += t.total; out.available += t.available; out.booked += t.booked; out.sold += t.sold; out.rented += t.rented;
+      out.v_available += p.value.available;
+      out.v_booked    += p.value.booked;
+      out.v_sold      += p.value.sold;
+      out.v_rented    += p.value.rented;
+    }
+    return out;
+  }
+
+  // ─── Render KPI strip ───────────────────────────────────────────────────
+  function renderKpis(agg) {
+    const pct = (n,d) => d ? Math.round(100*n/d) : 0;
+    const av = pct(agg.available, agg.total),
+          bk = pct(agg.booked,    agg.total),
+          sd = pct(agg.sold,      agg.total),
+          rt = pct(agg.rented,    agg.total);
+    document.getElementById('kpis').innerHTML = `
+      <div class="kpi">
+        <div class="kpi-lbl">Properties</div>
+        <div class="kpi-val">${agg.properties}</div>
+        <div class="kpi-foot"><span class="muted">${agg.active} active · ${agg.properties - agg.active} inactive</span></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">Total units</div>
+        <div class="kpi-val">${agg.total}</div>
+        <div class="kpi-foot muted">across ${agg.floors} floors</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">Available</div>
+        <div class="kpi-val" style="color:var(--av-fg)">${agg.available}</div>
+        <div class="kpi-foot"><span class="delta">${av}% of inventory</span></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">Booked · Sold · Rented</div>
+        <div class="kpi-val" style="font-size:20px;">
+          <span style="color:var(--bk-fg)">${agg.booked}</span>
+          <span style="color:var(--ink-3); font-size:13px;">/</span>
+          <span style="color:var(--sd-fg)">${agg.sold}</span>
+          <span style="color:var(--ink-3); font-size:13px;">/</span>
+          <span style="color:var(--rt-fg)">${agg.rented}</span>
+        </div>
+        <div class="stack" title="Available / Booked / Sold / Rented">
+          <span class="av" style="width:${av}%"></span>
+          <span class="bk" style="width:${bk}%"></span>
+          <span class="sd" style="width:${sd}%"></span>
+          <span class="rt" style="width:${rt}%"></span>
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">Inventory value</div>
+        <div class="kpi-val">${fmtBDT(agg.v_available + agg.v_booked + agg.v_sold + agg.v_rented)}</div>
+        <div class="kpi-foot muted">avail ${fmtBDT(agg.v_available)} · rent ${fmtBDT(agg.v_rented)}</div>
+      </div>
+    `;
+  }
+
+  // ─── Render property card ───────────────────────────────────────────────
+  function card(p) {
+    const t = totals(p);
+    const pct = (n) => t.total ? (100*n/t.total) : 0;
+
+    const bd = (label, u) => `
+      <div class="bd-cell">
+        <div class="bd-lbl">${label}</div>
+        <div class="bd-val">${u.total}</div>
+        <div class="bd-sub">
+          <span class="av">${u.available} av</span>
+          <span class="bk">${u.booked} bk</span>
+          <span class="sd">${u.sold} sd</span>
+          <span class="rt">${u.rented} rt</span>
+        </div>
+      </div>
+    `;
+
+    return `
+      <article class="card">
+        <header class="card-head">
+          <div class="left">
+            <div class="prop-code">${p.code} · ${p.type}</div>
+            <div class="prop-name">${p.name}</div>
+            <div class="prop-addr">${p.address}</div>
+          </div>
+          <span class="status-pill ${p.status}">
+            <span class="dot"></span>${p.status}
+          </span>
+        </header>
+
+        <div class="card-body">
+          <div class="occ-row">
+            <span class="occ-label">Occupancy</span>
+            <span class="occ-pct">${Math.round(pct(t.booked + t.sold + t.rented))}%</span>
+          </div>
+          <div class="occ-bar" title="${t.available} available · ${t.booked} booked · ${t.sold} sold · ${t.rented} rented">
+            <span class="av" style="width:${pct(t.available)}%"></span>
+            <span class="bk" style="width:${pct(t.booked)}%"></span>
+            <span class="sd" style="width:${pct(t.sold)}%"></span>
+            <span class="rt" style="width:${pct(t.rented)}%"></span>
+          </div>
+          <div class="legend">
+            <span><i class="av"></i>${t.available} available</span>
+            <span><i class="bk"></i>${t.booked} booked</span>
+            <span><i class="sd"></i>${t.sold} sold</span>
+            <span><i class="rt"></i>${t.rented} rented</span>
+          </div>
+
+          <div class="breakdown">
+            ${bd('Flats', p.units.flat)}
+            ${bd('Shops', p.units.shop)}
+            ${bd('Parking', p.units.parking)}
+          </div>
+
+          <div class="meta-row">
+            <div>
+              <div style="font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:600;">Floors</div>
+              <div class="mono" style="margin-top:2px;">${p.floors} floors · ${t.total} units</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:600;">Available value</div>
+              <div class="value" style="margin-top:2px;">${fmtBDT(p.value.available)}</div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="card-actions">
+          <div class="engineer" title="Assigned engineer">
+            <span class="eng-avatar">${(p.engineer || '?').split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase()}</span>
+            <div class="eng-meta">
+              <span class="eng-lbl">Engineer</span>
+              <span class="eng-name">${p.engineer || '—'}</span>
+            </div>
+          </div>
+          <a class="btn btn-primary btn-sm" href="Property Detail.html" data-code="${p.code}">
+            View details
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </a>
+        </footer>
+      </article>
+    `;
+  }
+
+  // ─── Render & filter ────────────────────────────────────────────────────
+  const state = { q: '', status: 'all' };
+
+  function visible() {
+    return DATA.properties.filter(p => {
+      if (state.status !== 'all' && p.status !== state.status) return false;
+      if (state.q) {
+        const q = state.q.toLowerCase();
+        if (!(p.name + ' ' + p.code + ' ' + p.address).toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  function render() {
+    const list = visible();
+    renderKpis(aggregate(list));
+    document.getElementById('grid').innerHTML = list.map(card).join('');
+    document.getElementById('shown').textContent = list.length;
+    document.getElementById('total').textContent = DATA.properties.length;
+  }
+
+  // ─── Wire up ────────────────────────────────────────────────────────────
+  document.getElementById('q').addEventListener('input', e => { state.q = e.target.value; render(); });
+  document.querySelectorAll('#statusFilter button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#statusFilter button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      state.status = b.dataset.v;
+      render();
+    });
+  });
+
+  render();
+</script>
+</body>
+</html>
+
+<style id="__om-edit-overrides">
+#grid [data-code="P-101"] { background-color: rgb(0, 0, 0) !important }
+#grid [data-code="P-101"] { background-color: rgb(42, 202, 6) !important }
+#grid [data-code="P-101"] { background-color: rgb(18, 84, 3) !important }
+#grid [data-code="P-101"] { background-color: rgb(18, 82, 3) !important }
+</style>

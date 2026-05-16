@@ -19,14 +19,15 @@ class StockReceiveService
     public function __construct(
         protected StockService $stockService,
         protected PurchaseOrderService $purchaseOrderService,
-        protected PurchaseReturnService $purchaseReturnService
+        protected PurchaseReturnService $purchaseReturnService,
+        protected PurchaseInvoiceService $purchaseInvoiceService
     ) {}
 
     public function generateReceiveNo(): string
     {
         $lastId = (int) StockReceive::query()->max('id');
 
-        return 'SR-'.str_pad((string) ($lastId + 1), 6, '0', STR_PAD_LEFT);
+        return 'SR-' . str_pad((string) ($lastId + 1), 6, '0', STR_PAD_LEFT);
     }
 
     public function postReceive(StockReceive $stockReceive, ?int $userId = null): StockReceive
@@ -39,7 +40,7 @@ class StockReceiveService
 
         return DB::transaction(function () use ($stockReceive, $actorId): StockReceive {
 
-        $lockedReceive = StockReceive::query()
+            $lockedReceive = StockReceive::query()
                 ->with(['store', 'items', 'items.product'])
                 ->lockForUpdate()
                 ->findOrFail($stockReceive->id);
@@ -145,6 +146,13 @@ class StockReceiveService
                 $this->purchaseOrderService->recalculateReceiveStatus($purchaseOrder);
             }
 
+            // Auto-create a DRAFT purchase invoice from this stock receive.
+            // The invoice stays in DRAFT until the accounts manager reviews and confirms it.
+            $this->purchaseInvoiceService->createFromStockReceive(
+                $lockedReceive->refresh(),
+                $actorId
+            );
+
             return $lockedReceive->refresh();
         });
     }
@@ -210,11 +218,11 @@ class StockReceiveService
             ]);
 
             $affectedPairs = $lockedReceive->items
-                ->map(fn (StockReceiveItem $item): array => [
+                ->map(fn(StockReceiveItem $item): array => [
                     'store_id' => (int) $lockedReceive->store_id,
                     'product_id' => (int) $item->product_id,
                 ])
-                ->unique(fn (array $pair): string => $pair['store_id'].'-'.$pair['product_id'])
+                ->unique(fn(array $pair): string => $pair['store_id'] . '-' . $pair['product_id'])
                 ->values()
                 ->all();
 
@@ -275,8 +283,8 @@ class StockReceiveService
             if ($alreadyPostedQty + $currentQty > $requiredQty + 0.0001) {
                 throw new \DomainException(
                     ($poItem->product?->name ?? 'Purchase order item')
-                    .' receive quantity exceeds pending quantity. Pending: '
-                    .number_format(max(0, $requiredQty - $alreadyPostedQty), 3)
+                        . ' receive quantity exceeds pending quantity. Pending: '
+                        . number_format(max(0, $requiredQty - $alreadyPostedQty), 3)
                 );
             }
         }
@@ -309,7 +317,7 @@ class StockReceiveService
      */
     protected function validateAdjustedReceiveItems(StockReceive $stockReceive, array $items): array
     {
-        $currentItems = $stockReceive->items->keyBy(fn (StockReceiveItem $item): int => (int) $item->id);
+        $currentItems = $stockReceive->items->keyBy(fn(StockReceiveItem $item): int => (int) $item->id);
         $currentItemIds = $currentItems->keys()->all();
 
         if ($currentItemIds === []) {
@@ -317,7 +325,7 @@ class StockReceiveService
         }
 
         $submittedIds = collect($items)
-            ->map(fn (array $row): int => (int) ($row['id'] ?? 0))
+            ->map(fn(array $row): int => (int) ($row['id'] ?? 0))
             ->all();
 
         sort($currentItemIds);
@@ -398,8 +406,8 @@ class StockReceiveService
                 if ($otherPostedQty + $requestedQty > $requiredQty + 0.0001) {
                     throw new \DomainException(
                         ($poItem->product?->name ?? 'Purchase order item')
-                        .' receive quantity exceeds pending quantity. Max allowed: '
-                        .number_format(max(0, $requiredQty - $otherPostedQty), 3)
+                            . ' receive quantity exceeds pending quantity. Max allowed: '
+                            . number_format(max(0, $requiredQty - $otherPostedQty), 3)
                     );
                 }
             }

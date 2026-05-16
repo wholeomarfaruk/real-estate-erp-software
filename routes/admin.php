@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/dashboard', \App\Livewire\Admin\Dashboard\Dashboard::class)->name('dashboard');
 
+// CRM - Customers
+Route::get('/crm/customers', App\Livewire\Admin\Customers\CustomerList::class)->name('crm.customers.index');
+Route::get('/crm/customers/{customer}', App\Livewire\Admin\Customers\CustomerShow::class)->name('crm.customers.show');
+
 // user managements
 Route::get('/users', App\Livewire\Admin\Users\Users::class)->name('users');
 
@@ -454,3 +458,33 @@ Route::get('/ui/layouts', App\Livewire\Admin\Ui\Layouts\Layouts::class)->name('u
 
 //Site engineers
 Route::get('/site-engineers', App\Livewire\Admin\SiteEngineer\Engineer::class)->name('engineers');
+
+// ─── Real Estate ──────────────────────────────────────────────────────────────
+Route::get('/properties', App\Livewire\Admin\Properties\PropertyCatalog::class)->name('properties.index');
+Route::get('/properties/{property}', App\Livewire\Admin\Properties\PropertyShow::class)->name('properties.show');
+
+Route::post('/properties/{property}/floors/reorder', function (\App\Models\Property $property, \Illuminate\Http\Request $request) {
+    $order = $request->input('order', []);
+    foreach ($order as $i => $floorId) {
+        \App\Models\PropertyFloor::where('id', $floorId)
+            ->where('property_id', $property->id)
+            ->update(['sort_order' => $i + 1]);
+    }
+    return response()->json(['ok' => true]);
+})->name('properties.floors.reorder');
+
+Route::post('/properties/{property}/units/reorder', function (\App\Models\Property $property, \Illuminate\Http\Request $request) {
+    $floors = $request->input('floors', []);
+    foreach ($floors as $floorId => $unitIds) {
+        foreach ($unitIds as $i => $unitId) {
+            \App\Models\PropertyUnit::where('id', $unitId)
+                ->where('property_id', $property->id)
+                ->update(['sort_order' => $i + 1, 'property_floor_id' => $floorId]);
+        }
+    }
+    return response()->json(['ok' => true]);
+})->name('properties.units.reorder');
+
+// ─── CRM ──────────────────────────────────────────────────────────────────────
+Route::get('/crm/customers', App\Livewire\Admin\Customers\CustomerList::class)->name('crm.customers.index');
+Route::get('/crm/customers/{customer}', App\Livewire\Admin\Customers\CustomerShow::class)->name('crm.customers.show');

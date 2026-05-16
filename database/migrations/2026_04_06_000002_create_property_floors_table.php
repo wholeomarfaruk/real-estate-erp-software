@@ -11,13 +11,18 @@ return new class extends Migration
         Schema::create('property_floors', function (Blueprint $table) {
             $table->id();
             $table->foreignId('property_id')->constrained('properties')->cascadeOnDelete();
-            $table->string('floor_name');
-            $table->integer('floor_number')->nullable();
-            $table->string('floor_type')->nullable();
-            $table->string('status')->default('active');
-            $table->text('notes')->nullable();
+            
+            //new added
+            $table->string('code', 10)->nullable();
+            $table->string('label')->nullable();
+            $table->unsignedInteger('sort_order')->default(0);
+            $table->decimal('floor_area', 12, 2)->nullable();
+            $table->text('remarks')->nullable();
             $table->timestamps();
-        });
+
+            $table->index(['property_id', 'sort_order', 'code']);
+            
+            });
     }
 
     public function down(): void

@@ -13,12 +13,14 @@ class PurchasePayable extends Model
 
     protected $fillable = [
         'purchase_order_id',
+        'purchase_invoice_id',
         'supplier_id',
         'transaction_id',
         'payable_amount',
         'paid_amount',
         'due_amount',
         'status',
+        'notes',
     ];
 
     protected $casts = [
@@ -31,6 +33,11 @@ class PurchasePayable extends Model
     public function purchaseOrder(): BelongsTo
     {
         return $this->belongsTo(PurchaseOrder::class);
+    }
+
+    public function purchaseInvoice(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseInvoice::class);
     }
 
     public function supplier(): BelongsTo

@@ -13,15 +13,29 @@ return new class extends Migration
             $table->foreignId('project_id')->constrained('projects')->cascadeOnDelete();
             $table->string('name');
             $table->string('code')->nullable();
-            $table->string('property_type')->nullable();
-            $table->string('purpose')->nullable();
             $table->text('address')->nullable();
-            $table->text('description')->nullable();
-            $table->integer('total_floors')->nullable();
             $table->string('status')->default('active');
             $table->string('image')->nullable();
             $table->json('documents')->nullable();
-            $table->timestamps();
+        
+            //new added
+                        // New columns — existing project_id / property_type / etc. stay intact
+            $table->string('type')->nullable();
+            $table->decimal('total_area', 12, 2)->nullable();
+            $table->decimal('land_size', 10, 2)->nullable();
+            $table->unsignedBigInteger('engineer_id')->nullable();
+            $table->date('registered_at')->nullable();
+            $table->text('remarks')->nullable();
+            $table->softDeletes();
+
+
+
+           $table->timestamps();
+
+           //foreign key constraint for engineer_id referencing employees table
+            $table->foreign('engineer_id')->references('id')->on('employees')->nullOnDelete();
+           $table->index('type');
+            
         });
     }
 

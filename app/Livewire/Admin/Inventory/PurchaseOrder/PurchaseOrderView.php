@@ -85,54 +85,25 @@ class PurchaseOrderView extends Component
         if ($this->purchaseOrder->status !== PurchaseOrderStatus::PENDING_ENGINEER) {
             return;
         }
-
-        foreach ($this->purchaseOrder->items as $item) {
-            $input = $this->engineerItemApprovals[$item->id] ?? null;
-            if (!is_array($input)) {
-                continue;
-            }
-
-            $qty = (float) ($input['eng_approved_quantity'] ?? 0);
-            $unit = (float) ($input['eng_approved_unit_price'] ?? 0);
-
-            $item->update([
-                'eng_approved_quantity' => $qty,
-                'eng_approved_unit_price' => $unit,
-                'eng_approved_total_price' => round($qty * $unit, 2),
-            ]);
-        }
-
+        
+        app(PurchaseOrderService::class)->updateItemApprovals($this->purchaseOrder, $this->engineerItemApprovals, 'chief_engineer');
+        app(PurchaseOrderService::class)->updateStatus($this->purchaseOrder, PurchaseOrderStatus::PENDING_ENGINEER);
 
         $this->reloadPurchaseOrder();
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Engineer item approvals saved.']);
     }
 
-    public function saveChairmanItemApprovals(): void
+    public function saveApprovalsItems(): void
     {
-        $this->authorizePermission('inventory.purchase_order.chairman_approve');
+        $this->authorizePermission('inventory.purchase_order.approvals.update');
 
-        if ($this->purchaseOrder->status !== PurchaseOrderStatus::PENDING_CHAIRMAN) {
-            return;
-        }
+     
 
-        foreach ($this->purchaseOrder->items as $item) {
-            $input = $this->chairmanItemApprovals[$item->id] ?? null;
-            if (!is_array($input)) {
-                continue;
-            }
-
-            $qty = (float) ($input['approved_quantity'] ?? 0);
-            $unit = (float) ($input['approved_unit_price'] ?? 0);
-
-            $item->update([
-                'approved_quantity' => $qty,
-                'approved_unit_price' => $unit,
-                'approved_total_price' => round($qty * $unit, 2),
-            ]);
-        }
+        app(PurchaseOrderService::class)->updateItemApprovals($this->purchaseOrder, $this->chairmanItemApprovals, 'approval');
+        app(PurchaseOrderService::class)->updateStatus($this->purchaseOrder, PurchaseOrderStatus::PENDING_CHAIRMAN);
 
         $this->reloadPurchaseOrder();
-        $this->dispatch('toast', ['type' => 'success', 'message' => 'Chairman item approvals saved.']);
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Approval Items saved.']);
     }
 
     public function closeQuantityModal(): void
@@ -169,6 +140,7 @@ class PurchaseOrderView extends Component
         }
 
         try {
+            app(PurchaseOrderService::class)->updateItemApprovals($this->purchaseOrder, $this->engineerItemApprovals, 'chief_engineer');
             app(PurchaseOrderService::class)->engineerApprove($this->purchaseOrder, (int) auth()->id());
             $this->reloadPurchaseOrder();
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Purchase order approved by engineer.']);
@@ -189,7 +161,7 @@ class PurchaseOrderView extends Component
 
     
         try {
-           
+           app(PurchaseOrderService::class)->updateItemApprovals($this->purchaseOrder, $this->chairmanItemApprovals, 'approval');
             app(PurchaseOrderService::class)->chairmanApprove(
                 $this->purchaseOrder,
                 (int) auth()->id(),
@@ -402,8 +374,8 @@ class PurchaseOrderView extends Component
     protected function syncItemApprovals(): void
     {
         $mapped = $this->purchaseOrder->items->mapWithKeys(function ($item): array {
-            $qty = (float) ($item->approved_quantity ?? $item->quantity ?? 0);
-            $unit = (float) ($item->approved_unit_price ?? $item->estimated_unit_price ?? 0);
+            $qty = (float) ($item->approved_quantity ?? $item->eng_approved_quantity ??  $item->quantity ?? 0);
+            $unit = (float) ($item->approved_unit_price ?? $item->eng_approved_unit_price ??  $item->estimated_unit_price ?? 0);
 
             return [
                 (string) $item->id => [
@@ -414,7 +386,20 @@ class PurchaseOrderView extends Component
             ];
         })->toArray();
 
-        $this->engineerItemApprovals = $mapped;
+        $engmaped = $this->purchaseOrder->items->mapWithKeys(function ($item): array {
+            $qty = (float) ($item->eng_approved_quantity ?? $item->quantity ?? 0);
+            $unit = (float) ($item->eng_approved_unit_price ?? $item->estimated_unit_price ?? 0);
+
+            return [
+                (string) $item->id => [
+                    'approved_quantity' => $qty,
+                    'approved_unit_price' => $unit,
+                    'approved_total_price' => round($qty * $unit, 2),
+                ],
+            ];
+        })->toArray();
+
+        $this->engineerItemApprovals = $engmaped;
         $this->chairmanItemApprovals = $mapped;
     }
     public function openLinkedRequestDetails(int $itemId): void

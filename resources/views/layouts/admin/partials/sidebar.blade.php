@@ -69,6 +69,98 @@
                         Dashboard</p>
                 </a>
                 @endcan
+                @can('customer.view')
+                    <!-- CRM -->
+                    <div class="mt-2 mb-1">
+                        <h2 class="text-gray-500 text-md font-semibold" :class="{ 'hidden': !$store.sidebar.full }"
+                            x-transition>CRM</h2>
+                    </div>
+                    <div x-data="dropdown" class="relative">
+                        <div @click="toggle('crm')" x-data="tooltip" @mouseover="show = true"
+                            @mouseleave="show = false"
+                            class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
+                            :class="{
+                                'justify-start': $store.sidebar.full,
+                                'sm:justify-center': !$store.sidebar.full,
+                                'text-gray-200 bg-gray-800': $store.sidebar.active == 'crm',
+                                'text-gray-400': $store.sidebar.active != 'crm'
+                            }">
+                            <div class="relative flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="2" stroke="currentColor" class="size-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M18 18.72a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                </svg>
+                                <p x-cloak class="text-xs"
+                                    :class="!$store.sidebar.full ? (show ? visibleClass : 'sm:hidden') : ''">
+                                    CRM
+                                </p>
+                            </div>
+                            <svg x-cloak :class="$store.sidebar.full ? '' : 'sm:hidden'"
+                                xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 size-6" viewBox="0 0 20 20"
+                                stroke-width="1.5" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div x-cloak x-show="open" @click.outside="open=false"
+                            :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                            @can('customer.view')
+                                <a href="{{ route('admin.crm.customers.index') }}"
+                                    class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.crm.*') ? 'text-gray-200' : '' }}">
+                                    Customers
+                                </a>
+                            @endcan
+                        </div>
+                    </div>
+                @endcan
+
+                @can('property.view')
+                    <!-- Real Estate -->
+                    <div class="mt-2 mb-1">
+                        <h2 class="text-gray-500 text-md font-semibold" :class="{ 'hidden': !$store.sidebar.full }"
+                            x-transition>Real Estate</h2>
+                    </div>
+                    <div x-data="dropdown('realestate')" class="relative">
+                        <div @click="toggle('realestate')" x-data="tooltip" @mouseover="show = true"
+                            @mouseleave="show = false"
+                            class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
+                            :class="{
+                                'justify-start': $store.sidebar.full,
+                                'sm:justify-center': !$store.sidebar.full,
+                                'text-gray-200 bg-gray-800': $store.sidebar.active == 'realestate',
+                                'text-gray-400': $store.sidebar.active != 'realestate'
+                            }">
+                            <div class="relative flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="2" stroke="currentColor" class="size-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z" />
+                                </svg>
+                                <p x-cloak class="text-xs"
+                                    :class="!$store.sidebar.full ? (show ? visibleClass : 'sm:hidden') : ''">
+                                    Properties
+                                </p>
+                            </div>
+                            <svg x-cloak :class="$store.sidebar.full ? '' : 'sm:hidden'"
+                                xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 size-6" viewBox="0 0 20 20"
+                                stroke-width="1.5" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div x-cloak x-show="open" @click.outside="open=false"
+                            :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                            <a href="{{ route('admin.properties.index') }}"
+                                class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.properties.*') ? 'text-gray-200' : '' }}">
+                                Property Catalog
+                            </a>
+                        </div>
+                    </div>
+                @endcan
+
                 @can('section.general.access')
                     <!-- General  -->
                     <div class="mt-2 mb-1">

@@ -257,9 +257,23 @@
                                                     @if ($order->status?->value === 'pending_chairman')
                                                         <button type="button"
                                                             @click="
-                                                                const amount = prompt('Enter approved amount', '{{ number_format((float) $order->fund_request_amount, 2, '.', '') }}');
-                                                                if (amount === null) return;
-                                                                $wire.chairmanApproveOrder({{ $order->id }}, amount);
+                                                                open = false;
+                                                                Swal.fire({
+                                                                    title: 'Chairman Approval',
+                                                                    html: '<p class=\'text-sm text-gray-500 mb-3\'>PO: <strong>{{ $order->po_no }}</strong></p><p class=\'text-sm text-gray-500\'>Enter remarks (optional)</p>',
+                                                                    input: 'textarea',
+                                                                    inputPlaceholder: 'Remarks...',
+                                                                    inputAttributes: { rows: 3 },
+                                                                    showCancelButton: true,
+                                                                    confirmButtonText: 'Approve',
+                                                                    cancelButtonText: 'Cancel',
+                                                                    confirmButtonColor: '#0891b2',
+                                                                    reverseButtons: true,
+                                                                    focusCancel: true,
+                                                                }).then((result) => {
+                                                                    if (!result.isConfirmed) return;
+                                                                    $wire.chairmanApproveOrder({{ $order->id }}, result.value || null);
+                                                                });
                                                             "
                                                             class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
                                                             Chairman Approve
@@ -333,13 +347,16 @@
                                                 @endcan
 
                                                 @can('inventory.purchase_order.delete')
-                                                    @if ($order->status?->value === 'draft')
+                                                    @if (
+                                                        $order->status?->value === 'draft' ||
+                                                        (auth()->user()->hasRole('superadmin') && $order->stock_receives_count === 0 && (float) $order->released_total <= 0)
+                                                    )
                                                         <button type="button" x-data="livewireConfirm"
                                                             @click="confirmAction({
                                                                 id: {{ $order->id }},
                                                                 method: 'deleteOrder',
-                                                                title: 'Delete this draft PO?',
-                                                                text: 'This draft purchase order will be deleted permanently.',
+                                                                title: 'Delete this purchase order?',
+                                                                text: 'This purchase order will be permanently deleted.',
                                                                 confirmText: 'Yes, delete'
                                                             })"
                                                             class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50">

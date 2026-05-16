@@ -213,4 +213,12 @@ class Supplier extends Model
     {
         return $this->morphMany(PurchaseFund::class, 'receiver');
     }
+public function getAccountsAttribute()
+{
+    return Account::query()
+        ->whereHas('referenceLinks', function ($query) {
+            $query->where('reference_key', 'supplier');
+        })
+        ->get();
+}
 }

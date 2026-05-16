@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>ERP Software - Star Unity Development</title>
     <link rel="shortcut icon" href="{{ asset('assets/logo/sud-logo.png') }}" type="image/x-icon">
     @vite(['resources/sass/admin.scss', 'resources/css/admin.css', 'resources/js/admin.js'])
@@ -40,12 +41,30 @@
         })
     </script>
 
+    @php
+        // Determine which sidebar group is active based on the current route.
+        // Used to pre-select the store and auto-open the correct dropdown on load.
+        $currentRoute = Route::currentRouteName() ?? '';
+        $sidebarActiveGroup = match(true) {
+            str_starts_with($currentRoute, 'admin.inventory')  => 'inventory',
+            str_starts_with($currentRoute, 'admin.accounts')   => 'accounts',
+            str_starts_with($currentRoute, 'admin.supplier')   => 'supplier',
+            str_starts_with($currentRoute, 'admin.hrm')        => 'hrm',
+            str_starts_with($currentRoute, 'admin.materials')  => 'materials',
+            str_starts_with($currentRoute, 'admin.projects')   => 'projects',
+            str_starts_with($currentRoute, 'admin.properties') => 'realestate',
+            str_starts_with($currentRoute, 'admin.crm')        => 'crm',
+            str_starts_with($currentRoute, 'admin.users')      => 'users',
+            str_starts_with($currentRoute, 'admin.ui')         => 'uicomponents',
+            default                                            => 'dashboard',
+        };
+    @endphp
     <script>
         document.addEventListener('alpine:init', () => {
             // Stores variable globally
             Alpine.store('sidebar', {
                 full: true,
-                active: 'dashboard',
+                active: '{{ $sidebarActiveGroup }}',
                 navOpen: false,
             });
             Alpine.store('pageName', {
@@ -54,8 +73,16 @@
 
             });
             // Creating component Dropdown
-            Alpine.data('dropdown', () => ({
+            // Pass the group key so the dropdown knows whether to auto-open on load:
+            //   x-data="dropdown('inventory')"
+            Alpine.data('dropdown', (key = null) => ({
                 open: false,
+                init() {
+                    // Auto-open only when the sidebar is expanded and this group is active.
+                    if (key && Alpine.store('sidebar').active === key && Alpine.store('sidebar').full) {
+                        this.open = true;
+                    }
+                },
                 toggle(tab) {
                     this.open = !this.open;
                     Alpine.store('sidebar').active = tab;

@@ -15,8 +15,13 @@ class AccountReferenceLink extends Model
         'reference_key',
     ];
 
-    public function account(): BelongsTo
-    {
-        return $this->belongsTo(Account::class);
-    }
+  public function getAccountsAttribute()
+{
+    return Account::query()
+        ->whereHas('referenceLinks', function ($query) {
+            $query->where('reference_key', 'supplier');
+        })
+        ->get();
+}
+    
 }

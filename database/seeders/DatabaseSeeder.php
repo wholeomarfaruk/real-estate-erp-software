@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             PanelSeeder::class,
             StoreSeeder::class,
             ProductUnitSeeder::class,
+            UnitTypeSeeder::class,
 
             ProductSeeder::class,
             SupplierSeeder::class,
@@ -21,6 +22,7 @@ class DatabaseSeeder extends Seeder
 
             //last one
             UserSeeder::class,
+            EmployeeSeeder::class,
             AssignPermissionSeeder::class,
         ]);
     }

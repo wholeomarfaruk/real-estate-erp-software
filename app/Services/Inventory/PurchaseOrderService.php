@@ -8,11 +8,13 @@ use App\Enums\Inventory\PurchaseFundReleaseType;
 use App\Enums\Inventory\PurchaseMode;
 use App\Enums\Inventory\PurchaseOrderStatus;
 use App\Enums\Inventory\StockReceiveStatus;
+use App\Models\Account;
 use App\Models\PurchaseFund;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderApproval;
 use App\Models\PurchaseSettlement;
 use App\Models\StockReceiveItem;
+use App\Services\Accounts\AccountingEntryService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -50,6 +52,66 @@ class PurchaseOrderService
             return $lockedOrder->refresh();
         });
     }
+    public function updateItemApprovals(PurchaseOrder $purchaseOrder, array $itemApprovals, string $updateBy): void
+    {
+        if (empty($itemApprovals)) {
+            return;
+        }
+        if ($purchaseOrder->items->isEmpty()) {
+            return;
+        }
+        if ($updateBy == 'chief_engineer') {
+
+            foreach ($purchaseOrder->items as $item) {
+                $input = $itemApprovals[$item->id] ?? null;
+                if (!is_array($input)) {
+                    continue;
+                }
+
+
+                $qty = (float) ($input['approved_quantity'] ?? 0);
+                $unit = (float) ($input['approved_unit_price'] ?? 0);
+
+                $item->update([
+                    'eng_approved_quantity' => $qty,
+                    'eng_approved_unit_price' => $unit,
+                    'eng_approved_total_price' => round($qty * $unit, 2),
+                ]);
+            }
+        } elseif ($updateBy == 'approval') {
+
+            foreach ($purchaseOrder->items as $item) {
+                $input = $itemApprovals[$item->id] ?? null;
+                if (!is_array($input)) {
+                    continue;
+                }
+
+
+                $qty = (float) ($input['approved_quantity'] ?? 0);
+                $unit = (float) ($input['approved_unit_price'] ?? 0);
+
+                $item->update([
+                    'approved_quantity' => $qty,
+                    'approved_unit_price' => $unit,
+                    'approved_total_price' => round($qty * $unit, 2),
+                ]);
+            }
+        }
+    }
+    public function updateStatus(PurchaseOrder $purchaseOrder, PurchaseOrderStatus $status): PurchaseOrder
+    {
+        return DB::transaction(function () use ($purchaseOrder, $status): PurchaseOrder {
+            $lockedOrder = PurchaseOrder::query()
+                ->lockForUpdate()
+                ->findOrFail($purchaseOrder->id);
+
+            $lockedOrder->update([
+                'status' => $status->value,
+            ]);
+
+            return $lockedOrder->refresh();
+        });
+    }
 
     public function engineerApprove(PurchaseOrder $purchaseOrder, ?int $userId = null, ?string $remarks = null): PurchaseOrder
     {
@@ -64,24 +126,12 @@ class PurchaseOrderService
             if ($lockedOrder->status !== PurchaseOrderStatus::PENDING_ENGINEER) {
                 throw new \DomainException('Purchase order is not pending engineer approval.');
             }
-
-            foreach ($lockedOrder->items as $item) {
-                $approvedQty = (float) ($item->approved_quantity ?? $item->quantity);
-                $approvedUnitPrice = (float) ($item->approved_unit_price ?? $item->estimated_unit_price);
-                $approvedTotal = round($approvedQty * $approvedUnitPrice, 2);
-
-                $item->update([
-                    'approved_quantity' => $approvedQty,
-                    'approved_unit_price' => $approvedUnitPrice,
-                    'approved_total_price' => $approvedTotal,
-                ]);
-            }
-
             $lockedOrder->update([
                 'status' => PurchaseOrderStatus::PENDING_CHAIRMAN->value,
-                'engineer_approved_by' => $actorId,
+                'engieer_approved_by' => $actorId,
                 'engineer_approved_at' => now(),
             ]);
+
 
             $this->createApprovalHistory(
                 purchaseOrderId: (int) $lockedOrder->id,
@@ -110,10 +160,10 @@ class PurchaseOrderService
             }
 
             $requestedAmount = round((float) $lockedOrder->fund_request_amount, 2);
-  $approvedTotal = round(
-    $lockedOrder->items->sum('approved_total_price'),
-    2
-);
+            $approvedTotal = round(
+                $lockedOrder->items->sum('approved_total_price'),
+                2
+            );
 
             $approvedAmount = round((float) $requestedAmount, 2);
             // $this->validateApprovedAmount($approvedTotal, $requestedAmount);
@@ -197,7 +247,7 @@ class PurchaseOrderService
 
             $requestedAmount = round((float) $lockedOrder->fund_request_amount, 2);
             $finalApprovedAmount = round((float) ($lockedOrder->approved_amount ?: ($approvedAmount ?? $requestedAmount)), 2);
-            $this->validateApprovedAmount($finalApprovedAmount, $requestedAmount);
+            // $this->validateApprovedAmount($finalApprovedAmount, $requestedAmount);
 
             $lockedOrder->update([
                 'status' => PurchaseOrderStatus::APPROVED->value,
@@ -282,7 +332,7 @@ class PurchaseOrderService
 
     /**
      * @param  array{
-     *   release_type:string,
+     *   payment_method:string,
      *   amount:float|int|string,
      *   received_by?:int|string|null,
      *   release_date:string,
@@ -297,7 +347,12 @@ class PurchaseOrderService
             $actorId = $this->resolveActorId($userId);
 
             $lockedOrder = PurchaseOrder::query()->lockForUpdate()->findOrFail($purchaseOrder->id);
-
+            $lockedAccount= Account::query()->lockForUpdate()->findOrFail($payload['payer_account_id']);
+            $balance = $lockedAccount->balance;
+            //  if ($balance < $payload['amount']) {
+            //     throw new \DomainException('Insufficient balance in your payer account. your account balance is '.$balance.' and you are trying to release '.$payload['amount']);
+            // }
+          
             if (
                 !in_array($lockedOrder->status, [
                     PurchaseOrderStatus::APPROVED,
@@ -308,7 +363,8 @@ class PurchaseOrderService
                 throw new \DomainException('Fund can be released only for approved or receiving purchase orders.');
             }
 
-            $releaseType = PurchaseFundReleaseType::from((string) $payload['release_type']);
+
+            $paymentMethod = PurchaseFundReleaseType::from((string) $payload['payment_method']);
             $amount = round((float) $payload['amount'], 2);
             if ($amount <= 0) {
                 throw new \DomainException('Released amount must be greater than zero.');
@@ -321,17 +377,18 @@ class PurchaseOrderService
             }
 
             return $lockedOrder->funds()->create([
-                'release_type' => $releaseType->value,
+                'release_type' => $paymentMethod->value,
                 'amount' => $amount,
                 'released_by' => $actorId,
                 'release_date' => $payload['release_date'],
                 'remarks' => $payload['remarks'] ?? null,
-                'payto' => $payload['Payee_type'] ?? null,
+                'payto' => $payload['payee_type'] ?? null,
                 'receiver_type' => $payload['receiver_type'] ?? null,
                 'receiver_id' => $payload['receiver_id'] ?? null,
             ]);
         });
     }
+  
 
     public function recalculateReceiveStatus(PurchaseOrder $purchaseOrder): PurchaseOrder
     {

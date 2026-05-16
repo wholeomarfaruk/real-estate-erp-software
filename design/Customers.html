@@ -1,0 +1,1080 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Customers · Star Unity ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FCFBF7; --canvas:#F2EFE7;
+    --ink-1:#1A1814; --ink-2:#5C5648; --ink-3:#9B9686;
+    --rule:#EAE5D9; --accent:#1F3A68;
+    --mono:"IBM Plex Mono", ui-monospace, monospace;
+
+    --av-bg:#D2E7D5; --av-fg:#1F5A2C;       /* verified / active */
+    --bk-bg:#F7E6C4; --bk-fg:#7A5418;       /* pending */
+    --sd-bg:#D8E4F5; --sd-fg:#1F3D72;       /* company */
+    --rt-bg:#DCD9F2; --rt-fg:#3A3582;       /* individual */
+    --rj-bg:#F1D3CE; --rj-fg:#7A2A1E;       /* rejected */
+    --in-bg:#EFEAE0; --in-fg:#5C5648;       /* inactive */
+
+    /* Lead stage colors */
+    --ln-bg:#EFEAE0; --ln-fg:#5C5648;       /* new */
+    --lc-bg:#D8E4F5; --lc-fg:#1F3D72;       /* contacted */
+    --lq-bg:#DCD9F2; --lq-fg:#3A3582;       /* qualified */
+    --lg-bg:#F7E6C4; --lg-fg:#7A5418;       /* negotiation */
+    --lw-bg:#D2E7D5; --lw-fg:#1F5A2C;       /* won */
+    --ll-bg:#F1D3CE; --ll-fg:#7A2A1E;       /* lost */
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:"Inter", system-ui, sans-serif;
+    color:var(--ink-1); background:var(--canvas);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .btn{
+    appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1);
+    padding:7px 14px; font:500 12px "Inter", sans-serif; border-radius:6px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .btn:hover{ background:rgba(0,0,0,.03); }
+  .btn-primary{ background:var(--ink-1); color:var(--paper); border-color:var(--ink-1); }
+  .btn-primary:hover{ background:#000; }
+  .btn-ghost{ background:transparent; border-color:transparent; color:var(--ink-2); }
+  .btn-sm{ padding:5px 10px; font-size:11.5px; }
+
+  /* ─── PAGE ──────────────────────────────────────────────────────────── */
+  .page{ max-width:1320px; margin:0 auto; padding:28px 24px 80px; }
+
+  .crumb{
+    font-size:11.5px; color:var(--ink-3); font-family:var(--mono);
+    display:flex; gap:6px; align-items:center; margin-bottom:14px;
+  }
+  .crumb .sep{ opacity:.5; }
+  .crumb a{ color:var(--ink-3); text-decoration:none; }
+  .crumb a:hover{ color:var(--ink-1); }
+  .crumb-now{ color:var(--ink-1); }
+
+  .page-head{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    gap:24px; margin-bottom:22px;
+  }
+  .page-title{ font-size:24px; font-weight:600; letter-spacing:-.01em; }
+  .page-sub{ margin-top:4px; font-size:13px; color:var(--ink-2); }
+  .page-head .right{ display:flex; gap:8px; align-items:center; }
+
+  /* ─── KPI STRIP ─────────────────────────────────────────────────────── */
+  .kpi-strip{
+    display:grid; grid-template-columns:repeat(5,1fr); gap:1px;
+    background:var(--rule); border:1px solid var(--rule); border-radius:10px;
+    overflow:hidden; margin-bottom:24px;
+  }
+  .kpi{ background:var(--paper); padding:14px 18px; }
+  .kpi-lbl{ font:600 10px "Inter", sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); }
+  .kpi-val{ margin-top:5px; font:600 22px var(--mono); font-variant-numeric:tabular-nums; line-height:1.1; }
+  .kpi-foot{ margin-top:4px; font:11px var(--mono); color:var(--ink-2); }
+  .kpi .stack{ display:flex; height:5px; border-radius:3px; overflow:hidden; background:var(--canvas); margin-top:6px; }
+  .kpi .stack span{ display:block; height:100%; }
+  .kpi .stack .av{ background:var(--av-fg); }
+  .kpi .stack .bk{ background:var(--bk-fg); }
+  .kpi .stack .rj{ background:var(--rj-fg); }
+
+  @media (max-width: 980px){ .kpi-strip{ grid-template-columns: repeat(2,1fr); } }
+
+  /* ─── FILTERS ───────────────────────────────────────────────────────── */
+  .filters{
+    background:var(--paper); border:1px solid var(--rule); border-radius:10px;
+    padding:10px; display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;
+  }
+  .search{
+    flex:1; min-width:240px; display:flex; align-items:center; gap:8px;
+    padding:0 12px; height:34px; background:var(--canvas);
+    border-radius:6px; border:1px solid transparent;
+  }
+  .search:focus-within{ border-color:var(--ink-3); background:var(--paper); }
+  .search input{
+    border:0; background:transparent; outline:none; width:100%;
+    font:13px "Inter", sans-serif; color:var(--ink-1);
+  }
+  .search svg{ width:14px; height:14px; color:var(--ink-3); flex-shrink:0; }
+
+  .pill-group{ display:flex; gap:4px; background:var(--canvas); border-radius:6px; padding:3px; }
+  .pill-group button{
+    appearance:none; border:0; background:transparent;
+    padding:6px 12px; font:500 12px "Inter", sans-serif;
+    color:var(--ink-2); cursor:pointer; border-radius:4px;
+  }
+  .pill-group button.active{ background:var(--paper); color:var(--ink-1); box-shadow:0 1px 2px rgba(0,0,0,.05); }
+
+  .select-inline{
+    appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1);
+    padding:7px 28px 7px 12px; font:500 12px "Inter", sans-serif; border-radius:6px;
+    background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%),
+                      linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
+    background-position: calc(100% - 14px) 50%, calc(100% - 10px) 50%;
+    background-size: 4px 4px, 4px 4px; background-repeat: no-repeat;
+  }
+
+  /* ─── CUSTOMER LIST (TABLE-LIKE CARDS) ──────────────────────────────── */
+  .list-block{
+    background:var(--paper); border:1px solid var(--rule); border-radius:10px;
+    overflow:hidden;
+  }
+  .list-head{
+    display:grid;
+    grid-template-columns: 60px 1.5fr 1fr 0.9fr 0.9fr 0.95fr 80px;
+    padding:12px 18px; background:rgba(0,0,0,.012); border-bottom:1px solid var(--rule);
+    font:600 10.5px "Inter", sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2);
+  }
+  .list-row{
+    display:grid;
+    grid-template-columns: 60px 1.5fr 1fr 0.9fr 0.9fr 0.95fr 80px;
+    padding:14px 18px; border-bottom:1px solid var(--rule); align-items:center;
+    cursor:pointer; transition: background .12s;
+  }
+  .list-row:last-child{ border-bottom:0; }
+  .list-row:hover{ background:rgba(0,0,0,.018); }
+
+  .cust-avatar{
+    width:40px; height:40px; border-radius:50%;
+    background: var(--accent); color: var(--paper);
+    display:flex; align-items:center; justify-content:center;
+    font:600 14px var(--mono); letter-spacing:.02em;
+  }
+  .cust-avatar.alt-1{ background:#8a5a3a; }
+  .cust-avatar.alt-2{ background:#3a6a4f; }
+  .cust-avatar.alt-3{ background:#6a3a5f; }
+  .cust-avatar.alt-4{ background:#5a4a3a; }
+  .cust-avatar.alt-5{ background:#3d3d6e; }
+
+  .cust-name{ font-size:13.5px; font-weight:600; }
+  .cust-id{
+    margin-top:2px; font:500 11px var(--mono); color:var(--ink-3);
+    letter-spacing:.04em; text-transform:uppercase;
+  }
+  .cust-contact{ font-size:12.5px; color:var(--ink-2); display:flex; flex-direction:column; gap:2px; }
+  .cust-contact .mono{ font-family:var(--mono); font-size:11px; }
+
+  .doc-block{
+    display:flex; flex-direction:column; gap:2px;
+    font:500 11px var(--mono); color:var(--ink-2);
+  }
+  .doc-block .type-chip{
+    display:inline-flex; padding:1px 6px; border-radius:3px;
+    background:var(--in-bg); color:var(--in-fg);
+    font:600 9px "Inter", sans-serif; letter-spacing:.06em; text-transform:uppercase;
+    width:fit-content;
+  }
+
+  .pill{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:3px 9px; border-radius:999px;
+    font:600 10px "Inter", sans-serif; letter-spacing:.04em; text-transform:uppercase;
+  }
+  .pill .dot{ width:5px; height:5px; border-radius:50%; }
+  .pill.individual{ background:var(--rt-bg); color:var(--rt-fg); }
+  .pill.individual .dot{ background:var(--rt-fg); }
+  .pill.company{ background:var(--sd-bg); color:var(--sd-fg); }
+  .pill.company .dot{ background:var(--sd-fg); }
+  .pill.verified{ background:var(--av-bg); color:var(--av-fg); }
+  .pill.verified .dot{ background:var(--av-fg); }
+  .pill.pending{ background:var(--bk-bg); color:var(--bk-fg); }
+  .pill.pending .dot{ background:var(--bk-fg); }
+  .pill.rejected{ background:var(--rj-bg); color:var(--rj-fg); }
+  .pill.rejected .dot{ background:var(--rj-fg); }
+  .pill.inactive{ background:var(--in-bg); color:var(--in-fg); }
+  .pill.inactive .dot{ background:var(--in-fg); }
+
+  /* Lead stage pills */
+  .pill.new{ background:var(--ln-bg); color:var(--ln-fg); }
+  .pill.new .dot{ background:var(--ln-fg); }
+  .pill.contacted{ background:var(--lc-bg); color:var(--lc-fg); }
+  .pill.contacted .dot{ background:var(--lc-fg); }
+  .pill.qualified{ background:var(--lq-bg); color:var(--lq-fg); }
+  .pill.qualified .dot{ background:var(--lq-fg); }
+  .pill.negotiation{ background:var(--lg-bg); color:var(--lg-fg); }
+  .pill.negotiation .dot{ background:var(--lg-fg); }
+  .pill.won{ background:var(--lw-bg); color:var(--lw-fg); }
+  .pill.won .dot{ background:var(--lw-fg); }
+  .pill.lost{ background:var(--ll-bg); color:var(--ll-fg); }
+  .pill.lost .dot{ background:var(--ll-fg); }
+
+  .row-act{
+    text-align:right; display:flex; gap:4px; justify-content:flex-end;
+    color:var(--ink-3);
+  }
+  .row-act .icon{
+    width:28px; height:28px; border-radius:5px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition: background .12s, color .12s;
+  }
+  .row-act .icon:hover{ background:rgba(0,0,0,.05); color:var(--ink-1); }
+
+  /* ─── PAGINATION FOOTER ─────────────────────────────────────────────── */
+  .list-foot{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 18px; border-top:1px solid var(--rule);
+    background:rgba(0,0,0,.012);
+    font:11.5px var(--mono); color:var(--ink-3);
+  }
+  .list-foot .pager{ display:flex; gap:4px; align-items:center; }
+  .list-foot .pager button{
+    appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2);
+    padding:4px 9px; font:500 11px "Inter", sans-serif; border-radius:5px; cursor:pointer;
+  }
+  .list-foot .pager button.active{ background:var(--ink-1); color:var(--paper); border-color:var(--ink-1); }
+  .list-foot .pager button:not(.active):hover{ background:rgba(0,0,0,.03); }
+
+  /* ─── DRAWER ────────────────────────────────────────────────────────── */
+  .scrim{
+    position:fixed; inset:0; background:rgba(20,18,16,.45); backdrop-filter:blur(4px);
+    opacity:0; pointer-events:none; transition:opacity .2s;
+    z-index:50;
+  }
+  .scrim.open{ opacity:1; pointer-events:auto; }
+  .drawer{
+    position:fixed; top:0; right:0; bottom:0; width:680px; max-width:100vw;
+    background:var(--canvas); z-index:51; transform:translateX(100%);
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+    display:flex; flex-direction:column;
+    box-shadow: -20px 0 40px -20px rgba(0,0,0,.25);
+  }
+  .drawer.open{ transform:translateX(0); }
+
+  .drawer-head{
+    padding:18px 24px; border-bottom:1px solid var(--rule);
+    background:var(--paper);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .drawer-head h3{ margin:0; font-size:16px; font-weight:600; }
+  .drawer-head .sub{ margin-top:2px; font:500 11px var(--mono); color:var(--ink-3); letter-spacing:.04em; text-transform:uppercase; }
+  .drawer-head .close{
+    appearance:none; border:0; background:transparent; color:var(--ink-2);
+    width:32px; height:32px; border-radius:6px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .drawer-head .close:hover{ background:rgba(0,0,0,.05); color:var(--ink-1); }
+
+  .drawer-tabs{
+    display:flex; gap:0; padding:0 24px; background:var(--paper);
+    border-bottom:1px solid var(--rule);
+  }
+  .drawer-tabs button{
+    appearance:none; background:transparent; border:0; cursor:pointer;
+    padding:12px 14px; font:500 12.5px "Inter", sans-serif; color:var(--ink-2);
+    border-bottom:2px solid transparent; margin-bottom:-1px;
+  }
+  .drawer-tabs button.active{ color:var(--ink-1); border-bottom-color:var(--ink-1); font-weight:600; }
+  .drawer-tabs button:hover:not(.active){ color:var(--ink-1); }
+  .drawer-tabs .badge{
+    display:inline-block; margin-left:6px; padding:1px 6px; border-radius:999px;
+    background:var(--in-bg); color:var(--in-fg);
+    font:600 10px var(--mono); vertical-align:1px;
+  }
+
+  .drawer-body{ flex:1; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:18px; }
+
+  /* ─── FORM ──────────────────────────────────────────────────────────── */
+  .section{
+    background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;
+  }
+  .section-title{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-bottom:14px;
+  }
+  .section-title h4{ margin:0; font-size:13px; font-weight:600; }
+  .section-title .hint{ font:11px var(--mono); color:var(--ink-3); }
+
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px 14px; }
+  .grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px 14px; }
+  .span-2{ grid-column: span 2; }
+  .span-3{ grid-column: span 3; }
+
+  .field-label{
+    display:block; font:600 10px "Inter", sans-serif; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;
+  }
+  .input, .select, .textarea{
+    width:100%; appearance:none; outline:none;
+    border:1px solid var(--rule); background:var(--paper); color:var(--ink-1);
+    padding:9px 12px; border-radius:7px;
+    font:13px "Inter", sans-serif;
+  }
+  .input.mono{ font-family:var(--mono); }
+  .input:focus, .select:focus, .textarea:focus{ border-color:var(--ink-1); }
+  .input[readonly]{ background:rgba(0,0,0,.025); color:var(--ink-2); cursor:not-allowed; }
+  .textarea{ resize:vertical; min-height:60px; line-height:1.5; }
+
+  /* Customer type segmented */
+  .seg-type{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .seg-type label{
+    display:flex; flex-direction:column; gap:4px;
+    padding:14px; border:1px solid var(--rule); border-radius:8px;
+    cursor:pointer; transition: border-color .12s, background .12s;
+    background:var(--paper);
+  }
+  .seg-type input{ display:none; }
+  .seg-type label .top{ display:flex; align-items:center; gap:8px; }
+  .seg-type label .icon{
+    width:32px; height:32px; border-radius:50%;
+    background:var(--in-bg); color:var(--in-fg);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .seg-type label .name{ font:600 13px "Inter", sans-serif; }
+  .seg-type label .desc{ font-size:11px; color:var(--ink-3); padding-left:40px; }
+  .seg-type input:checked + label.individual{ border-color:var(--rt-fg); background:var(--rt-bg); }
+  .seg-type input:checked + label.individual .icon{ background:var(--rt-fg); color:var(--paper); }
+  .seg-type input:checked + label.company{ border-color:var(--sd-fg); background:var(--sd-bg); }
+  .seg-type input:checked + label.company .icon{ background:var(--sd-fg); color:var(--paper); }
+
+  /* KYC status segmented */
+  .seg-kyc{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .seg-kyc label{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:9px; border:1px solid var(--rule); border-radius:7px;
+    cursor:pointer; font:600 11px "Inter", sans-serif;
+    text-transform:uppercase; letter-spacing:.04em; color:var(--ink-2);
+    background:var(--paper); transition: background .12s, border-color .12s;
+  }
+  .seg-kyc input{ display:none; }
+  .seg-kyc input:checked + label.pending{ background:var(--bk-bg); border-color:var(--bk-fg); color:var(--bk-fg); }
+  .seg-kyc input:checked + label.verified{ background:var(--av-bg); border-color:var(--av-fg); color:var(--av-fg); }
+  .seg-kyc input:checked + label.rejected{ background:var(--rj-bg); border-color:var(--rj-fg); color:var(--rj-fg); }
+
+  /* Lead stage segmented (6 options) */
+  .seg-stage{ display:grid; grid-template-columns:repeat(6,1fr); gap:6px; }
+  .seg-stage label{
+    display:flex; align-items:center; justify-content:center; gap:4px;
+    padding:8px 4px; border:1px solid var(--rule); border-radius:7px;
+    cursor:pointer; font:600 10px "Inter", sans-serif;
+    text-transform:uppercase; letter-spacing:.04em; color:var(--ink-2);
+    background:var(--paper); transition: background .12s, border-color .12s;
+    text-align:center;
+  }
+  .seg-stage input{ display:none; }
+  .seg-stage input:checked + label.new        { background:var(--ln-bg); border-color:var(--ln-fg); color:var(--ln-fg); }
+  .seg-stage input:checked + label.contacted  { background:var(--lc-bg); border-color:var(--lc-fg); color:var(--lc-fg); }
+  .seg-stage input:checked + label.qualified  { background:var(--lq-bg); border-color:var(--lq-fg); color:var(--lq-fg); }
+  .seg-stage input:checked + label.negotiation{ background:var(--lg-bg); border-color:var(--lg-fg); color:var(--lg-fg); }
+  .seg-stage input:checked + label.won        { background:var(--lw-bg); border-color:var(--lw-fg); color:var(--lw-fg); }
+  .seg-stage input:checked + label.lost       { background:var(--ll-bg); border-color:var(--ll-fg); color:var(--ll-fg); }
+
+  /* Profile photo uploader */
+  .profile-row{ display:flex; gap:18px; align-items:center; }
+  .profile-photo{
+    width:88px; height:88px; border-radius:50%;
+    background:linear-gradient(135deg, #8a7a5a, #5c4f38);
+    border:3px solid var(--paper);
+    box-shadow: 0 0 0 1px var(--rule);
+    display:flex; align-items:center; justify-content:center;
+    color:rgba(255,255,255,.7); flex-shrink:0;
+    position:relative; cursor:pointer;
+  }
+  .profile-photo:hover .ovr{ opacity:1; }
+  .profile-photo svg{ width:32px; height:32px; }
+  .profile-photo .ovr{
+    position:absolute; inset:0; background:rgba(0,0,0,.45); color:#fff;
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font:600 10px "Inter", sans-serif; letter-spacing:.08em; text-transform:uppercase;
+    opacity:0; transition:opacity .15s;
+  }
+  .profile-meta{ font-size:12px; color:var(--ink-2); line-height:1.6; }
+  .profile-meta b{ color:var(--ink-1); font-weight:600; }
+
+  /* Document upload tile */
+  .doc-tile{
+    display:flex; gap:12px; align-items:center;
+    padding:12px; border:1px solid var(--rule); border-radius:8px;
+    background:rgba(0,0,0,.012);
+  }
+  .doc-tile .doc-icon{
+    width:46px; height:46px; border-radius:6px; flex-shrink:0;
+    background:linear-gradient(135deg, #8a7a5a, #5c4f38);
+    display:flex; align-items:center; justify-content:center;
+    color:#fff;
+  }
+  .doc-tile .doc-icon svg{ width:22px; height:22px; }
+  .doc-tile .doc-meta{ flex:1; min-width:0; }
+  .doc-tile .doc-name{ font:500 12.5px "Inter", sans-serif; color:var(--ink-1); }
+  .doc-tile .doc-sub{ margin-top:2px; font:11px var(--mono); color:var(--ink-3); }
+
+  /* Attachments grid */
+  .att-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr));
+    gap:10px; margin-top:12px;
+  }
+  .att-tile{
+    aspect-ratio:1/1; border-radius:8px; overflow:hidden;
+    background:linear-gradient(135deg, #8a7a5a, #5c4f38);
+    position:relative; cursor:pointer;
+  }
+  .att-tile .ph{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:rgba(255,255,255,.55);
+  }
+  .att-tile .ph svg{ width:28px; height:28px; }
+  .att-tile .meta{
+    position:absolute; left:0; right:0; bottom:0;
+    padding:6px 8px; background:linear-gradient(180deg, transparent, rgba(0,0,0,.7));
+    color:#fff; font:500 10.5px "Inter", sans-serif;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .att-tile.upload{
+    background:transparent; border:1.5px dashed var(--ink-3); color:var(--ink-2);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font:600 11px "Inter", sans-serif; gap:4px;
+  }
+  .att-tile.upload svg{ width:22px; height:22px; }
+  .att-tile.upload:hover{ border-color:var(--ink-1); color:var(--ink-1); }
+
+  /* Activity */
+  .activity{ display:flex; flex-direction:column; gap:10px; }
+  .act-item{ display:flex; gap:10px; align-items:flex-start; }
+  .act-dot{
+    width:8px; height:8px; border-radius:50%; background:var(--ink-3);
+    margin-top:7px; flex-shrink:0;
+  }
+  .act-text{ flex:1; }
+  .act-text .who{ font:500 12.5px "Inter", sans-serif; }
+  .act-text .when{ font:11px var(--mono); color:var(--ink-3); margin-top:1px; }
+
+  .drawer-foot{
+    padding:14px 24px; border-top:1px solid var(--rule);
+    background:var(--paper);
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+  }
+  .drawer-foot .danger{ color:var(--rj-fg); }
+  .drawer-foot .right{ display:flex; gap:8px; }
+
+  .tab-pane{ display:none; flex-direction:column; gap:18px; }
+  .tab-pane.active{ display:flex; }
+
+  /* Lead stage cell with mini-funnel progress */
+  .lead-cell{ display:flex; flex-direction:column; gap:4px; }
+  .funnel{
+    display:flex; gap:2px; height:4px; border-radius:2px; overflow:hidden;
+  }
+  .funnel span{
+    flex:1; background:var(--rule); border-radius:1px;
+  }
+  .funnel span.on.new        { background:var(--ln-fg); }
+  .funnel span.on.contacted  { background:var(--lc-fg); }
+  .funnel span.on.qualified  { background:var(--lq-fg); }
+  .funnel span.on.negotiation{ background:var(--lg-fg); }
+  .funnel span.on.won        { background:var(--lw-fg); }
+  .funnel span.on.lost       { background:var(--ll-fg); }
+
+  @media (max-width: 820px){
+    .list-head, .list-row{ grid-template-columns: 50px 1.5fr 1fr 100px; }
+    .list-head > :nth-child(4), .list-head > :nth-child(5),
+    .list-row > :nth-child(4), .list-row > :nth-child(5){ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<main class="page">
+
+  <div class="crumb">
+    <a href="#">CRM</a>
+    <span class="sep">/</span>
+    <span class="crumb-now">Customers</span>
+  </div>
+
+  <div class="page-head">
+    <div>
+      <div class="page-title">Customers</div>
+      <div class="page-sub">All individuals and companies on record — with KYC, documents and contact info.</div>
+    </div>
+    <div class="right">
+      <button class="btn">Import CSV</button>
+      <button class="btn">Export</button>
+      <button class="btn btn-primary" id="newCustBtn">+ New customer</button>
+    </div>
+  </div>
+
+  <!-- ─── KPI STRIP ─────────────────────────────────────────────────── -->
+  <section class="kpi-strip">
+    <div class="kpi">
+      <div class="kpi-lbl">Total customers</div>
+      <div class="kpi-val">2,148</div>
+      <div class="kpi-foot">+24 this month</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">Active leads</div>
+      <div class="kpi-val" style="font-size:18px;">
+        <span style="color:var(--lc-fg)">112</span>
+        <span style="color:var(--ink-3); font-size:13px;">/</span>
+        <span style="color:var(--lq-fg)">68</span>
+        <span style="color:var(--ink-3); font-size:13px;">/</span>
+        <span style="color:var(--lg-fg)">31</span>
+      </div>
+      <div class="stack">
+        <span style="width:34%; background:var(--ln-fg);"></span>
+        <span style="width:28%; background:var(--lc-fg);"></span>
+        <span style="width:18%; background:var(--lq-fg);"></span>
+        <span style="width:12%; background:var(--lg-fg);"></span>
+        <span style="width:8%; background:var(--lw-fg);"></span>
+      </div>
+      <div class="kpi-foot">contacted · qualified · negotiating</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">KYC verified</div>
+      <div class="kpi-val" style="color:var(--av-fg)">1,891</div>
+      <div class="kpi-foot">88% of customers</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">Won this month</div>
+      <div class="kpi-val" style="color:var(--lw-fg)">19</div>
+      <div class="kpi-foot">conversion 14.2%</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">Lost / Inactive</div>
+      <div class="kpi-val"><span style="color:var(--ll-fg)">37</span> <span style="color:var(--ink-3); font-size:13px;">/</span> <span style="color:var(--in-fg)">29</span></div>
+      <div class="kpi-foot">archived</div>
+    </div>
+  </section>
+
+  <!-- ─── FILTERS ───────────────────────────────────────────────────── -->
+  <section class="filters">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="q" placeholder="Search by name, phone, NID, email or customer ID…" />
+    </div>
+    <div class="pill-group" id="typeFilter">
+      <button data-v="all" class="active">All</button>
+      <button data-v="individual">Individual</button>
+      <button data-v="company">Company</button>
+    </div>
+    <select class="select-inline" id="stageFilter">
+      <option value="all">All stages</option>
+      <option value="new">New</option>
+      <option value="contacted">Contacted</option>
+      <option value="qualified">Qualified</option>
+      <option value="negotiation">Negotiation</option>
+      <option value="won">Won</option>
+      <option value="lost">Lost</option>
+    </select>
+    <select class="select-inline" id="kycFilter">
+      <option value="all">All KYC</option>
+      <option value="verified">Verified</option>
+      <option value="pending">Pending</option>
+      <option value="rejected">Rejected</option>
+    </select>
+    <select class="select-inline" id="statusFilter">
+      <option value="all">All status</option>
+      <option value="active">Active</option>
+      <option value="inactive">Inactive</option>
+    </select>
+    <button class="btn">More filters</button>
+  </section>
+
+  <!-- ─── LIST ──────────────────────────────────────────────────────── -->
+  <section class="list-block">
+    <div class="list-head">
+      <div></div>
+      <div>Customer</div>
+      <div>Contact</div>
+      <div>Document</div>
+      <div>Lead stage</div>
+      <div>Type · KYC · Status</div>
+      <div style="text-align:right;">Actions</div>
+    </div>
+    <div id="listBody"></div>
+    <div class="list-foot">
+      <span>Showing <b id="shown">8</b> of <b>2,148</b> customers</span>
+      <div class="pager">
+        <button>‹</button>
+        <button class="active">1</button>
+        <button>2</button>
+        <button>3</button>
+        <button>…</button>
+        <button>269</button>
+        <button>›</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ─── DRAWER ────────────────────────────────────────────────────── -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <div>
+      <h3 id="drawerTitle">New customer</h3>
+      <div class="sub" id="drawerSub">Fill in identity, contact and KYC details</div>
+    </div>
+    <button class="close" id="drawerClose" aria-label="Close">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="drawer-tabs" id="drawerTabs">
+    <button class="active" data-tab="identity">Identity</button>
+    <button data-tab="contact">Contact &amp; Address</button>
+    <button data-tab="documents">Documents <span class="badge">2</span></button>
+    <button data-tab="attachments">Attachments <span class="badge">3</span></button>
+    <button data-tab="activity">Activity</button>
+  </div>
+
+  <div class="drawer-body">
+
+    <!-- ─── IDENTITY TAB ───────────────────────────────────────────── -->
+    <div class="tab-pane active" data-tab="identity">
+
+      <section class="section">
+        <div class="section-title"><h4>Customer type</h4><span class="hint">required</span></div>
+        <div class="seg-type">
+          <input type="radio" name="cust_type" id="ct_ind" value="individual" checked />
+          <label for="ct_ind" class="individual">
+            <div class="top">
+              <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span>
+              <span class="name">Individual</span>
+            </div>
+            <span class="desc">A single person with NID/Passport</span>
+          </label>
+          <input type="radio" name="cust_type" id="ct_co" value="company" />
+          <label for="ct_co" class="company">
+            <div class="top">
+              <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V12h6v9"/></svg></span>
+              <span class="name">Company</span>
+            </div>
+            <span class="desc">Registered business with TIN/TaxID</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title"><h4>Profile</h4><span class="hint">photo optional</span></div>
+        <div class="profile-row">
+          <div class="profile-photo" title="Upload profile photo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+            <span class="ovr">Upload</span>
+          </div>
+          <div class="profile-meta">
+            <b>Profile image</b><br/>
+            JPG or PNG, max 2 MB.<br/>
+            Stored in <code style="font-family:var(--mono); font-size:11px; color:var(--ink-2);">files</code> table; FK saved as <code style="font-family:var(--mono); font-size:11px; color:var(--ink-2);">ProfileImageFileID</code>.
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title"><h4>Personal information</h4></div>
+        <div class="grid-2">
+          <div>
+            <label class="field-label">Customer ID</label>
+            <input class="input mono" value="CUST-0001947" readonly />
+          </div>
+          <div>
+            <label class="field-label">Customer name <span style="color:var(--rj-fg)">*</span></label>
+            <input class="input" placeholder="Full name as on NID" />
+          </div>
+          <div>
+            <label class="field-label">Father's name</label>
+            <input class="input" placeholder="" />
+          </div>
+          <div>
+            <label class="field-label">Mother's name</label>
+            <input class="input" placeholder="" />
+          </div>
+          <div>
+            <label class="field-label">Date of birth</label>
+            <input class="input mono" type="date" />
+          </div>
+          <div>
+            <label class="field-label">Gender</label>
+            <select class="select">
+              <option value="">— Select —</option>
+              <option>Male</option>
+              <option>Female</option>
+              <option>Other</option>
+              <option>Prefer not to say</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title"><h4>Lead stage</h4><span class="hint">CRM funnel</span></div>
+        <div class="seg-stage">
+          <input type="radio" name="stage" id="st_new" value="new" checked />
+          <label for="st_new" class="new">New</label>
+          <input type="radio" name="stage" id="st_con" value="contacted" />
+          <label for="st_con" class="contacted">Contacted</label>
+          <input type="radio" name="stage" id="st_qual" value="qualified" />
+          <label for="st_qual" class="qualified">Qualified</label>
+          <input type="radio" name="stage" id="st_neg" value="negotiation" />
+          <label for="st_neg" class="negotiation">Negotiation</label>
+          <input type="radio" name="stage" id="st_won" value="won" />
+          <label for="st_won" class="won">Won</label>
+          <input type="radio" name="stage" id="st_lost" value="lost" />
+          <label for="st_lost" class="lost">Lost</label>
+        </div>
+        <div class="grid-2" style="margin-top:12px;">
+          <div>
+            <label class="field-label">Source</label>
+            <select class="select">
+              <option>Walk-in</option>
+              <option>Website</option>
+              <option>Referral</option>
+              <option>Facebook ad</option>
+              <option>Property fair</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Stage changed at</label>
+            <input class="input mono" type="date" />
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="companySection" style="display:none;">
+        <div class="section-title"><h4>Company details</h4></div>
+        <div class="grid-2">
+          <div class="span-2">
+            <label class="field-label">Company name</label>
+            <input class="input" placeholder="Legal registered name" />
+          </div>
+          <div>
+            <label class="field-label">Registration #</label>
+            <input class="input mono" placeholder="e.g. C-123456" />
+          </div>
+          <div>
+            <label class="field-label">Tax ID / TIN</label>
+            <input class="input mono" placeholder="" />
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ─── CONTACT TAB ────────────────────────────────────────────── -->
+    <div class="tab-pane" data-tab="contact">
+      <section class="section">
+        <div class="section-title"><h4>Contact</h4></div>
+        <div class="grid-2">
+          <div>
+            <label class="field-label">Phone <span style="color:var(--rj-fg)">*</span></label>
+            <input class="input mono" placeholder="+880 1XXX XXXXXX" />
+          </div>
+          <div>
+            <label class="field-label">Alternate phone</label>
+            <input class="input mono" placeholder="" />
+          </div>
+          <div class="span-2">
+            <label class="field-label">Email</label>
+            <input class="input" placeholder="customer@example.com" type="email" />
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title"><h4>Address</h4></div>
+        <div class="grid-2">
+          <div class="span-2">
+            <label class="field-label">Address line</label>
+            <textarea class="textarea" placeholder="House, Road, Area"></textarea>
+          </div>
+          <div>
+            <label class="field-label">District</label>
+            <input class="input" placeholder="Dhaka" />
+          </div>
+          <div>
+            <label class="field-label">Division</label>
+            <input class="input" placeholder="Dhaka" />
+          </div>
+          <div>
+            <label class="field-label">Postal code</label>
+            <input class="input mono" placeholder="1212" />
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ─── DOCUMENTS TAB ──────────────────────────────────────────── -->
+    <div class="tab-pane" data-tab="documents">
+      <section class="section">
+        <div class="section-title"><h4>Identity document</h4><span class="hint">linked to <code style="font-family:var(--mono); font-size:11px; color:var(--ink-2);">files</code></span></div>
+        <div class="grid-2">
+          <div>
+            <label class="field-label">Document type</label>
+            <select class="select">
+              <option>National ID (NID)</option>
+              <option>Passport</option>
+              <option>Driving licence</option>
+              <option>Birth certificate</option>
+              <option>Trade licence</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Document number</label>
+            <input class="input mono" placeholder="1234567890" />
+          </div>
+          <div>
+            <label class="field-label">Issue date</label>
+            <input class="input mono" type="date" />
+          </div>
+          <div>
+            <label class="field-label">Expiry date</label>
+            <input class="input mono" type="date" />
+          </div>
+          <div class="span-2">
+            <label class="field-label">Document photo</label>
+            <div class="doc-tile">
+              <div class="doc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+              <div class="doc-meta">
+                <div class="doc-name">NID-front-1234567890.jpg</div>
+                <div class="doc-sub">820 KB · Uploaded 2026-04-12</div>
+              </div>
+              <button class="btn btn-sm">Replace</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title"><h4>KYC status</h4></div>
+        <div class="seg-kyc">
+          <input type="radio" name="kyc" id="k_pending" value="pending" checked />
+          <label for="k_pending" class="pending">Pending</label>
+          <input type="radio" name="kyc" id="k_verified" value="verified" />
+          <label for="k_verified" class="verified">Verified</label>
+          <input type="radio" name="kyc" id="k_rejected" value="rejected" />
+          <label for="k_rejected" class="rejected">Rejected</label>
+        </div>
+        <div class="grid-2" style="margin-top:12px;">
+          <div>
+            <label class="field-label">KYC date</label>
+            <input class="input mono" type="date" />
+          </div>
+          <div>
+            <label class="field-label">Account status</label>
+            <select class="select">
+              <option>Active</option>
+              <option>Inactive</option>
+              <option>Suspended</option>
+            </select>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ─── ATTACHMENTS TAB ────────────────────────────────────────── -->
+    <div class="tab-pane" data-tab="attachments">
+      <section class="section">
+        <div class="section-title"><h4>Additional files</h4><span class="hint">stored as JSON</span></div>
+        <div class="profile-meta" style="margin-bottom:6px;">
+          Any extra documents — bank statements, address proof, references. Stored via the <code style="font-family:var(--mono); font-size:11px; color:var(--ink-2);">fileables</code> pivot.
+        </div>
+        <div class="att-grid">
+          <div class="att-tile">
+            <div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="meta"><span>Bank statement</span><span>1.2MB</span></div>
+          </div>
+          <div class="att-tile">
+            <div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L9 18"/></svg></div>
+            <div class="meta"><span>Address proof</span><span>680KB</span></div>
+          </div>
+          <div class="att-tile">
+            <div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="meta"><span>Reference</span><span>240KB</span></div>
+          </div>
+          <div class="att-tile upload">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title"><h4>Notes</h4></div>
+        <textarea class="textarea" placeholder="Internal notes about this customer…" style="min-height:80px;"></textarea>
+      </section>
+    </div>
+
+    <!-- ─── ACTIVITY TAB ───────────────────────────────────────────── -->
+    <div class="tab-pane" data-tab="activity">
+      <section class="section">
+        <div class="section-title"><h4>Activity log</h4></div>
+        <div class="activity">
+          <div class="act-item"><div class="act-dot" style="background:var(--av-fg)"></div><div class="act-text"><div class="who"><b>Tareq Hossain</b> verified KYC documents</div><div class="when">2026-04-12 11:24</div></div></div>
+          <div class="act-item"><div class="act-dot" style="background:var(--bk-fg)"></div><div class="act-text"><div class="who"><b>Nadia Rahman</b> uploaded NID-front-1234567890.jpg</div><div class="when">2026-04-12 11:08</div></div></div>
+          <div class="act-item"><div class="act-dot"></div><div class="act-text"><div class="who"><b>System</b> generated customer ID CUST-0001947</div><div class="when">2026-04-12 10:55</div></div></div>
+          <div class="act-item"><div class="act-dot"></div><div class="act-text"><div class="who"><b>Sajid Karim</b> created customer record</div><div class="when">2026-04-12 10:55</div></div></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title"><h4>Metadata</h4></div>
+        <div class="grid-2">
+          <div><label class="field-label">Created by</label><input class="input" value="Sajid Karim" readonly /></div>
+          <div><label class="field-label">Created at</label><input class="input mono" value="2026-04-12 10:55" readonly /></div>
+          <div><label class="field-label">Modified by</label><input class="input" value="Tareq Hossain" readonly /></div>
+          <div><label class="field-label">Modified at</label><input class="input mono" value="2026-04-12 11:24" readonly /></div>
+        </div>
+      </section>
+    </div>
+
+  </div>
+
+  <footer class="drawer-foot">
+    <button class="btn btn-ghost danger" id="archiveBtn">Archive customer</button>
+    <div class="right">
+      <button class="btn" id="drawerCancel">Cancel</button>
+      <button class="btn btn-primary">Save customer</button>
+    </div>
+  </footer>
+</aside>
+
+<!-- ─── DATA ──────────────────────────────────────────────────────── -->
+<script id="data" type="application/json">
+{
+  "customers": [
+    { "id":"CUST-0001947", "name":"Md. Rashedul Karim",   "type":"individual", "kyc":"verified", "status":"active",   "stage":"won",         "phone":"+880 1711 290 184", "email":"rashed.karim@gmail.com",      "doc_type":"NID",         "doc_no":"1995-2823-4451-9", "since":"2026-04-12", "avatar":"alt-1" },
+    { "id":"CUST-0001946", "name":"Apex Trading Co. Ltd.", "type":"company",    "kyc":"verified", "status":"active",   "stage":"negotiation", "phone":"+880 2 8839 1102",  "email":"accounts@apextrading.com.bd", "doc_type":"Trade Licence","doc_no":"TRAD/2018/00917",  "since":"2026-04-11", "avatar":"alt-2" },
+    { "id":"CUST-0001945", "name":"Faria Chowdhury",       "type":"individual", "kyc":"pending",  "status":"active",   "stage":"qualified",   "phone":"+880 1815 553 871", "email":"faria.ch@outlook.com",        "doc_type":"NID",         "doc_no":"2001-9981-7732-1", "since":"2026-04-11", "avatar":"alt-3" },
+    { "id":"CUST-0001944", "name":"Nadim &amp; Sons Construction", "type":"company", "kyc":"verified", "status":"active", "stage":"won",      "phone":"+880 2 9112 7741", "email":"info@nadimsons.bd", "doc_type":"Trade Licence", "doc_no":"TRAD/2022/05214", "since":"2026-04-10", "avatar":"alt-4" },
+    { "id":"CUST-0001943", "name":"Sajid Karim",           "type":"individual", "kyc":"verified", "status":"active",   "stage":"contacted",   "phone":"+880 1922 117 660", "email":"sajid.k@gmail.com",           "doc_type":"Passport",    "doc_no":"BR0149821",        "since":"2026-04-09", "avatar":"alt-5" },
+    { "id":"CUST-0001942", "name":"Tanjila Ahmed",         "type":"individual", "kyc":"pending",  "status":"active",   "stage":"new",         "phone":"+880 1718 829 003", "email":"tanjila.ahmed@yahoo.com",     "doc_type":"NID",         "doc_no":"1989-1124-5573-8", "since":"2026-04-08", "avatar":"" },
+    { "id":"CUST-0001941", "name":"Md. Anwar Hossain",     "type":"individual", "kyc":"rejected", "status":"inactive", "stage":"lost",        "phone":"+880 1611 002 941", "email":"—",                          "doc_type":"NID",         "doc_no":"1976-3320-1809-2", "since":"2026-04-07", "avatar":"alt-1" },
+    { "id":"CUST-0001940", "name":"Brightline Logistics",  "type":"company",    "kyc":"verified", "status":"active",   "stage":"won",         "phone":"+880 2 8893 4400",  "email":"ops@brightline.bd",          "doc_type":"Trade Licence","doc_no":"TRAD/2019/03318",  "since":"2026-04-06", "avatar":"alt-2" }
+  ]
+}
+</script>
+
+<script>
+const DATA = JSON.parse(document.getElementById('data').textContent);
+
+function initials(name){
+  return name.replace(/&amp;/g,'&').split(/\s+/).map(s=>s[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
+}
+
+function renderList(){
+  const STAGE_ORDER = ['new','contacted','qualified','negotiation','won'];
+  const filt = (c) => {
+    if (state.q) {
+      const q = state.q.toLowerCase();
+      if (!(c.name+c.id+c.phone+c.email+c.doc_no).toLowerCase().includes(q)) return false;
+    }
+    if (state.type !== 'all' && c.type !== state.type) return false;
+    if (state.kyc !== 'all'  && c.kyc  !== state.kyc) return false;
+    if (state.status !== 'all' && c.status !== state.status) return false;
+    if (state.stage !== 'all' && c.stage !== state.stage) return false;
+    return true;
+  };
+  const rows = DATA.customers.filter(filt);
+  document.getElementById('shown').textContent = rows.length;
+
+  const funnel = (stage) => {
+    if (stage === 'lost') {
+      return STAGE_ORDER.map(() => `<span></span>`).join('') + `<span class="on lost"></span>`;
+    }
+    const idx = STAGE_ORDER.indexOf(stage);
+    return STAGE_ORDER.map((s,i) => `<span class="${i<=idx?'on '+stage:''}"></span>`).join('');
+  };
+
+  document.getElementById('listBody').innerHTML = rows.map(c => `
+    <div class="list-row" data-id="${c.id}">
+      <div><div class="cust-avatar ${c.avatar}">${initials(c.name)}</div></div>
+      <div>
+        <div class="cust-name">${c.name}</div>
+        <div class="cust-id">${c.id} · since ${c.since}</div>
+      </div>
+      <div class="cust-contact">
+        <span class="mono">${c.phone}</span>
+        <span>${c.email}</span>
+      </div>
+      <div class="doc-block">
+        <span class="type-chip">${c.doc_type}</span>
+        <span>${c.doc_no}</span>
+      </div>
+      <div class="lead-cell">
+        <span class="pill ${c.stage}"><span class="dot"></span>${c.stage}</span>
+        <div class="funnel">${funnel(c.stage)}</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
+        <span class="pill ${c.type}"><span class="dot"></span>${c.type}</span>
+        <span class="pill ${c.kyc}"><span class="dot"></span>KYC ${c.kyc}</span>
+        <span class="pill ${c.status}"><span class="dot"></span>${c.status}</span>
+      </div>
+      <div class="row-act">
+        <span class="icon" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+        <span class="icon" title="More"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></span>
+      </div>
+    </div>
+  `).join('');
+
+  document.querySelectorAll('.list-row').forEach(r => {
+    r.addEventListener('click', () => openDrawer(r.dataset.id));
+  });
+}
+
+// ─── Filters ─────────────────────────────────────────────────────
+const state = { q:'', type:'all', kyc:'all', status:'all', stage:'all' };
+document.getElementById('q').addEventListener('input', e => { state.q = e.target.value; renderList(); });
+document.querySelectorAll('#typeFilter button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#typeFilter button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active'); state.type = b.dataset.v; renderList();
+  });
+});
+document.getElementById('stageFilter').addEventListener('change', e => { state.stage = e.target.value; renderList(); });
+document.getElementById('kycFilter').addEventListener('change', e => { state.kyc = e.target.value; renderList(); });
+document.getElementById('statusFilter').addEventListener('change', e => { state.status = e.target.value; renderList(); });
+
+// ─── Drawer ──────────────────────────────────────────────────────
+const drawer = document.getElementById('drawer');
+const scrim = document.getElementById('scrim');
+
+function openDrawer(custId){
+  const c = DATA.customers.find(x => x.id === custId);
+  if (c) {
+    document.getElementById('drawerTitle').textContent = c.name;
+    document.getElementById('drawerSub').textContent = `${c.id} · ${c.type} · ${c.kyc} KYC`;
+    document.querySelector(`input[name="cust_type"][value="${c.type}"]`).checked = true;
+    document.querySelector(`input[name="kyc"][value="${c.kyc}"]`).checked = true;
+    if (c.stage) {
+      const stageInput = document.querySelector(`input[name="stage"][value="${c.stage}"]`);
+      if (stageInput) stageInput.checked = true;
+    }
+    document.getElementById('companySection').style.display = c.type === 'company' ? '' : 'none';
+  } else {
+    document.getElementById('drawerTitle').textContent = 'New customer';
+    document.getElementById('drawerSub').textContent = 'Fill in identity, contact and KYC details';
+  }
+  scrim.classList.add('open'); drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden','false');
+  // reset to identity tab
+  switchTab('identity');
+}
+function closeDrawer(){
+  scrim.classList.remove('open'); drawer.classList.remove('open');
+  drawer.setAttribute('aria-hidden','true');
+}
+function switchTab(name){
+  document.querySelectorAll('#drawerTabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.dataset.tab === name));
+}
+document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+document.getElementById('drawerCancel').addEventListener('click', closeDrawer);
+scrim.addEventListener('click', closeDrawer);
+document.getElementById('newCustBtn').addEventListener('click', () => openDrawer(null));
+document.querySelectorAll('#drawerTabs button').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+// Toggle company section based on type
+document.querySelectorAll('input[name="cust_type"]').forEach(r => {
+  r.addEventListener('change', () => {
+    document.getElementById('companySection').style.display = r.value === 'company' && r.checked ? '' : 'none';
+  });
+});
+
+renderList();
+</script>
+</body>
+</html>

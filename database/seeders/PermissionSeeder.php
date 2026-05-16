@@ -275,6 +275,12 @@ class PermissionSeeder extends Seeder
             ['id' => 214, 'name' => 'inventory.purchase_order.chairman_update'],
             ['id' => 215, 'name' => 'inventory.purchase_order.accounts_update'],
             ['id' => 216, 'name' => 'inventory.stock_request.make_pending'],
+
+            // Customer (CRM)
+            ['id' => 217, 'name' => 'customer.view'],
+            ['id' => 218, 'name' => 'customer.create'],
+            ['id' => 219, 'name' => 'customer.edit'],
+            ['id' => 220, 'name' => 'customer.delete'],
         ];
 
         foreach ($permissions as $permission) {
