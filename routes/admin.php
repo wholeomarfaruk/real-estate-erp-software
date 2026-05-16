@@ -461,6 +461,8 @@ Route::get('/site-engineers', App\Livewire\Admin\SiteEngineer\Engineer::class)->
 
 // ─── Real Estate ──────────────────────────────────────────────────────────────
 Route::get('/properties', App\Livewire\Admin\Properties\PropertyCatalog::class)->name('properties.index');
+Route::get('/properties/sales', App\Livewire\Admin\Properties\PropertySaleList::class)->name('properties.sales.index');
+Route::get('/properties/sales/{sale}', App\Livewire\Admin\Properties\PropertySaleDetails::class)->name('properties.sales.show');
 Route::get('/properties/{property}', App\Livewire\Admin\Properties\PropertyShow::class)->name('properties.show');
 
 Route::post('/properties/{property}/floors/reorder', function (\App\Models\Property $property, \Illuminate\Http\Request $request) {
@@ -484,7 +486,3 @@ Route::post('/properties/{property}/units/reorder', function (\App\Models\Proper
     }
     return response()->json(['ok' => true]);
 })->name('properties.units.reorder');
-
-// ─── CRM ──────────────────────────────────────────────────────────────────────
-Route::get('/crm/customers', App\Livewire\Admin\Customers\CustomerList::class)->name('crm.customers.index');
-Route::get('/crm/customers/{customer}', App\Livewire\Admin\Customers\CustomerShow::class)->name('crm.customers.show');

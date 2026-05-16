@@ -154,9 +154,15 @@
                         <div x-cloak x-show="open" @click.outside="open=false"
                             :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
                             <a href="{{ route('admin.properties.index') }}"
-                                class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.properties.*') ? 'text-gray-200' : '' }}">
+                                class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.properties.*') && !Route::is('admin.properties.sales.*') ? 'text-gray-200' : '' }}">
                                 Property Catalog
                             </a>
+                            @can('property_sale.view')
+                                <a href="{{ route('admin.properties.sales.index') }}"
+                                    class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.properties.sales.*') ? 'text-gray-200' : '' }}">
+                                    Property Sales
+                                </a>
+                            @endcan
                         </div>
                     </div>
                 @endcan

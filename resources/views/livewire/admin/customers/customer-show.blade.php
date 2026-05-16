@@ -194,27 +194,27 @@
                     overflow:hidden; margin-bottom:24px;">
         <div style="background:var(--paper); padding:14px 16px;">
             <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Holdings</div>
-            <div style="margin-top:5px; font:600 22px var(--mono); font-variant-numeric:tabular-nums;">0</div>
+            <div style="margin-top:5px; font:600 22px var(--mono); font-variant-numeric:tabular-nums;">{{ $kpi['holdings'] }}</div>
             <div style="margin-top:3px; font:11px var(--mono); color:var(--ink-2);">units / properties</div>
         </div>
         <div style="background:var(--paper); padding:14px 16px;">
             <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Total value</div>
-            <div style="margin-top:5px; font:600 22px var(--mono);">৳ 0</div>
+            <div style="margin-top:5px; font:600 22px var(--mono);">৳ {{ number_format($kpi['totalValue'], 0) }}</div>
             <div style="margin-top:3px; font:11px var(--mono); color:var(--ink-2);">across all units</div>
         </div>
         <div style="background:var(--paper); padding:14px 16px;">
             <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Paid</div>
-            <div style="margin-top:5px; font:600 22px var(--mono); color:var(--av-fg);">৳ 0</div>
+            <div style="margin-top:5px; font:600 22px var(--mono); color:var(--av-fg);">৳ {{ number_format($kpi['paid'], 0) }}</div>
             <div style="margin-top:3px; font:11px var(--mono); color:var(--ink-2);">settled</div>
         </div>
         <div style="background:var(--paper); padding:14px 16px;">
             <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Due</div>
-            <div style="margin-top:5px; font:600 22px var(--mono); color:var(--bk-fg);">৳ 0</div>
+            <div style="margin-top:5px; font:600 22px var(--mono); color:var(--bk-fg);">৳ {{ number_format($kpi['due'], 0) }}</div>
             <div style="margin-top:3px; font:11px var(--mono); color:var(--ink-2);">outstanding</div>
         </div>
         <div style="background:var(--paper); padding:14px 16px;">
             <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Documents</div>
-            <div style="margin-top:5px; font:600 22px var(--mono);">{{ $customer->doc_no ? 1 : 0 }}</div>
+            <div style="margin-top:5px; font:600 22px var(--mono);">{{ $kpi['documents'] }}</div>
             <div style="margin-top:3px; font:11px var(--mono); color:var(--ink-2);">on file</div>
         </div>
     </section>
@@ -226,14 +226,60 @@
         <div style="background:var(--paper); border:1px solid var(--rule); border-radius:12px; overflow:hidden;">
             <div style="padding:14px 20px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
                 <h3 style="margin:0; font-size:14px; font-weight:600;">Property holdings</h3>
-                <span style="font:11px var(--mono); color:var(--ink-3);">No holdings yet</span>
+                <span style="font:11px var(--mono); color:var(--ink-3);">{{ $sales->count() }} {{ Str::plural('sale', $sales->count()) }}</span>
             </div>
-            <div style="padding:48px 20px; text-align:center; color:var(--ink-3); font:13px 'Inter', sans-serif;">
-                <div style="margin-bottom:8px; opacity:.5;">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V12h6v9"/></svg>
+            @if($sales->isEmpty())
+                <div style="padding:48px 20px; text-align:center; color:var(--ink-3); font:13px 'Inter', sans-serif;">
+                    <div style="margin-bottom:8px; opacity:.5;">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V12h6v9"/></svg>
+                    </div>
+                    No property holdings on record for this customer.
                 </div>
-                No property holdings on record for this customer.
-            </div>
+            @else
+                @php
+                    $paymentColors = [
+                        'pending'   => ['bg' => 'var(--bk-bg)', 'fg' => 'var(--bk-fg)'],
+                        'partial'   => ['bg' => 'var(--sd-bg)', 'fg' => 'var(--sd-fg)'],
+                        'paid'      => ['bg' => 'var(--av-bg)', 'fg' => 'var(--av-fg)'],
+                        'cancelled' => ['bg' => 'var(--rj-bg)', 'fg' => 'var(--rj-fg)'],
+                    ];
+                @endphp
+                <div style="display:flex; flex-direction:column; gap:0;">
+                    @foreach($sales as $sale)
+                        @php $pc = $paymentColors[$sale->payment_status] ?? $paymentColors['pending']; @endphp
+                        <a href="{{ route('admin.properties.sales.show', $sale) }}"
+                            style="display:grid; grid-template-columns:1fr auto; gap:10px; padding:14px 20px;
+                                   border-bottom:1px solid var(--rule); text-decoration:none; color:var(--ink-1);"
+                            class="hover:bg-black/[.018] transition-colors">
+                            <div>
+                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
+                                    <span style="font:600 12px var(--mono); color:var(--accent);">{{ $sale->sale_number }}</span>
+                                    <span style="padding:1px 7px; border-radius:999px; background:{{ $pc['bg'] }}; color:{{ $pc['fg'] }}; font:600 9px 'Inter', sans-serif; letter-spacing:.05em; text-transform:uppercase;">
+                                        {{ ucfirst($sale->payment_status) }}
+                                    </span>
+                                </div>
+                                <div style="font:600 13.5px 'Inter', sans-serif; margin-bottom:2px;">
+                                    {{ $sale->propertyUnit?->effective_code ?? '—' }}
+                                    @if($sale->propertyUnit?->property)
+                                        <span style="font-weight:400; color:var(--ink-2);">· {{ $sale->propertyUnit->property->name }}</span>
+                                    @endif
+                                </div>
+                                <div style="font:11.5px var(--mono); color:var(--ink-3);">
+                                    {{ $sale->propertyUnit ? ucfirst($sale->propertyUnit->effective_type) : '' }}
+                                    @if($sale->propertyUnit?->floor) · {{ $sale->propertyUnit->floor->label }} @endif
+                                    @if($sale->sale_date) · {{ $sale->sale_date->format('d M Y') }} @endif
+                                </div>
+                            </div>
+                            <div style="text-align:right; flex-shrink:0;">
+                                <div style="font:700 14px var(--mono); font-variant-numeric:tabular-nums; color:var(--ink-1);">
+                                    ৳ {{ number_format($sale->net_amount, 0) }}
+                                </div>
+                                <div style="margin-top:2px; font:10.5px var(--mono); color:var(--ink-3);">net amount</div>
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
         </div>
 
         {{-- Account & transactions --}}
@@ -384,9 +430,92 @@
 
             {{-- Bookings tab --}}
             <div x-show="bottomTab === 'bookings'">
-                <div style="text-align:center; padding:32px 0; color:var(--ink-3); font:13px 'Inter', sans-serif;">
-                    No bookings on record for this customer.
-                </div>
+                @if($sales->isEmpty())
+                    <div style="text-align:center; padding:48px 0; color:var(--ink-3); font:13px 'Inter', sans-serif;">
+                        <div style="margin-bottom:8px; opacity:.4;">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        </div>
+                        No bookings on record for this customer.
+                    </div>
+                @else
+                    @php
+                        $pColors = [
+                            'pending'   => ['bg' => 'var(--bk-bg)', 'fg' => 'var(--bk-fg)'],
+                            'partial'   => ['bg' => 'var(--sd-bg)', 'fg' => 'var(--sd-fg)'],
+                            'paid'      => ['bg' => 'var(--av-bg)', 'fg' => 'var(--av-fg)'],
+                            'cancelled' => ['bg' => 'var(--rj-bg)', 'fg' => 'var(--rj-fg)'],
+                        ];
+                        $sColors = [
+                            'active'    => ['bg' => 'var(--sd-bg)', 'fg' => 'var(--sd-fg)'],
+                            'completed' => ['bg' => 'var(--av-bg)', 'fg' => 'var(--av-fg)'],
+                            'cancelled' => ['bg' => 'var(--rj-bg)', 'fg' => 'var(--rj-fg)'],
+                            'on_hold'   => ['bg' => 'var(--bk-bg)', 'fg' => 'var(--bk-fg)'],
+                        ];
+                    @endphp
+                    {{-- Table header --}}
+                    <div style="display:grid; grid-template-columns: 130px 1fr 1fr 100px 140px 110px 110px 80px;
+                                padding:9px 14px; background:rgba(0,0,0,.012); border-radius:7px; margin-bottom:4px;
+                                font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">
+                        <div>Sale #</div>
+                        <div>Unit</div>
+                        <div>Property</div>
+                        <div>Sale Date</div>
+                        <div>Net Amount</div>
+                        <div>Payment</div>
+                        <div>Status</div>
+                        <div style="text-align:right;">View</div>
+                    </div>
+                    {{-- Rows --}}
+                    @foreach($sales->sortByDesc('created_at') as $sale)
+                        @php
+                            $pc = $pColors[$sale->payment_status] ?? $pColors['pending'];
+                            $sc = $sColors[$sale->status] ?? $sColors['active'];
+                        @endphp
+                        <div style="display:grid; grid-template-columns: 130px 1fr 1fr 100px 140px 110px 110px 80px;
+                                    padding:12px 14px; border-bottom:1px solid var(--rule); align-items:center;"
+                            class="hover:bg-black/[.018] transition-colors">
+                            <div style="font:600 12px var(--mono); color:var(--accent);">{{ $sale->sale_number }}</div>
+                            <div>
+                                <div style="font:600 13px 'Inter', sans-serif;">{{ $sale->propertyUnit?->effective_code ?? '—' }}</div>
+                                <div style="font:11px var(--mono); color:var(--ink-3); margin-top:1px; text-transform:capitalize;">
+                                    {{ $sale->propertyUnit?->effective_type ?? '' }}
+                                    @if($sale->propertyUnit?->floor) · {{ $sale->propertyUnit->floor->label }} @endif
+                                </div>
+                            </div>
+                            <div style="font:13px 'Inter', sans-serif; color:var(--ink-2);">{{ $sale->propertyUnit?->property?->name ?? '—' }}</div>
+                            <div style="font:12px var(--mono); color:var(--ink-2);">{{ $sale->sale_date?->format('d M Y') ?? '—' }}</div>
+                            <div style="font:600 13px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->net_amount, 2) }}</div>
+                            <div>
+                                <span style="padding:3px 8px; border-radius:999px; background:{{ $pc['bg'] }}; color:{{ $pc['fg'] }}; font:600 9.5px 'Inter', sans-serif; letter-spacing:.04em; text-transform:uppercase;">
+                                    {{ ucfirst($sale->payment_status) }}
+                                </span>
+                            </div>
+                            <div>
+                                <span style="padding:3px 8px; border-radius:999px; background:{{ $sc['bg'] }}; color:{{ $sc['fg'] }}; font:600 9.5px 'Inter', sans-serif; letter-spacing:.04em; text-transform:uppercase;">
+                                    {{ ucwords(str_replace('_', ' ', $sale->status)) }}
+                                </span>
+                            </div>
+                            <div style="text-align:right;">
+                                <a href="{{ route('admin.properties.sales.show', $sale) }}"
+                                    style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px;
+                                           border-radius:5px; color:var(--ink-3); text-decoration:none;"
+                                    class="hover:bg-black/5 transition-colors" title="View sale">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                    {{-- Summary footer --}}
+                    <div style="display:grid; grid-template-columns: 130px 1fr 1fr 100px 140px 110px 110px 80px;
+                                padding:11px 14px; margin-top:2px; background:rgba(0,0,0,.012); border-radius:7px;
+                                font:600 11.5px 'Inter', sans-serif; color:var(--ink-2);">
+                        <div style="grid-column:span 4;">{{ $sales->count() }} {{ Str::plural('booking', $sales->count()) }} total</div>
+                        <div style="font:700 13px var(--mono); color:var(--ink-1); font-variant-numeric:tabular-nums;">
+                            ৳ {{ number_format($sales->sum('net_amount'), 2) }}
+                        </div>
+                        <div></div><div></div><div></div>
+                    </div>
+                @endif
             </div>
 
             {{-- Invoices tab --}}

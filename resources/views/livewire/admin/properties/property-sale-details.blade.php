@@ -1,0 +1,560 @@
+<div
+    x-data="{
+        drawerOpen: $wire.entangle('drawerOpen'),
+        dSaleAmount: $wire.entangle('dSaleAmount'),
+        dDiscountAmount: $wire.entangle('dDiscountAmount'),
+        dTaxAmount: $wire.entangle('dTaxAmount'),
+    }"
+    x-init="$store.pageName = { name: 'Sale Details', slug: 'property-sales' }"
+    style="
+        --paper:#FCFBF7; --canvas:#F2EFE7;
+        --ink-1:#1A1814; --ink-2:#5C5648; --ink-3:#9B9686;
+        --rule:#EAE5D9; --accent:#1F3A68;
+        --mono:'IBM Plex Mono', ui-monospace, monospace;
+        --av-bg:#D2E7D5; --av-fg:#1F5A2C;
+        --bk-bg:#F7E6C4; --bk-fg:#7A5418;
+        --sd-bg:#D8E4F5; --sd-fg:#1F3D72;
+        --rt-bg:#DCD9F2; --rt-fg:#3A3582;
+        --rj-bg:#F1D3CE; --rj-fg:#7A2A1E;
+        --in-bg:#EFEAE0; --in-fg:#5C5648;
+        font-family:'Inter', system-ui, sans-serif;
+        color:var(--ink-1); background:var(--canvas);
+    "
+    class="min-h-screen"
+>
+
+    {{-- ─── HEADER ─────────────────────────────────────────────────────────── --}}
+    <div style="padding:28px 24px 0;" class="flex items-start justify-between gap-6 flex-wrap">
+        <div>
+            <div style="font-size:11.5px; color:var(--ink-3); font-family:var(--mono); display:flex; gap:6px; align-items:center; margin-bottom:8px;">
+                <span>Real Estate</span>
+                <span style="opacity:.5">/</span>
+                <a href="{{ route('admin.properties.sales.index') }}" style="color:var(--ink-3); text-decoration:none;">Property Sales</a>
+                <span style="opacity:.5">/</span>
+                <span style="color:var(--ink-1);">{{ $sale->sale_number }}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <div style="font-size:24px; font-weight:600; letter-spacing:-.01em; font-family:var(--mono);">
+                    {{ $sale->sale_number }}
+                </div>
+                @php
+                    $paymentColors = [
+                        'pending'   => ['bg' => 'var(--bk-bg)', 'fg' => 'var(--bk-fg)'],
+                        'partial'   => ['bg' => 'var(--sd-bg)', 'fg' => 'var(--sd-fg)'],
+                        'paid'      => ['bg' => 'var(--av-bg)', 'fg' => 'var(--av-fg)'],
+                        'cancelled' => ['bg' => 'var(--rj-bg)', 'fg' => 'var(--rj-fg)'],
+                    ];
+                    $statusColors = [
+                        'active'    => ['bg' => 'var(--sd-bg)', 'fg' => 'var(--sd-fg)'],
+                        'completed' => ['bg' => 'var(--av-bg)', 'fg' => 'var(--av-fg)'],
+                        'cancelled' => ['bg' => 'var(--rj-bg)', 'fg' => 'var(--rj-fg)'],
+                        'on_hold'   => ['bg' => 'var(--bk-bg)', 'fg' => 'var(--bk-fg)'],
+                    ];
+                    $pc = $paymentColors[$sale->payment_status] ?? $paymentColors['pending'];
+                    $sc = $statusColors[$sale->status] ?? $statusColors['active'];
+                @endphp
+                <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px;
+                             background:{{ $pc['bg'] }}; color:{{ $pc['fg'] }};
+                             font:600 10.5px 'Inter', sans-serif; letter-spacing:.05em; text-transform:uppercase;">
+                    <span style="width:5px; height:5px; border-radius:50%; background:{{ $pc['fg'] }};"></span>
+                    {{ ucfirst($sale->payment_status) }}
+                </span>
+                <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px;
+                             background:{{ $sc['bg'] }}; color:{{ $sc['fg'] }};
+                             font:600 10.5px 'Inter', sans-serif; letter-spacing:.05em; text-transform:uppercase;">
+                    <span style="width:5px; height:5px; border-radius:50%; background:{{ $sc['fg'] }};"></span>
+                    {{ ucwords(str_replace('_', ' ', $sale->status)) }}
+                </span>
+            </div>
+            <div style="margin-top:5px; font-size:13px; color:var(--ink-2);">
+                Recorded {{ $sale->created_at->format('d M Y') }}
+                @if($sale->sale_date) · Sale date {{ $sale->sale_date->format('d M Y') }} @endif
+            </div>
+        </div>
+        <div style="display:flex; gap:8px; flex-shrink:0;">
+            @can('property_sale.edit')
+                <button wire:click="openEdit"
+                    style="appearance:none; border:1px solid var(--ink-1); background:var(--ink-1); color:var(--paper);
+                           padding:7px 14px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
+                           display:inline-flex; align-items:center; gap:6px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit
+                </button>
+            @endcan
+            <a href="{{ route('admin.properties.sales.index') }}"
+                style="appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2);
+                       padding:7px 14px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
+                       display:inline-flex; align-items:center; gap:6px; text-decoration:none;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                Back
+            </a>
+        </div>
+    </div>
+
+    {{-- ─── BODY ────────────────────────────────────────────────────────────── --}}
+    <div style="padding:20px 24px 80px; display:grid; grid-template-columns:1fr 340px; gap:16px; align-items:start;">
+
+        {{-- ── LEFT COLUMN ── --}}
+        <div style="display:flex; flex-direction:column; gap:16px;">
+
+            {{-- Financial Breakdown --}}
+            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; overflow:hidden;">
+                <div style="padding:14px 20px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0; font-size:13px; font-weight:600;">Financial Summary</h3>
+                    <span style="font:11px var(--mono); color:var(--ink-3);">BDT (৳)</span>
+                </div>
+                <div style="padding:20px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:var(--rule);">
+                    <div style="background:var(--paper); padding:16px 18px;">
+                        <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Sale Amount</div>
+                        <div style="font:600 20px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->sale_amount, 2) }}</div>
+                    </div>
+                    <div style="background:var(--paper); padding:16px 18px;">
+                        <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--rj-fg); margin-bottom:6px;">Discount</div>
+                        <div style="font:600 20px var(--mono); color:var(--rj-fg); font-variant-numeric:tabular-nums;">− ৳ {{ number_format($sale->discount_amount, 2) }}</div>
+                    </div>
+                    <div style="background:var(--paper); padding:16px 18px;">
+                        <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Tax</div>
+                        <div style="font:600 20px var(--mono); font-variant-numeric:tabular-nums;">+ ৳ {{ number_format($sale->tax_amount, 2) }}</div>
+                    </div>
+                </div>
+                <div style="padding:16px 20px; background:#F5F2E8; display:flex; justify-content:space-between; align-items:center; border-top:1.5px solid var(--accent);">
+                    <span style="font:600 11px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2);">Net Amount (Sale − Discount + Tax)</span>
+                    <span style="font:700 26px var(--mono); color:var(--accent); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->net_amount, 2) }}</span>
+                </div>
+            </div>
+
+            {{-- Timeline / Dates --}}
+            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                <h3 style="margin:0 0 14px; font-size:13px; font-weight:600;">Key Dates</h3>
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px;">
+                    @php
+                        $dates = [
+                            ['label' => 'Sale Date',     'value' => $sale->sale_date,     'accent' => false],
+                            ['label' => 'Contract Date', 'value' => $sale->contract_date, 'accent' => false],
+                            ['label' => 'Created',       'value' => $sale->created_at,    'accent' => false],
+                            ['label' => 'Last Updated',  'value' => $sale->updated_at,    'accent' => false],
+                        ];
+                    @endphp
+                    @foreach($dates as $d)
+                        <div style="padding:12px 14px; background:var(--canvas); border-radius:8px;">
+                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">{{ $d['label'] }}</div>
+                            <div style="font:500 13px var(--mono); color:var(--ink-1);">
+                                {{ $d['value'] ? $d['value']->format('d M Y') : '—' }}
+                            </div>
+                            @if($d['value'])
+                                <div style="font:11px var(--mono); color:var(--ink-3); margin-top:2px;">{{ $d['value']->format('H:i') !== '00:00' ? $d['value']->format('H:i') : '' }}</div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            {{-- Notes --}}
+            @if($sale->notes)
+                <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                    <h3 style="margin:0 0 10px; font-size:13px; font-weight:600;">Notes</h3>
+                    <p style="margin:0; font-size:13px; color:var(--ink-2); line-height:1.6; white-space:pre-wrap;">{{ $sale->notes }}</p>
+                </div>
+            @endif
+
+            {{-- Audit --}}
+            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                <h3 style="margin:0 0 12px; font-size:13px; font-weight:600;">Audit</h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div style="padding:10px 14px; background:var(--canvas); border-radius:8px;">
+                        <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px;">Created By</div>
+                        <div style="font:500 13px 'Inter', sans-serif;">{{ $sale->createdByUser?->name ?? '—' }}</div>
+                        <div style="font:11px var(--mono); color:var(--ink-3); margin-top:2px;">{{ $sale->created_at->format('d M Y, H:i') }}</div>
+                    </div>
+                    <div style="padding:10px 14px; background:var(--canvas); border-radius:8px;">
+                        <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px;">Last Updated By</div>
+                        <div style="font:500 13px 'Inter', sans-serif;">{{ $sale->updatedByUser?->name ?? '—' }}</div>
+                        <div style="font:11px var(--mono); color:var(--ink-3); margin-top:2px;">{{ $sale->updated_at->format('d M Y, H:i') }}</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        {{-- ── RIGHT COLUMN ── --}}
+        <div style="display:flex; flex-direction:column; gap:16px;">
+
+            {{-- Property Unit --}}
+            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; overflow:hidden;">
+                <div style="padding:12px 16px; border-bottom:1px solid var(--rule); background:rgba(0,0,0,.012);">
+                    <h3 style="margin:0; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3);">Property Unit</h3>
+                </div>
+                <div style="padding:16px;">
+                    @if($sale->propertyUnit)
+                        <div style="font:700 16px var(--mono); color:var(--accent); margin-bottom:4px;">{{ $sale->propertyUnit->effective_code }}</div>
+                        <div style="font:500 13px 'Inter', sans-serif; color:var(--ink-1); margin-bottom:8px;">{{ $sale->propertyUnit->property?->name ?? '—' }}</div>
+                        <div style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;">
+                            <div style="display:flex; justify-content:space-between;">
+                                <span style="color:var(--ink-3);">Type</span>
+                                <span style="font-weight:500; text-transform:capitalize;">{{ $sale->propertyUnit->effective_type }}</span>
+                            </div>
+                            @if($sale->propertyUnit->effective_area)
+                                <div style="display:flex; justify-content:space-between;">
+                                    <span style="color:var(--ink-3);">Area</span>
+                                    <span style="font:500 12.5px var(--mono);">{{ number_format($sale->propertyUnit->effective_area, 0) }} sqft</span>
+                                </div>
+                            @endif
+                            @if($sale->propertyUnit->floor)
+                                <div style="display:flex; justify-content:space-between;">
+                                    <span style="color:var(--ink-3);">Floor</span>
+                                    <span style="font-weight:500;">{{ $sale->propertyUnit->floor->label }}</span>
+                                </div>
+                            @endif
+                            @php
+                                $unitStatusColors = [
+                                    'available' => ['bg'=>'var(--av-bg)','fg'=>'var(--av-fg)'],
+                                    'booked'    => ['bg'=>'var(--bk-bg)','fg'=>'var(--bk-fg)'],
+                                    'sold'      => ['bg'=>'var(--rj-bg)','fg'=>'var(--rj-fg)'],
+                                    'rented'    => ['bg'=>'var(--sd-bg)','fg'=>'var(--sd-fg)'],
+                                ];
+                                $uc = $unitStatusColors[$sale->propertyUnit->effective_status] ?? $unitStatusColors['available'];
+                            @endphp
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="color:var(--ink-3);">Unit Status</span>
+                                <span style="padding:2px 8px; border-radius:999px; background:{{ $uc['bg'] }}; color:{{ $uc['fg'] }}; font:600 10px 'Inter', sans-serif; letter-spacing:.04em; text-transform:uppercase;">
+                                    {{ ucfirst($sale->propertyUnit->effective_status) }}
+                                </span>
+                            </div>
+                        </div>
+                    @else
+                        <div style="color:var(--ink-3); font-size:13px;">Unit not found.</div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Customer --}}
+            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; overflow:hidden;">
+                <div style="padding:12px 16px; border-bottom:1px solid var(--rule); background:rgba(0,0,0,.012);">
+                    <h3 style="margin:0; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3);">Customer</h3>
+                </div>
+                <div style="padding:16px;">
+                    @if($sale->customer)
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                            <div style="width:38px; height:38px; border-radius:50%; background:var(--accent); color:#fff;
+                                        display:flex; align-items:center; justify-content:center;
+                                        font:700 14px 'Inter', sans-serif; flex-shrink:0;">
+                                {{ $sale->customer->initials() }}
+                            </div>
+                            <div>
+                                <div style="font:600 14px 'Inter', sans-serif;">{{ $sale->customer->name }}</div>
+                                <div style="font:11px var(--mono); color:var(--ink-3);">{{ $sale->customer->customer_id }}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;">
+                            @if($sale->customer->phone)
+                                <div style="display:flex; justify-content:space-between;">
+                                    <span style="color:var(--ink-3);">Phone</span>
+                                    <span style="font:500 12.5px var(--mono);">{{ $sale->customer->phone }}</span>
+                                </div>
+                            @endif
+                            @if($sale->customer->email)
+                                <div style="display:flex; justify-content:space-between; gap:8px;">
+                                    <span style="color:var(--ink-3); flex-shrink:0;">Email</span>
+                                    <span style="font-weight:500; text-align:right; word-break:break-all;">{{ $sale->customer->email }}</span>
+                                </div>
+                            @endif
+                            @if($sale->customer->address)
+                                <div style="display:flex; justify-content:space-between; gap:8px;">
+                                    <span style="color:var(--ink-3); flex-shrink:0;">Address</span>
+                                    <span style="font-weight:500; text-align:right;">{{ $sale->customer->address }}</span>
+                                </div>
+                            @endif
+                            @php
+                                $kycColors = [
+                                    'verified' => ['bg'=>'var(--av-bg)','fg'=>'var(--av-fg)'],
+                                    'pending'  => ['bg'=>'var(--bk-bg)','fg'=>'var(--bk-fg)'],
+                                    'rejected' => ['bg'=>'var(--rj-bg)','fg'=>'var(--rj-fg)'],
+                                ];
+                                $kc = $kycColors[$sale->customer->kyc_status] ?? $kycColors['pending'];
+                            @endphp
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="color:var(--ink-3);">KYC</span>
+                                <span style="padding:2px 8px; border-radius:999px; background:{{ $kc['bg'] }}; color:{{ $kc['fg'] }}; font:600 10px 'Inter', sans-serif; letter-spacing:.04em; text-transform:uppercase;">
+                                    {{ ucfirst($sale->customer->kyc_status) }}
+                                </span>
+                            </div>
+                        </div>
+                    @else
+                        <div style="color:var(--ink-3); font-size:13px;">Customer not found.</div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Sale Details --}}
+            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; overflow:hidden;">
+                <div style="padding:12px 16px; border-bottom:1px solid var(--rule); background:rgba(0,0,0,.012);">
+                    <h3 style="margin:0; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3);">Sale Details</h3>
+                </div>
+                <div style="padding:16px; display:flex; flex-direction:column; gap:8px; font-size:12.5px;">
+                    @if($sale->payment_terms)
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--ink-3);">Payment Terms</span>
+                            <span style="font:500 12.5px var(--mono);">{{ $sale->payment_terms }} days</span>
+                        </div>
+                    @endif
+                    @if($sale->sales_representative)
+                        <div style="display:flex; justify-content:space-between; gap:8px;">
+                            <span style="color:var(--ink-3); flex-shrink:0;">Sales Rep</span>
+                            <span style="font-weight:500; text-align:right;">{{ $sale->sales_representative }}</span>
+                        </div>
+                    @endif
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:var(--ink-3);">Payment</span>
+                        <span style="padding:3px 9px; border-radius:999px; background:{{ $pc['bg'] }}; color:{{ $pc['fg'] }}; font:600 10px 'Inter', sans-serif; letter-spacing:.04em; text-transform:uppercase;">
+                            {{ ucfirst($sale->payment_status) }}
+                        </span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:var(--ink-3);">Status</span>
+                        <span style="padding:3px 9px; border-radius:999px; background:{{ $sc['bg'] }}; color:{{ $sc['fg'] }}; font:600 10px 'Inter', sans-serif; letter-spacing:.04em; text-transform:uppercase;">
+                            {{ ucwords(str_replace('_', ' ', $sale->status)) }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    {{-- ─── DRAWER SCRIM ────────────────────────────────────────────────────── --}}
+    <div
+        x-show="drawerOpen"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        @click="$wire.closeDrawer()"
+        style="position:fixed; inset:0; background:rgba(20,18,16,.45); backdrop-filter:blur(4px); z-index:50;"
+        x-cloak
+    ></div>
+
+    {{-- ─── EDIT DRAWER ─────────────────────────────────────────────────────── --}}
+    <aside
+        x-show="drawerOpen"
+        x-transition:enter="transition ease-out duration-250"
+        x-transition:enter-start="transform translate-x-full"
+        x-transition:enter-end="transform translate-x-0"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="transform translate-x-0"
+        x-transition:leave-end="transform translate-x-full"
+        style="position:fixed; top:0; right:0; bottom:0; width:680px; max-width:100vw;
+               background:var(--canvas); z-index:51; display:flex; flex-direction:column;
+               box-shadow:-20px 0 40px -20px rgba(0,0,0,.25);"
+        x-cloak
+    >
+        {{-- Drawer Head --}}
+        <div style="padding:18px 24px; border-bottom:1px solid var(--rule); background:var(--paper);
+                    display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <h3 style="margin:0; font-size:16px; font-weight:600;">Edit Sale</h3>
+                <div style="margin-top:2px; font:500 11px var(--mono); color:var(--ink-3); letter-spacing:.04em; text-transform:uppercase;">
+                    Update sale details
+                </div>
+            </div>
+            <button @click="$wire.closeDrawer()"
+                style="appearance:none; border:0; background:transparent; color:var(--ink-2);
+                       width:32px; height:32px; border-radius:6px; cursor:pointer;
+                       display:flex; align-items:center; justify-content:center;"
+                class="hover:bg-black/5 transition-colors">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+
+        {{-- Drawer Body --}}
+        <div style="flex:1; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:18px;">
+
+            {{-- 1. Property & Customer --}}
+            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
+                    <h4 style="margin:0; font-size:13px; font-weight:600;">Property &amp; Customer</h4>
+                    <span style="font:11px var(--mono); color:var(--ink-3);">required</span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 14px;">
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                            Property Unit <span style="color:var(--rj-fg)">*</span>
+                        </label>
+                        <select wire:model="dPropertyUnitId"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;">
+                            <option value="">— Select unit —</option>
+                            @foreach($units as $unit)
+                                <option value="{{ $unit->id }}">
+                                    {{ $unit->property?->name ?? 'No Property' }} — {{ $unit->code ?? $unit->unit_number }} ({{ $unit->type ?? $unit->unit_type ?? '' }})
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('dPropertyUnitId') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                            Customer <span style="color:var(--rj-fg)">*</span>
+                        </label>
+                        <select wire:model="dCustomerId"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;">
+                            <option value="">— Select customer —</option>
+                            @foreach($customers as $customer)
+                                <option value="{{ $customer->id }}">{{ $customer->name }} ({{ $customer->customer_id }})</option>
+                            @endforeach
+                        </select>
+                        @error('dCustomerId') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+            </div>
+
+            {{-- 2. Dates --}}
+            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                <div style="margin-bottom:14px;">
+                    <h4 style="margin:0; font-size:13px; font-weight:600;">Dates</h4>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 14px;">
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Sale Date</label>
+                        <input wire:model="dSaleDate" type="date"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
+                    </div>
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Contract Date</label>
+                        <input wire:model="dContractDate" type="date"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
+                    </div>
+                </div>
+            </div>
+
+            {{-- 3. Financial --}}
+            <div style="background:#F5F2E8; border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
+                    <h4 style="margin:0; font-size:13px; font-weight:600;">Financial Details</h4>
+                    <span style="font:11px var(--mono); color:var(--ink-3);">BDT (৳)</span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px 14px;">
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                            Sale Amount <span style="color:var(--rj-fg)">*</span>
+                        </label>
+                        <input wire:model.blur="dSaleAmount" type="number" min="0" step="0.01" placeholder="0.00"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
+                        @error('dSaleAmount') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Discount</label>
+                        <input wire:model.blur="dDiscountAmount" type="number" min="0" step="0.01" placeholder="0.00"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
+                    </div>
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Tax</label>
+                        <input wire:model.blur="dTaxAmount" type="number" min="0" step="0.01" placeholder="0.00"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
+                    </div>
+                </div>
+                <div style="margin-top:14px; padding:12px 16px; background:var(--paper); border:1.5px solid var(--accent); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font:600 11px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Net Amount</span>
+                    <span style="font:700 20px var(--mono); color:var(--accent); font-variant-numeric:tabular-nums;">
+                        ৳ {{ number_format((float)$dNetAmount, 2) }}
+                    </span>
+                </div>
+            </div>
+
+            {{-- 4. Sale Details --}}
+            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                <div style="margin-bottom:14px;">
+                    <h4 style="margin:0; font-size:13px; font-weight:600;">Sale Details</h4>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px 14px;">
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Payment Terms (days)</label>
+                        <input wire:model="dPaymentTerms" type="number" min="0" placeholder="e.g. 30"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
+                    </div>
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                            Payment Status <span style="color:var(--rj-fg)">*</span>
+                        </label>
+                        <select wire:model="dPaymentStatus"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;">
+                            <option value="pending">Pending</option>
+                            <option value="partial">Partial</option>
+                            <option value="paid">Paid</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        @error('dPaymentStatus') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                            Status <span style="color:var(--rj-fg)">*</span>
+                        </label>
+                        <select wire:model="dStatus"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;">
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="on_hold">On Hold</option>
+                        </select>
+                        @error('dStatus') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+            </div>
+
+            {{-- 5. Sales Rep & Notes --}}
+            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                <div style="margin-bottom:14px;">
+                    <h4 style="margin:0; font-size:13px; font-weight:600;">Sales Representative &amp; Notes</h4>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Sales Representative</label>
+                        <input wire:model="dSalesRepresentative" type="text" placeholder="Name of the sales agent"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;" />
+                    </div>
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Notes</label>
+                        <textarea wire:model="dNotes" placeholder="Internal notes…" rows="3"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif; resize:vertical; min-height:72px;"></textarea>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        {{-- Drawer Footer --}}
+        <div style="border-top:1px solid var(--rule); background:var(--paper);">
+            @if($errors->any())
+                <div style="padding:9px 24px; background:var(--rj-bg); border-bottom:1px solid rgba(0,0,0,.06);">
+                    <ul style="margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:3px;">
+                        @foreach($errors->all() as $error)
+                            <li style="font:500 11.5px 'Inter', sans-serif; color:var(--rj-fg); display:flex; align-items:center; gap:6px;">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                {{ $error }}
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            <div style="padding:14px 24px; display:flex; justify-content:flex-end; align-items:center; gap:10px;">
+                <button @click="$wire.closeDrawer()"
+                    style="appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2);
+                           padding:7px 16px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;">
+                    Cancel
+                </button>
+                <button wire:click="savePropertySale"
+                    wire:loading.attr="disabled"
+                    style="appearance:none; border:1px solid var(--accent); background:var(--accent); color:#fff;
+                           padding:7px 18px; font:600 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
+                           display:inline-flex; align-items:center; gap:6px;">
+                    <span wire:loading.remove wire:target="savePropertySale" style="display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Update Sale
+                    </span>
+                    <span wire:loading wire:target="savePropertySale">Saving…</span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+</div>

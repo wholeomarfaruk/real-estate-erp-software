@@ -281,6 +281,12 @@ class PermissionSeeder extends Seeder
             ['id' => 218, 'name' => 'customer.create'],
             ['id' => 219, 'name' => 'customer.edit'],
             ['id' => 220, 'name' => 'customer.delete'],
+
+            // Property Sales
+            ['id' => 221, 'name' => 'property_sale.view'],
+            ['id' => 222, 'name' => 'property_sale.create'],
+            ['id' => 223, 'name' => 'property_sale.edit'],
+            ['id' => 224, 'name' => 'property_sale.delete'],
         ];
 
         foreach ($permissions as $permission) {

@@ -148,6 +148,10 @@ class AssignPermissionSeeder extends Seeder
                 'customer.create',
                 'customer.edit',
                 'customer.delete',
+                'property_sale.view',
+                'property_sale.create',
+                'property_sale.edit',
+                'property_sale.delete',
             ])
             ->get();
 
