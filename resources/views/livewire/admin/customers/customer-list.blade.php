@@ -3,6 +3,7 @@
         drawerOpen: $wire.entangle('drawerOpen'),
         activeTab: $wire.entangle('activeTab'),
         dType: $wire.entangle('dType'),
+        step: $wire.entangle('step'),
     }"
     x-init="$store.pageName = { name: 'Customers', slug: 'customers' }"
     style="
@@ -342,26 +343,45 @@
             </button>
         </div>
 
-        {{-- Tabs --}}
-        <div style="display:flex; padding:0 24px; background:var(--paper); border-bottom:1px solid var(--rule);">
-            @foreach(['identity' => 'Identity', 'contact' => 'Contact & Address', 'documents' => 'Documents', 'attachments' => 'Attachments', 'activity' => 'Activity'] as $tab => $label)
-                <button @click="activeTab = '{{ $tab }}'"
-                    style="appearance:none; background:transparent; border:0; cursor:pointer;
-                           padding:12px 14px; font:500 12.5px 'Inter', sans-serif;
-                           border-bottom:2px solid transparent; margin-bottom:-1px;"
-                    :style="activeTab === '{{ $tab }}'
-                        ? 'color:var(--ink-1); border-bottom-color:var(--ink-1); font-weight:600;'
-                        : 'color:var(--ink-2);'">
-                    {{ $label }}
-                </button>
-            @endforeach
+        {{-- Multi-step progress bar --}}
+        <div style="padding:20px 28px 16px; background:var(--paper); border-bottom:1px solid var(--rule);">
+            @php $stepLabels = ['Identity', 'Contact', 'Documents', 'Notes']; @endphp
+            <div style="display:flex; align-items:flex-start;">
+                @foreach($stepLabels as $i => $label)
+                    @php $n = $i + 1; @endphp
+                    {{-- Step node --}}
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:5px; flex:0 0 auto; width:60px;">
+                        <div style="width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; transition:background .2s, border-color .2s; font:700 12px 'Inter', sans-serif;"
+                            :style="step > {{ $n }}
+                                ? 'background:var(--av-fg); border:2px solid var(--av-fg); color:#fff;'
+                                : step === {{ $n }}
+                                    ? 'background:var(--accent); border:2px solid var(--accent); color:#fff;'
+                                    : 'background:var(--paper); border:2px solid var(--rule); color:var(--ink-3);'">
+                            <span x-show="step > {{ $n }}" style="display:none; line-height:1;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                            </span>
+                            <span x-show="step <= {{ $n }}">{{ $n }}</span>
+                        </div>
+                        <span style="font:500 10px 'Inter', sans-serif; text-align:center; white-space:nowrap; transition:color .2s;"
+                            :style="step >= {{ $n }} ? 'color:var(--ink-1); font-weight:600;' : 'color:var(--ink-3);'">
+                            {{ $label }}
+                        </span>
+                    </div>
+                    {{-- Connector line --}}
+                    @if($i < count($stepLabels) - 1)
+                        <div style="flex:1; height:2px; margin-top:14px; border-radius:2px; transition:background .3s;"
+                            :style="step > {{ $n }} ? 'background:var(--av-fg);' : 'background:var(--rule);'">
+                        </div>
+                    @endif
+                @endforeach
+            </div>
         </div>
 
         {{-- Body --}}
         <div style="flex:1; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:18px;">
 
-            {{-- ─ IDENTITY TAB ─ --}}
-            <div x-show="activeTab === 'identity'" style="display:flex; flex-direction:column; gap:18px;">
+            {{-- ─ STEP 1 : IDENTITY ─ --}}
+            <div x-show="step === 1" style="display:flex; flex-direction:column; gap:18px;">
 
                 {{-- Customer type --}}
                 <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
@@ -374,7 +394,7 @@
                             :style="dType === 'individual'
                                 ? 'border:1px solid var(--rt-fg); background:var(--rt-bg);'
                                 : 'border:1px solid var(--rule); background:var(--paper);'">
-                            <input type="radio" wire:model="dType" x-model="dType" value="individual" style="display:none;" />
+                            <input type="radio" x-model="dType" value="individual" style="display:none;" />
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <span style="width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;"
                                     :style="dType === 'individual' ? 'background:var(--rt-fg); color:var(--paper);' : 'background:var(--in-bg); color:var(--in-fg);'">
@@ -388,7 +408,7 @@
                             :style="dType === 'company'
                                 ? 'border:1px solid var(--sd-fg); background:var(--sd-bg);'
                                 : 'border:1px solid var(--rule); background:var(--paper);'">
-                            <input type="radio" wire:model="dType" x-model="dType" value="company" style="display:none;" />
+                            <input type="radio" x-model="dType" value="company" style="display:none;" />
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <span style="width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;"
                                     :style="dType === 'company' ? 'background:var(--sd-fg); color:var(--paper);' : 'background:var(--in-bg); color:var(--in-fg);'">
@@ -500,8 +520,8 @@
                 </div>
             </div>
 
-            {{-- ─ CONTACT TAB ─ --}}
-            <div x-show="activeTab === 'contact'" style="display:flex; flex-direction:column; gap:18px;">
+            {{-- ─ STEP 2 : CONTACT & ADDRESS ─ --}}
+            <div x-show="step === 2" style="display:flex; flex-direction:column; gap:18px;">
                 <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
                     <div style="margin-bottom:14px;"><h4 style="margin:0; font-size:13px; font-weight:600;">Contact</h4></div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 14px;">
@@ -553,8 +573,8 @@
                 </div>
             </div>
 
-            {{-- ─ DOCUMENTS TAB ─ --}}
-            <div x-show="activeTab === 'documents'" style="display:flex; flex-direction:column; gap:18px;">
+            {{-- ─ STEP 3 : DOCUMENTS & KYC ─ --}}
+            <div x-show="step === 3" style="display:flex; flex-direction:column; gap:18px;">
                 <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
                     <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
                         <h4 style="margin:0; font-size:13px; font-weight:600;">Identity document</h4>
@@ -635,8 +655,8 @@
                 </div>
             </div>
 
-            {{-- ─ ATTACHMENTS TAB ─ --}}
-            <div x-show="activeTab === 'attachments'" style="display:flex; flex-direction:column; gap:18px;">
+            {{-- ─ STEP 4 : NOTES, ATTACHMENTS & ACTIVITY ─ --}}
+            <div x-show="step === 4" style="display:flex; flex-direction:column; gap:18px;">
                 <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
                     <div style="margin-bottom:14px;"><h4 style="margin:0; font-size:13px; font-weight:600;">Notes</h4></div>
                     <textarea wire:model="dNotes" placeholder="Internal notes about this customer…" rows="4"
@@ -657,8 +677,8 @@
                 </div>
             </div>
 
-            {{-- ─ ACTIVITY TAB ─ --}}
-            <div x-show="activeTab === 'activity'" style="display:flex; flex-direction:column; gap:18px;">
+            {{-- Activity & Metadata (part of step 4) --}}
+            <div x-show="step === 4" style="display:flex; flex-direction:column; gap:18px;">
                 <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
                     <div style="margin-bottom:14px;"><h4 style="margin:0; font-size:13px; font-weight:600;">Activity log</h4></div>
                     @if($editingId)
@@ -727,20 +747,74 @@
         </div>
 
         {{-- Footer --}}
-        <div style="padding:14px 24px; border-top:1px solid var(--rule); background:var(--paper);
-                    display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <button @click="$wire.closeDrawer()"
-                style="appearance:none; border:1px solid transparent; background:transparent; color:var(--ink-2);
-                       padding:7px 14px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;">
-                Cancel
-            </button>
-            <button wire:click="saveCustomer" wire:loading.attr="disabled"
-                style="appearance:none; border:1px solid var(--ink-1); background:var(--ink-1); color:var(--paper);
-                       padding:7px 14px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
-                       display:inline-flex; align-items:center; gap:6px;">
-                <span wire:loading.remove wire:target="saveCustomer">Save customer</span>
-                <span wire:loading wire:target="saveCustomer">Saving…</span>
-            </button>
+        <div style="border-top:1px solid var(--rule); background:var(--paper);">
+
+            {{-- Validation error summary (only visible when errors present) --}}
+            @if($errors->any())
+                <div style="padding:9px 24px; background:var(--rj-bg); border-bottom:1px solid rgba(0,0,0,.06);">
+                    <ul style="margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:3px;">
+                        @foreach($errors->all() as $error)
+                            <li style="font:500 11.5px 'Inter', sans-serif; color:var(--rj-fg); display:flex; align-items:center; gap:6px;">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                {{ $error }}
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <div style="padding:14px 24px; display:flex; justify-content:space-between; align-items:center;">
+
+                {{-- Left: Cancel (step 1) or Back (steps 2-4) --}}
+                <button
+                    @click="step === 1 ? $wire.closeDrawer() : step--"
+                    style="appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2);
+                           padding:7px 16px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
+                           display:inline-flex; align-items:center; gap:6px; transition:background .15s;">
+                    <span x-show="step === 1">Cancel</span>
+                    <span x-show="step > 1" style="display:none; align-items:center; gap:6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                        Back
+                    </span>
+                </button>
+
+                {{-- Centre: step dots --}}
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <div style="width:7px; height:7px; border-radius:50%; transition:background .2s, transform .2s;"
+                        :style="step === 1 ? 'background:var(--accent); transform:scale(1.3);' : (step > 1 ? 'background:var(--av-fg);' : 'background:var(--rule);')"></div>
+                    <div style="width:7px; height:7px; border-radius:50%; transition:background .2s, transform .2s;"
+                        :style="step === 2 ? 'background:var(--accent); transform:scale(1.3);' : (step > 2 ? 'background:var(--av-fg);' : 'background:var(--rule);')"></div>
+                    <div style="width:7px; height:7px; border-radius:50%; transition:background .2s, transform .2s;"
+                        :style="step === 3 ? 'background:var(--accent); transform:scale(1.3);' : (step > 3 ? 'background:var(--av-fg);' : 'background:var(--rule);')"></div>
+                    <div style="width:7px; height:7px; border-radius:50%; transition:background .2s, transform .2s;"
+                        :style="step === 4 ? 'background:var(--accent); transform:scale(1.3);' : 'background:var(--rule);'"></div>
+                </div>
+
+                {{-- Right: Next (steps 1-3) or Submit (step 4) --}}
+                <div style="display:flex; align-items:center;">
+                    <button x-show="step < 4"
+                        @click="step++"
+                        style="appearance:none; border:1px solid var(--ink-1); background:var(--ink-1); color:var(--paper);
+                               padding:7px 16px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
+                               display:inline-flex; align-items:center; gap:6px; transition:opacity .15s;">
+                        Next
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                    <button x-show="step === 4" x-cloak
+                        wire:click="saveCustomer"
+                        wire:loading.attr="disabled"
+                        style="appearance:none; border:1px solid var(--accent); background:var(--accent); color:#fff;
+                               padding:7px 18px; font:600 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
+                               display:inline-flex; align-items:center; gap:6px;">
+                        <span wire:loading.remove wire:target="saveCustomer" style="display:inline-flex; align-items:center; gap:6px;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            {{ $editingId ? 'Update customer' : 'Save customer' }}
+                        </span>
+                        <span wire:loading wire:target="saveCustomer">Saving…</span>
+                    </button>
+                </div>
+
+            </div>
         </div>
     </aside>
 

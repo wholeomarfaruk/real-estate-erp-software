@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Customers;
 
 use App\Models\Customer;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -17,6 +18,7 @@ class CustomerList extends Component
     public bool   $drawerOpen   = false;
     public ?int   $editingId    = null;
     public string $activeTab    = 'identity';
+    public int    $step         = 1;
 
     // Drawer fields
     public string $dType          = 'individual';
@@ -81,6 +83,7 @@ class CustomerList extends Component
         $this->dStatus        = 'active';
         $this->dSource        = '';
         $this->dNotes         = '';
+        $this->step           = 1;
         $this->drawerOpen     = true;
     }
 
@@ -117,20 +120,44 @@ class CustomerList extends Component
         $this->dStatus        = $customer->status ?? 'active';
         $this->dSource        = $customer->source ?? '';
         $this->dNotes         = $customer->notes ?? '';
+        $this->step           = 1;
         $this->drawerOpen     = true;
     }
 
     public function saveCustomer(): void
     {
-        $this->validate([
-            'dName'  => 'required|string|max:255',
-            'dPhone' => 'required|string|max:50',
-            'dType'  => 'required|in:individual,company',
-        ], [
-            'dName.required'  => 'Customer name is required.',
-            'dPhone.required' => 'Phone number is required.',
-            'dType.required'  => 'Customer type is required.',
-        ]);
+        $validator = Validator::make(
+            [
+                'dName'  => $this->dName,
+                'dPhone' => $this->dPhone,
+                'dType'  => $this->dType,
+            ],
+            [
+                'dName'  => 'required|string|max:255',
+                'dPhone' => 'required|string|max:50',
+                'dType'  => 'required|in:individual,company',
+            ],
+            [
+                'dName.required'  => 'Customer name is required.',
+                'dPhone.required' => 'Phone number is required.',
+                'dType.required'  => 'Customer type is required.',
+            ]
+        );
+
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            // Auto-switch to the tab containing the first error
+            if ($errors->hasAny(['dType', 'dName'])) {
+                $this->step = 1;
+            } elseif ($errors->hasAny(['dPhone', 'dPhoneAlt', 'dEmail', 'dAddress', 'dDistrict', 'dDivision'])) {
+                $this->step = 2;
+            } elseif ($errors->hasAny(['dDocType', 'dDocNo', 'dKycStatus'])) {
+                $this->step = 3;
+            }
+            $this->setErrorBag($errors);
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Please fill in all required fields.']);
+            return;
+        }
 
         $data = [
             'type'                   => $this->dType,
@@ -198,6 +225,7 @@ class CustomerList extends Component
     {
         $this->drawerOpen = false;
         $this->editingId  = null;
+        $this->step       = 1;
         $this->resetValidation();
     }
 
