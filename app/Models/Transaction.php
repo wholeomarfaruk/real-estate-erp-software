@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Accounts\TransactionType;
+use App\Models\Account;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,17 +15,28 @@ class Transaction extends Model
     use HasFactory;
 
     protected $fillable = [
-        'date',
+        'datetime',
         'type',
         'reference_type',
         'reference_id',
         'notes',
         'created_by',
+        'account_id',
+        'debit',
+        'credit',
+        'name',
+        'method',
+        'attachments',
+        'main_category',
+        'sub_category',
     ];
 
     protected $casts = [
-        'date' => 'date',
-        'type' => TransactionType::class,
+        'datetime'    => 'datetime',
+        'type'        => TransactionType::class,
+        'debit'       => 'decimal:3',
+        'credit'      => 'decimal:3',
+        'attachments' => 'array',
     ];
 
     public function lines(): HasMany
@@ -46,7 +58,15 @@ class Transaction extends Model
     {
         return $this->hasOne(Payment::class);
     }
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(Account::class);
+    }
 
+    public function reference()
+    {
+        return $this->morphTo();
+    }
     public function collection(): HasOne
     {
         return $this->hasOne(AccountCollection::class, 'transaction_id');

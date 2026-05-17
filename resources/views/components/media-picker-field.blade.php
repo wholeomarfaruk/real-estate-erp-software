@@ -1,130 +1,253 @@
-<div class="grid grid-cols-1 gap-1 mb-2">
-    <label class="block text-sm font-medium text-gray-900" for="{{ $field }}">
+@php
+    $canEdit  ??= true;
+    $required ??= false;
+
+    $imgExts = ['jpg','jpeg','png','gif','webp','ico','tiff','svg'];
+    $vidExts = ['mp4','mov','avi','mkv'];
+
+    $isEmpty = !$value || (is_array($value) && count($value) === 0);
+$fancyGallery = null;
+    if (!$isEmpty) {
+        if (!$multiple) {
+            $singleId    = is_array($value) ? ($value['id'] ?? null) : $value;
+            $singleFile  = $singleId ? \App\Models\File::find($singleId) : null;
+            $singleUrl   = $singleId ? file_path($singleId) : null;
+            $singleExt   = strtolower($singleFile?->extension ?? '');
+            $singleIsImg = in_array($singleExt, $imgExts);
+            $singleIsVid = in_array($singleExt, $vidExts);
+            $singleIsPdf = $singleExt === 'pdf';
+            $fancyGallery = 'mpf-' . $field;
+        } else {
+            $items   = is_array($value) ? array_values($value) : [$value];
+            $fileIds = array_values(array_filter(array_map(
+                fn($i) => (int)(is_array($i) ? ($i['id'] ?? 0) : $i),
+                $items
+            )));
+            $filesMap = $fileIds
+                ? \App\Models\File::whereIn('id', $fileIds)->get()->keyBy('id')
+                : collect();
+        }
+    }
+@endphp
+
+<div class="flex flex-col gap-1.5">
+
+    {{-- Label --}}
+    <label class="block text-xs font-semibold tracking-wide uppercase text-gray-500" for="{{ $field }}">
         {{ $label }}
-        @if ($required)
-            <span class="size-6 text-red-500 mr-1.5">*</span>
-        @endif
+        @if($required)<span class="text-red-500 ml-0.5">*</span>@endif
     </label>
 
+    {{-- Hidden binding --}}
     <input wire:model="{{ $field }}" id="{{ $field }}" type="hidden" />
 
-    <div wire:click="$dispatch('openMediaPicker', { target: '{{ $field }}', multiple: {{ $multiple ? 'true' : 'false' }}, type: '{{ $type }}' })"
-        class="min-h-30 bg-gray-50 border border-gray-200 rounded-lg shadow-sm w-full grid place-content-center {{ $value ? '' : 'cursor-pointer' }}">
-        @if ($value)
-            @if ($multiple && is_array($value))
-                <div class="flex flex-wrap gap-2 p-2">
-                    @foreach ($value as $item)
-                        <div class="relative inline-block m-2 h-25">
-                            @if ($type === 'image')
-                                <img src="{{ file_path(is_array($item) ? $item['path'] ?? ($item['id'] ?? '') : $item) }}"
-                                    class="h-full rounded border">
-                            @elseif ($type === 'video')
-                                <video class="h-full rounded border" controls>
-                                    <source
-                                        src="{{ file_path(is_array($item) ? $item['path'] ?? ($item['id'] ?? '') : $item) }}">
-                                </video>
-                            @else
-                                <div class="p-3 bg-white rounded border text-sm">
-                                    {{ is_array($item) ? $item['name'] ?? ($item['id'] ?? 'File') : basename($item) }}
-                                </div>
-                            @endif
+    @if($isEmpty)
+        {{-- ── Empty drop-zone ──────────────────────────────────────────────── --}}
+        <button type="button"
+            wire:click="$dispatch('openMediaPicker', { target: '{{ $field }}', multiple: {{ $multiple ? 'true' : 'false' }}, type: '{{ $type }}' })"
+            class="group flex flex-col items-center justify-center gap-2.5 w-full min-h-20 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 hover:border-indigo-400 hover:bg-indigo-50/50 transition-all cursor-pointer">
+            <div class="w-8 h-8 rounded-full bg-white border border-gray-200 group-hover:border-indigo-300 group-hover:bg-indigo-50 flex items-center justify-center transition-all shadow-sm">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 group-hover:text-indigo-500 transition-colors">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12M12 16.5V3"/>
+                </svg>
+            </div>
+            <span class="text-sm font-medium text-gray-400 group-hover:text-indigo-600 transition-colors">{{ $placeholder }}</span>
+        </button>
 
-                            <button type="button"
-                                wire:click.stop="removeMedia('{{ $field }}', '{{ is_array($item) ? $item['id'] ?? ($item['path'] ?? '') : $item }}')"
-                                class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center">
-                                ✕
-                            </button>
-                        </div>
-                    @endforeach
-                </div>
-            @else
-                @if (!$multiple)
-                    <div class="relative inline-block m-2">
-                        @if ($type === 'image')
-                            <img src="{{ file_path($value) }}" class="w-full max-h-24 rounded border">
-                        @elseif ($type === 'video')
-                            <video class="w-full max-h-24 rounded border" controls>
-                                <source src="{{ file_path($value) }}">
-                            </video>
-                        @else
-                            <div class="p-3 bg-white rounded border text-sm">
-                                {{ basename($value) }}
-                            </div>
-                        @endif
-
-                        <button type="button"
-                            wire:click.stop="removeMedia('{{ $field }}', '{{ is_array($value) ? $value['id'] ?? ($value['path'] ?? '') : $value }}')"
-                            class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center">
-                            ✕
-                        </button>
+    @elseif(!$multiple)
+        {{-- ── Single file ───────────────────────────────────────────────────── --}}
+        <div class="rounded-lg border border-gray-200 bg-white overflow-hidden">
+            @if($singleIsImg && $singleUrl)
+                <div class="relative group">
+                    <img src="{{ $singleUrl }}" alt="{{ $singleFile?->name ?? 'Image' }}"
+                        class="w-full max-h-52 object-contain block bg-gray-50">
+                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                        <a href="{{ $singleUrl }}"
+                            data-fancybox
+                            data-caption="{{ $singleFile?->name ?? 'Image' }}"
+                            target="_blank"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-white/95 text-gray-700 text-xs font-semibold shadow hover:bg-white transition-all">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            View
+                        </a>
+                        <a href="{{ $singleUrl }}" download
+                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-white/95 text-gray-700 text-xs font-semibold shadow hover:bg-white transition-all">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
                     </div>
-                @else
-                    <div class="mt-4 space-y-3">
-                     
+                </div>
+
+            @elseif($singleIsVid && $singleUrl)
+                <video class="w-full max-h-52 bg-black" controls>
+                    <source src="{{ $singleUrl }}">
+                </video>
+
+            @elseif($singleUrl)
+                <div class="flex items-center gap-3 px-4 py-3">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs font-bold shrink-0">
+                        {{ strtoupper(substr($singleExt ?: 'FILE', 0, 4)) }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-800 truncate">{{ $singleFile?->name ?? 'File' }}</p>
+                        <p class="text-xs text-gray-400">{{ strtoupper($singleExt) }}</p>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <a href="{{ $singleUrl }}"
+                            data-fancybox="{{ $fancyGallery }}"
+                            data-caption="{{ $singleFile?->name ?? 'File' }}"
+                            @if($singleIsPdf) data-type="iframe" data-autosize="true" @endif
+                            target="_blank"
+                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50 transition">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            View
+                        </a>
+                        <a href="{{ $singleUrl }}" download
+                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50 transition">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Footer: change / remove --}}
+            <div class="flex items-center justify-between px-4 py-2 border-t border-gray-100 bg-gray-50">
+                <button type="button"
+                    wire:click="$dispatch('openMediaPicker', { target: '{{ $field }}', multiple: false, type: '{{ $type }}' })"
+                    class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Change
+                </button>
+                @if($canEdit)
+                    <button type="button"
+                        wire:click.stop="removeMedia('{{ $field }}')"
+                        class="inline-flex items-center gap-1 text-xs font-semibold text-red-500 hover:text-red-700 transition">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                        Remove
+                    </button>
+                @endif
+            </div>
+        </div>
+
+    @else
+        {{-- ── Multiple files ────────────────────────────────────────────────── --}}
+        <div class="rounded-lg border border-gray-200 bg-white overflow-hidden">
+
+            @if($type === 'image')
+                {{-- Image thumbnails grid --}}
+                <div class="flex flex-wrap gap-2 p-3">
+                    @foreach($items as $item)
                         @php
-                            $arrayValue = $value;
-                            $arrayValue = is_array($arrayValue) ? $arrayValue : [$arrayValue];
-                            $arrayValue = \App\Models\File::whereIn('id', array_column($arrayValue, 'id'))->get();
+                            $iId   = is_array($item) ? ($item['id'] ?? null) : (int)$item;
+                            $iUrl  = $iId ? file_path($iId) : null;
+                            $iFile = $iId ? ($filesMap[$iId] ?? null) : null;
                         @endphp
-                        @forelse ($arrayValue as $file)
-                            
-                            <div
-                                class="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3 dark:border-gray-800">
-                                <div class="flex items-center gap-3">
-                                    <div
-                                        class="h-10 w-10 rounded-lg bg-indigo-50 text-indigo-600 grid place-content-center text-sm font-semibold dark:bg-indigo-900/40">
-                                        {{ strtoupper(substr($file->extension ?? 'file', 0, 3)) }}
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-900 dark:text-white/90">
-                                            {{ $file->name ?? 'Document ' . $loop->iteration }}</p>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                                            {{ strtoupper($file->extension ?? '') }}</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <a href="{{ file_path($file->id) }}" data-fancybox="project-docs"
-                                        {{ $file->extension == 'pdf' ? 'data-type=iframe data-autosize=true' : '' }}
-                                        data-caption="{{ $file->name ?? 'Document ' . $loop->iteration }}"
-                                        class="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-50 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                        </svg>
+                        @if($iUrl)
+                            <div class="relative group w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-gray-200">
+                                <img src="{{ $iUrl }}" alt="{{ $iFile?->name ?? 'Image' }}"
+                                    class="w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/45 transition-all flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100 p-1">
+                                    <a href="{{ $iUrl }}"
+                                        data-fancybox="{{ $fancyGallery }}"
+                                        data-caption="{{ $iFile?->name ?? 'Image' }}"
+                                        target="_blank"
+                                        class="w-full text-center px-1 py-1 rounded bg-white/95 text-gray-700 text-xs font-semibold leading-none hover:bg-white transition">
                                         View
                                     </a>
-                                    <a href="{{ file_path($file->id) }}" download
-                                        class="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-50 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                d="M12 4.5v9m0 0 3.5-3.5M12 13.5 8.5 10M4.5 19.5h15" />
-                                        </svg>
+                                    <a href="{{ $iUrl }}" download
+                                        class="w-full text-center px-1 py-1 rounded bg-white/95 text-gray-700 text-xs font-semibold leading-none hover:bg-white transition">
                                         Download
                                     </a>
-                                    @if ($canEdit)
+                                </div>
+                                @if($canEdit)
+                                    <button type="button"
+                                        wire:click.stop="removeMedia('{{ $field }}', '{{ $iId }}')"
+                                        class="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm hover:bg-red-600 transition opacity-0 group-hover:opacity-100">
+                                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    </button>
+                                @endif
+                            </div>
+                        @endif
+                    @endforeach
+                </div>
+
+            @else
+                {{-- Document / mixed file list --}}
+                <div class="divide-y divide-gray-100">
+                    @foreach($items as $item)
+                        @php
+                            $iId    = is_array($item) ? ($item['id'] ?? null) : (int)$item;
+                            $iUrl   = $iId ? file_path($iId) : null;
+                            $iFile  = $iId ? ($filesMap[$iId] ?? null) : null;
+                            $iExt   = strtolower($iFile?->extension ?? '');
+                            $iIsImg = in_array($iExt, $imgExts);
+                            $iIsPdf = $iExt === 'pdf';
+                        @endphp
+                        @if($iUrl)
+                            <div class="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center gap-3 min-w-0 flex-1">
+                                    @if($iIsImg)
+                                        <div class="w-9 h-9 rounded-md overflow-hidden border border-gray-200 shrink-0">
+                                            <img src="{{ $iUrl }}" class="w-full h-full object-cover">
+                                        </div>
+                                    @else
+                                        <div class="w-9 h-9 rounded-md bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs font-bold shrink-0">
+                                            {{ strtoupper(substr($iExt ?: 'F', 0, 4)) }}
+                                        </div>
+                                    @endif
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-medium text-gray-800 truncate leading-snug">{{ $iFile?->name ?? 'File #' . $iId }}</p>
+                                        <p class="text-xs text-gray-400 leading-none mt-0.5">{{ strtoupper($iExt) ?: 'FILE' }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1 shrink-0 ml-3">
+                                    <a href="{{ $iUrl }}"
+                                        data-fancybox="{{ $fancyGallery }}"
+                                        data-caption="{{ $iFile?->name ?? 'File' }}"
+                                        @if($iIsPdf) data-type="iframe" data-autosize="true" @endif
+                                        target="_blank"
+                                        class="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium text-gray-600 ring-1 ring-gray-200 hover:bg-gray-100 transition">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        View
+                                    </a>
+                                    <a href="{{ $iUrl }}" download
+                                        class="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium text-gray-600 ring-1 ring-gray-200 hover:bg-gray-100 transition">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                        Download
+                                    </a>
+                                    @if($canEdit)
                                         <button type="button"
-                                            wire:click="removeMedia('documents', '{{ $file->id }}')"
-                                            class="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium text-red-600 ring-1 ring-red-200 transition hover:bg-red-50 dark:ring-red-700 dark:text-red-400 dark:hover:bg-red-900/20">
-                                            Delete
+                                            wire:click.stop="removeMedia('{{ $field }}', '{{ $iId }}')"
+                                            class="inline-flex items-center justify-center w-7 h-7 rounded-md text-red-500 ring-1 ring-red-200 hover:bg-red-50 transition">
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                         </button>
                                     @endif
                                 </div>
                             </div>
-                        @empty
-                            <p class="text-sm text-gray-500 dark:text-gray-400">No files added yet.</p>
-                        @endforelse
-                    </div>
-                @endif
+                        @endif
+                    @endforeach
+                </div>
             @endif
-        @else
-            <span class="text-gray-500">{{ $placeholder }}</span>
-        @endif
-    </div>
 
+            {{-- Footer: file count + add more --}}
+            <div class="flex items-center justify-between px-4 py-2 border-t border-gray-100 bg-gray-50">
+                <span class="text-xs text-gray-400">{{ count($items) }} {{ count($items) === 1 ? 'file' : 'files' }} attached</span>
+                <button type="button"
+                    wire:click="$dispatch('openMediaPicker', { target: '{{ $field }}', multiple: true, type: '{{ $type }}' })"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-indigo-600 ring-1 ring-indigo-200 hover:bg-indigo-50 transition">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Add More
+                </button>
+            </div>
+        </div>
+    @endif
+
+    {{-- Error message --}}
     @error($field)
-        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+        <p class="text-xs text-red-600 mt-0.5">{{ $message }}</p>
     @enderror
+
+    {{-- Media picker modal (embedded once per field) --}}
     @livewire('admin.file.media-picker', ['mediapickerModal' => false], key('media-picker-' . $field))
 </div>

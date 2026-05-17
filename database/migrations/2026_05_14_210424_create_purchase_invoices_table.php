@@ -83,20 +83,12 @@ return new class extends Migration
                 ->constrained('accounts')
                 ->nullOnDelete();
 
-            $table->foreignId('accounts_payable_account_id')
-                ->nullable()
-                ->constrained('accounts')
-                ->nullOnDelete();
 
             $table->foreignId('transaction_id')
                 ->nullable()
                 ->constrained('transactions')
                 ->nullOnDelete();
 
-            $table->foreignId('purchase_payable_id')
-                ->nullable()
-                ->constrained('purchase_payables')
-                ->nullOnDelete();
 
             /*
             |--------------------------------------------------------------------------

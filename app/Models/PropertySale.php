@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\Property\PropertySaleType;
+use App\Traits\HasPaymentSchedules;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,19 +11,19 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PropertySale extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasPaymentSchedules;
 
     protected $table = 'property_sales';
 
     protected $fillable = [
         'sale_number',
-        'property_id',
         'sale_type',
+        'property_id',
         'property_unit_id',
         'customer_id',
-        'package_id',
         'sale_date',
         'contract_date',
+        // financials
         'sale_amount',
         'discount_amount',
         'tax_amount',
@@ -29,9 +31,22 @@ class PropertySale extends Model
         'down_payment_amount',
         'payment_terms',
         'payment_status',
-        'installment_month_no',
-        'installment_amount',
-        'installment_status',
+        // schedule
+        'is_scheduled',
+        'schedule_count',
+        'schedule_amount',
+        'schedule_name',
+        'schedule_type',
+        'schedule_day',
+        'schedule_start_date',
+        'schedule_status',
+        // rent
+        'rent_start_date',
+        'rent_end_date',
+        'security_deposit_amount',
+        'is_renewal',
+        'renewal_date',
+        // meta
         'status',
         'sales_representative',
         'notes',
@@ -40,14 +55,21 @@ class PropertySale extends Model
     ];
 
     protected $casts = [
-        'sale_date'            => 'date',
-        'contract_date'        => 'date',
-        'sale_amount'          => 'decimal:2',
-        'discount_amount'      => 'decimal:2',
-        'tax_amount'           => 'decimal:2',
-        'net_amount'           => 'decimal:2',
-        'down_payment_amount'  => 'decimal:2',
-        'installment_amount'   => 'decimal:2',
+        'sale_date'               => 'date',
+        'contract_date'           => 'date',
+        'sale_amount'             => 'decimal:2',
+        'discount_amount'         => 'decimal:2',
+        'tax_amount'              => 'decimal:2',
+        'net_amount'              => 'decimal:2',
+        'down_payment_amount'     => 'decimal:2',
+        'schedule_amount'         => 'decimal:2',
+        'security_deposit_amount' => 'decimal:2',
+        'schedule_start_date'     => 'date',
+        'rent_start_date'         => 'date',
+        'rent_end_date'           => 'date',
+        'renewal_date'            => 'date',
+        'is_scheduled'            => 'boolean',
+        'is_renewal'              => 'boolean',
     ];
 
     protected static function boot(): void
@@ -81,7 +103,10 @@ class PropertySale extends Model
 
     public function paymentSchedules(): HasMany
     {
-        return $this->hasMany(PaymentSchedule::class)->orderBy('payment_category')->orderBy('sequence_no');
+        return $this->hasMany(PaymentSchedule::class)
+            ->orderByRaw("FIELD(payment_category,'down_payment','security_deposit','installment','monthly_rent','extra_charge','manual_charge')")
+            ->orderBy('sequence_no')
+            ->orderBy('due_date');
     }
 
     public function createdByUser(): BelongsTo
@@ -96,18 +121,22 @@ class PropertySale extends Model
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    public function totalScheduled(): float
+    public function isSale(): bool
     {
-        return (float) $this->paymentSchedules()->sum('amount');
+        return $this->sale_type === 'sale';
     }
 
-    public function totalPaid(): float
+    public function isRent(): bool
     {
-        return (float) $this->paymentSchedules()->sum('paid_amount');
+        return $this->sale_type === 'rent';
     }
 
-    public function totalDue(): float
+    public function saleTypeLabel(): string
     {
-        return (float) $this->paymentSchedules()->sum('due_amount');
+        return match($this->sale_type) {
+            'sale' => 'Property Sale',
+            'rent' => 'Rent',
+            default => ucfirst($this->sale_type ?? 'N/A'),
+        };
     }
 }

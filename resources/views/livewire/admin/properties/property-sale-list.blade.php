@@ -155,9 +155,18 @@
                             padding:14px 18px; border-bottom:1px solid var(--rule); align-items:center;"
                     class="hover:bg-black/[.018] transition-colors">
 
-                    {{-- Sale # --}}
-                    <div style="font-family:var(--mono); font-size:12px; font-weight:600; color:var(--accent); letter-spacing:.03em;">
-                        {{ $sale->sale_number }}
+                    {{-- Sale # + Type --}}
+                    <div>
+                        <div style="font-family:var(--mono); font-size:12px; font-weight:600; color:var(--accent); letter-spacing:.03em;">
+                            {{ $sale->sale_number }}
+                        </div>
+                        <div style="margin-top:4px;">
+                            @if($sale->sale_type === 'rent')
+                                <span style="padding:1px 7px; border-radius:999px; background:var(--rt-bg); color:var(--rt-fg); font:600 9.5px 'Inter', sans-serif; letter-spacing:.05em; text-transform:uppercase;">Rent</span>
+                            @else
+                                <span style="padding:1px 7px; border-radius:999px; background:var(--sd-bg); color:var(--sd-fg); font:600 9.5px 'Inter', sans-serif; letter-spacing:.05em; text-transform:uppercase;">Sale</span>
+                            @endif
+                        </div>
                     </div>
 
                     {{-- Unit & Property --}}
@@ -327,8 +336,8 @@
                     <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
                         Sale Type <span style="color:var(--rj-fg)">*</span>
                     </label>
-                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-                        @foreach(['property_sale' => 'Property Sale', 'land_share' => 'Land Share', 'rent' => 'Rent'] as $val => $label)
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                        @foreach(['sale' => 'Sale', 'rent' => 'Rent'] as $val => $label)
                             <label style="display:flex; align-items:center; gap:8px; padding:9px 12px; border-radius:7px; cursor:pointer;
                                           border:1.5px solid {{ $dSaleType === $val ? 'var(--accent)' : 'var(--rule)' }};
                                           background:{{ $dSaleType === $val ? 'rgba(31,58,104,.06)' : 'transparent' }};">

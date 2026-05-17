@@ -20,7 +20,8 @@ class DatabaseSeeder extends Seeder
             SupplierSeeder::class,
             ChartOfAccountsSeeder::class,
             PropertySeeder::class,
-
+            TransactionCategorySeeder::class,
+            NumberSequenceSeeder::class,
             //last one
             UserSeeder::class,
             EmployeeSeeder::class,

@@ -26,7 +26,7 @@ class PropertySaleList extends Component
 
     // ── Edit drawer fields ────────────────────────────────────────────────────
     public $dPropertyId         = '';
-    public $dSaleType           = 'property_sale';
+    public $dSaleType           = 'sale';
     public $dPropertyUnitId     = '';
     public $dCustomerId         = '';
     public $dSaleDate           = '';
@@ -74,7 +74,7 @@ class PropertySaleList extends Component
         $this->editingId = $id;
 
         $this->dPropertyId          = (string) ($sale->property_id ?? $sale->propertyUnit?->property_id ?? '');
-        $this->dSaleType            = $sale->sale_type ?? 'property_sale';
+        $this->dSaleType            = $sale->sale_type ?? 'sale';
         $this->dPropertyUnitId      = (string) $sale->property_unit_id;
         $this->dCustomerId          = (string) $sale->customer_id;
         $this->dSaleDate            = $sale->sale_date?->format('Y-m-d') ?? '';
@@ -113,7 +113,7 @@ class PropertySaleList extends Component
             'dPaymentStatus'  => $this->dPaymentStatus,
             'dStatus'         => $this->dStatus,
         ], [
-            'dSaleType'       => 'required|in:property_sale,land_share,rent',
+            'dSaleType'       => 'required|in:sale,rent',
             'dPropertyId'     => 'required|exists:properties,id',
             'dPropertyUnitId' => 'required|exists:property_units,id',
             'dCustomerId'     => 'required|exists:customers,id',
