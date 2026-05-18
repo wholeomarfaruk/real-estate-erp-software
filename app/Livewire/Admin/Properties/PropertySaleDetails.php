@@ -57,6 +57,8 @@ class PropertySaleDetails extends Component
     public string  $payNowAccountId      = '';
     public string  $payNowPaymentMethod  = 'cash';
     public string  $payNowPayerName      = '';
+    public string  $payNowReferenceNo    = '';
+    public string  $payNowPhone          = '';
     public string  $payNowAmount         = '0';
     public string  $payNowDate           = '';
     public string  $payNowNotes          = '';
@@ -316,6 +318,8 @@ class PropertySaleDetails extends Component
         $this->payNowAccountId     = '';
         $this->payNowPaymentMethod = 'cash';
         $this->payNowPayerName     = '';
+        $this->payNowReferenceNo   = '';
+        $this->payNowPhone         = '';
         $this->payNowAmount        = (string) $schedule->due_amount;
         $this->payNowDate          = now()->format('Y-m-d H:i');
         $this->payNowNotes         = '';
@@ -376,10 +380,12 @@ class PropertySaleDetails extends Component
             'main_category' => $mainCategory,
             'sub_category' => $subCategory,
             'account_id'  => (int) $this->payNowAccountId,
-            'method'      => $this->payNowPaymentMethod,
-            'name'        => $this->payNowPayerName ?: null,
-            'debit'       => $amount,
-            'notes'       => $this->payNowNotes ?: null,
+            'method'       => $this->payNowPaymentMethod,
+            'name'         => $this->payNowPayerName ?: null,
+            'reference_no' => $this->payNowReferenceNo ?: null,
+            'phone'        => $this->payNowPhone ?: null,
+            'debit'        => $amount,
+            'notes'        => $this->payNowNotes ?: null,
             'attachments' => !empty($this->payNowAttachmentIds) ? $this->payNowAttachmentIds : null,
             'created_by'  => Auth::id(),
         ]);

@@ -195,7 +195,7 @@
                 <div class="row"><span>Created By:</span> {{ $document->creator?->name ?? 'N/A' }}</div>
                 <div class="row"><span>Created At:</span> {{ optional($document->created_at)->format('d M, Y h:i A') ?? 'N/A' }}</div>
                 <div class="row"><span>Transaction Notes:</span> {{ $transaction?->notes ?: 'N/A' }}</div>
-                <div class="row"><span>Attachments:</span> {{ $transaction?->attachments?->count() ?? 0 }}</div>
+                <div class="row"><span>Attachments:</span> {{ count($transaction?->attachments ?? []) }}</div>
             </div>
         </div>
 

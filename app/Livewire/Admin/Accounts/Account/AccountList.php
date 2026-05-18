@@ -257,14 +257,10 @@ class AccountList extends Component
 
         $cashBankAccounts = Account::query()
             ->where('type', AccountType::ASSET->value)
-            ->where(function (Builder $query): void {
-                $query->where('name', 'like', '%cash%')
-                    ->orWhere('name', 'like', '%bank%')
-                    ->orWhere('code', 'like', '%cash%')
-                    ->orWhere('code', 'like', '%bank%');
-            })
-            ->withSum('transactionLines as total_debit', 'debit')
-            ->withSum('transactionLines as total_credit', 'credit')
+            ->whereIn('sub_type', ['cash', 'bank'])
+            ->withSum('transactions as total_debit', 'debit')
+            ->withSum('transactions as total_credit', 'credit')
+            ->orderBy('sub_type')
             ->orderBy('name')
             ->get();
 
@@ -279,11 +275,11 @@ class AccountList extends Component
         });
 
         $totalCashBalance = round((float) $cashBankAccounts
-            ->filter(fn (Account $account): bool => Str::contains(Str::lower($account->name.' '.$account->code), 'cash'))
+            ->filter(fn (Account $account): bool => $account->sub_type === 'cash')
             ->sum('computed_balance'), 3);
 
         $totalBankBalance = round((float) $cashBankAccounts
-            ->filter(fn (Account $account): bool => Str::contains(Str::lower($account->name.' '.$account->code), 'bank'))
+            ->filter(fn (Account $account): bool => $account->sub_type === 'bank')
             ->sum('computed_balance'), 3);
 
     
@@ -390,20 +386,18 @@ class AccountList extends Component
 
     protected function isAccountInUse(int $accountId): bool
     {
-        return DB::transaction(function () use ($accountId): bool {
-            if (DB::table('transaction_lines')->where('account_id', $accountId)->exists()) {
-                return true;
-            }
+        if (\App\Models\Transaction::query()->where('account_id', $accountId)->exists()) {
+            return true;
+        }
 
-            if (Payment::query()->where('payment_account_id', $accountId)->orWhere('purpose_account_id', $accountId)->exists()) {
-                return true;
-            }
+        if (Payment::query()->where('payment_account_id', $accountId)->orWhere('purpose_account_id', $accountId)->exists()) {
+            return true;
+        }
 
-            if (AccountCollection::query()->where('collection_account_id', $accountId)->orWhere('target_account_id', $accountId)->exists()) {
-                return true;
-            }
+        if (AccountCollection::query()->where('collection_account_id', $accountId)->orWhere('target_account_id', $accountId)->exists()) {
+            return true;
+        }
 
-            return Expense::query()->where('expense_account_id', $accountId)->orWhere('payment_account_id', $accountId)->exists();
-        });
+        return Expense::query()->where('expense_account_id', $accountId)->orWhere('payment_account_id', $accountId)->exists();
     }
 }

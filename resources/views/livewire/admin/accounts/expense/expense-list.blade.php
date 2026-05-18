@@ -104,7 +104,7 @@
                                     <td class="px-5 py-4 text-sm text-gray-700">{{ $expense->creator?->name ?? 'N/A' }}</td>
                                     <td class="px-5 py-4 text-sm text-gray-700">
                                         <span class="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
-                                            {{ $expense->transaction?->attachments?->count() ?? 0 }}
+                                            {{ count($expense->transaction?->attachments ?? []) }}
                                         </span>
                                     </td>
                                     <td class="px-5 py-4">
@@ -316,7 +316,8 @@
             <div class="mt-4">
                 @if ($attachmentExpense && $attachmentExpense->transaction)
                     @include('livewire.admin.accounts.partials.attachment-list', [
-                        'attachments' => $attachmentExpense->transaction->attachments,
+                        'attachments' => $attachmentFiles,
+                        'transactionId' => $attachmentExpense->transaction->id,
                         'fancyboxGroup' => 'expense-attachments-'.$attachmentExpense->id,
                         'canRemove' => auth()->user()?->can('accounts.expense.edit'),
                         'removeMethod' => 'removeAttachment',

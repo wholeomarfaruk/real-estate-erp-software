@@ -56,9 +56,9 @@ class Account extends Model
         return $this->hasMany(AccountReferenceLink::class);
     }
 
-    public function transactionLines(): HasMany
+    public function transactions(): HasMany
     {
-        return $this->hasMany(TransactionLine::class);
+        return $this->hasMany(Transaction::class);
     }
 
     public function paymentAccounts(): HasMany
@@ -96,9 +96,9 @@ class Account extends Model
     }
     public function getBalanceAttribute(): float
     {
-        $debits = $this->transactionLines()->sum('debit');
-        $credits = $this->transactionLines()->sum('credit');
-
-        return (float) ($debits - $credits);
+        return round(
+            (float) $this->transactions()->sum('debit') - (float) $this->transactions()->sum('credit'),
+            3
+        );
     }
 }

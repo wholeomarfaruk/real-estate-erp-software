@@ -20,6 +20,8 @@ class BankAccount extends Model
         'note',
         'status',
         'account_id',
+        'phone',
+        'email',
     ];
     public function account()
     {

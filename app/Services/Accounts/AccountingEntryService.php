@@ -9,7 +9,6 @@ use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\PurchasePayable;
 use App\Models\Transaction;
-use App\Models\TransactionAttachment;
 use Illuminate\Support\Facades\DB;
 
 class AccountingEntryService
@@ -46,45 +45,41 @@ class AccountingEntryService
                 $oldReferenceId = $record->reference_id;
             }
 
+            $record ??= new Payment;
+            $record->fill($payload);
+            $record->payment_no = $record->payment_no ?: $this->generatePaymentNo();
+            $record->created_by = $record->created_by ?: $resolvedActorId;
+
             if (! $transaction) {
                 $transaction = Transaction::query()->create([
-                    'date' => $payload['date'],
-                    'type' => TransactionType::PAYMENT->value,
+                    'datetime'       => $payload['date'],
+                    'type'           => TransactionType::PAYMENT->value,
+                    'account_id'     => (int) $payload['payment_account_id'],
+                    'credit'         => (float) $payload['amount'],
+                    'debit'          => 0,
+                    'method'         => $payload['method'] ?? null,
+                    'name'           => $payload['payee_name'] ?? null,
                     'reference_type' => null,
-                    'reference_id' => null,
-                    'notes' => $payload['notes'] ?? null,
-                    'created_by' => $resolvedActorId,
+                    'reference_id'   => null,
+                    'notes'          => $payload['notes'] ?? null,
+                    'created_by'     => $resolvedActorId,
                 ]);
             }
 
-            $record ??= new Payment;
-            $record->fill($payload);
             $record->transaction_id = (int) $transaction->id;
-            $record->payment_no = $record->payment_no ?: $this->generatePaymentNo();
-            $record->created_by = $record->created_by ?: $resolvedActorId;
             $record->save();
 
             $transaction->update([
-                'date' => $record->date,
-                'type' => TransactionType::PAYMENT->value,
+                'datetime'       => $record->date,
+                'type'           => TransactionType::PAYMENT->value,
+                'account_id'     => (int) $record->payment_account_id,
+                'credit'         => (float) $record->amount,
+                'debit'          => 0,
+                'method'         => $record->method?->value ?? $record->method,
+                'name'           => $record->payee_name,
                 'reference_type' => 'payment',
-                'reference_id' => (int) $record->id,
-                'notes' => $record->notes,
-            ]);
-
-            $this->syncTransactionLines($transaction, [
-                [
-                    'account_id' => (int) $record->purpose_account_id,
-                    'debit' => (float) $record->amount,
-                    'credit' => 0,
-                    'description' => 'Payment debit entry',
-                ],
-                [
-                    'account_id' => (int) $record->payment_account_id,
-                    'debit' => 0,
-                    'credit' => (float) $record->amount,
-                    'description' => 'Payment credit entry',
-                ],
+                'reference_id'   => (int) $record->id,
+                'notes'          => $record->notes,
             ]);
 
             $this->syncAttachments($transaction, $attachmentIds, $resolvedActorId);
@@ -111,7 +106,6 @@ class AccountingEntryService
             $record->delete();
 
             if ($transaction) {
-                $transaction->lines()->delete();
                 $transaction->delete();
             }
 
@@ -147,45 +141,41 @@ class AccountingEntryService
                 $transaction = Transaction::query()->lockForUpdate()->findOrFail($record->transaction_id);
             }
 
+            $record ??= new AccountCollection;
+            $record->fill($payload);
+            $record->collection_no = $record->collection_no ?: $this->generateCollectionNo();
+            $record->created_by = $record->created_by ?: $resolvedActorId;
+
             if (! $transaction) {
                 $transaction = Transaction::query()->create([
-                    'date' => $payload['date'],
-                    'type' => TransactionType::COLLECTION->value,
+                    'datetime'       => $payload['date'],
+                    'type'           => TransactionType::COLLECTION->value,
+                    'account_id'     => (int) $payload['collection_account_id'],
+                    'debit'          => (float) $payload['amount'],
+                    'credit'         => 0,
+                    'method'         => $payload['method'] ?? null,
+                    'name'           => $payload['payer_name'] ?? null,
                     'reference_type' => null,
-                    'reference_id' => null,
-                    'notes' => $payload['notes'] ?? null,
-                    'created_by' => $resolvedActorId,
+                    'reference_id'   => null,
+                    'notes'          => $payload['notes'] ?? null,
+                    'created_by'     => $resolvedActorId,
                 ]);
             }
 
-            $record ??= new AccountCollection;
-            $record->fill($payload);
             $record->transaction_id = (int) $transaction->id;
-            $record->collection_no = $record->collection_no ?: $this->generateCollectionNo();
-            $record->created_by = $record->created_by ?: $resolvedActorId;
             $record->save();
 
             $transaction->update([
-                'date' => $record->date,
-                'type' => TransactionType::COLLECTION->value,
+                'datetime'       => $record->date,
+                'type'           => TransactionType::COLLECTION->value,
+                'account_id'     => (int) $record->collection_account_id,
+                'debit'          => (float) $record->amount,
+                'credit'         => 0,
+                'method'         => $record->method?->value ?? $record->method,
+                'name'           => $record->payer_name,
                 'reference_type' => 'collection',
-                'reference_id' => (int) $record->id,
-                'notes' => $record->notes,
-            ]);
-
-            $this->syncTransactionLines($transaction, [
-                [
-                    'account_id' => (int) $record->collection_account_id,
-                    'debit' => (float) $record->amount,
-                    'credit' => 0,
-                    'description' => 'Collection debit entry',
-                ],
-                [
-                    'account_id' => (int) $record->target_account_id,
-                    'debit' => 0,
-                    'credit' => (float) $record->amount,
-                    'description' => 'Collection credit entry',
-                ],
+                'reference_id'   => (int) $record->id,
+                'notes'          => $record->notes,
             ]);
 
             $this->syncAttachments($transaction, $attachmentIds, $resolvedActorId);
@@ -203,7 +193,6 @@ class AccountingEntryService
             $record->delete();
 
             if ($transaction) {
-                $transaction->lines()->delete();
                 $transaction->delete();
             }
         });
@@ -235,45 +224,38 @@ class AccountingEntryService
                 $transaction = Transaction::query()->lockForUpdate()->findOrFail($record->transaction_id);
             }
 
+            $record ??= new Expense;
+            $record->fill($payload);
+            $record->expense_no = $record->expense_no ?: $this->generateExpenseNo();
+            $record->created_by = $record->created_by ?: $resolvedActorId;
+
             if (! $transaction) {
                 $transaction = Transaction::query()->create([
-                    'date' => $payload['date'],
-                    'type' => TransactionType::EXPENSE->value,
+                    'datetime'       => $payload['date'],
+                    'type'           => TransactionType::EXPENSE->value,
+                    'account_id'     => (int) $payload['payment_account_id'],
+                    'credit'         => (float) $payload['amount'],
+                    'debit'          => 0,
+                    'method'         => $payload['method'] ?? null,
                     'reference_type' => null,
-                    'reference_id' => null,
-                    'notes' => $payload['notes'] ?? null,
-                    'created_by' => $resolvedActorId,
+                    'reference_id'   => null,
+                    'notes'          => $payload['notes'] ?? null,
+                    'created_by'     => $resolvedActorId,
                 ]);
             }
 
-            $record ??= new Expense;
-            $record->fill($payload);
             $record->transaction_id = (int) $transaction->id;
-            $record->expense_no = $record->expense_no ?: $this->generateExpenseNo();
-            $record->created_by = $record->created_by ?: $resolvedActorId;
             $record->save();
 
             $transaction->update([
-                'date' => $record->date,
-                'type' => TransactionType::EXPENSE->value,
+                'datetime'       => $record->date,
+                'type'           => TransactionType::EXPENSE->value,
+                'account_id'     => (int) $record->payment_account_id,
+                'credit'         => (float) $record->amount,
+                'debit'          => 0,
+                'notes'          => $record->notes,
                 'reference_type' => 'expense',
-                'reference_id' => (int) $record->id,
-                'notes' => $record->notes,
-            ]);
-
-            $this->syncTransactionLines($transaction, [
-                [
-                    'account_id' => (int) $record->expense_account_id,
-                    'debit' => (float) $record->amount,
-                    'credit' => 0,
-                    'description' => 'Expense debit entry',
-                ],
-                [
-                    'account_id' => (int) $record->payment_account_id,
-                    'debit' => 0,
-                    'credit' => (float) $record->amount,
-                    'description' => 'Expense credit entry',
-                ],
+                'reference_id'   => (int) $record->id,
             ]);
 
             $this->syncAttachments($transaction, $attachmentIds, $resolvedActorId);
@@ -291,59 +273,24 @@ class AccountingEntryService
             $record->delete();
 
             if ($transaction) {
-                $transaction->lines()->delete();
                 $transaction->delete();
             }
         });
     }
 
     /**
-     * @param  array<int, array{account_id:int,debit:float|int,credit:float|int,description:?string}>  $lines
+     * @param  array<int, int|string>  $fileIds
      */
-    protected function syncTransactionLines(Transaction $transaction, array $lines): void
+    protected function syncAttachments(Transaction $transaction, array $fileIds, int $actorId): void
     {
-        $normalizedLines = [];
-        $totalDebit = 0.0;
-        $totalCredit = 0.0;
+        $normalizedIds = collect($fileIds)
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->filter(static fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
 
-        foreach ($lines as $line) {
-            $accountId = (int) ($line['account_id'] ?? 0);
-            $debit = round(max(0, (float) ($line['debit'] ?? 0)), 3);
-            $credit = round(max(0, (float) ($line['credit'] ?? 0)), 3);
-            $description = $line['description'] ?? null;
-
-            if ($accountId <= 0) {
-                throw new \DomainException('Transaction line account is required.');
-            }
-
-            if ($debit > 0 && $credit > 0) {
-                throw new \DomainException('Transaction line cannot have both debit and credit values.');
-            }
-
-            if ($debit <= 0 && $credit <= 0) {
-                throw new \DomainException('Each transaction line must include debit or credit value.');
-            }
-
-            $normalizedLines[] = [
-                'account_id' => $accountId,
-                'debit' => $debit,
-                'credit' => $credit,
-                'description' => $description,
-            ];
-
-            $totalDebit += $debit;
-            $totalCredit += $credit;
-        }
-
-        $totalDebit = round($totalDebit, 3);
-        $totalCredit = round($totalCredit, 3);
-
-        if (abs($totalDebit - $totalCredit) > 0.0001) {
-            throw new \DomainException('Total debit and credit must be equal for every transaction.');
-        }
-
-        $transaction->lines()->delete();
-        $transaction->lines()->createMany($normalizedLines);
+        $transaction->update(['attachments' => $normalizedIds ?: null]);
     }
 
     protected function syncPayableIfReferenced(?string $referenceType, mixed $referenceId): void
@@ -359,39 +306,6 @@ class AccountingEntryService
         }
 
         $this->recalculatePurchasePayable($id);
-    }
-
-    /**
-     * @param  array<int, int|string>  $fileIds
-     */
-    protected function syncAttachments(Transaction $transaction, array $fileIds, int $actorId): void
-    {
-        $normalizedIds = collect($fileIds)
-            ->map(static fn (mixed $id): int => (int) $id)
-            ->filter(static fn (int $id): bool => $id > 0)
-            ->unique()
-            ->values()
-            ->all();
-
-        $existingIds = $transaction->attachments()->pluck('file_id')->map(static fn (mixed $id): int => (int) $id)->all();
-
-        $idsToDelete = array_values(array_diff($existingIds, $normalizedIds));
-
-        if ($idsToDelete !== []) {
-            $transaction->attachments()
-                ->whereIn('file_id', $idsToDelete)
-                ->delete();
-        }
-
-        $idsToCreate = array_values(array_diff($normalizedIds, $existingIds));
-
-        foreach ($idsToCreate as $fileId) {
-            TransactionAttachment::query()->create([
-                'transaction_id' => (int) $transaction->id,
-                'file_id' => (int) $fileId,
-                'created_by' => $actorId,
-            ]);
-        }
     }
 
     protected function recalculatePurchasePayable(int $purchasePayableId): void

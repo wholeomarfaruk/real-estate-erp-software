@@ -638,6 +638,11 @@
                                         'permission' => 'accounts.chart.list',
                                     ],
                                     [
+                                        'label' => 'Banks',
+                                        'route' => 'admin.accounts.banks.list',
+                                        'permission' => 'accounts.chart.list',
+                                    ],
+                                    [
                                         'label' => 'Transactions',
                                         'route' => 'admin.accounts.transactions.index',
                                         'permission' => 'accounts.transaction.list',

@@ -100,7 +100,7 @@
                                     <td class="px-5 py-4 text-sm text-gray-700">{{ $payment->creator?->name ?? 'N/A' }}</td>
                                     <td class="px-5 py-4 text-sm text-gray-700">
                                         <span class="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
-                                            {{ $payment->transaction?->attachments?->count() ?? 0 }}
+                                            {{ count($payment->transaction?->attachments ?? []) }}
                                         </span>
                                     </td>
                                     <td class="px-5 py-4">
@@ -322,7 +322,8 @@
             <div class="mt-4">
                 @if ($attachmentPayment && $attachmentPayment->transaction)
                     @include('livewire.admin.accounts.partials.attachment-list', [
-                        'attachments' => $attachmentPayment->transaction->attachments,
+                        'attachments' => $attachmentFiles,
+                        'transactionId' => $attachmentPayment->transaction->id,
                         'fancyboxGroup' => 'payment-attachments-'.$attachmentPayment->id,
                         'canRemove' => auth()->user()?->can('accounts.payment.edit'),
                         'removeMethod' => 'removeAttachment',

@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Accounts\Transaction;
 
 use App\Enums\Accounts\TransactionType;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
+use App\Models\File;
 use App\Models\Transaction;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -81,23 +82,21 @@ class TransactionList extends Component
         $this->authorizePermission('accounts.transaction.list');
 
         $transactions = Transaction::query()
-            ->with('creator:id,name')
-            ->withCount('attachments')
-            ->withSum('lines as total_debit', 'debit')
-            ->withSum('lines as total_credit', 'credit')
+            ->with(['creator:id,name', 'account:id,name,code'])
             ->when($this->search !== '', function (Builder $query): void {
                 $search = '%'.$this->search.'%';
 
                 $query->where(function (Builder $subQuery) use ($search): void {
                     $subQuery->where('notes', 'like', $search)
+                        ->orWhere('name', 'like', $search)
                         ->orWhere('reference_type', 'like', $search)
                         ->orWhereRaw('CAST(reference_id as CHAR) like ?', [$search]);
                 });
             })
             ->when($this->typeFilter !== '', fn (Builder $query): Builder => $query->where('type', $this->typeFilter))
-            ->when($this->dateFrom, fn (Builder $query): Builder => $query->whereDate('date', '>=', $this->dateFrom))
-            ->when($this->dateTo, fn (Builder $query): Builder => $query->whereDate('date', '<=', $this->dateTo))
-            ->latest('date')
+            ->when($this->dateFrom, fn (Builder $query): Builder => $query->whereDate('datetime', '>=', $this->dateFrom))
+            ->when($this->dateTo, fn (Builder $query): Builder => $query->whereDate('datetime', '<=', $this->dateTo))
+            ->latest('datetime')
             ->latest('id')
             ->paginate(15);
 
@@ -105,14 +104,7 @@ class TransactionList extends Component
 
         if ($this->showViewModal && $this->viewTransactionId) {
             $viewTransaction = Transaction::query()
-                ->with([
-                    'creator:id,name',
-                    'lines.account:id,name,code,type',
-                    'attachments:id,transaction_id,file_id,category,notes,created_by,created_at',
-                    'attachments.file:id,name,type,extension',
-                ])
-                ->withSum('lines as total_debit', 'debit')
-                ->withSum('lines as total_credit', 'credit')
+                ->with(['creator:id,name', 'account:id,name,code,type'])
                 ->find($this->viewTransactionId);
 
             if (! $viewTransaction) {
@@ -121,10 +113,15 @@ class TransactionList extends Component
             }
         }
 
+        $viewTransactionFiles = $viewTransaction
+            ? File::query()->whereIn('id', $viewTransaction->attachments ?? [])->get(['id', 'name', 'type', 'extension'])
+            : collect();
+
         return view('livewire.admin.accounts.transaction.transaction-list', [
             'transactions' => $transactions,
             'types' => TransactionType::cases(),
             'viewTransaction' => $viewTransaction,
+            'viewTransactionFiles' => $viewTransactionFiles,
         ])->layout('layouts.admin.admin');
     }
 }

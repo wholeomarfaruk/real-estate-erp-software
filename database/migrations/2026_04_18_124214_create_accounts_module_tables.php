@@ -41,6 +41,9 @@ return new class extends Migration
             $table->decimal('credit', 15, 3)->default(0);
             $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
             $table->string('name')->nullable();
+            $table->string('reference_no')->nullable();
+            $table->string('phone')->nullable();
+            
             $table->string('method')->default(EntryMethod::CASH->value);
             $table->json('attachments')->nullable();
             $table->timestamps();

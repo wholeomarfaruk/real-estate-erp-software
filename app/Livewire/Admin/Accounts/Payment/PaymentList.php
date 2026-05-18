@@ -8,6 +8,7 @@ use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountReferences;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Livewire\Traits\WithMediaPicker;
 use App\Models\Account;
+use App\Models\File;
 use App\Models\Payment;
 use App\Services\Accounts\AccountingEntryService;
 use Illuminate\Contracts\View\View;
@@ -187,15 +188,21 @@ class PaymentList extends Component
             return;
         }
 
-        $deleted = $transaction->attachments()
-            ->whereKey($attachmentId)
-            ->delete();
+        $currentIds = collect($transaction->attachments ?? [])
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
 
-        if (! $deleted) {
+        $fileId = (int) $attachmentId;
+
+        if (! in_array($fileId, $currentIds, true)) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Attachment not found.']);
 
             return;
         }
+
+        $transaction->update([
+            'attachments' => collect($currentIds)->reject(fn (int $id): bool => $id === $fileId)->values()->all() ?: null,
+        ]);
 
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Attachment removed successfully.']);
     }
@@ -264,8 +271,7 @@ class PaymentList extends Component
                 'paymentAccount:id,name,code,type',
                 'purposeAccount:id,name,code,type',
                 'creator:id,name',
-                'transaction:id',
-                'transaction.attachments:id,transaction_id,file_id',
+                'transaction:id,attachments',
             ])
             ->when($this->search !== '', function (Builder $query): void {
                 $search = '%'.$this->search.'%';
@@ -289,11 +295,7 @@ class PaymentList extends Component
 
         if ($this->showAttachmentModal && $this->attachmentPaymentId) {
             $attachmentPayment = Payment::query()
-                ->with([
-                    'transaction:id',
-                    'transaction.attachments:id,transaction_id,file_id,category,notes,created_by,created_at',
-                    'transaction.attachments.file:id,name,type,extension',
-                ])
+                ->with(['transaction:id,attachments'])
                 ->find($this->attachmentPaymentId);
 
             if (! $attachmentPayment) {
@@ -310,6 +312,10 @@ class PaymentList extends Component
 
         $groupedAccounts = $accounts->groupBy(fn (Account $account): string => $account->type?->value ?? AccountType::ASSET->value);
 
+        $attachmentFiles = $attachmentPayment
+            ? File::query()->whereIn('id', $attachmentPayment->transaction?->attachments ?? [])->get(['id', 'name', 'type', 'extension'])
+            : collect();
+
         return view('livewire.admin.accounts.payment.payment-list', [
             'payments' => $payments,
             'methods' => EntryMethod::cases(),
@@ -317,6 +323,7 @@ class PaymentList extends Component
             'groupedAccounts' => $groupedAccounts,
             'availableReferenceOptions' => $this->referenceOptionsForAccount($this->purpose_account_id),
             'attachmentPayment' => $attachmentPayment,
+            'attachmentFiles' => $attachmentFiles,
         ])->layout('layouts.admin.admin');
     }
 

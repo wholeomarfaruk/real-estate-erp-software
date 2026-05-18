@@ -115,7 +115,7 @@
                                     <td class="px-5 py-4 text-sm text-gray-700">
                                         <span
                                             class="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
-                                            {{ $collection->transaction?->attachments?->count() ?? 0 }}
+                                            {{ count($collection->transaction?->attachments ?? []) }}
                                         </span>
                                     </td>
                                     <td class="px-5 py-4">
@@ -550,7 +550,8 @@
             <div class="mt-4">
                 @if ($attachmentCollection && $attachmentCollection->transaction)
                     @include('livewire.admin.accounts.partials.attachment-list', [
-                        'attachments' => $attachmentCollection->transaction->attachments,
+                        'attachments' => $attachmentFiles,
+                        'transactionId' => $attachmentCollection->transaction->id,
                         'fancyboxGroup' => 'collection-attachments-' . $attachmentCollection->id,
                         'canRemove' => auth()->user()?->can('accounts.collection.edit'),
                         'removeMethod' => 'removeAttachment',
@@ -569,7 +570,8 @@
             <div class="mt-4">
                 @if ($attachmentCollection && $attachmentCollection->transaction)
                     @include('livewire.admin.accounts.partials.attachment-list', [
-                        'attachments' => $attachmentCollection->transaction->attachments,
+                        'attachments' => $attachmentFiles,
+                        'transactionId' => $attachmentCollection->transaction->id,
                         'fancyboxGroup' => 'collection-attachments-' . $attachmentCollection->id,
                         'canRemove' => auth()->user()?->can('accounts.collection.edit'),
                         'removeMethod' => 'removeAttachment',

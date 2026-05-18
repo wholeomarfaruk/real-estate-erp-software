@@ -14,7 +14,7 @@ class TransactionAttachmentController extends Controller
     {
         abort_unless(auth()->user()?->can('accounts.transaction-attachment.view'), 403, 'Unauthorized action.');
 
-        $isAttached = $transaction->attachments()->where('file_id', $file->id)->exists();
+        $isAttached = in_array((int) $file->id, array_map('intval', $transaction->attachments ?? []), true);
 
         abort_unless($isAttached, 404, 'Attachment not found.');
 

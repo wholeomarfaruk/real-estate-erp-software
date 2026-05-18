@@ -67,7 +67,7 @@ class BankList extends Component
             // dd($accounts);
             $totalBankBalance = 0;
             $accounts->each(function ($account) use (&$totalBankBalance) {
-                $balance = $account->account ? $account->account->transactionLines()->sum('debit') - $account->account->transactionLines()->sum('credit') : 0;
+                $balance = $account->account ? $account->account->balance : 0;
                 $account->balance = $balance;
                 $totalBankBalance += $balance;
             });

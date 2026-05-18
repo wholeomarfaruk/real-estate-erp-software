@@ -86,8 +86,8 @@
                                         {{ number_format((float) $account->balance, 3) }}</td>
                                     <td class="px-5 py-4">
                                         <span
-                                            class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {{ $account->is_active ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700' }}">
-                                            {{ $account->is_active ? 'Active' : 'Inactive' }}
+                                            class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {{ $account->status === 'active' ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700' }}">
+                                            {{ $account->status === 'active' ? 'Active' : 'Inactive' }}
                                         </span>
                                     </td>
 
@@ -109,10 +109,6 @@
                                             <div x-show="open" @click.away="open = false" style="display: none;"
                                                 x-transition
                                                 class="absolute right-0 z-40 mt-10 w-52 origin-top-right rounded-md border border-zinc-200 bg-white p-1 shadow-lg">
-                                                <button type="button" wire:click="view({{ $account->id }})"
-                                                    class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
-                                                    Details
-                                                </button>
                                                 @can('accounts.chart.edit')
                                                     <button type="button" wire:click="openEditModal({{ $account->id }})"
                                                         class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
@@ -128,7 +124,7 @@
                                                             confirmText: 'Yes, update status'
                                                         })"
                                                         class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100">
-                                                        {{ $account->is_active ? 'Mark Inactive' : 'Mark Active' }}
+                                                        {{ $account->status === 'active' ? 'Mark Inactive' : 'Mark Active' }}
                                                     </button>
                                                 @endcan
 

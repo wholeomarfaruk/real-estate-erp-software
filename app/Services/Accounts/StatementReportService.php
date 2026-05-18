@@ -2,7 +2,6 @@
 
 namespace App\Services\Accounts;
 
-use App\Enums\Accounts\AccountType;
 use App\Models\Account;
 use App\Models\Expense;
 use App\Models\Project;
@@ -120,9 +119,7 @@ class StatementReportService
             accounts: $bankAccounts->when($selectedBankId, fn (Collection $items): Collection => $items->where('id', $selectedBankId)->values()),
             openingBalanceMap: $openingBalanceMap,
             transactions: $transactions,
-            selectedBankIds: $selectedBankIds,
-            allBankIds: $allBankIds,
-            cashIds: $cashIds
+            selectedBankIds: $selectedBankIds
         );
 
         $cashOpeningBalance = $this->roundMoney(
@@ -132,9 +129,7 @@ class StatementReportService
         $cashRows = $this->buildCashRows(
             openingBalance: $cashOpeningBalance,
             transactions: $transactions,
-            cashIds: $cashIds,
-            bankIds: $allBankIds,
-            iouIds: $iouIds
+            cashIds: $cashIds
         );
 
         $expenseRows = $this->buildExpenseRows(
@@ -242,17 +237,16 @@ class StatementReportService
             return [];
         }
 
-        $rows = DB::table('transaction_lines')
-            ->join('transactions', 'transactions.id', '=', 'transaction_lines.transaction_id')
-            ->selectRaw('transaction_lines.account_id, COALESCE(SUM(transaction_lines.debit - transaction_lines.credit), 0) AS balance')
-            ->whereIn('transaction_lines.account_id', $accountIds)
-            ->where('transactions.date', '<', $from->toDateString());
+        $rows = DB::table('transactions')
+            ->selectRaw('account_id, COALESCE(SUM(debit - credit), 0) AS balance')
+            ->whereIn('account_id', $accountIds)
+            ->where('datetime', '<', $from->toDateString());
 
         $this->applyTransactionDimensionFilters($rows, $filters);
 
         return $rows
-            ->groupBy('transaction_lines.account_id')
-            ->pluck('balance', 'transaction_lines.account_id')
+            ->groupBy('account_id')
+            ->pluck('balance', 'account_id')
             ->map(fn (mixed $value): float => $this->roundMoney((float) $value))
             ->all();
     }
@@ -267,11 +261,10 @@ class StatementReportService
             return 0.0;
         }
 
-        $query = DB::table('transaction_lines')
-            ->join('transactions', 'transactions.id', '=', 'transaction_lines.transaction_id')
-            ->selectRaw('COALESCE(SUM(transaction_lines.debit - transaction_lines.credit), 0) AS balance')
-            ->whereIn('transaction_lines.account_id', $accountIds)
-            ->where('transactions.date', '<=', $to->toDateString());
+        $query = DB::table('transactions')
+            ->selectRaw('COALESCE(SUM(debit - credit), 0) AS balance')
+            ->whereIn('account_id', $accountIds)
+            ->where('datetime', '<=', $to->toDateString());
 
         $this->applyTransactionDimensionFilters($query, $filters);
 
@@ -291,22 +284,14 @@ class StatementReportService
 
         return Transaction::query()
             ->with([
-                'lines:id,transaction_id,account_id,debit,credit,description',
-                'lines.account:id,parent_id,name,code,type',
-                'payment:id,transaction_id,payment_no,payee_name,purpose_account_id,notes',
-                'payment.purposeAccount:id,name,code',
-                'collection:id,transaction_id,collection_no,payer_name,target_account_id,notes',
-                'collection.targetAccount:id,name,code',
-                'expense:id,transaction_id,expense_no,title,expense_account_id,payment_account_id,notes',
-                'expense.expenseAccount:id,name,code',
-                'expense.paymentAccount:id,name,code',
+                'payment:id,transaction_id,payment_no,payee_name,notes',
+                'collection:id,transaction_id,collection_no,payer_name,notes',
+                'expense:id,transaction_id,expense_no,title,notes',
             ])
-            ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
-            ->whereHas('lines', function (Builder $query) use ($trackedAccountIds): void {
-                $query->whereIn('account_id', $trackedAccountIds);
-            })
+            ->whereIn('account_id', $trackedAccountIds)
+            ->whereBetween('datetime', [$from->toDateString(), $to->toDateString()])
             ->tap(fn (Builder $query) => $this->applyTransactionDimensionFilters($query, $filters))
-            ->orderBy('date')
+            ->orderBy('datetime')
             ->orderBy('id')
             ->get();
     }
@@ -324,9 +309,7 @@ class StatementReportService
         Collection $accounts,
         array $openingBalanceMap,
         Collection $transactions,
-        array $selectedBankIds,
-        array $allBankIds,
-        array $cashIds
+        array $selectedBankIds
     ): array {
         if ($selectedBankIds === []) {
             return [];
@@ -352,31 +335,22 @@ class StatementReportService
             ];
         }
 
-        $liquidIds = array_values(array_unique(array_merge($allBankIds, $cashIds)));
-
         foreach ($transactions as $transaction) {
-            foreach ($transaction->lines as $line) {
-                $accountId = (int) $line->account_id;
+            $accountId = (int) $transaction->account_id;
 
-                if (! isset($rows[$accountId])) {
-                    continue;
-                }
+            if (! isset($rows[$accountId])) {
+                continue;
+            }
 
-                $isTransfer = $transaction->lines->contains(function ($otherLine) use ($accountId, $liquidIds): bool {
-                    return (int) $otherLine->account_id !== $accountId
-                        && in_array((int) $otherLine->account_id, $liquidIds, true);
-                });
+            $debit = $this->roundMoney((float) $transaction->debit);
+            $credit = $this->roundMoney((float) $transaction->credit);
 
-                $debit = $this->roundMoney((float) $line->debit);
-                $credit = $this->roundMoney((float) $line->credit);
+            if ($debit > 0) {
+                $rows[$accountId]['deposit'] += $debit;
+            }
 
-                if ($debit > 0) {
-                    $rows[$accountId][$isTransfer ? 'bank_transfer_in' : 'deposit'] += $debit;
-                }
-
-                if ($credit > 0) {
-                    $rows[$accountId][$isTransfer ? 'bank_transfer_out' : 'withdrawn'] += $credit;
-                }
+            if ($credit > 0) {
+                $rows[$accountId]['withdrawn'] += $credit;
             }
         }
 
@@ -418,9 +392,7 @@ class StatementReportService
     protected function buildCashRows(
         float $openingBalance,
         Collection $transactions,
-        array $cashIds,
-        array $bankIds,
-        array $iouIds
+        array $cashIds
     ): array {
         if ($cashIds === []) {
             return [];
@@ -430,42 +402,17 @@ class StatementReportService
         $runningBalance = $this->roundMoney($openingBalance);
 
         foreach ($transactions as $transaction) {
-            $cashLines = $transaction->lines->filter(fn ($line): bool => in_array((int) $line->account_id, $cashIds, true));
-
-            if ($cashLines->isEmpty()) {
+            if (! in_array((int) $transaction->account_id, $cashIds, true)) {
                 continue;
             }
 
-            $cashDebit = $this->roundMoney((float) $cashLines->sum('debit'));
-            $cashCredit = $this->roundMoney((float) $cashLines->sum('credit'));
+            $cashDebit = $this->roundMoney((float) $transaction->debit);
+            $cashCredit = $this->roundMoney((float) $transaction->credit);
 
-            $hasBankCounterpart = $transaction->lines->contains(fn ($line): bool => in_array((int) $line->account_id, $bankIds, true));
-            $hasIouCounterpart = $transaction->lines->contains(fn ($line): bool => in_array((int) $line->account_id, $iouIds, true));
-
-            $cashReceived = 0.0;
+            $cashReceived = $cashDebit > 0 ? $cashDebit : 0.0;
             $iouAdjustment = 0.0;
             $bankTransfer = 0.0;
-            $expenses = 0.0;
-
-            if ($cashDebit > 0) {
-                if ($hasBankCounterpart) {
-                    $bankTransfer += $cashDebit;
-                } elseif ($hasIouCounterpart) {
-                    $iouAdjustment += $cashDebit;
-                } else {
-                    $cashReceived += $cashDebit;
-                }
-            }
-
-            if ($cashCredit > 0) {
-                if ($hasBankCounterpart) {
-                    $bankTransfer -= $cashCredit;
-                } elseif ($hasIouCounterpart) {
-                    $iouAdjustment -= $cashCredit;
-                } else {
-                    $expenses += $cashCredit;
-                }
-            }
+            $expenses = $cashCredit > 0 ? $cashCredit : 0.0;
 
             if (
                 abs($cashReceived) < 0.005
@@ -476,21 +423,13 @@ class StatementReportService
                 continue;
             }
 
-            $counterparts = $transaction->lines
-                ->reject(fn ($line): bool => in_array((int) $line->account_id, $cashIds, true))
-                ->map(fn ($line): ?string => $line->account?->name)
-                ->filter()
-                ->unique()
-                ->values()
-                ->all();
-
             $totalTaka = $this->roundMoney($runningBalance + $cashReceived + $iouAdjustment + $bankTransfer);
             $closingBalance = $this->roundMoney($totalTaka - $expenses);
 
             $rows[] = [
                 'mr_no' => $this->cashReferenceNo($transaction),
-                'particulars' => $this->cashParticulars($transaction, $counterparts, $bankTransfer, $iouAdjustment, $expenses),
-                'date_label' => optional($transaction->date)->format('d M Y'),
+                'particulars' => $this->cashParticulars($transaction, [], $bankTransfer, $iouAdjustment, $expenses),
+                'date_label' => optional($transaction->datetime)->format('d M Y'),
                 'opening_balance' => $runningBalance,
                 'cash_received' => $this->roundMoney($cashReceived),
                 'iou_adjustment' => $this->roundMoney($iouAdjustment),
@@ -716,70 +655,20 @@ class StatementReportService
             return $this->groupAccountIds[$group];
         }
 
-        $accounts = $this->allAccounts()->filter(fn (Account $account): bool => $account->type === AccountType::ASSET);
-        $accountsById = $this->allAccounts()->keyBy('id');
-
-        $configuredNames = match ($group) {
-            'cash' => [(string) config('hrm.accounts.cash.name', 'Cash')],
-            'bank' => [(string) config('hrm.accounts.bank.name', 'Bank')],
-            'iou' => [(string) config('hrm.accounts.employee_advance.name', 'Employee Advance')],
-            default => [],
+        $subType = match ($group) {
+            'cash' => 'cash',
+            'bank' => 'bank',
+            default => null,
         };
 
-        $configuredCodes = match ($group) {
-            'cash' => [(string) config('hrm.accounts.cash.code', '')],
-            'bank' => [(string) config('hrm.accounts.bank.code', '')],
-            'iou' => [(string) config('hrm.accounts.employee_advance.code', '')],
-            default => [],
-        };
+        if ($subType === null) {
+            $this->groupAccountIds[$group] = [];
 
-        $keywords = match ($group) {
-            'cash' => ['cash'],
-            'bank' => ['bank'],
-            'iou' => ['iou'],
-            default => [],
-        };
+            return [];
+        }
 
-        $ids = $accounts
-            ->filter(function (Account $account) use ($accountsById, $configuredNames, $configuredCodes, $keywords): bool {
-                $cursor = $account;
-                $depth = 0;
-
-                while ($cursor && $depth < 20) {
-                    $name = Str::lower(trim((string) $cursor->name));
-                    $code = Str::lower(trim((string) ($cursor->code ?? '')));
-                    $haystack = Str::lower(trim($cursor->name.' '.$cursor->code));
-
-                    foreach ($configuredNames as $configuredName) {
-                        $normalized = Str::lower(trim($configuredName));
-
-                        if ($normalized !== '' && $name === $normalized) {
-                            return true;
-                        }
-                    }
-
-                    foreach ($configuredCodes as $configuredCode) {
-                        $normalized = Str::lower(trim($configuredCode));
-
-                        if ($normalized !== '' && $code === $normalized) {
-                            return true;
-                        }
-                    }
-
-                    foreach ($keywords as $keyword) {
-                        $normalized = Str::lower(trim($keyword));
-
-                        if ($normalized !== '' && Str::contains($haystack, $normalized)) {
-                            return true;
-                        }
-                    }
-
-                    $cursor = $cursor->parent_id ? $accountsById->get($cursor->parent_id) : null;
-                    $depth++;
-                }
-
-                return false;
-            })
+        $ids = $this->allAccounts()
+            ->filter(fn (Account $account): bool => $account->sub_type === $subType)
             ->pluck('id')
             ->map(static fn (mixed $id): int => (int) $id)
             ->values()
@@ -801,7 +690,7 @@ class StatementReportService
 
         $this->accounts = Account::query()
             ->orderBy('name')
-            ->get(['id', 'parent_id', 'name', 'code', 'type', 'is_active']);
+            ->get(['id', 'parent_id', 'name', 'code', 'type', 'sub_type', 'is_active']);
 
         return $this->accounts;
     }

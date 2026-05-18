@@ -33,11 +33,6 @@ class TransactionCategory extends Model
         return $this->hasMany(TransactionCategory::class, 'parent_id');
     }
 
-    public function transactions()
-    {
-        return $this->hasMany(Transaction::class);
-    }
-
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

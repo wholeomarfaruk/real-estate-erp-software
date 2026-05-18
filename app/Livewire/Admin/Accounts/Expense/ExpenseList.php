@@ -8,6 +8,7 @@ use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Livewire\Traits\WithMediaPicker;
 use App\Models\Account;
 use App\Models\Expense;
+use App\Models\File;
 use App\Services\Accounts\AccountingEntryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -188,15 +189,21 @@ class ExpenseList extends Component
             return;
         }
 
-        $deleted = $transaction->attachments()
-            ->whereKey($attachmentId)
-            ->delete();
+        $currentIds = collect($transaction->attachments ?? [])
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
 
-        if (! $deleted) {
+        $fileId = (int) $attachmentId;
+
+        if (! in_array($fileId, $currentIds, true)) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Attachment not found.']);
 
             return;
         }
+
+        $transaction->update([
+            'attachments' => collect($currentIds)->reject(fn (int $id): bool => $id === $fileId)->values()->all() ?: null,
+        ]);
 
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Attachment removed successfully.']);
     }
@@ -265,8 +272,7 @@ class ExpenseList extends Component
                 'expenseAccount:id,name,code,type',
                 'paymentAccount:id,name,code,type',
                 'creator:id,name',
-                'transaction:id',
-                'transaction.attachments:id,transaction_id,file_id',
+                'transaction:id,attachments',
             ])
             ->when($this->search !== '', function (Builder $query): void {
                 $search = '%'.$this->search.'%';
@@ -291,11 +297,7 @@ class ExpenseList extends Component
 
         if ($this->showAttachmentModal && $this->attachmentExpenseId) {
             $attachmentExpense = Expense::query()
-                ->with([
-                    'transaction:id',
-                    'transaction.attachments:id,transaction_id,file_id,category,notes,created_by,created_at',
-                    'transaction.attachments.file:id,name,type,extension',
-                ])
+                ->with(['transaction:id,attachments'])
                 ->find($this->attachmentExpenseId);
 
             if (! $attachmentExpense) {
@@ -312,6 +314,10 @@ class ExpenseList extends Component
 
         $groupedAccounts = $accounts->groupBy(fn (Account $account): string => $account->type?->value ?? AccountType::ASSET->value);
 
+        $attachmentFiles = $attachmentExpense
+            ? File::query()->whereIn('id', $attachmentExpense->transaction?->attachments ?? [])->get(['id', 'name', 'type', 'extension'])
+            : collect();
+
         return view('livewire.admin.accounts.expense.expense-list', [
             'expenses' => $expenses,
             'types' => AccountType::cases(),
@@ -319,6 +325,7 @@ class ExpenseList extends Component
             'groupedAccounts' => $groupedAccounts,
             'availableReferenceOptions' => $this->referenceOptionsForAccount($this->expense_account_id),
             'attachmentExpense' => $attachmentExpense,
+            'attachmentFiles' => $attachmentFiles,
         ])->layout('layouts.admin.admin');
     }
 

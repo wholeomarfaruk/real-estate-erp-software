@@ -1,6 +1,7 @@
 @php
-    /** @var \Illuminate\Support\Collection<int, \App\Models\TransactionAttachment> $attachments */
+    /** @var \Illuminate\Support\Collection<int, \App\Models\File> $attachments */
     $attachments = $attachments ?? collect();
+    $transactionId = $transactionId ?? null;
     $fancyboxGroup = $fancyboxGroup ?? 'accounts-attachments';
     $canRemove = $canRemove ?? false;
     $removeMethod = $removeMethod ?? null;
@@ -9,9 +10,8 @@
 @endphp
 
 <div class="space-y-3">
-    @forelse ($attachments as $attachment)
+    @forelse ($attachments as $file)
         @php
-            $file = $attachment->file;
             $extension = strtolower((string) ($file?->extension ?? ''));
             $isImage = in_array($extension, $imageExtensions, true);
             $isPdf = $extension === 'pdf';
@@ -23,7 +23,7 @@
                     {{ strtoupper(substr($extension ?: 'file', 0, 3)) }}
                 </div>
                 <div class="min-w-0">
-                    <p class="text-sm font-medium text-gray-900 truncate">{{ $file?->name ?? ('Attachment #'.$attachment->id) }}</p>
+                    <p class="text-sm font-medium text-gray-900 truncate">{{ $file?->name ?? ('Attachment #'.$file->id) }}</p>
                     <p class="text-xs text-gray-500">{{ strtoupper($extension ?: 'N/A') }}</p>
                 </div>
             </div>
@@ -34,16 +34,16 @@
                             href="{{ file_path($file->id) }}"
                             data-fancybox="{{ $fancyboxGroup }}"
                             @if ($isPdf) data-type="iframe" data-autosize="true" @endif
-                            data-caption="{{ $file->name ?? ('Attachment #'.$attachment->id) }}"
+                            data-caption="{{ $file->name ?? ('Attachment #'.$file->id) }}"
                             class="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-50"
                         >
                             View
                         </a>
                     @endif
 
-                    @if ($file)
+                    @if ($transactionId && $file)
                         <a
-                            href="{{ route('admin.accounts.transactions.attachments.download', ['transaction' => $attachment->transaction_id, 'file' => $file->id]) }}"
+                            href="{{ route('admin.accounts.transactions.attachments.download', ['transaction' => $transactionId, 'file' => $file->id]) }}"
                             class="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-50"
                         >
                             Download
@@ -54,7 +54,7 @@
                 @if ($canRemove && $removeMethod)
                     <button
                         type="button"
-                        wire:click="{{ $removeMethod }}({{ $attachment->id }})"
+                        wire:click="{{ $removeMethod }}({{ $file->id }})"
                         class="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-rose-600 ring-1 ring-rose-200 transition hover:bg-rose-50"
                     >
                         Remove

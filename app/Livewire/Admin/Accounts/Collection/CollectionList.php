@@ -10,6 +10,7 @@ use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Livewire\Traits\WithMediaPicker;
 use App\Models\Account;
 use App\Models\AccountCollection;
+use App\Models\File;
 use App\Services\Accounts\AccountingEntryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -199,15 +200,21 @@ class CollectionList extends Component
             return;
         }
 
-        $deleted = $transaction->attachments()
-            ->whereKey($attachmentId)
-            ->delete();
+        $currentIds = collect($transaction->attachments ?? [])
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
 
-        if (! $deleted) {
+        $fileId = (int) $attachmentId;
+
+        if (! in_array($fileId, $currentIds, true)) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Attachment not found.']);
 
             return;
         }
+
+        $transaction->update([
+            'attachments' => collect($currentIds)->reject(fn (int $id): bool => $id === $fileId)->values()->all() ?: null,
+        ]);
 
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Attachment removed successfully.']);
     }
@@ -276,8 +283,7 @@ class CollectionList extends Component
                 'collectionAccount:id,name,code,type',
                 'targetAccount:id,name,code,type',
                 'creator:id,name',
-                'transaction:id',
-                'transaction.attachments:id,transaction_id,file_id',
+                'transaction:id,attachments',
             ])
             ->when($this->search !== '', function (Builder $query): void {
                 $search = '%'.$this->search.'%';
@@ -302,11 +308,7 @@ class CollectionList extends Component
 
         if ($this->showAttachmentModal && $this->attachmentCollectionId) {
             $attachmentCollection = AccountCollection::query()
-                ->with([
-                    'transaction:id',
-                    'transaction.attachments:id,transaction_id,file_id,category,notes,created_by,created_at',
-                    'transaction.attachments.file:id,name,type,extension',
-                ])
+                ->with(['transaction:id,attachments'])
                 ->find($this->attachmentCollectionId);
 
             if (! $attachmentCollection) {
@@ -323,6 +325,10 @@ class CollectionList extends Component
 
         $groupedAccounts = $accounts->groupBy(fn (Account $account): string => $account->type?->value ?? AccountType::ASSET->value);
 
+        $attachmentFiles = $attachmentCollection
+            ? File::query()->whereIn('id', $attachmentCollection->transaction?->attachments ?? [])->get(['id', 'name', 'type', 'extension'])
+            : collect();
+
         return view('livewire.admin.accounts.collection.collection-list', [
             'collections' => $collections,
             'methods' => EntryMethod::cases(),
@@ -331,6 +337,7 @@ class CollectionList extends Component
             'groupedAccounts' => $groupedAccounts,
             'availableReferenceOptions' => $this->referenceOptionsForAccount($this->target_account_id),
             'attachmentCollection' => $attachmentCollection,
+            'attachmentFiles' => $attachmentFiles,
         ])->layout('layouts.admin.admin');
     }
 

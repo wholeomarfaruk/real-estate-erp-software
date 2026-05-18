@@ -1176,6 +1176,20 @@
                     </div>
                 </div>
 
+                {{-- Row 2b: Reference No + Phone --}}
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Reference No <span style="color:var(--ink-3); font-weight:400;">(Optional)</span></label>
+                        <input wire:model="payNowReferenceNo" type="text" placeholder="e.g. Cheque no, TxnID…"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;" />
+                    </div>
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Payer Phone <span style="color:var(--ink-3); font-weight:400;">(Optional)</span></label>
+                        <input wire:model="payNowPhone" type="text" placeholder="e.g. +880 1700 000 000"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;" />
+                    </div>
+                </div>
+
                 {{-- Row 3: Amount + Payment Date --}}
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <div>
@@ -1277,6 +1291,14 @@
                                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                                             Receipt
                                         </button>
+                                        <a target="_blank" href="{{ route('admin.properties.receipts.show', $tx['id']) }}"
+                                            title="View Receipt"
+                                            style="appearance:none; border:1px solid var(--rule); background:transparent; color:var(--ink-2);
+                                                   padding:4px 9px; font:500 10.5px 'Inter', sans-serif; border-radius:5px; cursor:pointer;
+                                                   display:inline-flex; align-items:center; gap:4px;">
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                            PDF
+                                    </a>
                                         @if(!empty($tx['attachments']))
                                             <button
                                                 @click="attachList = {{ json_encode($tx['attachments']) }}; attachModalOpen = true"

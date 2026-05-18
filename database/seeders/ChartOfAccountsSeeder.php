@@ -11,38 +11,26 @@ class ChartOfAccountsSeeder extends Seeder
 {
     public function run(): void
     {
-        $structure = [
-            [
-                'name' => 'Office Cash',
-                'type' => AccountType::ASSET->value,
-                'sub_type' => AccountSubType::CASH->value,
-            ],
-            [
-                'name' => 'DBBL Bank',
-                'type' => AccountType::ASSET->value,
-                'sub_type' => AccountSubType::BANK->value,
-            ],
+        // Parent accounts
+        $cash = Account::query()->firstOrCreate(
+            ['name' => 'Cash', 'type' => AccountType::ASSET->value, 'parent_id' => null],
+            ['sub_type' => AccountSubType::CASH->value, 'is_active' => true]
+        );
 
-        ];
+        $bank = Account::query()->firstOrCreate(
+            ['name' => 'Bank', 'type' => AccountType::ASSET->value, 'parent_id' => null],
+            ['sub_type' => AccountSubType::BANK->value, 'is_active' => true]
+        );
 
-        foreach ($structure as $group) {
-            $parent = Account::query()->firstOrCreate(
-                [
-                    'name' => $group['name'],
-                    'type' => $group['type'],
-                    'sub_type' => $group['sub_type'],
-                    'parent_id' => null,
-                ],
-                [
-                    'is_active' => true,
-                ]
-            );
+        // Children
+        Account::query()->firstOrCreate(
+            ['name' => 'Office Cash', 'type' => AccountType::ASSET->value, 'parent_id' => $cash->id],
+            ['sub_type' => AccountSubType::CASH->value, 'is_active' => true]
+        );
 
-            if (! $parent->is_active) {
-                $parent->is_active = true;
-                $parent->save();
-            }
-
-        }
+        Account::query()->firstOrCreate(
+            ['name' => 'DBBL Bank', 'type' => AccountType::ASSET->value, 'parent_id' => $bank->id],
+            ['sub_type' => AccountSubType::BANK->value, 'is_active' => true]
+        );
     }
 }

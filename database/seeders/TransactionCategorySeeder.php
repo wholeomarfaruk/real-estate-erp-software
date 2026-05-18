@@ -2,33 +2,54 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\TransactionCategory;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class TransactionCategorySeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $categories = [
-            ['id' => 1, 'name' => 'Income', 'slug' => 'income', 'is_locked' => true],
-            ['id' => 2, 'name' => 'Expense', 'slug' => 'expense','is_locked' => true],
-        ];
-        $children = [
-            ['id' => 3, 'name' => 'Sale', 'slug' => 'sale', 'parent_id' => 1, 'is_locked' => true],
-            ['id' => 4, 'name' => 'Rent', 'slug' => 'rent', 'parent_id' => 1, 'is_locked' => true],
-            ['id' => 5, 'name' => 'Purchase', 'slug' => 'purchase', 'parent_id' => 1,'is_locked' => true],
-            ['id' => 6, 'name' => 'Others', 'slug' => 'others', 'parent_id' => 2, 'is_locked' => true],
+        $structure = [
+            [
+                'name' => 'Income',
+                'children' => [
+                    'Property Sale',
+                    'Property Rent',
+                ],
+            ],
+            [
+                'name' => 'Expense',
+                'children' => [
+                    'Project Purchase',
+                    'Office Expense',
+                    'Others',
+                ],
+            ],
         ];
 
-        foreach ($categories as $category) {
-            \App\Models\TransactionCategory::updateOrCreate(['id' => $category['id']], $category);
-        }
+        foreach ($structure as $group) {
+            $parent = TransactionCategory::query()->updateOrCreate(
+                ['slug' => Str::slug($group['name'])],
+                [
+                    'name'      => $group['name'],
+                    'is_active' => true,
+                    'is_locked' => true,
+                    'parent_id' => null,
+                ]
+            );
 
-        foreach ($children as $child) {
-            \App\Models\TransactionCategory::updateOrCreate(['id' => $child['id']], $child);
+            foreach ($group['children'] as $childName) {
+                TransactionCategory::query()->updateOrCreate(
+                    ['slug' => Str::slug($childName)],
+                    [
+                        'name'      => $childName,
+                        'is_active' => true,
+                        'is_locked' => true,
+                        'parent_id' => $parent->id,
+                    ]
+                );
+            }
         }
     }
 }

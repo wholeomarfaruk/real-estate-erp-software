@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\FileUploadController;
 use App\Http\Controllers\Admin\Hrm\PayrollDocumentController;
 use App\Http\Controllers\Admin\Inventory\PurchaseOrderDocumentController;
 use App\Http\Controllers\Admin\Inventory\SupplierPurchaseOrderDownloadController;
+use App\Http\Controllers\Admin\Property\ReceiptController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/dashboard', \App\Livewire\Admin\Dashboard\Dashboard::class)->name('dashboard');
@@ -465,6 +466,8 @@ Route::get('/properties/sales', App\Livewire\Admin\Properties\PropertySaleList::
 Route::get('/properties/sales/create', App\Livewire\Admin\Properties\PropertySaleCreate::class)->name('properties.sales.create');
 Route::get('/properties/sales/{sale}', App\Livewire\Admin\Properties\PropertySaleDetails::class)->name('properties.sales.show');
 Route::get('/properties/{property}', App\Livewire\Admin\Properties\PropertyShow::class)->name('properties.show');
+Route::get('/properties/sales/receipts/{transaction}', [ReceiptController::class, 'show'])->name('properties.receipts.show');
+
 
 Route::post('/properties/{property}/floors/reorder', function (\App\Models\Property $property, \Illuminate\Http\Request $request) {
     $order = $request->input('order', []);
