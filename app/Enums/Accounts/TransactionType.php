@@ -4,22 +4,23 @@ namespace App\Enums\Accounts;
 
 enum TransactionType: string
 {
-    case PAYMENT = 'payment';
-    case COLLECTION = 'collection';
+       case INCOME = 'income';
     case EXPENSE = 'expense';
-    case JOURNAL = 'journal';
-    case PURCHASE_INVOICE = 'purchase_invoice';
-    case FUND_RELEASE     = 'fund_release';
+    case ADVANCE = 'advance';
+    case TRANSFER = 'transfer';
+    case ADJUSTMENT = 'adjustment';
+    case OPENING_BALANCE = 'opening_balance';
+
 
     public function label(): string
     {
         return match ($this) {
-            self::PAYMENT         => 'Payment',
-            self::COLLECTION      => 'Collection',
-            self::EXPENSE         => 'Expense',
-            self::JOURNAL         => 'Journal',
-            self::PURCHASE_INVOICE => 'Purchase Invoice',
-            self::FUND_RELEASE    => 'Fund Release',
+            self::INCOME => 'Income',
+            self::EXPENSE => 'Expense',
+            self::ADVANCE => 'Advance',
+            self::TRANSFER => 'Transfer',
+            self::ADJUSTMENT => 'Adjustment',
+            self::OPENING_BALANCE => 'Opening Balance',
         };
     }
 }
