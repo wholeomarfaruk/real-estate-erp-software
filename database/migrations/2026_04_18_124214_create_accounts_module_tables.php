@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('parent_id')->nullable()->constrained('accounts')->nullOnDelete();
             $table->string('code', 50)->nullable()->unique();
             $table->string('name', 150);
-            $table->string('type', 30)->default(AccountType::ASSET->value);
+            $table->string('type', 30)->default(AccountType::CASH->value);
             $table->string('sub_type')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
@@ -56,12 +56,12 @@ return new class extends Migration
             $table->unsignedBigInteger('adjusted_transaction_id')->nullable(); // reference to the adjusted transaction
             $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
             $table->string('reference_no')->nullable();
+            
             //customer info
             $table->string('name')->nullable();
             $table->string('phone')->nullable();
 
             $table->string('method')->default(EntryMethod::CASH->value);
-            $table->string('status')->default(TransactionStatus::PENDING->value);
             $table->json('attachments')->nullable();
             $table->timestamps();
             $table->index(['datetime', 'type']);

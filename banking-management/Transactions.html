@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Transactions — Star Unity Development Ltd</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink:        #14181f;
+    --ink-2:      #2a2f3a;
+    --ink-3:      #4a5160;
+    --muted:      #6b7280;
+    --muted-2:    #9aa0a6;
+    --rule:       #e4e4e7;
+    --rule-soft:  #ececec;
+    --paper:      #ffffff;
+    --canvas:     #f6f6f7;
+    --accent:     #0d2a4a;
+    --accent-soft:#eaf0f8;
+    --warn:       #a16207;
+    --warn-bg:    #fef9e7;
+    --warn-bd:    #f3e3a8;
+    --ok:         #1f6f43;
+    --ok-bg:      #e9f4ee;
+    --ok-bd:      #bfddc8;
+    --danger:     #8a1212;
+    --danger-bg:  #fbeaea;
+    --danger-bd:  #f1c2c2;
+    --income:     #1f6f43;
+    --income-bg:  #e9f4ee;
+    --expense:    #8a1212;
+    --expense-bg: #fbeaea;
+    --advance:    #0e7490;
+    --advance-bg: #e6f5f8;
+    --advance-bd: #bdddea;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--canvas); color: var(--ink); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 13px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+
+  /* ============ Top bar / breadcrumbs ============ */
+  .topbar { background: var(--paper); border-bottom: 1px solid var(--rule); padding: 10px 24px; display: flex; align-items: center; gap: 16px; }
+  .crumbs { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .crumbs a:hover { color: var(--ink); }
+  .crumbs .sep { color: var(--muted-2); }
+  .crumbs .here { color: var(--ink); font-weight: 600; }
+  .topbar .grow { flex: 1; }
+  .user-chip { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); padding: 4px 10px 4px 4px; border: 1px solid var(--rule); border-radius: 999px; }
+  .user-chip .av { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-family: "Instrument Serif", Georgia, serif; font-size: 13px; }
+
+  .page { padding: 22px 24px 80px; max-width: 1480px; margin: 0 auto; }
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+  .page-head h1 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 32px; margin: 0 0 4px; letter-spacing: 0.2px; }
+  .page-head .sub { font-size: 12.5px; color: var(--muted); }
+  .page-head .actions-row { display: flex; gap: 8px; }
+  .btn { font-family: inherit; font-size: 12.5px; font-weight: 500; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; line-height: 1; text-decoration: none; }
+  .btn:hover { background: #fafafb; }
+  .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .btn.primary:hover { background: #000; }
+  .btn.income { background: var(--income); color: #fff; border-color: var(--income); }
+  .btn.income:hover { background: #185933; }
+  .btn.expense { background: var(--expense); color: #fff; border-color: var(--expense); }
+  .btn.expense:hover { background: #6d0e0e; }
+  .btn .ic { width: 13px; height: 13px; }
+
+  /* ============ Nav tabs ============ */
+  .nav-tabs { display: flex; gap: 4px; margin-bottom: 18px; border-bottom: 1px solid var(--rule); padding: 0 2px; }
+  .nav-tab { background: transparent; border: 0; font-family: inherit; font-size: 13px; font-weight: 500; color: var(--muted); padding: 10px 16px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; position: relative; border-bottom: 2px solid transparent; margin-bottom: -1px; text-decoration: none; }
+  .nav-tab:hover { color: var(--ink-2); }
+  .nav-tab.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
+  .nav-tab .ic { width: 14px; height: 14px; }
+  .nav-tab .pill { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 10.5px; padding: 1px 7px; border-radius: 999px; background: #f0f0f1; color: var(--ink-2); font-weight: 600; letter-spacing: 0.3px; }
+  .nav-tab.active .pill { background: var(--accent); color: #fff; }
+
+  /* ============ KPI strip ============ */
+  .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
+  .kpi { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; position: relative; overflow: hidden; }
+  .kpi.income  { border-left: 4px solid var(--income); }
+  .kpi.expense { border-left: 4px solid var(--expense); }
+  .kpi.advance { border-left: 4px solid var(--advance); }
+  .kpi.net { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .kpi .label { font-size: 10.5px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .kpi.net .label { color: rgba(255,255,255,0.7); }
+  .kpi .value { font-family: "Instrument Serif", Georgia, serif; font-size: 26px; line-height: 1; margin-top: 8px; color: var(--ink); }
+  .kpi.net .value { color: #fff; }
+  .kpi.income .value  { color: var(--income); }
+  .kpi.expense .value { color: var(--expense); }
+  .kpi.advance .value { color: var(--advance); }
+  .kpi .value .cur { font-family: "Inter", sans-serif; font-size: 11px; color: var(--muted); vertical-align: 5px; margin-right: 3px; letter-spacing: 0.5px; }
+  .kpi.income .value .cur, .kpi.expense .value .cur, .kpi.advance .value .cur { color: inherit; opacity: 0.6; }
+  .kpi.net .value .cur { color: rgba(255,255,255,0.7); }
+  .kpi .meta { font-size: 11px; color: var(--muted); margin-top: 8px; font-family: "JetBrains Mono", ui-monospace, monospace; }
+  .kpi.net .meta { color: rgba(255,255,255,0.7); }
+  .kpi .split { display: flex; gap: 10px; margin-top: 8px; font-size: 10.5px; font-family: "JetBrains Mono", ui-monospace, monospace; }
+  .kpi .split .pos { color: var(--income); font-weight: 600; }
+  .kpi .split .neg { color: var(--expense); font-weight: 600; }
+
+  /* ============ Filter bar ============ */
+  .filterbar { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px 10px 0 0; border-bottom: none; padding: 10px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .tabs { display: flex; gap: 2px; background: #f3f4f6; padding: 3px; border-radius: 8px; }
+  .tab { font-size: 12px; padding: 6px 10px; border-radius: 6px; cursor: pointer; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; user-select: none; border: 0; background: transparent; font-family: inherit; }
+  .tab:hover { color: var(--ink); }
+  .tab.active { background: var(--paper); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.08); font-weight: 600; }
+  .tab .count { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 10.5px; padding: 1px 6px; border-radius: 999px; background: rgba(0,0,0,0.05); color: var(--ink-2); font-weight: 600; }
+  .tab.active .count { background: var(--accent); color: #fff; }
+  .filterbar .grow { flex: 1; }
+  .search-wrap { position: relative; }
+  .search-wrap svg { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--muted-2); }
+  .input { font-family: inherit; font-size: 12.5px; padding: 7px 10px 7px 30px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); color: var(--ink-2); min-width: 220px; }
+  .input::placeholder { color: var(--muted-2); }
+  .select { font-family: inherit; font-size: 12.5px; padding: 7px 26px 7px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right 10px center; appearance: none; color: var(--ink-2); cursor: pointer; }
+
+  /* ============ Workspace (table + drawer) ============ */
+  .workspace { display: grid; grid-template-columns: 1fr 440px; gap: 0; align-items: stretch; }
+  .table-wrap { background: var(--paper); border: 1px solid var(--rule); border-top: none; border-radius: 0 0 0 10px; overflow: hidden; }
+
+  table.txns { width: 100%; border-collapse: collapse; }
+  table.txns thead th { text-align: left; font-size: 10px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 10px 14px; background: #fafafb; border-bottom: 1px solid var(--rule); }
+  table.txns th.right, table.txns td.right { text-align: right; }
+  table.txns tbody td { padding: 10px 14px; font-size: 12.5px; color: var(--ink); border-bottom: 1px solid var(--rule-soft); vertical-align: middle; }
+  table.txns tbody tr { cursor: pointer; }
+  table.txns tbody tr:hover { background: #fafafb; }
+  table.txns tbody tr.selected { background: var(--accent-soft); }
+  table.txns tbody tr.selected td { border-bottom-color: #d6e3f1; }
+
+  .ref-no { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11px; font-weight: 600; color: var(--ink); }
+  .ref-date { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+  .acc-mini { display: inline-flex; align-items: center; gap: 8px; }
+  .acc-mini .logo { width: 22px; height: 22px; border-radius: 5px; color: #fff; display: grid; place-items: center; font-family: "Instrument Serif", Georgia, serif; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .acc-mini .lbl { font-size: 11.5px; color: var(--ink); font-weight: 500; line-height: 1.2; }
+  .acc-mini .lbl .sub { display: block; color: var(--muted); font-size: 10px; font-family: "JetBrains Mono", ui-monospace, monospace; margin-top: 1px; }
+
+  .cat-cell .name { font-weight: 500; color: var(--ink); font-size: 12.5px; }
+  .cat-cell .ref { font-size: 10.5px; color: var(--muted); margin-top: 2px; font-family: "JetBrains Mono", ui-monospace, monospace; }
+  .cat-cell .ref a { color: var(--muted); text-decoration: none; border-bottom: 1px dotted currentColor; }
+  .cat-cell .ref a:hover { color: var(--accent); }
+
+  .type-badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; border: 1px solid; }
+  .type-badge .dot { width: 5px; height: 5px; border-radius: 50%; }
+  .type-badge.income  { background: var(--income-bg); border-color: var(--ok-bd); color: var(--income); }
+  .type-badge.expense { background: var(--expense-bg); border-color: var(--danger-bd); color: var(--expense); }
+  .type-badge.advance { background: var(--advance-bg); border-color: var(--advance-bd); color: var(--advance); }
+  .type-badge.income .dot  { background: var(--income); }
+  .type-badge.expense .dot { background: var(--expense); }
+  .type-badge.advance .dot { background: var(--advance); }
+
+  .method-pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border: 1px solid var(--rule); border-radius: 999px; font-size: 10.5px; color: var(--ink-2); background: #fafafb; }
+  .method-pill svg { width: 10px; height: 10px; color: var(--muted); }
+
+  .amt-cell { font-family: "JetBrains Mono", ui-monospace, monospace; font-weight: 600; white-space: nowrap; }
+  .amt-cell.in  { color: var(--income); }
+  .amt-cell.out { color: var(--expense); }
+  .amt-cell.adv-in  { color: var(--advance); }
+  .amt-cell.adv-out { color: var(--advance); }
+  .amt-empty { color: var(--muted-2); }
+
+  .adv-tag { display: inline-block; background: var(--advance-bg); color: var(--advance); border: 1px solid var(--advance-bd); padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; margin-left: 6px; }
+
+  .adj-tag { display: inline-block; background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-bd); padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; margin-left: 4px; }
+
+  .open-link { background: transparent; border: 0; padding: 4px 6px; font-family: inherit; font-size: 11.5px; font-weight: 500; color: var(--muted-2); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border-radius: 4px; transition: color 0.15s, transform 0.15s; }
+  .open-link svg { width: 12px; height: 12px; transition: transform 0.15s; }
+  table.txns tbody tr:hover .open-link { color: var(--accent); }
+  table.txns tbody tr:hover .open-link svg { transform: translateX(2px); }
+  table.txns tbody tr.selected .open-link { color: var(--accent); font-weight: 600; }
+
+  .table-foot { padding: 10px 14px; border-top: 1px solid var(--rule); font-size: 11.5px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; background: #fafafb; }
+  .pagination { display: inline-flex; gap: 2px; }
+  .pagination button { background: transparent; border: 1px solid var(--rule); border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; color: var(--ink-2); font-family: inherit; }
+  .pagination button.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .pagination button:hover:not(.active) { background: #fff; }
+
+  /* ============ Drawer ============ */
+  .drawer { background: var(--paper); border: 1px solid var(--rule); border-top: none; border-left: none; border-radius: 0 0 10px 0; display: flex; flex-direction: column; min-height: 100%; }
+  .drawer-head { padding: 16px 18px 14px; border-bottom: 1px solid var(--rule); }
+  .drawer-head .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .drawer-head .ref { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 13px; font-weight: 600; color: var(--ink); }
+  .drawer-head .meta { font-size: 9.5px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+  .drawer-head .close { background: transparent; border: 0; cursor: pointer; color: var(--muted); padding: 2px; border-radius: 4px; }
+  .drawer-head .close:hover { background: #f0f0f1; color: var(--ink); }
+  .drawer-head .amount-big { font-family: "Instrument Serif", Georgia, serif; font-size: 36px; line-height: 1.05; margin-top: 12px; }
+  .drawer-head .amount-big.in  { color: var(--income); }
+  .drawer-head .amount-big.out { color: var(--expense); }
+  .drawer-head .amount-big.adv { color: var(--advance); }
+  .drawer-head .amount-big .cur { font-size: 14px; color: var(--muted); font-family: "Inter", sans-serif; vertical-align: 6px; margin-right: 4px; letter-spacing: 0.5px; }
+  .drawer-head .amount-big.in .cur, .drawer-head .amount-big.out .cur, .drawer-head .amount-big.adv .cur { color: inherit; opacity: 0.6; }
+  .drawer-head .badge-row { margin-top: 10px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+  .drawer-body { flex: 1; padding: 16px 18px; overflow-y: auto; }
+  .field-grid { display: grid; grid-template-columns: 110px 1fr; row-gap: 10px; column-gap: 14px; font-size: 12px; margin-bottom: 18px; }
+  .field-grid dt { color: var(--muted); font-size: 10.5px; letter-spacing: 0.4px; text-transform: uppercase; font-weight: 600; padding-top: 1px; }
+  .field-grid dd { margin: 0; color: var(--ink); }
+  .field-grid dd.mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11.5px; font-weight: 500; }
+  .field-grid dd .sub { display: block; font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+  .field-grid dd a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted currentColor; }
+  .field-grid dd a:hover { color: var(--ink); }
+
+  .section-title { font-size: 10.5px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 20px 0 10px; display: flex; align-items: center; gap: 8px; }
+
+  .coa-card { display: flex; align-items: center; gap: 12px; padding: 11px 13px; background: var(--accent-soft); border: 1px solid #c8d6e8; border-radius: 8px; margin-bottom: 14px; }
+  .coa-card .coa-icon { width: 30px; height: 30px; border-radius: 6px; background: var(--accent); color: #fff; display: grid; place-items: center; flex-shrink: 0; }
+  .coa-card .coa-icon svg { width: 14px; height: 14px; }
+  .coa-card .coa-info { flex: 1; min-width: 0; }
+  .coa-card .coa-code { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; font-weight: 600; color: var(--ink); }
+  .coa-card .coa-meta { font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+  .coa-card a.coa-link { font-size: 10.5px; color: var(--accent); text-decoration: none; white-space: nowrap; font-weight: 600; }
+  .coa-card a.coa-link:hover { text-decoration: underline; }
+
+  .ref-card { display: flex; align-items: center; gap: 12px; padding: 11px 13px; background: #fafafb; border: 1px solid var(--rule); border-radius: 8px; margin-bottom: 14px; }
+  .ref-card .ref-icon { width: 30px; height: 30px; border-radius: 6px; display: grid; place-items: center; flex-shrink: 0; color: #fff; }
+  .ref-card .ref-icon svg { width: 14px; height: 14px; }
+  .ref-card .ref-info { flex: 1; min-width: 0; }
+  .ref-card .ref-type { font-size: 9.5px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .ref-card .ref-id { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; font-weight: 600; color: var(--ink); margin-top: 1px; }
+
+  .notes-box { padding: 10px 12px; background: #fafafb; border: 1px solid var(--rule-soft); border-radius: 6px; font-size: 11.5px; color: var(--ink-2); line-height: 1.55; font-style: italic; }
+
+  .files-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .file-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--rule); border-radius: 6px; font-size: 11px; color: var(--ink-2); background: #fafafb; cursor: pointer; }
+  .file-chip:hover { border-color: var(--ink-3); background: #fff; }
+  .file-chip svg { width: 11px; height: 11px; color: var(--muted); }
+
+  .adj-banner { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--warn-bg); border: 1px solid var(--warn-bd); border-radius: 8px; margin-bottom: 14px; font-size: 11.5px; color: var(--warn); }
+  .adj-banner svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .adj-banner strong { color: var(--ink); font-weight: 600; }
+
+  .drawer-foot { border-top: 1px solid var(--rule); padding: 12px 18px; background: #fafafb; border-radius: 0 0 10px 0; display: flex; gap: 8px; flex-wrap: wrap; }
+  .drawer-foot .btn { flex: 1; justify-content: center; min-width: 110px; font-size: 12px; }
+
+  .empty-drawer { display: grid; place-items: center; padding: 60px 20px; text-align: center; color: var(--muted); font-size: 12.5px; }
+  .empty-drawer .glyph { font-family: "Instrument Serif", Georgia, serif; font-size: 48px; color: var(--rule); line-height: 1; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="crumbs">
+    <a href="Banking Management.html">Finance</a>
+    <span class="sep">›</span>
+    <a href="Banking Management.html">Banking</a>
+    <span class="sep">›</span>
+    <span class="here">Transactions</span>
+  </div>
+  <div class="grow"></div>
+  <span class="user-chip"><span class="av">F</span>Fatima A. (Banking Mgr)</span>
+</div>
+
+<div class="page" data-screen-label="03 Transactions">
+
+  <header class="page-head">
+    <div>
+      <h1>Transactions</h1>
+      <div class="sub">All confirmed bank transactions — debits, credits, and ledger entries across every account.</div>
+    </div>
+    <div class="actions-row">
+      <button class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button>
+      <button class="btn income" onclick="showToast('Open: Record income form')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>Income</button>
+      <button class="btn expense" onclick="showToast('Open: Record expense form')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>Expense</button>
+    </div>
+  </header>
+
+  <!-- Primary tabs -->
+  <nav class="nav-tabs" role="tablist">
+    <a class="nav-tab" href="Banking Management.html" role="tab">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Payment Requests
+      <span class="pill">72</span>
+    </a>
+    <a class="nav-tab" href="Bank Accounts.html" role="tab">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V10m4 11V10m6 11V10m4 11V10M2 10l10-7 10 7"/></svg>
+      Bank Accounts
+      <span class="pill">10</span>
+    </a>
+    <a class="nav-tab active" href="Transactions.html" role="tab">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      Transactions
+      <span class="pill" id="tab-count">—</span>
+    </a>
+    <a class="nav-tab" href="#" onclick="event.preventDefault(); showToast('Reports — coming soon');" role="tab">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Reports
+    </a>
+  </nav>
+
+  <!-- KPI strip -->
+  <div class="kpis" id="kpis"></div>
+
+  <!-- Filter bar -->
+  <div class="filterbar">
+    <div class="tabs" id="type-tabs">
+      <button class="tab active" data-type="all">All <span class="count" id="c-all">—</span></button>
+      <button class="tab" data-type="income">Income <span class="count" id="c-in">—</span></button>
+      <button class="tab" data-type="expense">Expense <span class="count" id="c-out">—</span></button>
+      <button class="tab" data-type="advance">Advance <span class="count" id="c-adv">—</span></button>
+      <button class="tab" data-type="adjusted">Adjusted <span class="count" id="c-adj">—</span></button>
+    </div>
+    <div class="grow"></div>
+    <div class="search-wrap">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" class="input" id="search" placeholder="Search ref, party, notes…" />
+    </div>
+    <select class="select" id="filter-account"></select>
+    <select class="select" id="filter-category">
+      <option value="">All categories</option>
+      <optgroup label="Income">
+        <option>Property Sale</option>
+        <option>Booking Money</option>
+        <option>Rental Income</option>
+        <option>Other Income</option>
+      </optgroup>
+      <optgroup label="Expense">
+        <option>Salary</option>
+        <option>Office Rent</option>
+        <option>Utility</option>
+        <option>Material Purchase</option>
+        <option>Supplier Payment</option>
+        <option>Marketing</option>
+        <option>Landowner Share</option>
+        <option>Bank Charges</option>
+      </optgroup>
+      <optgroup label="Advance">
+        <option>Supplier Advance</option>
+        <option>Booking Advance</option>
+        <option>Salary Advance</option>
+        <option>Landowner Advance</option>
+      </optgroup>
+    </select>
+    <select class="select" id="filter-method">
+      <option value="">All methods</option>
+      <option>Cash</option>
+      <option>Bank Transfer</option>
+      <option>Cheque</option>
+      <option>Online</option>
+      <option>bKash</option>
+    </select>
+    <select class="select">
+      <option>Last 30 days</option>
+      <option>This week</option>
+      <option>This month</option>
+      <option>This quarter</option>
+      <option>Custom range…</option>
+    </select>
+  </div>
+
+  <!-- Workspace -->
+  <div class="workspace">
+    <div class="table-wrap">
+      <table class="txns">
+        <thead>
+          <tr>
+            <th style="width: 120px">Date / Ref</th>
+            <th style="width: 200px">Account</th>
+            <th>Category / Reference</th>
+            <th style="width: 110px">Method</th>
+            <th class="right" style="width: 130px">Debit</th>
+            <th class="right" style="width: 130px">Credit</th>
+            <th style="width: 60px"></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="table-foot">
+        <span id="row-count">—</span>
+        <div class="pagination">
+          <button>‹</button>
+          <button class="active">1</button>
+          <button>2</button>
+          <button>3</button>
+          <button>›</button>
+        </div>
+      </div>
+    </div>
+    <aside class="drawer" id="drawer"></aside>
+  </div>
+</div>
+
+<!-- Shared data -->
+<script src="bank-data.js"></script>
+
+<script>
+  // ============================ Data ============================
+  // Schema-aligned with `transactions` table.
+  // Each row: { id, datetime, account_id, type, category, reference_type, reference_id,
+  //             reference_no, notes, debit, credit, method, name, phone, attachments,
+  //             created_by, adjusted_at, adjusted_by, adjusted_transaction_id }
+  const TXNS = [
+    {
+      id: 4218, datetime: "19 May 2026 14:32", account_id: 1, type: "INCOME",
+      category: "Property Sale", category_code: "INC-PS",
+      reference_type: "PropertySale", reference_id: 71, reference_no: "PS-2025-0071",
+      notes: "Installment #04 of 24 received from Mr. Anisur Rahman Chowdhury for Unit A0704, Star Unity Heights.",
+      debit: 5000, credit: 0, method: "Bank Transfer",
+      name: "Anisur Rahman Chowdhury", phone: "+880 1711 234 567",
+      attachments: 5, created_by: "Fatima A.",
+    },
+    {
+      id: 4217, datetime: "19 May 2026 11:18", account_id: 3, type: "EXPENSE",
+      category: "Office Rent", category_code: "EXP-RENT",
+      reference_type: "Expense", reference_id: 431, reference_no: "EX-2026-0431",
+      notes: "Office rent for May 2026 — Banani branch. Paid to Mr. Rashid (landlord).",
+      debit: 0, credit: 185000, method: "Online",
+      name: "Mr. Rashid (Landlord)", phone: "+880 1812 445 678",
+      attachments: 2, created_by: "Fatima A.",
+    },
+    {
+      id: 4216, datetime: "19 May 2026 10:05", account_id: 1, type: "INCOME",
+      category: "Booking Money", category_code: "INC-BM",
+      reference_type: "PropertySale", reference_id: 78, reference_no: "PS-2026-0078",
+      notes: "Booking money for Unit B-1102, Star Heritage. 10% of sale value.",
+      debit: 500000, credit: 0, method: "Cheque",
+      name: "Mrs. Salma Khatun", phone: "+880 1730 998 211",
+      attachments: 1, created_by: "Mohsin Ali",
+    },
+    {
+      id: 4215, datetime: "18 May 2026 16:42", account_id: 2, type: "EXPENSE",
+      category: "Salary", category_code: "EXP-SAL",
+      reference_type: "Payroll", reference_id: 5, reference_no: "PR-2026-05",
+      notes: "Salary disbursement — May 2026 cycle. 38 employees.",
+      debit: 0, credit: 1842000, method: "Bank Transfer",
+      name: "Payroll · May 2026", phone: "—",
+      attachments: 1, created_by: "HR Department",
+    },
+    {
+      id: 4214, datetime: "18 May 2026 14:21", account_id: 1, type: "EXPENSE",
+      category: "Supplier Payment", category_code: "EXP-SUP",
+      reference_type: "SupplierBill", reference_id: 1035, reference_no: "SB-2026-1035",
+      notes: "Bashundhara Tiles & Ceramics — Bill #BT-4421. Floor tiles 1800 sft for Project Heritage.",
+      debit: 0, credit: 2240000, method: "Bank Transfer",
+      name: "Bashundhara Tiles & Ceramics", phone: "+880 2 8836421",
+      attachments: 3, created_by: "Procurement",
+    },
+    {
+      id: 4213, datetime: "18 May 2026 09:30", account_id: 1, type: "INCOME",
+      category: "Property Sale", category_code: "INC-PS",
+      reference_type: "PropertySale", reference_id: 65, reference_no: "PS-2025-0065",
+      notes: "Final installment payment from Mr. Karim Uddin. Property handover scheduled.",
+      debit: 1500000, credit: 0, method: "Bank Transfer",
+      name: "Karim Uddin", phone: "+880 1715 332 109",
+      attachments: 4, created_by: "Accounts",
+    },
+    {
+      id: 4212, datetime: "17 May 2026 15:55", account_id: 5, type: "EXPENSE",
+      category: "Utility", category_code: "EXP-UTIL",
+      reference_type: "Expense", reference_id: 428, reference_no: "EX-2026-0428",
+      notes: "Electricity (DESCO) + Water (WASA) — April 2026 bills.",
+      debit: 0, credit: 78400, method: "Online",
+      name: "DESCO + WASA", phone: "—",
+      attachments: 2, created_by: "Admin",
+    },
+    {
+      id: 4211, datetime: "17 May 2026 11:12", account_id: 6, type: "INCOME",
+      category: "Booking Money", category_code: "INC-BM",
+      reference_type: "PropertySale", reference_id: 79, reference_no: "PS-2026-0079",
+      notes: "Booking via bKash from Mr. Tahsin Ahmed. Token money for Shop S-04.",
+      debit: 50000, credit: 0, method: "bKash",
+      name: "Tahsin Ahmed", phone: "+880 1722 887 654",
+      attachments: 1, created_by: "Sales",
+    },
+    {
+      id: 4210, datetime: "16 May 2026 14:08", account_id: 1, type: "EXPENSE",
+      category: "Landowner Share",  category_code: "EXP-LO",
+      reference_type: "LandownerPayable", reference_id: 18, reference_no: "LO-2025-018",
+      notes: "Q1 profit share to Mr. Kamruzzaman Sarker for Project Heights.",
+      debit: 0, credit: 750000, method: "Cheque",
+      name: "Kamruzzaman Sarker", phone: "+880 1819 445 100",
+      attachments: 2, created_by: "Fatima A.",
+    },
+    {
+      id: 4209, datetime: "16 May 2026 10:44", account_id: 3, type: "EXPENSE",
+      category: "Material Purchase", category_code: "EXP-MAT",
+      reference_type: "SupplierBill", reference_id: 1042, reference_no: "SB-2026-1042",
+      notes: "ABC Cement Industries — 200 bags cement for Project Heights.",
+      debit: 0, credit: 482500, method: "Bank Transfer",
+      name: "ABC Cement Industries Ltd.", phone: "+880 2 9886431",
+      attachments: 2, created_by: "Procurement",
+    },
+    {
+      id: 4208, datetime: "15 May 2026 17:30", account_id: 1, type: "INCOME",
+      category: "Rental Income", category_code: "INC-RENT",
+      reference_type: "RentalPayment", reference_id: 224, reference_no: "RP-2026-224",
+      notes: "Monthly rent — Shop S-12, Star Plaza. Tenant: Cafe Belora.",
+      debit: 85000, credit: 0, method: "Bank Transfer",
+      name: "Cafe Belora", phone: "+880 1712 887 991",
+      attachments: 1, created_by: "Accounts",
+    },
+    {
+      id: 4207, datetime: "15 May 2026 13:15", account_id: 5, type: "EXPENSE",
+      category: "Marketing", category_code: "EXP-MKT",
+      reference_type: "Expense", reference_id: 425, reference_no: "EX-2026-0425",
+      notes: "Print ads — Daily Star (May campaign for Project Heritage launch).",
+      debit: 0, credit: 145000, method: "Cheque",
+      name: "Daily Star Advertising", phone: "+880 2 9858621",
+      attachments: 1, created_by: "Marketing",
+    },
+    {
+      id: 4206, datetime: "14 May 2026 16:01", account_id: 4, type: "EXPENSE",
+      category: "Material Purchase", category_code: "EXP-MAT",
+      reference_type: "SupplierBill", reference_id: 1028, reference_no: "SB-2026-1028",
+      notes: "ABC Imports — Italian marble for premium units. Foreign remittance.",
+      debit: 0, credit: 18500, method: "Bank Transfer",
+      name: "ABC Imports (Italy)", phone: "+39 045 8001234",
+      attachments: 4, created_by: "Procurement",
+      currency_override: "USD",
+    },
+    {
+      id: 4205, datetime: "14 May 2026 09:50", account_id: 1, type: "EXPENSE",
+      category: "Bank Charges", category_code: "EXP-CHG",
+      reference_type: null, reference_id: null, reference_no: null,
+      notes: "Wire transfer fee for ABC Imports remittance.",
+      debit: 0, credit: 2500, method: "Bank Transfer",
+      name: "DBBL Wire Fee", phone: "—",
+      attachments: 0, created_by: "Accounts",
+    },
+    {
+      id: 4204, datetime: "13 May 2026 11:22", account_id: 1, type: "INCOME",
+      category: "Property Sale", category_code: "INC-PS",
+      reference_type: "PropertySale", reference_id: 68, reference_no: "PS-2025-0068",
+      notes: "Installment payment — adjusted later due to bank slip mismatch.",
+      debit: 245000, credit: 0, method: "Bank Transfer",
+      name: "Nasrin Sultana", phone: "+880 1818 332 110",
+      attachments: 2, created_by: "Sales",
+      adjusted_at: "16 May 2026 10:15", adjusted_by: "Fatima A.", adjusted_transaction_id: 4220,
+    },
+    {
+      id: 4203, datetime: "12 May 2026 14:00", account_id: 5, type: "EXPENSE",
+      category: "Office Rent", category_code: "EXP-RENT",
+      reference_type: "Expense", reference_id: 420, reference_no: "EX-2026-0420",
+      notes: "Petty cash float withdrawal for office expenses.",
+      debit: 0, credit: 16000, method: "Cash",
+      name: "Cash withdrawal", phone: "—",
+      attachments: 0, created_by: "Admin",
+    },
+
+    // ============== ADVANCE entries ==============
+    {
+      id: 4202, datetime: "11 May 2026 16:20", account_id: 1, type: "ADVANCE",
+      category: "Booking Advance", category_code: "ADV-BK",
+      reference_type: "PropertySale", reference_id: 80, reference_no: "PS-2026-0080",
+      notes: "Advance booking money from Mr. Fakhrul Islam for Apt B-705. Sale agreement pending.",
+      debit: 200000, credit: 0, method: "Bank Transfer",
+      name: "Fakhrul Islam", phone: "+880 1717 442 089",
+      attachments: 2, created_by: "Sales",
+    },
+    {
+      id: 4201, datetime: "11 May 2026 10:08", account_id: 3, type: "ADVANCE",
+      category: "Supplier Advance", category_code: "ADV-SUP",
+      reference_type: "SupplierBill", reference_id: 1051, reference_no: "SB-2026-1051",
+      notes: "30% advance to Star Steel Trading for MS rod order (12 ton). Balance on delivery.",
+      debit: 0, credit: 2826000, method: "Bank Transfer",
+      name: "Star Steel Trading", phone: "+880 2 9881027",
+      attachments: 3, created_by: "Procurement",
+    },
+    {
+      id: 4200, datetime: "10 May 2026 12:45", account_id: 2, type: "ADVANCE",
+      category: "Salary Advance", category_code: "ADV-SAL",
+      reference_type: "Payroll", reference_id: 102, reference_no: "PR-ADV-2026-102",
+      notes: "Salary advance to Mr. Habibur Rahman (Site Engineer) — to be adjusted against May salary.",
+      debit: 0, credit: 35000, method: "Bank Transfer",
+      name: "Habibur Rahman", phone: "+880 1712 998 441",
+      attachments: 1, created_by: "HR",
+    },
+    {
+      id: 4199, datetime: "09 May 2026 14:15", account_id: 1, type: "ADVANCE",
+      category: "Landowner Advance", category_code: "ADV-LO",
+      reference_type: "LandownerPayable", reference_id: 22, reference_no: "LO-2026-022",
+      notes: "Advance against Q2 profit share to Mr. Selim Reza. Adjustable from final settlement.",
+      debit: 0, credit: 400000, method: "Cheque",
+      name: "Selim Reza", phone: "+880 1819 776 002",
+      attachments: 2, created_by: "Accounts",
+    },
+  ];
+
+  const TXN_PAGE_SIZE = 20;
+
+  // ============================ State ============================
+  let typeFilter = "all";
+  let accountFilter = "";
+  let categoryFilter = "";
+  let methodFilter = "";
+  let searchQuery = "";
+  let selectedId = TXNS[0].id;
+
+  // ============================ Method icons ============================
+  const METHOD_ICONS = {
+    "Bank Transfer": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V10m4 11V10m6 11V10m4 11V10M2 10l10-7 10 7"/></svg>',
+    "Cheque":        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="1.5"/><path d="M6 10h6M6 14h4"/></svg>',
+    "Online":        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/></svg>',
+    "bKash":         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/></svg>',
+    "Cash":          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="1"/><circle cx="12" cy="12" r="2.5"/></svg>',
+  };
+
+  const REF_ICONS = {
+    PropertySale:    { color: "#0d2a4a", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 21V8l9-5 9 5v13"/></svg>' },
+    SupplierBill:    { color: "#1d4ed8", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16h6V8H2v8h6"/><circle cx="8" cy="18" r="2"/><circle cx="16" cy="18" r="2"/></svg>' },
+    Payroll:         { color: "#15803d", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' },
+    Expense:         { color: "#b45309", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>' },
+    LandownerPayable:{ color: "#6d28d9", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V10l7-5 7 5v11"/></svg>' },
+    RentalPayment:   { color: "#0e7490", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V10m4 11V10m6 11V10m4 11V10"/></svg>' },
+  };
+
+  // ============================ Helpers ============================
+  const BDT = (n) => n.toLocaleString("en-BD", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtAmount = (n) => n === 0 ? '<span class="amt-empty">—</span>' : BDT(n);
+
+  function getAccount(id) { return window.ACCOUNTS.find(a => a.id === id); }
+
+  // ============================ Filter logic ============================
+  function filterTxns() {
+    const q = searchQuery.toLowerCase();
+    return TXNS.filter(t => {
+      if (typeFilter === "income"   && t.type !== "INCOME") return false;
+      if (typeFilter === "expense"  && t.type !== "EXPENSE") return false;
+      if (typeFilter === "advance"  && t.type !== "ADVANCE") return false;
+      if (typeFilter === "adjusted" && !t.adjusted_at) return false;
+      if (accountFilter && t.account_id !== +accountFilter) return false;
+      if (categoryFilter && t.category !== categoryFilter) return false;
+      if (methodFilter && t.method !== methodFilter) return false;
+      if (q) {
+        const hay = `${t.reference_no || ''} ${t.name || ''} ${t.notes || ''} ${t.category || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  // ============================ Render: KPIs ============================
+  function renderKpis() {
+    const monthly = TXNS;
+    const income     = monthly.filter(t => t.type === "INCOME"  && !t.currency_override).reduce((s, t) => s + t.debit, 0);
+    const expense    = monthly.filter(t => t.type === "EXPENSE" && !t.currency_override).reduce((s, t) => s + t.credit, 0);
+    const advIn      = monthly.filter(t => t.type === "ADVANCE" && t.debit > 0  && !t.currency_override).reduce((s, t) => s + t.debit, 0);
+    const advOut     = monthly.filter(t => t.type === "ADVANCE" && t.credit > 0 && !t.currency_override).reduce((s, t) => s + t.credit, 0);
+    const advNet     = advIn - advOut;
+    const net = income - expense;
+    document.getElementById("kpis").innerHTML = `
+      <div class="kpi income">
+        <div class="label">Income — May 2026</div>
+        <div class="value"><span class="cur">BDT</span>${BDT(income)}</div>
+        <div class="meta">${monthly.filter(t => t.type === "INCOME").length} transactions</div>
+      </div>
+      <div class="kpi expense">
+        <div class="label">Expense — May 2026</div>
+        <div class="value"><span class="cur">BDT</span>${BDT(expense)}</div>
+        <div class="meta">${monthly.filter(t => t.type === "EXPENSE").length} transactions</div>
+      </div>
+      <div class="kpi advance">
+        <div class="label">Advance — May 2026</div>
+        <div class="value"><span class="cur">BDT</span>${BDT(Math.abs(advNet))}</div>
+        <div class="split">
+          <span class="pos">↓ Received ${BDT(advIn).split('.')[0]}</span>
+          <span class="neg">↑ Paid ${BDT(advOut).split('.')[0]}</span>
+        </div>
+      </div>
+      <div class="kpi net">
+        <div class="label">Net flow</div>
+        <div class="value"><span class="cur">BDT</span>${BDT(net)}</div>
+        <div class="meta">${net >= 0 ? '▲ Surplus' : '▼ Deficit'} · excl. advances</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Total transactions</div>
+        <div class="value">${monthly.length}</div>
+        <div class="meta">${monthly.filter(t => t.adjusted_at).length} adjusted · ${monthly.filter(t => t.attachments > 0).length} with files</div>
+      </div>
+    `;
+  }
+
+  // ============================ Render: Type counters ============================
+  function renderCounters() {
+    document.getElementById("c-all").textContent = TXNS.length;
+    document.getElementById("c-in").textContent  = TXNS.filter(t => t.type === "INCOME").length;
+    document.getElementById("c-out").textContent = TXNS.filter(t => t.type === "EXPENSE").length;
+    document.getElementById("c-adv").textContent = TXNS.filter(t => t.type === "ADVANCE").length;
+    document.getElementById("c-adj").textContent = TXNS.filter(t => t.adjusted_at).length;
+    document.getElementById("tab-count").textContent = TXNS.length.toLocaleString();
+  }
+
+  // ============================ Render: Account filter dropdown ============================
+  function renderAccountFilter() {
+    const sel = document.getElementById("filter-account");
+    sel.innerHTML = `<option value="">All accounts</option>` +
+      window.ACCOUNTS.filter(a => a.status === "active").map(a => `<option value="${a.id}">${a.bank_name} · ${a.label}</option>`).join("");
+  }
+
+  // ============================ Render: Table ============================
+  function renderRows() {
+    const rows = document.getElementById("rows");
+    const list = filterTxns();
+    document.getElementById("row-count").textContent = `Showing ${list.length} of ${TXNS.length} transactions`;
+
+    if (list.length === 0) {
+      rows.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 40px; color: var(--muted); font-style: italic;">No transactions match your filters.</td></tr>`;
+      return;
+    }
+
+    rows.innerHTML = list.map(t => {
+      const acc = getAccount(t.account_id);
+      const cur = t.currency_override || (acc?.currency || "BDT");
+      const ref = t.reference_type ? REF_ICONS[t.reference_type] : null;
+      const isAdv = t.type === "ADVANCE";
+      const debitCls  = t.debit  > 0 ? (isAdv ? "adv-in"  : "in")  : "";
+      const creditCls = t.credit > 0 ? (isAdv ? "adv-out" : "out") : "";
+      return `
+        <tr data-id="${t.id}" class="${t.id === selectedId ? 'selected' : ''}">
+          <td>
+            <div class="ref-no">TXN-${t.id}</div>
+            <div class="ref-date">${t.datetime}</div>
+          </td>
+          <td>
+            <div class="acc-mini">
+              <div class="logo" style="background:${acc?.color || '#888'}">${acc?.logo || '?'}</div>
+              <div class="lbl">
+                ${acc?.bank_name?.replace(' Ltd.', '') || 'Unknown'}
+                <span class="sub">${acc?.label || '—'}</span>
+              </div>
+            </div>
+          </td>
+          <td class="cat-cell">
+            <div class="name">${t.category}${isAdv ? '<span class="adv-tag">Adv</span>' : ''}</div>
+            <div class="ref">
+              ${ref ? `<span style="color:${ref.color}">●</span> ` : ''}${t.reference_no ? `<a href="#" onclick="event.stopPropagation(); showToast('Opening ${t.reference_type} → ${t.reference_no}')">${t.reference_no}</a>` : '<span style="color:var(--muted-2)">No reference</span>'}
+              ${t.adjusted_at ? '<span class="adj-tag">Adj</span>' : ''}
+            </div>
+          </td>
+          <td>
+            <span class="method-pill">${METHOD_ICONS[t.method] || ''}${t.method}</span>
+          </td>
+          <td class="right amt-cell ${debitCls}">${t.debit > 0 ? '+' + cur + ' ' + BDT(t.debit) : '<span class="amt-empty">—</span>'}</td>
+          <td class="right amt-cell ${creditCls}">${t.credit > 0 ? '−' + cur + ' ' + BDT(t.credit) : '<span class="amt-empty">—</span>'}</td>
+          <td class="right">
+            <button class="open-link">Open<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    rows.querySelectorAll("tr[data-id]").forEach(tr => {
+      tr.addEventListener("click", () => {
+        selectedId = +tr.dataset.id;
+        renderRows();
+        renderDrawer();
+      });
+    });
+  }
+
+  // ============================ Render: Drawer ============================
+  function renderDrawer() {
+    const drawer = document.getElementById("drawer");
+    const t = TXNS.find(x => x.id === selectedId);
+    if (!t) { drawer.innerHTML = `<div class="empty-drawer"><div class="glyph">⇄</div>Select a transaction to see details</div>`; return; }
+
+    const acc = getAccount(t.account_id);
+    const cur = t.currency_override || (acc?.currency || "BDT");
+    const isIncome = t.type === "INCOME";
+    const isAdvance = t.type === "ADVANCE";
+    const amount = isIncome || (isAdvance && t.debit > 0) ? t.debit : t.credit;
+    const amountSign = isIncome || (isAdvance && t.debit > 0) ? '+' : '−';
+    const amountCls = isAdvance ? 'adv' : (isIncome ? 'in' : 'out');
+    const typeBadge = isAdvance
+      ? `<span class="type-badge advance"><span class="dot"></span>ADVANCE · ${t.debit > 0 ? 'Received' : 'Paid'}</span>`
+      : `<span class="type-badge ${isIncome ? 'income' : 'expense'}"><span class="dot"></span>${t.type}</span>`;
+    const ref = t.reference_type ? REF_ICONS[t.reference_type] : null;
+
+    drawer.innerHTML = `
+      <div class="drawer-head">
+        <div class="top">
+          <div>
+            <div class="ref">TXN-${t.id}</div>
+            <div class="meta">${t.datetime} · ${t.created_by}</div>
+          </div>
+          <button class="close" onclick="document.getElementById('drawer').style.display='none'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="amount-big ${amountCls}">
+          ${amountSign}<span class="cur">${cur}</span>${BDT(amount)}
+        </div>
+        <div class="badge-row">
+          ${typeBadge}
+          <span class="method-pill">${METHOD_ICONS[t.method] || ''}${t.method}</span>
+          ${t.adjusted_at ? '<span class="adj-tag">Adjusted</span>' : ''}
+        </div>
+      </div>
+
+      <div class="drawer-body">
+
+        ${t.adjusted_at ? `
+          <div class="adj-banner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div><strong>Adjusted</strong> on ${t.adjusted_at} by ${t.adjusted_by} · linked TXN-${t.adjusted_transaction_id}</div>
+          </div>` : ''}
+
+        <dl class="field-grid">
+          <dt>Date &amp; time</dt><dd class="mono">${t.datetime}</dd>
+          <dt>Category</dt><dd>${t.category} <span class="sub mono">${t.category_code}</span></dd>
+          <dt>Party</dt><dd><strong>${t.name}</strong><span class="sub">${t.phone}</span></dd>
+          <dt>Created by</dt><dd>${t.created_by}</dd>
+        </dl>
+
+        <div class="section-title">Bank account</div>
+        <div class="coa-card">
+          <div class="coa-icon" style="background:${acc?.color || '#888'}">${acc?.logo || '?'}</div>
+          <div class="coa-info">
+            <div class="coa-code">${acc?.bank_name || 'Unknown'}</div>
+            <div class="coa-meta">${acc?.label || ''} · ${acc?.code || ''} · ${acc ? maskAcNo(acc.ac_number) : '—'}</div>
+          </div>
+          <a class="coa-link" href="Bank Accounts.html#acc-${acc?.id || ''}">View account →</a>
+        </div>
+
+        <div class="section-title">Linked Chart of Accounts</div>
+        <div class="coa-card">
+          <div class="coa-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="coa-info">
+            <div class="coa-code">${acc?.account_code || '—'} · ${acc?.account_name || '—'}</div>
+            <div class="coa-meta">${acc?.account_type || ''} · accounts.id #${acc?.account_id || '—'}</div>
+          </div>
+          <a class="coa-link" href="#" onclick="event.preventDefault(); showToast('Opening ledger for ${acc?.account_code || ''}')">Open ledger →</a>
+        </div>
+
+        ${t.reference_type ? `
+          <div class="section-title">Source reference</div>
+          <div class="ref-card">
+            <div class="ref-icon" style="background:${ref?.color || '#666'}">${ref?.svg || ''}</div>
+            <div class="ref-info">
+              <div class="ref-type">${t.reference_type}</div>
+              <div class="ref-id">${t.reference_no}</div>
+            </div>
+            <a class="coa-link" href="#" onclick="event.preventDefault(); showToast('Opening ${t.reference_type} → ${t.reference_no}')">Open →</a>
+          </div>` : ''}
+
+        <div class="section-title">Notes</div>
+        <div class="notes-box">${t.notes || 'No notes.'}</div>
+
+        ${t.attachments > 0 ? `
+          <div class="section-title">Attachments <span style="font-family:'JetBrains Mono',monospace;background:#f0f1f3;color:var(--ink-2);padding:1px 6px;border-radius:999px;font-size:9.5px;font-weight:600;">${t.attachments}</span></div>
+          <div class="files-list">
+            ${Array.from({length: Math.min(t.attachments, 5)}).map((_, i) => `
+              <div class="file-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                File ${i + 1}
+              </div>`).join('')}
+          </div>` : ''}
+
+      </div>
+
+      <div class="drawer-foot">
+        ${isIncome && t.reference_type === "PropertySale" ? `<a class="btn primary" href="Transaction Receipt.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>View receipt</a>` : ''}
+        <button class="btn" onclick="showToast('Open adjustment form')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/></svg>Adjust</button>
+        <button class="btn" onclick="showToast('Print transaction')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print</button>
+      </div>
+    `;
+  }
+
+  // ============================ Filters wiring ============================
+  document.getElementById("type-tabs").addEventListener("click", e => {
+    const t = e.target.closest(".tab"); if (!t) return;
+    document.querySelectorAll("#type-tabs .tab").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    typeFilter = t.dataset.type;
+    renderRows();
+  });
+  document.getElementById("filter-account").addEventListener("change", e => { accountFilter = e.target.value; renderRows(); });
+  document.getElementById("filter-category").addEventListener("change", e => { categoryFilter = e.target.value; renderRows(); });
+  document.getElementById("filter-method").addEventListener("change", e => { methodFilter = e.target.value; renderRows(); });
+  document.getElementById("search").addEventListener("input", e => { searchQuery = e.target.value; renderRows(); });
+
+  // ============================ Toast ============================
+  function showToast(msg) {
+    let t = document.getElementById('__toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = '__toast';
+      t.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#14181f;color:#fff;padding:10px 18px;border-radius:8px;font-size:12.5px;font-weight:500;box-shadow:0 12px 36px rgba(0,0,0,0.25);z-index:200;opacity:0;transition:opacity .2s,transform .2s;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)'; });
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.opacity = '0'; }, 1800);
+  }
+
+  // ============================ Init ============================
+  renderKpis();
+  renderCounters();
+  renderAccountFilter();
+  renderRows();
+  renderDrawer();
+</script>
+</body>
+</html>

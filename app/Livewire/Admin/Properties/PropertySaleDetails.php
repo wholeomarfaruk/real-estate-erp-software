@@ -356,28 +356,28 @@ class PropertySaleDetails extends Component
 
         $schedule = PaymentSchedule::findOrFail($this->payNowScheduleId);
         $amount   = round((float) $this->payNowAmount, 2);
-        //validate amount
+
         if ($amount > $schedule->due_amount) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Amount is greater than due amount.']);
             return;
         }
-    $mainCategory = TransactionCategory::where('slug','income')->first()->value('slug');
-        $subCategory = $this->sale->sale_type;
-        
+
+        $categorySlug = $this->sale->sale_type === 'rent' ? 'property-rent' : 'property-sale';
+        $categoryId   = TransactionCategory::where('slug', $categorySlug)->value('id');
+
         $schedule->paymentTransactions()->create([
-            'datetime'    => $this->payNowDate,
-            'type'        => \App\Enums\Accounts\TransactionType::PAYMENT->value,
-            'main_category' => $mainCategory,
-            'sub_category' => $subCategory,
-            'account_id'  => (int) $this->payNowAccountId,
-            'method'       => $this->payNowPaymentMethod,
-            'name'         => $this->payNowPayerName ?: null,
-            'reference_no' => $this->payNowReferenceNo ?: null,
-            'phone'        => $this->payNowPhone ?: null,
-            'debit'        => $amount,
-            'notes'        => $this->payNowNotes ?: null,
-            'attachments' => !empty($this->payNowAttachmentIds) ? $this->payNowAttachmentIds : null,
-            'created_by'  => Auth::id(),
+            'datetime'               => $this->payNowDate,
+            'type'                   => \App\Enums\Accounts\TransactionType::INCOME->value,
+            'transaction_category_id' => $categoryId,
+            'account_id'             => (int) $this->payNowAccountId,
+            'method'                 => $this->payNowPaymentMethod,
+            'name'                   => $this->payNowPayerName ?: null,
+            'reference_no'           => $this->payNowReferenceNo ?: null,
+            'phone'                  => $this->payNowPhone ?: null,
+            'debit'                  => $amount,
+            'notes'                  => $this->payNowNotes ?: null,
+            'attachments'            => !empty($this->payNowAttachmentIds) ? $this->payNowAttachmentIds : null,
+            'created_by'             => Auth::id(),
         ]);
 
         $newPaid = round((float) $schedule->paid_amount + $amount, 2);

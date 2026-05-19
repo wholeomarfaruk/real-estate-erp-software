@@ -16,16 +16,18 @@
 
     <div class="mt-4 rounded-2xl border border-gray-200 bg-white">
         <div class="px-5 py-4 sm:px-6 sm:py-5">
-            <div class="grid grid-cols-1 gap-3 md:grid-cols-5">
-                <div class="md:col-span-2">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-6">
+                {{-- Search --}}
+                <div class="sm:col-span-2">
                     <input
                         type="text"
                         wire:model.live.debounce.400ms="search"
-                        placeholder="Search notes, name or reference"
+                        placeholder="Search notes, name, reference…"
                         class="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none"
                     >
                 </div>
 
+                {{-- Type filter --}}
                 <div>
                     <select wire:model.live="typeFilter" class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
                         <option value="">All Types</option>
@@ -35,10 +37,24 @@
                     </select>
                 </div>
 
+                {{-- Category filter (contextual to selected type) --}}
+                <div>
+                    <select wire:model.live="categoryFilter" class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
+                        <option value="">All Categories</option>
+                        @foreach ($categories as $cat)
+                            <option value="{{ $cat->id }}">
+                                {{ $cat->parent_id ? '— ' : '' }}{{ $cat->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Date from --}}
                 <div>
                     <input type="date" wire:model.live="dateFrom" class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
                 </div>
 
+                {{-- Date to --}}
                 <div>
                     <input type="date" wire:model.live="dateTo" class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
                 </div>
@@ -53,25 +69,37 @@
                             <tr class="border-b border-gray-100">
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Date</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Type</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Category</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Account</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Reference</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Notes</th>
                                 <th class="px-5 py-3 text-right text-xs font-medium text-gray-500">Debit</th>
                                 <th class="px-5 py-3 text-right text-xs font-medium text-gray-500">Credit</th>
-                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Attachments</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Files</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Created By</th>
                                 <th class="px-5 py-3 text-right text-xs font-medium text-gray-500">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             @forelse ($transactions as $transaction)
-                                <tr>
-                                    <td class="px-5 py-4 text-sm text-gray-700">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-5 py-4 text-sm text-gray-700 whitespace-nowrap">
                                         {{ optional($transaction->datetime)->format('d M, Y') }}
                                     </td>
 
                                     <td class="px-5 py-4">
                                         <x-transaction-type-badge :type="$transaction->type" />
+                                    </td>
+
+                                    <td class="px-5 py-4 text-sm text-gray-700">
+                                        @if ($transaction->transactionCategory)
+                                            @if ($transaction->transactionCategory->parent)
+                                                <span class="text-xs text-gray-400">{{ $transaction->transactionCategory->parent->name }} /</span><br>
+                                            @endif
+                                            <span>{{ $transaction->transactionCategory->name }}</span>
+                                        @else
+                                            <span class="text-gray-400">—</span>
+                                        @endif
                                     </td>
 
                                     <td class="px-5 py-4 text-sm text-gray-700">
@@ -81,24 +109,32 @@
                                     <td class="px-5 py-4 text-sm text-gray-700">
                                         @if ($transaction->reference_type)
                                             {{ $transaction->reference_type }}#{{ $transaction->reference_id ?: 'N/A' }}
+                                        @elseif ($transaction->reference_no)
+                                            {{ $transaction->reference_no }}
                                         @else
-                                            N/A
+                                            —
                                         @endif
                                     </td>
 
-                                    <td class="px-5 py-4 text-sm text-gray-700">{{ $transaction->notes ? \Illuminate\Support\Str::limit($transaction->notes, 45) : '—' }}</td>
-
-                                    <td class="px-5 py-4 text-right text-sm text-gray-700">
-                                        {{ (float)$transaction->debit > 0 ? number_format((float)$transaction->debit, 3) : '—' }}
+                                    <td class="px-5 py-4 text-sm text-gray-700">
+                                        {{ $transaction->notes ? \Illuminate\Support\Str::limit($transaction->notes, 45) : '—' }}
                                     </td>
-                                    <td class="px-5 py-4 text-right text-sm text-gray-700">
-                                        {{ (float)$transaction->credit > 0 ? number_format((float)$transaction->credit, 3) : '—' }}
+
+                                    <td class="px-5 py-4 text-right text-sm font-medium text-emerald-700">
+                                        {{ (float)$transaction->debit > 0 ? number_format((float)$transaction->debit, 2) : '—' }}
+                                    </td>
+                                    <td class="px-5 py-4 text-right text-sm font-medium text-rose-700">
+                                        {{ (float)$transaction->credit > 0 ? number_format((float)$transaction->credit, 2) : '—' }}
                                     </td>
 
                                     <td class="px-5 py-4 text-sm text-gray-700">
-                                        <span class="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
-                                            {{ count($transaction->attachments ?? []) }}
-                                        </span>
+                                        @if (count($transaction->attachments ?? []) > 0)
+                                            <span class="inline-flex rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">
+                                                {{ count($transaction->attachments) }}
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400">—</span>
+                                        @endif
                                     </td>
 
                                     <td class="px-5 py-4 text-sm text-gray-700">{{ $transaction->creator?->name ?? 'N/A' }}</td>
@@ -113,7 +149,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="10" class="px-5 py-12 text-center">
+                                    <td colspan="11" class="px-5 py-12 text-center">
                                         <p class="text-sm font-medium text-gray-700">No transactions found.</p>
                                         <p class="mt-1 text-xs text-gray-500">Try changing filters.</p>
                                     </td>
@@ -133,11 +169,23 @@
     </div>
 
     {{-- View Modal --}}
-    <div x-cloak x-data="{ open: @entangle('showViewModal') }" x-show="open" x-transition class="fixed inset-0 z-50 grid place-content-center bg-black/50 p-4" role="dialog" aria-modal="true">
+    <div
+        x-cloak
+        x-data="{ open: @entangle('showViewModal') }"
+        x-show="open"
+        x-transition
+        class="fixed inset-0 z-50 grid place-content-center bg-black/50 p-4"
+        role="dialog"
+        aria-modal="true"
+    >
         <div class="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg">
             <div class="flex items-start justify-between">
                 <h2 class="text-xl font-bold text-gray-900">Transaction Details</h2>
-                <button type="button" @click="open = false; $wire.closeViewModal()" class="-me-4 -mt-4 rounded-full p-2 text-gray-400 transition hover:bg-gray-50 hover:text-gray-600">
+                <button
+                    type="button"
+                    @click="open = false; $wire.closeViewModal()"
+                    class="-me-4 -mt-4 rounded-full p-2 text-gray-400 transition hover:bg-gray-50 hover:text-gray-600"
+                >
                     <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -155,6 +203,19 @@
                         <div class="mt-1"><x-transaction-type-badge :type="$viewTransaction->type" /></div>
                     </div>
                     <div class="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
+                        <p class="text-xs text-gray-500">Category</p>
+                        @if ($viewTransaction->transactionCategory)
+                            <p class="text-sm font-medium text-gray-800">
+                                @if ($viewTransaction->transactionCategory->parent)
+                                    <span class="text-xs text-gray-400">{{ $viewTransaction->transactionCategory->parent->name }} / </span>
+                                @endif
+                                {{ $viewTransaction->transactionCategory->name }}
+                            </p>
+                        @else
+                            <p class="text-sm text-gray-400">—</p>
+                        @endif
+                    </div>
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
                         <p class="text-xs text-gray-500">Account</p>
                         <p class="text-sm font-medium text-gray-800">{{ $viewTransaction->account?->name ?? '—' }}</p>
                     </div>
@@ -169,51 +230,54 @@
                     <div class="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
                         <p class="text-xs text-gray-500">Reference</p>
                         <p class="text-sm font-medium text-gray-800">
-                            {{ $viewTransaction->reference_type ? $viewTransaction->reference_type.'#'.$viewTransaction->reference_id : '—' }}
+                            @if ($viewTransaction->reference_type)
+                                {{ $viewTransaction->reference_type }}#{{ $viewTransaction->reference_id }}
+                            @elseif ($viewTransaction->reference_no)
+                                {{ $viewTransaction->reference_no }}
+                            @else
+                                —
+                            @endif
                         </p>
+                    </div>
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
+                        <p class="text-xs text-gray-500">Phone</p>
+                        <p class="text-sm font-medium text-gray-800">{{ $viewTransaction->phone ?? '—' }}</p>
                     </div>
                 </div>
 
                 <div class="mt-4 grid grid-cols-2 gap-3">
                     <div class="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-center">
                         <p class="text-xs text-emerald-600">Debit</p>
-                        <p class="text-lg font-bold text-emerald-700">{{ number_format((float)$viewTransaction->debit, 3) }}</p>
+                        <p class="text-lg font-bold text-emerald-700">{{ number_format((float)$viewTransaction->debit, 2) }}</p>
                     </div>
                     <div class="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-center">
                         <p class="text-xs text-rose-600">Credit</p>
-                        <p class="text-lg font-bold text-rose-700">{{ number_format((float)$viewTransaction->credit, 3) }}</p>
+                        <p class="text-lg font-bold text-rose-700">{{ number_format((float)$viewTransaction->credit, 2) }}</p>
                     </div>
                 </div>
 
-                @if($viewTransaction->main_category || $viewTransaction->sub_category)
-                <div class="mt-3 flex gap-2">
-                    @if($viewTransaction->main_category)
-                        <span class="inline-flex rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">{{ $viewTransaction->main_category }}</span>
-                    @endif
-                    @if($viewTransaction->sub_category)
-                        <span class="inline-flex rounded-full bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700">{{ $viewTransaction->sub_category }}</span>
-                    @endif
-                </div>
+                @if ($viewTransaction->notes)
+                    <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                        <p class="text-xs text-gray-500">Notes</p>
+                        <p class="mt-1 text-sm text-gray-700">{{ $viewTransaction->notes }}</p>
+                    </div>
                 @endif
 
-                <div class="mt-3 flex items-center justify-between">
-                    <p class="text-sm text-gray-600">{{ $viewTransaction->notes ?: 'No notes provided.' }}</p>
-                    <p class="text-xs text-gray-400">By: {{ $viewTransaction->creator?->name ?? 'N/A' }}</p>
-                </div>
+                <p class="mt-3 text-right text-xs text-gray-400">By: {{ $viewTransaction->creator?->name ?? 'N/A' }}</p>
 
                 @if($viewTransactionFiles->isNotEmpty())
-                <div class="mt-4 rounded-xl border border-gray-200 p-4">
-                    <h3 class="text-sm font-semibold text-gray-700">Attachments</h3>
-                    <div class="mt-3">
-                        @include('livewire.admin.accounts.partials.attachment-list', [
-                            'attachments' => $viewTransactionFiles,
-                            'transactionId' => $viewTransaction->id,
-                            'fancyboxGroup' => 'transaction-attachments-'.$viewTransaction->id,
-                            'canRemove' => false,
-                            'emptyMessage' => 'No attachments available for this transaction.',
-                        ])
+                    <div class="mt-4 rounded-xl border border-gray-200 p-4">
+                        <h3 class="text-sm font-semibold text-gray-700">Attachments</h3>
+                        <div class="mt-3">
+                            @include('livewire.admin.accounts.partials.attachment-list', [
+                                'attachments' => $viewTransactionFiles,
+                                'transactionId' => $viewTransaction->id,
+                                'fancyboxGroup' => 'transaction-attachments-'.$viewTransaction->id,
+                                'canRemove' => false,
+                                'emptyMessage' => 'No attachments available for this transaction.',
+                            ])
+                        </div>
                     </div>
-                </div>
                 @endif
             @endif
         </div>

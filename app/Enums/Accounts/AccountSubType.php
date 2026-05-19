@@ -11,7 +11,8 @@ enum AccountSubType: string
     // =====================
     case CASH = 'cash';
     case BANK = 'bank';
-    case RECEIVABLE = 'receivable';
+    case MFS = 'mfs';
+    case WALLET = 'wallet';
 
     // =====================
     // HELPERS
@@ -21,7 +22,8 @@ enum AccountSubType: string
         return [
             self::CASH,
             self::BANK,
-            self::RECEIVABLE
+            self::MFS,
+            self::WALLET
         ];
     }
     public static function referenceModels(): array
@@ -49,7 +51,8 @@ enum AccountSubType: string
         return match ($this) {
             self::CASH => 'Cash',
             self::BANK => 'Bank',
-            self::RECEIVABLE => 'Receivable',
+            self::MFS => 'MFS',
+            self::WALLET => 'Wallet',
 
         };
     }
