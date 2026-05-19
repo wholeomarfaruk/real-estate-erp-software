@@ -188,7 +188,7 @@
   .totals-row.grand.due .lbl { color: var(--ink); font-weight: 600; }
   .totals-row.grand.due .val { color: #8a1212; font-size: 15px; font-weight: 700; }
 
-  .signatures { margin-top: auto; padding-top: 18px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 22px; }
+  .signatures { margin-top: auto; padding-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
   .sig { text-align: center; }
   .sig-line { border-top: 1px solid var(--ink-2); margin: 26px 8px 5px; }
   .sig-role { font-size: 10px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
@@ -316,7 +316,7 @@
           <tr>
             <th style="width: 34%">Property</th>
           
-            <th style="width: 18%">Floor / Unit</th>
+            <th style="width: 18%">Section / Unit</th>
             <th style="width: 16%">Type</th>
             <th style="width: 14%">Size</th>
           </tr>
@@ -395,14 +395,11 @@
           <div class="sig-role">Payer's Signature</div>
           <div class="sig-sub">{{ $payer['is_customer'] ? $customer['name'] : $payer['name'] }}</div>
         </div>
+        
         <div class="sig">
           <div class="sig-line"></div>
-          <div class="sig-role">Receiver's Signature</div>
+          <div class="sig-role">Authority Signature</div>
           <div class="sig-sub">Accounts Department</div>
-        </div>
-        <div class="sig">
-          <div class="sig-line"></div>
-          <div class="sig-role">Authorised Signatory</div>
           <div class="sig-sub">{{ $company['name'] }}</div>
         </div>
       </section>

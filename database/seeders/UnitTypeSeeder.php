@@ -15,6 +15,7 @@ class UnitTypeSeeder extends Seeder
             ['name' => 'Parking', 'slug' => 'parking'],
             ['name' => 'Hall',    'slug' => 'hall'],
             ['name' => 'Office',  'slug' => 'office'],
+            ['name' => 'Plot',    'slug' => 'plot'],
         ];
 
         foreach ($types as $type) {

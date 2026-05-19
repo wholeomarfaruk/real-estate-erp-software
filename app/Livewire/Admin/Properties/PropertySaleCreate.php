@@ -27,8 +27,9 @@ class PropertySaleCreate extends Component
     public string $dDiscountAmount     = '0';
     public string $dTaxAmount          = '0';
     public string $dNetAmount          = '0';
-    public string $dDownPaymentAmount  = '0';
-    public string $dPaymentTerms       = '';
+    public string $dDownPaymentAmount      = '0';
+    public string $dDownPaymentPercentage = '0';
+    public string $dPaymentTerms          = '';
 
     // ── Rent ─────────────────────────────────────────────────────────────────
     public string $dRentStartDate          = '';
@@ -62,16 +63,90 @@ class PropertySaleCreate extends Component
     // ── Reactive hooks ────────────────────────────────────────────────────────
     public function updatedDPropertyId(): void
     {
-        $this->dPropertyUnitId = '';
+        $this->dPropertyUnitId        = '';
+        $this->dSaleAmount            = '0';
+        $this->dDownPaymentPercentage = '0';
+        $this->dDownPaymentAmount     = '0';
+        $this->recalcNet();
     }
 
-    public function updatedDSaleAmount(): void    { $this->recalcNet(); }
-    public function updatedDDiscountAmount(): void { $this->recalcNet(); }
-    public function updatedDTaxAmount(): void      { $this->recalcNet(); }
+    public function updatedDPropertyUnitId(): void
+    {
+        if (!$this->dPropertyUnitId) return;
+
+        $unit = PropertyUnit::find($this->dPropertyUnitId);
+        if (!$unit) return;
+
+        if ($this->dSaleType === 'sale') {
+            $price = (float) ($unit->price ?: $unit->sell_price ?: 0);
+            if ($price > 0) $this->dSaleAmount = (string) $price;
+
+            if ($unit->down_payment_percentage) {
+                $this->dDownPaymentPercentage = (string) (float) $unit->down_payment_percentage;
+            }
+
+            $this->recalcNet();
+            $this->recalcDownPaymentFromPercentage();
+            $this->recalcScheduleAmount();
+            if ($this->dIsScheduled) $this->generateSchedulePreview();
+
+        } elseif ($this->dSaleType === 'rent') {
+            if ($unit->deposit_amount) {
+                $this->dSecurityDepositAmount = (string) (float) $unit->deposit_amount;
+            }
+            $rentAmount = (float) ($unit->rent_amount ?: $unit->price ?: 0);
+            if ($rentAmount > 0) $this->dScheduleAmount = (string) $rentAmount;
+            if ($this->dIsScheduled) $this->generateSchedulePreview();
+        }
+    }
+
+    public function updatedDSaleAmount(): void
+    {
+        $this->recalcNet();
+        $this->recalcDownPaymentFromPercentage();
+        $this->recalcScheduleAmount();
+        if ($this->dIsScheduled) $this->generateSchedulePreview();
+    }
+
+    public function updatedDDiscountAmount(): void
+    {
+        $this->recalcNet();
+        $this->recalcDownPaymentFromPercentage();
+        $this->recalcScheduleAmount();
+        if ($this->dIsScheduled) $this->generateSchedulePreview();
+    }
+
+    public function updatedDTaxAmount(): void
+    {
+        $this->recalcNet();
+        $this->recalcDownPaymentFromPercentage();
+        $this->recalcScheduleAmount();
+        if ($this->dIsScheduled) $this->generateSchedulePreview();
+    }
+
+    public function updatedDDownPaymentPercentage(): void
+    {
+        $this->recalcDownPaymentFromPercentage();
+        $this->recalcScheduleAmount();
+        if ($this->dIsScheduled) $this->generateSchedulePreview();
+    }
+
+    public function updatedDDownPaymentAmount(): void
+    {
+        $this->recalcPercentageFromDownPayment();
+        $this->recalcScheduleAmount();
+        if ($this->dIsScheduled) $this->generateSchedulePreview();
+    }
 
     public function updatedDSaleType(): void
     {
-        $this->schedulePreview = [];
+        $this->schedulePreview        = [];
+        $this->dPropertyUnitId        = '';
+        $this->dDownPaymentPercentage = '0';
+        $this->dDownPaymentAmount     = '0';
+        $this->dSecurityDepositAmount = '0';
+        $this->dScheduleAmount        = '0';
+        $this->recalcNet();
     }
 
     public function updatedDIsScheduled(): void
@@ -79,6 +154,7 @@ class PropertySaleCreate extends Component
         if (!$this->dIsScheduled) {
             $this->schedulePreview = [];
         } else {
+            $this->recalcScheduleAmount();
             $this->generateSchedulePreview();
         }
     }
@@ -86,7 +162,11 @@ class PropertySaleCreate extends Component
     public function updatedDScheduleType(): void       { $this->generateSchedulePreview(); }
     public function updatedDScheduleDay(): void        { $this->generateSchedulePreview(); }
     public function updatedDScheduleStartDate(): void  { $this->generateSchedulePreview(); }
-    public function updatedDScheduleCount(): void      { $this->generateSchedulePreview(); }
+    public function updatedDScheduleCount(): void
+    {
+        $this->recalcScheduleAmount();
+        $this->generateSchedulePreview();
+    }
     public function updatedDScheduleAmount(): void     { $this->generateSchedulePreview(); }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -96,6 +176,33 @@ class PropertySaleCreate extends Component
             (float) $this->dSaleAmount - (float) $this->dDiscountAmount + (float) $this->dTaxAmount,
             2
         );
+    }
+
+    protected function recalcDownPaymentFromPercentage(): void
+    {
+        $net = (float) $this->dNetAmount;
+        $pct = (float) $this->dDownPaymentPercentage;
+        $this->dDownPaymentAmount = ($net > 0 && $pct > 0)
+            ? (string) round($net * $pct / 100, 2)
+            : '0';
+    }
+
+    protected function recalcPercentageFromDownPayment(): void
+    {
+        $net = (float) $this->dNetAmount;
+        $dp  = (float) $this->dDownPaymentAmount;
+        $this->dDownPaymentPercentage = $net > 0
+            ? (string) round($dp / $net * 100, 2)
+            : '0';
+    }
+
+    protected function recalcScheduleAmount(): void
+    {
+        if (!$this->dIsScheduled) return;
+        $count = (int) $this->dScheduleCount;
+        if ($count <= 0) return;
+        $remaining = max(0.0, (float) $this->dNetAmount - (float) $this->dDownPaymentAmount);
+        $this->dScheduleAmount = (string) round($remaining / $count, 2);
     }
 
     public function generateSchedulePreview(): void
@@ -187,8 +294,9 @@ class PropertySaleCreate extends Component
             'discount_amount'         => (float) $this->dDiscountAmount,
             'tax_amount'              => (float) $this->dTaxAmount,
             'net_amount'              => (float) $this->dNetAmount,
-            'down_payment_amount'     => (float) $this->dDownPaymentAmount,
-            'payment_terms'           => $this->dPaymentTerms !== '' ? (int) $this->dPaymentTerms : null,
+            'down_payment_amount'      => (float) $this->dDownPaymentAmount,
+            'down_payment_percentage'  => (float) $this->dDownPaymentPercentage ?: null,
+            'payment_terms'            => $this->dPaymentTerms !== '' ? (int) $this->dPaymentTerms : null,
             // rent
             'rent_start_date'         => $this->dRentStartDate ?: null,
             'rent_end_date'           => $this->dRentEndDate ?: null,

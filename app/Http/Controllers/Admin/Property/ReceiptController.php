@@ -126,8 +126,8 @@ class ReceiptController extends Controller
 
     protected function amountInWords(float $amount): string
     {
-        return 'Bangladeshi Taka ' . ucwords(strtolower(
+        return  ucwords(strtolower(
             (new \NumberFormatter('en', \NumberFormatter::SPELLOUT))->format($amount)
-        )) . ' Only';
+        )) . ' Taka Only';
     }
 }

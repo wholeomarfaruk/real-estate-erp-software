@@ -10,6 +10,8 @@ return new class extends Migration
     {
         Schema::table('property_sales', function (Blueprint $table) {
             $table->string('schedule_name')->nullable()->default(null)->change();
+            $table->decimal('down_payment_percentage', 5, 2)->nullable();
+            
         });
     }
 
@@ -17,6 +19,7 @@ return new class extends Migration
     {
         Schema::table('property_sales', function (Blueprint $table) {
             $table->string('schedule_name')->nullable(false)->change();
+            $table->dropColumn('down_payment_percentage');
         });
     }
 };

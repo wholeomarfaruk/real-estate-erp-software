@@ -30,9 +30,12 @@ class PropertyShow extends Component
     public string $dStatus        = 'available';
     public string $dArea          = '';
     public string $dPrice         = '';
-    public string $dServiceCharge = '';
-    public string $dFacing        = '';
-    public string $dNotes         = '';
+    public string $dServiceCharge      = '';
+    public string $dFacing             = '';
+    public string $dNotes              = '';
+    public string $dPurpose            = '';
+    public string $dDownPaymentPct     = '';
+    public string $dDepositAmount      = '';
 
     // ── unit type modal ───────────────────────────────────────────────────────
     public bool   $typeModalOpen  = false;
@@ -228,6 +231,9 @@ class PropertyShow extends Component
         $this->dServiceCharge  = $unit->service_charge ?? '';
         $this->dFacing         = $unit->facing ?? '';
         $this->dNotes          = $unit->notes ?? '';
+        $this->dPurpose        = $unit->purpose ?? '';
+        $this->dDownPaymentPct = $unit->down_payment_percentage ? (string) $unit->down_payment_percentage : '';
+        $this->dDepositAmount  = $unit->deposit_amount ? (string) $unit->deposit_amount : '';
         $this->drawerOpen      = true;
     }
 
@@ -236,12 +242,15 @@ class PropertyShow extends Component
         abort_unless(auth()->user()?->can('property.edit'), 403);
 
         $this->validate([
-            'dCode'    => 'required|string|max:30',
-            'dType'    => 'required|exists:unit_types,slug',
-            'dStatus'  => 'required|in:available,booked,sold,rented',
-            'dFloorId' => 'required|integer|exists:property_floors,id',
-            'dArea'    => 'nullable|numeric|min:0',
-            'dPrice'   => 'nullable|numeric|min:0',
+            'dCode'          => 'required|string|max:30',
+            'dType'          => 'required|exists:unit_types,slug',
+            'dStatus'        => 'required|in:available,booked,sold,rented',
+            'dFloorId'       => 'required|integer|exists:property_floors,id',
+            'dArea'          => 'nullable|numeric|min:0',
+            'dPrice'         => 'nullable|numeric|min:0',
+            'dPurpose'       => 'nullable|in:sell,rent',
+            'dDownPaymentPct'=> 'nullable|numeric|min:0|max:100',
+            'dDepositAmount' => 'nullable|numeric|min:0',
         ]);
 
         $data = [
@@ -253,8 +262,11 @@ class PropertyShow extends Component
             'area'              => $this->dArea !== '' ? $this->dArea : null,
             'price'             => $this->dPrice !== '' ? $this->dPrice : 0,
             'service_charge'    => $this->dServiceCharge !== '' ? $this->dServiceCharge : 0,
-            'facing'            => $this->dFacing ?: null,
-            'notes'             => $this->dNotes ?: null,
+            'facing'                   => $this->dFacing ?: null,
+            'notes'                    => $this->dNotes ?: null,
+            'purpose'                  => $this->dPurpose ?: null,
+            'down_payment_percentage'  => ($this->dPurpose === 'sell' && $this->dDownPaymentPct !== '') ? $this->dDownPaymentPct : null,
+            'deposit_amount'           => ($this->dPurpose === 'rent' && $this->dDepositAmount !== '') ? $this->dDepositAmount : null,
         ];
 
         if ($this->drawerUnitId) {
@@ -388,5 +400,6 @@ class PropertyShow extends Component
         $this->dCode = $this->dType = '';
         $this->dStatus = 'available';
         $this->dArea = $this->dPrice = $this->dServiceCharge = $this->dFacing = $this->dNotes = '';
+        $this->dPurpose = $this->dDownPaymentPct = $this->dDepositAmount = '';
     }
 }

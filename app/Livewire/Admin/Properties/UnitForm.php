@@ -20,6 +20,8 @@ class UnitForm extends Component
     public $unit_name = '';
     public $unit_type = '';
     public $purpose = '';
+    public $down_payment_percentage = null;
+    public $deposit_amount = null;
     public $size_sqft = null;
     public $sell_price = null;
     public $rent_amount = null;
@@ -50,6 +52,8 @@ class UnitForm extends Component
             $this->unit_name = $unit->unit_name ?? '';
             $this->unit_type = $unit->unit_type ?? '';
             $this->purpose = $unit->purpose ?? '';
+            $this->down_payment_percentage = $unit->down_payment_percentage;
+            $this->deposit_amount = $unit->deposit_amount;
             $this->size_sqft = $unit->size_sqft;
             $this->sell_price = $unit->sell_price;
             $this->rent_amount = $unit->rent_amount;
@@ -73,7 +77,9 @@ class UnitForm extends Component
             'unit_number' => ['required', 'string', 'max:50'],
             'unit_name' => ['nullable', 'string', 'max:255'],
             'unit_type' => ['nullable', 'string', 'max:100'],
-            'purpose' => ['nullable', 'string', 'max:255'],
+            'purpose' => ['nullable', Rule::in(['sell', 'rent', ''])],
+            'down_payment_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'deposit_amount' => ['nullable', 'numeric', 'min:0'],
             'size_sqft' => ['nullable', 'numeric', 'min:0'],
             'sell_price' => ['nullable', 'numeric', 'min:0'],
             'rent_amount' => ['nullable', 'numeric', 'min:0'],

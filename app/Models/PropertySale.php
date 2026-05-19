@@ -29,6 +29,7 @@ class PropertySale extends Model
         'tax_amount',
         'net_amount',
         'down_payment_amount',
+        'down_payment_percentage',
         'payment_terms',
         'payment_status',
         // schedule
@@ -61,7 +62,8 @@ class PropertySale extends Model
         'discount_amount'         => 'decimal:2',
         'tax_amount'              => 'decimal:2',
         'net_amount'              => 'decimal:2',
-        'down_payment_amount'     => 'decimal:2',
+        'down_payment_amount'      => 'decimal:2',
+        'down_payment_percentage'  => 'decimal:2',
         'schedule_amount'         => 'decimal:2',
         'security_deposit_amount' => 'decimal:2',
         'schedule_start_date'     => 'date',

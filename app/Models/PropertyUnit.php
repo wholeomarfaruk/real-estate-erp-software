@@ -19,6 +19,8 @@ class PropertyUnit extends Model
         'unit_name',
         'unit_type',
         'purpose',
+        'down_payment_percentage',
+        'deposit_amount',
         'size_sqft',
         'sell_price',
         'rent_amount',
@@ -41,7 +43,9 @@ class PropertyUnit extends Model
     ];
 
     protected $casts = [
-        'size_sqft'      => 'decimal:2',
+        'down_payment_percentage' => 'decimal:2',
+        'deposit_amount'         => 'decimal:2',
+        'size_sqft'              => 'decimal:2',
         'sell_price'     => 'decimal:2',
         'rent_amount'    => 'decimal:2',
         'area'           => 'decimal:2',

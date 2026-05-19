@@ -16,7 +16,7 @@
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.csrfToken() },
                 body: JSON.stringify({ order: orderedIds })
             }).then(r => {
-                if (r.ok) $wire.reloadBuildingWithToast('Floor order saved.');
+                if (r.ok) $wire.reloadBuildingWithToast('Section order saved.');
                 else r.text().then(t => console.error('Floor reorder failed:', r.status, t));
             }).catch(e => console.error('Floor reorder error:', e));
         },
@@ -199,7 +199,7 @@
                 $facts = [
                     ['Total Area', $property->total_area ? number_format($property->total_area,2).' sft' : '—', true],
                     ['Land Size', $property->land_size ? number_format($property->land_size,2).' katha' : '—', true],
-                    ['Floors', $kpi['floors'], true],
+                    ['Sections', $kpi['floors'], true],
                     ['Total Units', $kpi['total'], true],
                     ['Engineer', $property->engineer?->name ?? '—', false],
                     ['Registered', $property->registered_at?->format('d M, Y') ?? '—', false],
@@ -230,7 +230,7 @@
 
 {{-- ─── KPI STRIP ────────────────────────────────────────────────────────── --}}
 <div class="kpi-strip-d mb-5">
-    @php $kpiItems = [['Units','total','',''],['Available','available','--av-fg',''],['Booked','booked','--bk-fg',''],['Sold','sold','--sd-fg',''],['Rented','rented','--rt-fg',''],['Floors','floors','','']] @endphp
+    @php $kpiItems = [['Units','total','',''],['Available','available','--av-fg',''],['Booked','booked','--bk-fg',''],['Sold','sold','--sd-fg',''],['Rented','rented','--rt-fg',''],['Sections','floors','','']] @endphp
     @foreach($kpiItems as [$label,$key,$color,$suffix])
     <div class="kpi-d">
         <div class="text-xs font-semibold uppercase tracking-widest" style="color:var(--ink-3)">{{ $label }}</div>
@@ -244,13 +244,13 @@
     <div class="flex justify-between items-center mb-4">
         <div>
             <h2 class="text-base font-semibold" style="color:var(--ink-1)">Building View</h2>
-            <p class="text-xs mt-0.5" style="color:var(--ink-3)">Drag floors or units to reorder. Click a unit to edit.</p>
+            <p class="text-xs mt-0.5" style="color:var(--ink-3)">Drag sections or units to reorder. Click a unit to edit.</p>
         </div>
         @can('property.edit')
         <button x-show="editMode" wire:click="openFloorForm(null)"
             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border" style="border-color:var(--ink-3);color:var(--ink-2)">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4.5v15m7.5-7.5h-15"/></svg>
-            Add Floor
+            Add Section
         </button>
         @endcan
     </div>
@@ -304,12 +304,12 @@
                 <div x-show="editMode" class="flex gap-1 mt-2">
                     <button wire:click="openFloorForm({{ $floor['id'] }})"
                         class="w-5 h-5 rounded flex items-center justify-center text-xs opacity-60 hover:opacity-100"
-                        style="color:var(--ink-2)" title="Edit floor">
+                        style="color:var(--ink-2)" title="Edit section">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                     </button>
                     <button wire:click="deleteFloor({{ $floor['id'] }})"
                         class="w-5 h-5 rounded flex items-center justify-center text-xs opacity-60 hover:opacity-100"
-                        style="color:var(--ink-3)" title="Delete floor">
+                        style="color:var(--ink-3)" title="Delete section">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg>
                     </button>
                 </div>
@@ -387,7 +387,7 @@
         </div>
         @empty
         <div class="py-10 text-center" style="color:var(--ink-3)">
-            <p class="text-sm">No floors yet. Add the first floor to start building the unit inventory.</p>
+            <p class="text-sm">No sections yet. Add the first section to start building the unit inventory.</p>
         </div>
         @endforelse
     </div>
@@ -423,7 +423,7 @@
             <thead>
                 <tr style="background:rgba(0,0,0,.012);border-bottom:1px solid var(--rule)">
                     <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wider" style="color:var(--ink-2)">Code</th>
-                    <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wider" style="color:var(--ink-2)">Floor</th>
+                    <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wider" style="color:var(--ink-2)">Section</th>
                     <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wider" style="color:var(--ink-2)">Type</th>
                     <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wider" style="color:var(--ink-2)">Status</th>
                     <th class="px-4 py-2.5 text-right font-semibold uppercase tracking-wider" style="color:var(--ink-2)">Area (sft)</th>
@@ -613,9 +613,9 @@
     <div class="flex-1 overflow-y-auto p-5 space-y-4">
         {{-- floor --}}
         <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color:var(--ink-3)">Floor</label>
+            <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color:var(--ink-3)">Section</label>
             <select wire:model="dFloorId" :disabled="!editMode" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule);background:var(--paper)">
-                <option value="">— Select floor —</option>
+                <option value="">— Select section —</option>
                 @foreach($property->floors as $fl)
                 <option value="{{ $fl->id }}">{{ $fl->label ?? $fl->floor_name }}</option>
                 @endforeach
@@ -649,6 +649,28 @@
                     @endforeach
                 </select>
                 @error('dType')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+            </div>
+        </div>
+
+        {{-- purpose --}}
+        <div x-data="{ purpose: $wire.entangle('dPurpose') }">
+            <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color:var(--ink-3)">Purpose</label>
+            <select wire:model.live="dPurpose" x-model="purpose" :disabled="!editMode" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule);background:var(--paper)">
+                <option value="">— Not specified —</option>
+                <option value="sell">Sell</option>
+                <option value="rent">Rent</option>
+            </select>
+
+            <div x-show="purpose === 'sell'" x-cloak class="mt-3">
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color:var(--ink-3)">Down Payment (%)</label>
+                <input wire:model="dDownPaymentPct" :disabled="!editMode" type="number" step="0.01" min="0" max="100" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)" placeholder="e.g. 20">
+                @error('dDownPaymentPct')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+            </div>
+
+            <div x-show="purpose === 'rent'" x-cloak class="mt-3">
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color:var(--ink-3)">Security Deposit (৳)</label>
+                <input wire:model="dDepositAmount" :disabled="!editMode" type="number" step="0.01" min="0" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)" placeholder="e.g. 50000">
+                @error('dDepositAmount')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
             </div>
         </div>
 
@@ -789,7 +811,7 @@
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
     <div @click.stop class="w-full max-w-md rounded-xl shadow-2xl" style="background:var(--paper)" x-transition>
         <div class="flex justify-between items-center px-6 py-4 border-b" style="border-color:var(--rule)">
-            <h2 class="text-base font-semibold">{{ $editFloorId ? 'Edit Floor' : 'Add Floor' }}</h2>
+            <h2 class="text-base font-semibold">{{ $editFloorId ? 'Edit Section' : 'Add Section' }}</h2>
             <button wire:click="$set('floorFormOpen',false)" class="text-gray-400 hover:text-gray-700">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
@@ -802,12 +824,12 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color:var(--ink-3)">Label *</label>
-                    <input wire:model="fLabel" type="text" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)" placeholder="Ground / Floor 1">
+                    <input wire:model="fLabel" type="text" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)" placeholder="Ground / Section 1">
                     @error('fLabel')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
                 </div>
             </div>
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color:var(--ink-3)">Floor Area (sft)</label>
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color:var(--ink-3)">Section Area (sft)</label>
                 <input wire:model="fFloorArea" type="number" step="0.01" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)">
             </div>
             <div>
@@ -817,7 +839,7 @@
         </div>
         <div class="flex justify-end gap-3 px-6 py-4 border-t" style="border-color:var(--rule);background:rgba(0,0,0,.012)">
             <button wire:click="$set('floorFormOpen',false)" class="px-4 py-2 rounded-md text-sm border" style="border-color:var(--rule)">Cancel</button>
-            <button wire:click="saveFloor" class="px-4 py-2 rounded-md text-sm font-semibold" style="background:var(--ink-1);color:var(--paper)">Save Floor</button>
+            <button wire:click="saveFloor" class="px-4 py-2 rounded-md text-sm font-semibold" style="background:var(--ink-1);color:var(--paper)">Save Section</button>
         </div>
     </div>
 </div>

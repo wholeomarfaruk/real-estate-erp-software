@@ -79,16 +79,20 @@ class PropertySeeder extends Seeder
                 PropertyUnit::updateOrCreate(
                     ['code' => 'SUR-A-' . $order . $suffix],
                     [
-                        'property_id'       => $p1->id,
-                        'property_floor_id' => $floor->id,
-                        'code'              => 'SUR-A-' . $order . $suffix,
-                        'type'              => $type,
-                        'status'            => $unitStatus[$i],
-                        'area'              => $type === 'shop' ? 450.00 : 1250.00,
-                        'price'             => $type === 'shop' ? 3500000.00 : 6500000.00,
-                        'service_charge'    => $type === 'shop' ? 3000.00 : 5000.00,
-                        'facing'            => ['north', 'south', 'east', 'west'][$i],
-                        'sort_order'        => $i + 1,
+                        'property_id'             => $p1->id,
+                        'property_floor_id'       => $floor->id,
+                        'code'                    => 'SUR-A-' . $order . $suffix,
+                        'type'                    => $type,
+                        'status'                  => $unitStatus[$i],
+                        'area'                    => $type === 'shop' ? 450.00 : 1250.00,
+                        'price'                   => $type === 'shop' ? 3500000.00 : 6500000.00,
+                        'service_charge'          => $type === 'shop' ? 3000.00 : 5000.00,
+                        'facing'                  => ['north', 'south', 'east', 'west'][$i],
+                        'sort_order'              => $i + 1,
+                        // all residential units are for sale
+                        'purpose'                 => 'sell',
+                        'down_payment_percentage' => $type === 'shop' ? 30.00 : 20.00,
+                        'deposit_amount'          => null,
                     ]
                 );
             }
@@ -140,40 +144,69 @@ class PropertySeeder extends Seeder
 
         foreach ($floorsP2 as $order => $floor) {
             if ($order === 1) {
-                // Ground: 6 shops
+                // Ground: 6 shops — rented out
                 for ($s = 1; $s <= 6; $s++) {
                     PropertyUnit::updateOrCreate(
                         ['code' => 'SCP-G' . str_pad($s, 2, '0', STR_PAD_LEFT)],
                         [
-                            'property_id'       => $p2->id,
-                            'property_floor_id' => $floor->id,
-                            'code'              => 'SCP-G' . str_pad($s, 2, '0', STR_PAD_LEFT),
-                            'type'              => 'shop',
-                            'status'            => $shopStatus[$s - 1],
-                            'area'              => 350.00,
-                            'price'             => 4200000.00,
-                            'service_charge'    => 4000.00,
-                            'sort_order'        => $s,
+                            'property_id'             => $p2->id,
+                            'property_floor_id'       => $floor->id,
+                            'code'                    => 'SCP-G' . str_pad($s, 2, '0', STR_PAD_LEFT),
+                            'type'                    => 'shop',
+                            'status'                  => $shopStatus[$s - 1],
+                            'area'                    => 350.00,
+                            'price'                   => 4200000.00,
+                            'service_charge'          => 4000.00,
+                            'sort_order'              => $s,
+                            'purpose'                 => 'rent',
+                            'deposit_amount'          => 200000.00,
+                            'down_payment_percentage' => null,
                         ]
                     );
                 }
-            } else {
-                // Upper floors: 4 office units
+            } elseif ($order <= 3) {
+                // Floors 1–2: offices for sale
                 $letters = ['A', 'B', 'C', 'D'];
                 foreach ($letters as $i => $letter) {
                     PropertyUnit::updateOrCreate(
                         ['code' => 'SCP-' . $order . $letter],
                         [
-                            'property_id'       => $p2->id,
-                            'property_floor_id' => $floor->id,
-                            'code'              => 'SCP-' . $order . $letter,
-                            'type'              => 'office',
-                            'status'            => $officeStatus[$i],
-                            'area'              => 700.00,
-                            'price'             => 8500000.00,
-                            'service_charge'    => 7000.00,
-                            'facing'            => ['north', 'south', 'east', 'west'][$i],
-                            'sort_order'        => $i + 1,
+                            'property_id'             => $p2->id,
+                            'property_floor_id'       => $floor->id,
+                            'code'                    => 'SCP-' . $order . $letter,
+                            'type'                    => 'office',
+                            'status'                  => $officeStatus[$i],
+                            'area'                    => 700.00,
+                            'price'                   => 8500000.00,
+                            'service_charge'          => 7000.00,
+                            'facing'                  => ['north', 'south', 'east', 'west'][$i],
+                            'sort_order'              => $i + 1,
+                            'purpose'                 => 'sell',
+                            'down_payment_percentage' => 25.00,
+                            'deposit_amount'          => null,
+                        ]
+                    );
+                }
+            } else {
+                // Floors 3–5: offices for rent
+                $letters = ['A', 'B', 'C', 'D'];
+                foreach ($letters as $i => $letter) {
+                    PropertyUnit::updateOrCreate(
+                        ['code' => 'SCP-' . $order . $letter],
+                        [
+                            'property_id'             => $p2->id,
+                            'property_floor_id'       => $floor->id,
+                            'code'                    => 'SCP-' . $order . $letter,
+                            'type'                    => 'office',
+                            'status'                  => $officeStatus[$i],
+                            'area'                    => 700.00,
+                            'price'                   => 8500000.00,
+                            'service_charge'          => 7000.00,
+                            'facing'                  => ['north', 'south', 'east', 'west'][$i],
+                            'sort_order'              => $i + 1,
+                            'purpose'                 => 'rent',
+                            'deposit_amount'          => 150000.00,
+                            'down_payment_percentage' => null,
                         ]
                     );
                 }

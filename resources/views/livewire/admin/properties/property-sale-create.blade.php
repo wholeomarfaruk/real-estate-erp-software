@@ -107,9 +107,18 @@
                                opacity:{{ $dPropertyId ? '1' : '.5' }};">
                         <option value="">{{ $dPropertyId ? '— Select unit —' : '— Select property first —' }}</option>
                         @foreach($units as $unit)
-                            <option value="{{ $unit->id }}">
+                            @php
+                                $purposeLabel = match($unit->purpose) {
+                                    'sell' => ' · For Sale',
+                                    'rent' => ' · For Rent',
+                                    default => '',
+                                };
+                                $isDisabled = ($dSaleType === 'sale' && $unit->purpose === 'rent')
+                                           || ($dSaleType === 'rent' && $unit->purpose === 'sell');
+                            @endphp
+                            <option value="{{ $unit->id }}" @disabled($isDisabled)>
                                 {{ $unit->code }}
-                                ({{ ucfirst($unit->type ?? '') }}, {{ ucfirst($unit->status ?? '') }})
+                                ({{ ucfirst($unit->type ?? '') }}, {{ ucfirst($unit->status ?? '') }}){{ $purposeLabel }}
                             </option>
                         @endforeach
                     </select>
@@ -168,11 +177,20 @@
                     ৳ <span x-text="parseFloat(dNetAmount || 0).toLocaleString('en-BD', {minimumFractionDigits:2})"></span>
                 </div>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
                 <div>
-                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Down Payment</label>
-                    <input wire:model="dDownPaymentAmount" type="number" min="0" step="0.01" placeholder="0.00"
+                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Down Payment %</label>
+                    <div style="position:relative;">
+                        <input wire:model.blur="dDownPaymentPercentage" type="number" min="0" max="100" step="0.01" placeholder="0.00"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 36px 10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                        <span style="position:absolute; right:12px; top:50%; transform:translateY(-50%); font:600 12px var(--mono); color:var(--ink-3); pointer-events:none;">%</span>
+                    </div>
+                </div>
+                <div>
+                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Down Payment (৳)</label>
+                    <input wire:model.blur="dDownPaymentAmount" type="number" min="0" step="0.01" placeholder="0.00"
                         style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                    <p style="margin-top:4px; font:11px 'Inter', sans-serif; color:var(--ink-3);">Edit % or ৳ — both stay in sync</p>
                 </div>
                 <div>
                     <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Payment Terms (days)</label>
@@ -301,6 +319,7 @@
                         </label>
                         <input wire:model.live="dScheduleAmount" type="number" min="0" step="0.01" placeholder="0.00"
                             style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                        <p style="margin-top:4px; font:11px 'Inter', sans-serif; color:var(--ink-3);">Auto: (Net − Down Payment) ÷ Count</p>
                         @error('dScheduleAmount') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
                     </div>
                 </div>

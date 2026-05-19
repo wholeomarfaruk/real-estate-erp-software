@@ -65,16 +65,6 @@ class PropertySaleDetails extends Component
     public array   $payNowAttachmentIds  = [];
     public array   $payTransactions      = [];
 
-    // ── Payment collection drawer ────────────────────────────────────────────
-    public bool   $paymentDrawerOpen   = false;
-    public string $pPaymentDate        = '';
-    public string $pPaymentMethod      = 'cash';
-    public string $pReceivedBy         = '';
-    public string $pPaymentReference   = '';
-    public string $pPaymentNotes       = '';
-    public array  $pSelectedIds        = [];
-    public array  $pAmounts            = [];
-
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     public function mount(PropertySale $sale): void
     {
@@ -433,109 +423,6 @@ class PropertySaleDetails extends Component
     public function updatedPayNowAccountType(): void
     {
         $this->payNowAccountId = '';
-    }
-
-    // ── Payment collection drawer ────────────────────────────────────────────
-    public function openPaymentDrawer(): void
-    {
-        abort_unless(Auth::user()?->can('property_sale.edit'), 403);
-
-        $this->pPaymentDate      = now()->format('Y-m-d');
-        $this->pPaymentMethod    = 'cash';
-        $this->pReceivedBy       = '';
-        $this->pPaymentReference = '';
-        $this->pPaymentNotes     = '';
-        $this->pSelectedIds      = [];
-        $this->pAmounts          = [];
-
-        foreach ($this->sale->paymentSchedules->whereNotIn('status', ['paid']) as $s) {
-            $this->pAmounts[(string) $s->id] = (string) $s->due_amount;
-        }
-
-        $this->paymentDrawerOpen = true;
-    }
-
-    public function closePaymentDrawer(): void
-    {
-        $this->paymentDrawerOpen = false;
-        $this->resetValidation();
-    }
-
-    public function savePayment(): void
-    {
-        abort_unless(Auth::user()?->can('property_sale.edit'), 403);
-
-        $validator = Validator::make([
-            'pPaymentDate'   => $this->pPaymentDate,
-            'pSelectedIds'   => $this->pSelectedIds,
-            'pPaymentMethod' => $this->pPaymentMethod,
-        ], [
-            'pPaymentDate'   => 'required|date',
-            'pSelectedIds'   => 'required|array|min:1',
-            'pPaymentMethod' => 'required|in:cash,cheque,bank_transfer,online,card,other',
-        ], [
-            'pPaymentDate.required'  => 'Payment date is required.',
-            'pSelectedIds.required'  => 'Please select at least one schedule entry.',
-            'pSelectedIds.min'       => 'Please select at least one schedule entry.',
-            'pPaymentMethod.required'=> 'Payment method is required.',
-        ]);
-
-        if ($validator->fails()) {
-            $this->setErrorBag($validator->errors());
-            $this->dispatch('toast', ['type' => 'error', 'message' => 'Please fix the validation errors.']);
-            return;
-        }
-
-        $allocationMap = [];
-        $totalAmount   = 0.0;
-        foreach ($this->pSelectedIds as $id) {
-            $amount = round((float) ($this->pAmounts[(string) $id] ?? 0), 2);
-            if ($amount > 0) {
-                $allocationMap[(int) $id] = $amount;
-                $totalAmount += $amount;
-            }
-        }
-
-        if (empty($allocationMap)) {
-            $this->dispatch('toast', ['type' => 'error', 'message' => 'All selected amounts are zero.']);
-            return;
-        }
-        $mainCategory = TransactionCategory::where('slug','income')->first()->value('slug');
-        $subCategory = $this->sale->sale_type;
-    
-        foreach ($allocationMap as $scheduleId => $amount) {
-            $schedule = PaymentSchedule::find($scheduleId);
-            if (!$schedule) continue;
-
-            $schedule->paymentTransactions()->create([
-                'datetime'   => $this->pPaymentDate,
-                'type'       => \App\Enums\Accounts\TransactionType::PAYMENT->value,
-                'main_category' => $mainCategory,
-                'sub_category' => $subCategory,
-                'method'     => $this->pPaymentMethod,
-                'name'       => $this->pReceivedBy ?: null,
-                'debit'      => $amount,
-                'notes'      => $this->pPaymentNotes ?: null,
-                'created_by' => Auth::id(),
-            ]);
-
-            $newPaid = round((float) $schedule->paid_amount + $amount, 2);
-            $newDue  = round(max(0, (float) $schedule->amount - $newPaid), 2);
-            $schedule->update([
-                'paid_amount' => $newPaid,
-                'due_amount'  => $newDue,
-                'status'      => $newPaid <= 0 ? 'pending' : ($newDue <= 0 ? 'paid' : 'partial'),
-            ]);
-        }
-
-        app(PaymentAllocationService::class)->syncSalePaymentStatus($this->sale);
-
-        $this->sale = $this->sale->fresh([
-            'propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
-            'paymentSchedules',
-        ]);
-        $this->closePaymentDrawer();
-        $this->dispatch('toast', ['type' => 'success', 'message' => 'Payment recorded successfully.']);
     }
 
     // ── Render ─────────────────────────────────────────────────────────────────
