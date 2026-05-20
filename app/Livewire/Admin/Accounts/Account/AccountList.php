@@ -5,13 +5,9 @@ namespace App\Livewire\Admin\Accounts\Account;
 use App\Enums\Accounts\AccountType;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Models\Account;
-use App\Models\AccountCollection;
-use App\Models\Expense;
-use App\Models\Payment;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -52,7 +48,7 @@ class AccountList extends Component
     public function mount(): void
     {
         $this->authorizePermission('accounts.chart.list');
-        $this->type = AccountType::ASSET->value;
+        $this->type = AccountType::CASH->value;
     }
 
     public function updatedSearch(): void
@@ -75,7 +71,7 @@ class AccountList extends Component
         $this->authorizePermission('accounts.chart.create');
 
         $this->resetForm();
-        $this->type = $this->typeFilter !== '' ? $this->typeFilter : AccountType::ASSET->value;
+        $this->type = $this->typeFilter !== '' ? $this->typeFilter : AccountType::CASH->value;
         $this->showFormModal = true;
     }
 
@@ -97,7 +93,7 @@ class AccountList extends Component
         $this->editingId = (int) $account->id;
         $this->code = $account->code;
         $this->name = $account->name;
-        $this->type = $account->type?->value ?? AccountType::ASSET->value;
+        $this->type = $account->type?->value ?? AccountType::CASH->value;
         $this->parent_id = $account->parent_id ? (int) $account->parent_id : null;
         $this->is_active = (bool) $account->is_active;
         $this->sub_type = $account->sub_type;
@@ -256,11 +252,10 @@ class AccountList extends Component
             ->get(['id', 'name', 'type']);
 
         $cashBankAccounts = Account::query()
-            ->where('type', AccountType::ASSET->value)
-            ->whereIn('sub_type', ['cash', 'bank'])
+            ->whereIn('type', [AccountType::CASH->value, AccountType::BANK->value])
             ->withSum('transactions as total_debit', 'debit')
             ->withSum('transactions as total_credit', 'credit')
-            ->orderBy('sub_type')
+            ->orderBy('type')
             ->orderBy('name')
             ->get();
 
@@ -275,11 +270,11 @@ class AccountList extends Component
         });
 
         $totalCashBalance = round((float) $cashBankAccounts
-            ->filter(fn (Account $account): bool => $account->sub_type === 'cash')
+            ->filter(fn (Account $account): bool => $account->type?->value === AccountType::CASH->value)
             ->sum('computed_balance'), 3);
 
         $totalBankBalance = round((float) $cashBankAccounts
-            ->filter(fn (Account $account): bool => $account->sub_type === 'bank')
+            ->filter(fn (Account $account): bool => $account->type?->value === AccountType::BANK->value)
             ->sum('computed_balance'), 3);
 
     
@@ -333,7 +328,7 @@ class AccountList extends Component
     protected function resetForm(): void
     {
         $this->reset(['editingId', 'code', 'name', 'parent_id', 'sub_type']);
-        $this->type = AccountType::ASSET->value;
+        $this->type = AccountType::CASH->value;
         $this->is_active = true;
     }
 
@@ -386,18 +381,6 @@ class AccountList extends Component
 
     protected function isAccountInUse(int $accountId): bool
     {
-        if (\App\Models\Transaction::query()->where('account_id', $accountId)->exists()) {
-            return true;
-        }
-
-        if (Payment::query()->where('payment_account_id', $accountId)->orWhere('purpose_account_id', $accountId)->exists()) {
-            return true;
-        }
-
-        if (AccountCollection::query()->where('collection_account_id', $accountId)->orWhere('target_account_id', $accountId)->exists()) {
-            return true;
-        }
-
-        return Expense::query()->where('expense_account_id', $accountId)->orWhere('payment_account_id', $accountId)->exists();
+        return \App\Models\Transaction::query()->where('account_id', $accountId)->exists();
     }
 }

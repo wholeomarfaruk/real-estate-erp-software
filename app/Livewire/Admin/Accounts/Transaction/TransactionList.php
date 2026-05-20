@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Admin\Accounts\Transaction;
 
+use App\Enums\Accounts\EntryMethod;
 use App\Enums\Accounts\TransactionType;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
+use App\Models\Account;
 use App\Models\File;
 use App\Models\Transaction;
 use App\Models\TransactionCategory;
@@ -18,18 +20,15 @@ class TransactionList extends Component
     use WithPagination;
 
     public string $search = '';
-
     public string $typeFilter = '';
-
     public string $categoryFilter = '';
-
+    public string $methodFilter = '';
+    public string $accountFilter = '';
     public ?string $dateFrom = null;
-
     public ?string $dateTo = null;
 
-    public bool $showViewModal = false;
-
-    public ?int $viewTransactionId = null;
+    public bool $showDrawer = false;
+    public ?int $viewingId = null;
 
     protected string $paginationTheme = 'tailwind';
 
@@ -41,38 +40,42 @@ class TransactionList extends Component
     public function updatedSearch(): void { $this->resetPage(); }
     public function updatedTypeFilter(): void { $this->resetPage(); $this->categoryFilter = ''; }
     public function updatedCategoryFilter(): void { $this->resetPage(); }
+    public function updatedMethodFilter(): void { $this->resetPage(); }
+    public function updatedAccountFilter(): void { $this->resetPage(); }
     public function updatedDateFrom(): void { $this->resetPage(); }
     public function updatedDateTo(): void { $this->resetPage(); }
 
-    public function viewTransaction(int $id): void
+    public function openDrawer(int $id): void
     {
         $this->authorizePermission('accounts.transaction.view');
 
-        $exists = Transaction::query()->whereKey($id)->exists();
-
-        if (! $exists) {
+        if (! Transaction::query()->whereKey($id)->exists()) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Transaction not found.']);
             return;
         }
 
-        $this->viewTransactionId = $id;
-        $this->showViewModal = true;
+        $this->viewingId = $id;
+        $this->showDrawer = true;
     }
 
-    public function closeViewModal(): void
+    public function closeDrawer(): void
     {
-        $this->showViewModal = false;
-        $this->viewTransactionId = null;
+        $this->showDrawer = false;
+        $this->viewingId = null;
     }
 
     public function render(): View
     {
         $this->authorizePermission('accounts.transaction.list');
 
+        $isAdjustedTab = $this->typeFilter === 'adjusted';
+        $typeValue     = $isAdjustedTab ? '' : $this->typeFilter;
+
         $transactions = Transaction::query()
             ->with([
                 'creator:id,name',
-                'account:id,name,code',
+                'account:id,name,code,type',
+                'account.bankAccount:id,account_id,bank_name,type,code',
                 'transactionCategory:id,name,type,parent_id',
                 'transactionCategory.parent:id,name',
             ])
@@ -86,50 +89,92 @@ class TransactionList extends Component
                         ->orWhereRaw('CAST(reference_id as CHAR) like ?', [$search]);
                 });
             })
-            ->when($this->typeFilter !== '', fn (Builder $q) => $q->where('type', $this->typeFilter))
+            ->when($typeValue !== '', fn (Builder $q) => $q->where('type', $typeValue))
+            ->when($isAdjustedTab, fn (Builder $q) => $q->whereNotNull('adjusted_at'))
             ->when($this->categoryFilter !== '', fn (Builder $q) => $q->where('transaction_category_id', $this->categoryFilter))
+            ->when($this->methodFilter !== '', fn (Builder $q) => $q->where('method', $this->methodFilter))
+            ->when($this->accountFilter !== '', fn (Builder $q) => $q->where('account_id', $this->accountFilter))
             ->when($this->dateFrom, fn (Builder $q) => $q->whereDate('datetime', '>=', $this->dateFrom))
             ->when($this->dateTo,   fn (Builder $q) => $q->whereDate('datetime', '<=', $this->dateTo))
             ->latest('datetime')
             ->latest('id')
-            ->paginate(15);
+            ->paginate(20);
 
-        $viewTransaction = null;
+        // Drawer detail
+        $viewTransaction      = null;
+        $viewTransactionFiles = collect();
 
-        if ($this->showViewModal && $this->viewTransactionId) {
+        if ($this->showDrawer && $this->viewingId) {
             $viewTransaction = Transaction::query()
                 ->with([
                     'creator:id,name',
+                    'adjustedByUser:id,name',
                     'account:id,name,code,type',
+                    'account.bankAccount:id,account_id,bank_name,type,code,ac_number',
                     'transactionCategory:id,name,type,parent_id',
                     'transactionCategory.parent:id,name',
                 ])
-                ->find($this->viewTransactionId);
+                ->find($this->viewingId);
 
             if (! $viewTransaction) {
-                $this->showViewModal = false;
-                $this->viewTransactionId = null;
+                $this->showDrawer = false;
+                $this->viewingId  = null;
+            } else {
+                $viewTransactionFiles = File::query()
+                    ->whereIn('id', $viewTransaction->attachments ?? [])
+                    ->get(['id', 'name', 'type', 'extension']);
             }
         }
 
-        $viewTransactionFiles = $viewTransaction
-            ? File::query()->whereIn('id', $viewTransaction->attachments ?? [])->get(['id', 'name', 'type', 'extension'])
-            : collect();
+        // Type tab counts (always global, no date filter)
+        $typeCounts = Transaction::query()
+            ->selectRaw("
+                COUNT(*) AS total,
+                SUM(CASE WHEN type = 'income'  THEN 1 ELSE 0 END) AS income_count,
+                SUM(CASE WHEN type = 'expense' THEN 1 ELSE 0 END) AS expense_count,
+                SUM(CASE WHEN type = 'advance' THEN 1 ELSE 0 END) AS advance_count,
+                SUM(CASE WHEN adjusted_at IS NOT NULL THEN 1 ELSE 0 END) AS adjusted_count
+            ")
+            ->first();
 
-        // Categories grouped by type for the filter dropdown
-        $typeFilter = $this->typeFilter;
+        // KPI strip — respects active date filters
+        $kpi = Transaction::query()
+            ->when($this->dateFrom, fn (Builder $q) => $q->whereDate('datetime', '>=', $this->dateFrom))
+            ->when($this->dateTo,   fn (Builder $q) => $q->whereDate('datetime', '<=', $this->dateTo))
+            ->selectRaw("
+                SUM(CASE WHEN type = 'income'                        THEN debit  ELSE 0 END) AS total_income,
+                SUM(CASE WHEN type = 'expense'                       THEN credit ELSE 0 END) AS total_expense,
+                SUM(CASE WHEN type = 'advance' AND debit  > 0        THEN debit  ELSE 0 END) AS advance_in,
+                SUM(CASE WHEN type = 'advance' AND credit > 0        THEN credit ELSE 0 END) AS advance_out,
+                SUM(debit) - SUM(credit)                                                     AS net_position,
+                COUNT(*)                                                                     AS total_count,
+                SUM(CASE WHEN adjusted_at IS NOT NULL THEN 1 ELSE 0 END)                     AS adjusted_count
+            ")
+            ->first();
+
+        // Category filter (contextual to selected type)
         $categories = TransactionCategory::query()
             ->active()
-            ->when($typeFilter !== '', fn (Builder $q) => $q->where('type', $typeFilter))
+            ->when($typeValue !== '', fn (Builder $q) => $q->where('type', $typeValue))
             ->orderByRaw('ISNULL(parent_id), parent_id, name')
             ->get(['id', 'name', 'type', 'parent_id']);
+
+        // Accounts for filter dropdown
+        $accounts = Account::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'code', 'type']);
 
         return view('livewire.admin.accounts.transaction.transaction-list', [
             'transactions'         => $transactions,
             'types'                => TransactionType::cases(),
+            'methods'              => EntryMethod::cases(),
             'categories'           => $categories,
+            'accounts'             => $accounts,
             'viewTransaction'      => $viewTransaction,
             'viewTransactionFiles' => $viewTransactionFiles,
+            'kpi'                  => $kpi,
+            'typeCounts'           => $typeCounts,
         ])->layout('layouts.admin.admin');
     }
 }

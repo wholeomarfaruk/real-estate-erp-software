@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Admin\Accounts\AccountingDocumentController;
 use App\Http\Controllers\Admin\Accounts\AccountReportExportController;
 use App\Http\Controllers\Admin\Accounts\StatementReportController;
 use App\Http\Controllers\Admin\Accounts\TransactionAttachmentController;
@@ -202,46 +201,6 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
         ->middleware('can:accounts.transaction-attachment.view')
         ->name('transactions.attachments.download');
 
-    Route::get('/payments', App\Livewire\Admin\Accounts\Payment\PaymentList::class)
-        ->middleware('can:accounts.payment.list')
-        ->name('payments.index');
-
-    Route::get('/payments/{payment}/print', [AccountingDocumentController::class, 'paymentPrint'])
-        ->middleware('can:accounts.payment.print')
-        ->name('payments.print');
-
-    Route::get('/payments/{payment}/pdf', [AccountingDocumentController::class, 'paymentPdf'])
-        ->middleware('can:accounts.payment.print')
-        ->name('payments.pdf');
-
-    Route::get('/collections', App\Livewire\Admin\Accounts\Collection\CollectionList::class)
-        ->middleware('can:accounts.collection.list')
-        ->name('collections.index');
-
-    Route::get('/collections/{collection}/print', [AccountingDocumentController::class, 'collectionPrint'])
-        ->middleware('can:accounts.collection.print')
-        ->name('collections.print');
-
-    Route::get('/collections/{collection}/pdf', [AccountingDocumentController::class, 'collectionPdf'])
-        ->middleware('can:accounts.collection.print')
-        ->name('collections.pdf');
-
-    Route::get('/expenses', App\Livewire\Admin\Accounts\Expense\ExpenseList::class)
-        ->middleware('can:accounts.expense.list')
-        ->name('expenses.index');
-
-    Route::get('/expenses/{expense}/print', [AccountingDocumentController::class, 'expensePrint'])
-        ->middleware('can:accounts.expense.print')
-        ->name('expenses.print');
-
-    Route::get('/expenses/{expense}/pdf', [AccountingDocumentController::class, 'expensePdf'])
-        ->middleware('can:accounts.expense.print')
-        ->name('expenses.pdf');
-
-    Route::get('/purchase-payables', App\Livewire\Admin\Accounts\PurchasePayable\PurchasePayableList::class)
-        ->middleware('can:accounts.purchase-payable.list')
-        ->name('purchase-payables.index');
-
     Route::get('/reports/statement', App\Livewire\Admin\Accounts\Reports\StatementReport::class)
         ->middleware('can:accounts.reports.statement.view')
         ->name('reports.statement');
@@ -261,18 +220,6 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
     Route::get('/reports/assets', App\Livewire\Admin\Accounts\Reports\AssetReport::class)
         ->middleware('can:accounts.report.view')
         ->name('reports.assets');
-
-    Route::get('/reports/payments', App\Livewire\Admin\Accounts\Reports\PaymentReport::class)
-        ->middleware('can:accounts.report.view')
-        ->name('reports.payments');
-
-    Route::get('/reports/collections', App\Livewire\Admin\Accounts\Reports\CollectionReport::class)
-        ->middleware('can:accounts.report.view')
-        ->name('reports.collections');
-
-    Route::get('/reports/expenses', App\Livewire\Admin\Accounts\Reports\ExpenseReport::class)
-        ->middleware('can:accounts.report.view')
-        ->name('reports.expenses');
 
     Route::get('/reports/liability', App\Livewire\Admin\Accounts\Reports\LiabilityReport::class)
         ->middleware('can:accounts.report.view')
@@ -314,10 +261,6 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
         ->middleware('can:accounts.report.view')
         ->name('reports.account-ledger');
 
-    Route::get('/reports/project-wise-expense', App\Livewire\Admin\Accounts\Reports\ProjectWiseExpenseReport::class)
-        ->middleware('can:accounts.report.view')
-        ->name('reports.project-wise-expense');
-
     Route::get('/reports/export/{report}/excel', [AccountReportExportController::class, 'excel'])
         ->middleware('can:accounts.report.view')
         ->name('reports.export.excel');
@@ -325,6 +268,14 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
     Route::get('/reports/export/{report}/pdf', [AccountReportExportController::class, 'pdf'])
         ->middleware('can:accounts.report.view')
         ->name('reports.export.pdf');
+
+    Route::prefix('banking')->name('banking.')->group(function (): void {
+        Route::get('/', App\Livewire\Admin\Accounts\Banking\BankingManagement::class)
+            ->name('index');
+
+        Route::get('/reports', App\Livewire\Admin\Accounts\Banking\BankingReports::class)
+            ->name('reports');
+    });
 });
 
 // hrm module

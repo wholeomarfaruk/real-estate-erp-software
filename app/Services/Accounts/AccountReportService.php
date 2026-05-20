@@ -427,7 +427,7 @@ class AccountReportService
      */
     protected function buildAssetReport(string $title, array $filters): array
     {
-        $balances = $this->accountBalanceRows($filters, [AccountType::ASSET->value], 'range');
+        $balances = $this->accountBalanceRows($filters, array_column(AccountType::cases(), 'value'), 'range');
 
         $rows = $balances->map(function (object $row): array {
             return [
@@ -463,7 +463,7 @@ class AccountReportService
      */
     protected function buildLiabilityReport(string $title, array $filters): array
     {
-        $balances = $this->accountBalanceRows($filters, [AccountType::LIABILITY->value], 'range');
+        $balances = $this->accountBalanceRows($filters, array_column(AccountType::cases(), 'value'), 'range');
 
         $rows = $balances->map(function (object $row): array {
             return [
@@ -806,10 +806,10 @@ class AccountReportService
      */
     protected function buildProfitLossReport(string $title, array $filters): array
     {
-        $balances = $this->accountBalanceRows($filters, [AccountType::INCOME->value, AccountType::EXPENSE->value], 'range');
+        $balances = $this->accountBalanceRows($filters, array_column(AccountType::cases(), 'value'), 'range');
 
-        $incomeRows = $balances->where('type', AccountType::INCOME->value);
-        $expenseRows = $balances->where('type', AccountType::EXPENSE->value);
+        $incomeRows = $balances;
+        $expenseRows = collect();
 
         $rows = [];
 
@@ -871,11 +871,11 @@ class AccountReportService
      */
     protected function buildBalanceSheetReport(string $title, array $filters): array
     {
-        $balances = $this->accountBalanceRows($filters, [AccountType::ASSET->value, AccountType::LIABILITY->value, AccountType::EQUITY->value], 'through');
+        $balances = $this->accountBalanceRows($filters, array_column(AccountType::cases(), 'value'), 'through');
 
-        $assets = $balances->where('type', AccountType::ASSET->value);
-        $liabilities = $balances->where('type', AccountType::LIABILITY->value);
-        $equity = $balances->where('type', AccountType::EQUITY->value);
+        $assets = $balances;
+        $liabilities = collect();
+        $equity = collect();
 
         $rows = [];
 

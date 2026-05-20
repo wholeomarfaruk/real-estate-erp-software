@@ -159,14 +159,12 @@ class PurchaseInvoiceApprovalForm extends Component
             ->orderBy('name')
             ->get(['id', 'name', 'code', 'type']);
 
-        $assetAccounts     = $accounts->where('type', AccountType::ASSET);
-        $liabilityAccounts = $accounts->where('type', AccountType::LIABILITY);
-        $expenseAccounts   = $accounts->where('type', AccountType::EXPENSE);
+        $cashBankAccounts  = $accounts->filter(fn ($a) => in_array($a->type?->value, [AccountType::CASH->value, AccountType::BANK->value]));
 
-        $inventoryAccounts = $assetAccounts->merge($expenseAccounts)->sortBy('name');
-        $payableAccounts   = $liabilityAccounts->sortBy('name');
-        $paymentAccounts   = $assetAccounts->sortBy('name');
-        $advanceAccounts   = $assetAccounts
+        $inventoryAccounts = $accounts->sortBy('name');
+        $payableAccounts   = $accounts->sortBy('name');
+        $paymentAccounts   = $cashBankAccounts->sortBy('name');
+        $advanceAccounts   = $accounts
             ->filter(fn ($a) => stripos($a->name, 'advance') !== false)
             ->sortBy('name');
 

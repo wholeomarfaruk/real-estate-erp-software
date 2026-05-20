@@ -2,11 +2,10 @@
 
 namespace App\Models;
 
-use App\Enums\Accounts\EntryMethod;
-use App\Enums\Inventory\FundReleaseType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class PurchaseFund extends Model
 {
@@ -14,12 +13,7 @@ class PurchaseFund extends Model
 
     protected $fillable = [
         'purchase_order_id',
-        'release_type',
-        'advance_type',
-        'advance_account_id',
-        'payment_account_id',
         'transaction_id',
-        'payment_id',
         'amount',
         'released_by',
         'release_date',
@@ -27,11 +21,13 @@ class PurchaseFund extends Model
         'payto',
         'receiver_type',
         'receiver_id',
+        'status',
+        'transaction_category_id',
+        'bank_account_id',
+        'method',
     ];
 
     protected $casts = [
-        'release_type' => EntryMethod::class,
-        'advance_type' => FundReleaseType::class,
         'amount'       => 'decimal:2',
         'release_date' => 'date',
     ];
@@ -46,28 +42,28 @@ class PurchaseFund extends Model
         return $this->belongsTo(User::class, 'released_by');
     }
 
-    public function advanceAccount(): BelongsTo
-    {
-        return $this->belongsTo(Account::class, 'advance_account_id');
-    }
-
-    public function paymentAccount(): BelongsTo
-    {
-        return $this->belongsTo(Account::class, 'payment_account_id');
-    }
-
     public function transaction(): BelongsTo
     {
         return $this->belongsTo(Transaction::class);
     }
 
-    public function payment(): BelongsTo
+    public function transactionCategory(): BelongsTo
     {
-        return $this->belongsTo(Payment::class);
+        return $this->belongsTo(TransactionCategory::class);
+    }
+
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(BankAccount::class);
     }
 
     public function receiver()
     {
         return $this->morphTo();
+    }
+
+    public function bankingRequest(): MorphOne
+    {
+        return $this->morphOne(BankingPaymentRequest::class, 'sourceable');
     }
 }

@@ -12,24 +12,17 @@ class ChartOfAccountsSeeder extends Seeder
     public function run(): void
     {
         // Parent accounts
-        $cash = Account::query()->firstOrCreate(
-            ['name' => 'Cash', 'type' => AccountType::ASSET->value, 'parent_id' => null],
-            ['sub_type' => AccountSubType::CASH->value, 'is_active' => true]
-        );
+   
 
-        $bank = Account::query()->firstOrCreate(
-            ['name' => 'Bank', 'type' => AccountType::ASSET->value, 'parent_id' => null],
-            ['sub_type' => AccountSubType::BANK->value, 'is_active' => true]
-        );
 
         // Children
         Account::query()->firstOrCreate(
-            ['name' => 'Office Cash', 'type' => AccountType::ASSET->value, 'parent_id' => $cash->id],
+            ['name' => 'Office Cash', 'type' => AccountType::BANK->value, 'parent_id' => null],
             ['sub_type' => AccountSubType::CASH->value, 'is_active' => true]
         );
 
         Account::query()->firstOrCreate(
-            ['name' => 'DBBL Bank', 'type' => AccountType::ASSET->value, 'parent_id' => $bank->id],
+            ['name' => 'DBBL Bank', 'type' => AccountType::BANK->value, 'parent_id' => null],
             ['sub_type' => AccountSubType::BANK->value, 'is_active' => true]
         );
     }

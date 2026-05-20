@@ -1,0 +1,112 @@
+<?php
+
+namespace App\Models;
+
+use App\Enums\Accounts\TransactionType;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+
+class BankingPaymentRequest extends Model
+{
+    protected $fillable = [
+        'request_no',
+        'source_type',
+        'sourceable_type',
+        'sourceable_id',
+        'transaction_category_id',
+        'transaction_id',
+        'amount',
+        'description',
+        'bank_account_id',
+        'status',
+        'notes',
+        'rejection_reason',
+        'requested_by',
+        'approved_by',
+        'approved_at',
+        'released_by',
+        'released_at',
+        'completed_by',
+        'completed_at',
+        'rejected_by',
+        'rejected_at',
+    ];
+
+    protected $casts = [
+        'amount'       => 'decimal:3',
+        'approved_at'  => 'datetime',
+        'released_at'  => 'datetime',
+        'completed_at' => 'datetime',
+        'rejected_at'  => 'datetime',
+    ];
+
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(BankAccount::class);
+    }
+
+    public function sourceable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    public function transactionCategory(): BelongsTo
+    {
+        return $this->belongsTo(TransactionCategory::class);
+    }
+
+    public function transaction(): BelongsTo
+    {
+        return $this->belongsTo(Transaction::class);
+    }
+
+    public function requestedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function releasedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'released_by');
+    }
+
+    public function completedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'completed_by');
+    }
+
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
+    public function sourceTypeEnum(): ?TransactionType
+    {
+        return TransactionType::tryFrom($this->source_type);
+    }
+
+    public function statusBadgeClass(): string
+    {
+        return match ($this->status) {
+            'pending'   => 'bg-amber-50 text-amber-700 border-amber-200',
+            'approved'  => 'bg-blue-50 text-blue-700 border-blue-200',
+            'released'  => 'bg-violet-50 text-violet-700 border-violet-200',
+            'completed' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            'rejected'  => 'bg-rose-50 text-rose-700 border-rose-200',
+            default     => 'bg-gray-100 text-gray-600 border-gray-200',
+        };
+    }
+
+    public static function generateRequestNo(): string
+    {
+        $last = static::latest('id')->value('request_no');
+        $seq  = $last ? ((int) substr($last, -5)) + 1 : 1;
+        return 'BPR-' . now()->format('ymd') . '-' . str_pad($seq, 5, '0', STR_PAD_LEFT);
+    }
+}

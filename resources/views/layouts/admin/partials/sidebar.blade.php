@@ -638,6 +638,11 @@
                                         'permission' => 'accounts.chart.list',
                                     ],
                                     [
+                                        'label' => 'Banking',
+                                        'route' => 'admin.accounts.banking.index',
+                                        'permission' => 'accounts.chart.list',
+                                    ],
+                                    [
                                         'label' => 'Banks',
                                         'route' => 'admin.accounts.banks.list',
                                         'permission' => 'accounts.chart.list',
@@ -646,26 +651,6 @@
                                         'label' => 'Transactions',
                                         'route' => 'admin.accounts.transactions.index',
                                         'permission' => 'accounts.transaction.list',
-                                    ],
-                                    [
-                                        'label' => 'Payments',
-                                        'route' => 'admin.accounts.payments.index',
-                                        'permission' => 'accounts.payment.list',
-                                    ],
-                                    [
-                                        'label' => 'Collections',
-                                        'route' => 'admin.accounts.collections.index',
-                                        'permission' => 'accounts.collection.list',
-                                    ],
-                                    [
-                                        'label' => 'Expenses',
-                                        'route' => 'admin.accounts.expenses.index',
-                                        'permission' => 'accounts.expense.list',
-                                    ],
-                                    [
-                                        'label' => 'Purchase Payables',
-                                        'route' => 'admin.accounts.purchase-payables.index',
-                                        'permission' => 'accounts.purchase-payable.list',
                                     ],
                                 ];
 
@@ -678,21 +663,6 @@
                                     [
                                         'label' => 'Assets Report',
                                         'route' => 'admin.accounts.reports.assets',
-                                        'permission' => 'accounts.report.view',
-                                    ],
-                                    [
-                                        'label' => 'Payment Report',
-                                        'route' => 'admin.accounts.reports.payments',
-                                        'permission' => 'accounts.report.view',
-                                    ],
-                                    [
-                                        'label' => 'Collection Report',
-                                        'route' => 'admin.accounts.reports.collections',
-                                        'permission' => 'accounts.report.view',
-                                    ],
-                                    [
-                                        'label' => 'Expense Report',
-                                        'route' => 'admin.accounts.reports.expenses',
                                         'permission' => 'accounts.report.view',
                                     ],
                                     [
@@ -743,11 +713,6 @@
                                     [
                                         'label' => 'Account Ledger',
                                         'route' => 'admin.accounts.reports.account-ledger',
-                                        'permission' => 'accounts.report.view',
-                                    ],
-                                    [
-                                        'label' => 'Project Wise Expense',
-                                        'route' => 'admin.accounts.reports.project-wise-expense',
                                         'permission' => 'accounts.report.view',
                                     ],
                                     [

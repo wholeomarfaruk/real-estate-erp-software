@@ -3,32 +3,29 @@
 namespace App\Services\Inventory;
 
 use App\Enums\Accounts\TransactionType;
-use App\Enums\Inventory\FundReleaseType;
+use App\Models\BankAccount;
+use App\Models\BankingPaymentRequest;
 use App\Models\Employee;
-use App\Models\Payment;
 use App\Models\PurchaseFund;
+use App\Models\PurchaseInvoice;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\Transaction;
-use App\Services\NumberSequenceService;
+use App\Models\TransactionCategory;
 use Illuminate\Support\Facades\DB;
 
 class FundReleaseService
 {
-    public function __construct(private readonly NumberSequenceService $sequences) {}
-
     /**
-     * Release an advance fund against a purchase order.
+     * Submit a fund advance request (pending banking approval).
      *
-     * Accounting entries posted:
-     *   CASE employee_advance:  DR Employee Advance Account  /  CR Cash/Bank
-     *   CASE supplier_advance:  DR Supplier Advance Account  /  CR Cash/Bank
+     * Creates one PurchaseFund (status=pending) and one BankingPaymentRequest.
+     * No ledger Transaction is created at this point.
      *
      * @param  array{
-     *   advance_type: string,
-     *   advance_account_id: int,
-     *   payment_account_id: int,
-     *   payment_method: string,
+     *   transaction_category_id: int,
+     *   bank_account_id: int,
+     *   method: string,
      *   amount: float,
      *   release_date: string,
      *   payee_type: string,
@@ -36,7 +33,7 @@ class FundReleaseService
      *   remarks: ?string,
      * } $payload
      */
-    public function release(PurchaseOrder $po, array $payload, int $userId): PurchaseFund
+    public function requestRelease(PurchaseOrder $po, array $payload, int $userId): PurchaseFund
     {
         return DB::transaction(function () use ($po, $payload, $userId): PurchaseFund {
 
@@ -47,167 +44,199 @@ class FundReleaseService
 
             $allowedStatuses = ['approved', 'partially_received', 'received'];
             if (! in_array($locked->status?->value, $allowedStatuses, true)) {
-                throw new \DomainException('Fund can only be released for approved purchase orders.');
+                throw new \DomainException('Fund can only be requested for approved purchase orders.');
             }
 
             // ------------------------------------------------------------------
-            // 2. Parse and validate amounts
+            // 2. Parse payload
             // ------------------------------------------------------------------
-            $amount           = round((float) ($payload['amount'] ?? 0), 2);
-            $advanceAccountId = (int) ($payload['advance_account_id'] ?? 0);
-            $paymentAccountId = (int) ($payload['payment_account_id'] ?? 0);
-            $advanceType      = (string) ($payload['advance_type'] ?? '');
-            $paymentMethod    = (string) ($payload['payment_method'] ?? '');
-            $releaseDate      = (string) ($payload['release_date'] ?? now()->toDateString());
+            $amount        = round((float) ($payload['amount'] ?? 0), 2);
+            $bankAccountId = (int) ($payload['bank_account_id'] ?? 0);
+            $categoryId    = (int) ($payload['transaction_category_id'] ?? 0);
+            $method        = (string) ($payload['method'] ?? '');
+            $releaseDate   = (string) ($payload['release_date'] ?? now()->toDateString());
+            $payeeType     = (string) ($payload['payee_type'] ?? '');
+            $receiverId    = (int) ($payload['receiver_id'] ?? 0);
 
             if ($amount <= 0) {
                 throw new \DomainException('Release amount must be greater than zero.');
             }
-            if ($advanceAccountId <= 0) {
-                throw new \DomainException('Advance account (DR) is required.');
+            if ($bankAccountId <= 0) {
+                throw new \DomainException('Source bank account is required.');
             }
-            if ($paymentAccountId <= 0) {
-                throw new \DomainException('Cash / bank account (CR) is required.');
-            }
-            if (! FundReleaseType::tryFrom($advanceType)) {
-                throw new \DomainException('Invalid advance type.');
+            if ($categoryId <= 0) {
+                throw new \DomainException('Advance category is required.');
             }
 
+            $category = TransactionCategory::query()
+                ->where('id', $categoryId)
+                ->where('type', 'advance')
+                ->first();
+
+            if (! $category) {
+                throw new \DomainException('Invalid advance category selected.');
+            }
+
+            $bankAccount = BankAccount::query()->findOrFail($bankAccountId);
+
             // ------------------------------------------------------------------
-            // 2b. Cap check — total releases must not exceed approved amount.
-            //     Runs inside the PO lockForUpdate so concurrent releases for the
-            //     same PO are serialised: Transaction B blocks here until A commits,
-            //     then reads A's newly inserted fund row before deciding.
+            // 3. Cap check — pending + completed both count against the limit
             // ------------------------------------------------------------------
             $approvedAmount  = round((float) ($locked->approved_amount ?? 0), 2);
-            $alreadyReleased = round(
+            $alreadyCommitted = round(
                 (float) PurchaseFund::query()
                     ->where('purchase_order_id', $locked->id)
-                    ->whereNotNull('transaction_id')
+                    ->whereIn('status', ['pending', 'completed'])
                     ->sum('amount'),
                 2
             );
-            $remaining = round(max(0, $approvedAmount - $alreadyReleased), 2);
+            $remaining = round(max(0, $approvedAmount - $alreadyCommitted), 2);
 
             if ($approvedAmount <= 0) {
-                throw new \DomainException(
-                    'No approved amount is set for this purchase order. Contact your manager before releasing funds.'
-                );
+                throw new \DomainException('No approved amount is set for this purchase order.');
             }
 
             if ($amount > $remaining) {
                 throw new \DomainException(sprintf(
-                    'Fund release exceeds approved purchase order limit. '
-                    . 'Approved: %s | Already released: %s | Remaining: %s | Requested: %s.',
+                    'Fund request exceeds approved limit. Approved: %s | Committed: %s | Remaining: %s | Requested: %s.',
                     number_format($approvedAmount, 2),
-                    number_format($alreadyReleased, 2),
+                    number_format($alreadyCommitted, 2),
                     number_format($remaining, 2),
                     number_format($amount, 2)
                 ));
             }
 
             // ------------------------------------------------------------------
-            // 3. Build journal entry lines
-            //    DR Advance Account (asset — increases advance balance owed)
-            //    CR Cash / Bank Account (asset — decreases cash balance)
+            // 4. Resolve receiver for description
             // ------------------------------------------------------------------
-            $advanceTypeEnum = FundReleaseType::from($advanceType);
-            $lines = [
-                [
-                    'account_id'  => $advanceAccountId,
-                    'debit'       => $amount,
-                    'credit'      => 0,
-                    'description' => $advanceTypeEnum->drDescription() . ' – PO# ' . $locked->po_no,
-                ],
-                [
-                    'account_id'  => $paymentAccountId,
-                    'debit'       => 0,
-                    'credit'      => $amount,
-                    'description' => 'Cash/bank payment – PO# ' . $locked->po_no,
-                ],
-            ];
+            $receiverName  = $this->resolveReceiverName($payeeType, $receiverId, $po);
+            $receiverClass = $payeeType === 'employee' ? Employee::class : Supplier::class;
 
             // ------------------------------------------------------------------
-            // 4. Create journal transaction
+            // 5. Create PurchaseFund (status = pending — no transaction yet)
             // ------------------------------------------------------------------
-            $transaction = Transaction::query()->create([
-                'date'           => $releaseDate,
-                'type'           => TransactionType::FUND_RELEASE->value,
-                'reference_type' => 'purchase_fund',
-                'reference_id'   => null, // updated after fund record created
-                'notes'          => 'Fund release – PO# ' . $locked->po_no,
-                'created_by'     => $userId,
-            ]);
-
-            $transaction->lines()->createMany($lines);
-
-            // ------------------------------------------------------------------
-            // 5. Create payment record
-            // ------------------------------------------------------------------
-            $payment = Payment::query()->create([
-                'transaction_id'    => (int) $transaction->id,
-                'payment_no'        => $this->sequences->next('FR'),
-                'date'              => $releaseDate,
-                'method'            => $paymentMethod,
-                'payment_type'      => 'fund_release',
-                'release_type'      => $advanceType,
-                'payment_account_id' => $paymentAccountId,
-                'purpose_account_id' => $advanceAccountId,
-                'amount'            => $amount,
-                'payee_name'        => $this->resolvePayeeName($payload),
-                'reference_type'    => 'purchase_order',
-                'reference_id'      => (int) $locked->id,
-                'notes'             => $payload['remarks'] ?? null,
-                'created_by'        => $userId,
-            ]);
-
-            // ------------------------------------------------------------------
-            // 6. Create PurchaseFund record
-            // ------------------------------------------------------------------
-            $receiverClass = $advanceType === FundReleaseType::EMPLOYEE_ADVANCE->value
-                ? Employee::class
-                : Supplier::class;
-
             $fund = PurchaseFund::query()->create([
-                'purchase_order_id'  => (int) $locked->id,
-                'release_type'       => $paymentMethod,
-                'advance_type'       => $advanceType,
-                'advance_account_id' => $advanceAccountId,
-                'payment_account_id' => $paymentAccountId,
-                'transaction_id'     => (int) $transaction->id,
-                'payment_id'         => (int) $payment->id,
-                'amount'             => $amount,
-                'released_by'        => $userId,
-                'release_date'       => $releaseDate,
-                'payto'              => $advanceType,
-                'receiver_type'      => $receiverClass,
-                'receiver_id'        => (int) ($payload['receiver_id'] ?? 0),
-                'remarks'            => $payload['remarks'] ?? null,
+                'purchase_order_id'       => (int) $locked->id,
+                'transaction_id'          => null,
+                'amount'                  => $amount,
+                'released_by'             => $userId,
+                'release_date'            => $releaseDate,
+                'payto'                   => $payeeType,
+                'receiver_type'           => $receiverClass,
+                'receiver_id'             => $receiverId,
+                'remarks'                 => $payload['remarks'] ?? null,
+                'status'                  => 'pending',
+                'transaction_category_id' => $categoryId,
+                'bank_account_id'         => $bankAccountId,
+                'method'                  => $method,
             ]);
 
-            // 7. Back-fill the transaction reference
-            $transaction->update(['reference_id' => (int) $fund->id]);
+            // ------------------------------------------------------------------
+            // 6. Create BankingPaymentRequest — sourceable → PurchaseFund
+            // ------------------------------------------------------------------
+            BankingPaymentRequest::query()->create([
+                'request_no'              => BankingPaymentRequest::generateRequestNo(),
+                'source_type'             => TransactionType::ADVANCE->value,
+                'sourceable_type'         => PurchaseFund::class,
+                'sourceable_id'           => $fund->id,
+                'transaction_category_id' => $categoryId,
+                'amount'                  => $amount,
+                'description'             => sprintf(
+                    'Fund advance – PO# %s → %s',
+                    $locked->po_no,
+                    $receiverName ?? 'Unknown'
+                ),
+                'bank_account_id'         => $bankAccountId,
+                'status'                  => 'pending',
+                'notes'                   => $payload['remarks'] ?? null,
+                'requested_by'            => $userId,
+            ]);
 
             return $fund;
         });
     }
 
     /**
-     * Return the total advance amount released for a PO that has not yet
-     * been offset against an invoice.
+     * Finalise a fund advance after Banking marks the request as completed.
+     *
+     * Creates the ledger Transaction and links it back to both the
+     * PurchaseFund and the BankingPaymentRequest.
+     */
+    public function completeRelease(BankingPaymentRequest $bankingRequest, int $userId): PurchaseFund
+    {
+        return DB::transaction(function () use ($bankingRequest, $userId): PurchaseFund {
+
+            if ($bankingRequest->status !== 'released') {
+                throw new \DomainException('Only a released payment request can be completed.');
+            }
+
+            if ($bankingRequest->sourceable_type !== PurchaseFund::class || ! $bankingRequest->sourceable_id) {
+                throw new \DomainException('This payment request is not linked to a fund release.');
+            }
+
+            // Lock the PurchaseFund row
+            $fund = PurchaseFund::query()
+                ->lockForUpdate()
+                ->where('id', $bankingRequest->sourceable_id)
+                ->where('status', 'pending')
+                ->firstOrFail();
+
+            $bankAccount = BankAccount::query()->findOrFail($bankingRequest->bank_account_id);
+            $accountId   = (int) $bankAccount->account_id;
+
+            $po           = $fund->purchaseOrder;
+            $receiverName = $this->resolveReceiverName($fund->payto, (int) $fund->receiver_id, $po);
+
+            // ------------------------------------------------------------------
+            // Create single Transaction row (money leaves the source account)
+            // ------------------------------------------------------------------
+            $transaction = Transaction::query()->create([
+                'account_id'              => $accountId,
+                'datetime'                => $fund->release_date->format('Y-m-d') . ' 00:00:00',
+                'type'                    => TransactionType::ADVANCE->value,
+                'transaction_category_id' => $bankingRequest->transaction_category_id ?? $fund->transaction_category_id,
+                'reference_type'          => 'purchase_order',
+                'reference_id'            => (int) $po->id,
+                'debit'                   => (float) $fund->amount,
+                'credit'                  => 0,
+                'name'                    => $receiverName,
+                'method'                  => $fund->method,
+                'notes'                   => $fund->remarks ?? ('Fund release – PO# ' . $po->po_no),
+                'created_by'              => $userId,
+            ]);
+
+            // Update PurchaseFund → completed
+            $fund->update([
+                'transaction_id' => $transaction->id,
+                'status'         => 'completed',
+            ]);
+
+            // Update BankingPaymentRequest → completed
+            $bankingRequest->update([
+                'transaction_id' => $transaction->id,
+                'status'         => 'completed',
+                'completed_by'   => $userId,
+                'completed_at'   => now(),
+            ]);
+
+            return $fund->fresh();
+        });
+    }
+
+    /**
+     * Total advance released for a PO that has not yet been offset against an invoice.
+     * Only counts completed funds (transaction created and confirmed).
      */
     public function unreconciled(PurchaseOrder $po): float
     {
-        // Total released
         $released = (float) PurchaseFund::query()
             ->where('purchase_order_id', $po->id)
-            ->whereNotNull('transaction_id')
+            ->where('status', 'completed')
             ->sum('amount');
 
-        // Total already adjusted in approved invoices
-        $adjusted = (float) \App\Models\PurchaseInvoice::query()
+        $adjusted = (float) PurchaseInvoice::query()
             ->where('purchase_order_id', $po->id)
-            ->whereNotNull('transaction_id') // approved
+            ->whereNotNull('transaction_id')
             ->sum('advance_adjusted_amount');
 
         return round(max(0, $released - $adjusted), 2);
@@ -217,21 +246,16 @@ class FundReleaseService
     // Private helpers
     // -------------------------------------------------------------------------
 
-    private function resolvePayeeName(array $payload): ?string
+    private function resolveReceiverName(string $payeeType, int $receiverId, PurchaseOrder $po): ?string
     {
-        if (! empty($payload['payee_name'])) {
-            return $payload['payee_name'];
-        }
-
-        $type = $payload['advance_type'] ?? '';
-        $id   = (int) ($payload['receiver_id'] ?? 0);
-
-        if ($id <= 0) {
+        if ($receiverId <= 0) {
             return null;
         }
 
-        return $type === FundReleaseType::EMPLOYEE_ADVANCE->value
-            ? Employee::query()->find($id)?->name
-            : Supplier::query()->find($id)?->name;
+        if ($payeeType === 'employee') {
+            return Employee::query()->find($receiverId)?->name;
+        }
+
+        return $po->supplier?->name ?? Supplier::query()->find($receiverId)?->name;
     }
 }
