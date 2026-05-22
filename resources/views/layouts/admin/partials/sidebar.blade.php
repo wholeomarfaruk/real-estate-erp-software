@@ -670,71 +670,18 @@
                                 ];
 
                                 $accountsReportRoutes = [
+    
                                     [
-                                        'label' => 'Statement Sheet',
-                                        'route' => 'admin.accounts.reports.statement',
-                                        'permission' => 'accounts.reports.statement.view',
-                                    ],
-                                    [
-                                        'label' => 'Assets Report',
-                                        'route' => 'admin.accounts.reports.assets',
-                                        'permission' => 'accounts.report.view',
-                                    ],
-                                    [
-                                        'label' => 'Liability Report',
-                                        'route' => 'admin.accounts.reports.liability',
-                                        'permission' => 'accounts.report.view',
-                                    ],
-                                    [
-                                        'label' => 'Cash Book',
-                                        'route' => 'admin.accounts.reports.cash-book',
-                                        'permission' => 'accounts.report.view',
-                                    ],
-                                    [
-                                        'label' => 'Bank Book',
-                                        'route' => 'admin.accounts.reports.bank-book',
-                                        'permission' => 'accounts.report.view',
-                                    ],
-                                    [
-                                        'label' => 'Supplier Ledger',
-                                        'route' => 'admin.accounts.reports.supplier-ledger',
-                                        'permission' => 'accounts.report.view',
-                                    ],
-                                    [
-                                        'label' => 'Customer Ledger',
-                                        'route' => 'admin.accounts.reports.customer-ledger',
-                                        'permission' => 'accounts.report.view',
-                                    ],
-                                    [
-                                        'label' => 'Trial Balance',
-                                        'route' => 'admin.accounts.reports.trial-balance',
-                                        'permission' => 'accounts.report.view',
-                                    ],
-                                    [
-                                        'label' => 'Profit & Loss',
-                                        'route' => 'admin.accounts.reports.profit-loss',
+                                        'label' => 'Daily Statement',
+                                        'route' => 'admin.accounts.reports.daily-statement',
                                         'permission' => 'accounts.report.view',
                                     ],
                                     [
                                         'label' => 'Balance Sheet',
                                         'route' => 'admin.accounts.reports.balance-sheet',
                                         'permission' => 'accounts.report.view',
-                                    ],
-                                    [
-                                        'label' => 'Daily Summary',
-                                        'route' => 'admin.accounts.reports.daily-summary',
-                                        'permission' => 'accounts.report.view',
-                                    ],
-                                    [
-                                        'label' => 'Account Ledger',
-                                        'route' => 'admin.accounts.reports.account-ledger',
-                                        'permission' => 'accounts.report.view',
-                                    ],
-                                    [
-                                        'label' => 'Product Wise Cost',
-                                        'route' => 'admin.accounts.reports.product-cost',
-                                        'permission' => 'accounts.report.view',
-                                    ],
+                                    ]
+                                   
                                 ];
                             @endphp
 

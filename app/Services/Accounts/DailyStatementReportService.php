@@ -65,6 +65,7 @@ class DailyStatementReportService
         $bankRows = $this->buildBankRows($selectedBankAccounts, $transactions, $openingBalanceMap);
         $cashRows = $this->buildCashRows($transactions, $cashIds, $openingBalanceMap);
         $expenseRows = $this->buildExpenseRows($transactions);
+        $incomeRows = $this->buildIncomeRows($transactions);
 
         $bankTotals = [
             'total_opening' => $this->money(collect($bankRows)->sum('opening_balance')),
@@ -104,7 +105,15 @@ class DailyStatementReportService
                     ->where('category_type', 'advance')
                     ->sum(fn (array $row): float => (float) $row['amount'] + (float) $row['bank_transfer'])
             ),
-            'closing_balance' => $this->money($cashClosingBalance + $bankTotals['total_closing']),
+            'closing_balance'    => $this->money($cashClosingBalance + $bankTotals['total_closing']),
+            'total_cash'         => $this->money(collect($expenseRows)->sum('amount')),
+            'total_bank_transfer'=> $this->money(collect($expenseRows)->sum('bank_transfer')),
+        ];
+
+        $incomeTotals = [
+            'total_cash'         => $this->money(collect($incomeRows)->sum('cash')),
+            'total_bank_transfer'=> $this->money(collect($incomeRows)->sum('bank_transfer')),
+            'grand_total'        => $this->money(collect($incomeRows)->sum('cash') + collect($incomeRows)->sum('bank_transfer')),
         ];
 
         $statement = (object) [
@@ -128,13 +137,15 @@ class DailyStatementReportService
             })->values(),
             'cashDetails' => collect($cashRows)->map(fn (array $row): object => (object) $row)->values(),
             'expenses' => collect($expenseRows)->map(fn (array $row): object => (object) $row)->values(),
+            'incomes'  => collect($incomeRows)->map(fn (array $row): object => (object) $row)->values(),
         ];
 
         return [
-            'statement' => $statement,
-            'bankTotals' => $bankTotals,
-            'cashTotals' => $cashTotals,
-            'expenseTotals' => $expenseTotals,
+            'statement'    => $statement,
+            'bankTotals'   => $bankTotals,
+            'cashTotals'   => $cashTotals,
+            'expenseTotals'=> $expenseTotals,
+            'incomeTotals' => $incomeTotals,
             'meta' => [
                 'report_date' => $reportDate->toDateString(),
                 'bank_account_id' => $selectedBankId,
@@ -431,6 +442,38 @@ class DailyStatementReportService
                         ? ($transaction->account?->bankAccount?->bank_name ?: $transaction->account?->name ?: '-')
                         : '-',
                     'category_type' => $type,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, \App\Models\Transaction>  $transactions
+     * @return array<int, array<string, mixed>>
+     */
+    protected function buildIncomeRows(Collection $transactions): array
+    {
+        return $transactions
+            ->filter(function (Transaction $transaction): bool {
+                return (float) $transaction->debit > 0
+                    && in_array($this->classifyTransactionType($transaction), ['income', 'opening_balance', 'adjustment'], true);
+            })
+            ->map(function (Transaction $transaction): array {
+                $type  = $this->classifyTransactionType($transaction);
+                $isBank = $this->accountSubType($transaction) === 'bank';
+                $amount = $this->money((float) $transaction->debit);
+
+                return [
+                    'ref_no'       => $this->referenceNo($transaction),
+                    'particulars'  => $this->transactionLabel($transaction),
+                    'category'     => $transaction->transactionCategory?->name ?: Str::headline($type),
+                    'cash'         => $isBank ? 0.0 : $amount,
+                    'bank_transfer'=> $isBank ? $amount : 0.0,
+                    'bank_name'    => $isBank
+                        ? ($transaction->account?->bankAccount?->bank_name ?: $transaction->account?->name ?: '-')
+                        : '-',
+                    'category_type'=> $type,
                 ];
             })
             ->values()

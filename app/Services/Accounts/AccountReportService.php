@@ -1457,6 +1457,101 @@ class AccountReportService
     }
 
     /**
+     * @param  array<string, mixed>  $rawFilters
+     * @return array<string, mixed>
+     */
+    public function buildBalanceSheetData(array $rawFilters): array
+    {
+        $filters = $this->normalizeFilters($rawFilters);
+
+        $aggregate = DB::table('transactions as t')
+            ->selectRaw('t.account_id')
+            ->selectRaw('COALESCE(SUM(t.debit), 0) as total_debit')
+            ->selectRaw('COALESCE(SUM(t.credit), 0) as total_credit')
+            ->whereNotNull('t.account_id')
+            ->whereDate('t.datetime', '<=', $filters['to']->toDateString())
+            ->groupBy('t.account_id');
+
+        $rows = Account::query()
+            ->leftJoinSub($aggregate, 'ledger_agg', fn ($join) => $join->on('ledger_agg.account_id', '=', 'accounts.id'))
+            ->where('accounts.is_active', true)
+            ->orderBy('accounts.type')
+            ->orderBy('accounts.name')
+            ->get([
+                'accounts.id',
+                'accounts.code',
+                'accounts.name',
+                'accounts.type',
+                'accounts.sub_type',
+                DB::raw('COALESCE(ledger_agg.total_debit, 0) as total_debit'),
+                DB::raw('COALESCE(ledger_agg.total_credit, 0) as total_credit'),
+            ]);
+
+        $typeLabels = [
+            'cash'   => 'Cash & Cash Equivalents',
+            'bank'   => 'Bank Accounts',
+            'mfs'    => 'MFS Accounts',
+            'wallet' => 'Wallets',
+            'ledger' => 'Ledger Accounts',
+        ];
+
+        $assetGroupsMap  = [];
+        $liabilityItems  = [];
+        $totalAssets     = 0.0;
+        $totalLiabilities = 0.0;
+
+        foreach ($rows as $row) {
+            $debit  = (float) $row->total_debit;
+            $credit = (float) $row->total_credit;
+            $typeKey = $row->type instanceof \BackedEnum ? $row->type->value : (string) ($row->type ?? 'ledger');
+
+            if ($debit >= $credit) {
+                $balance    = $debit - $credit;
+                $groupLabel = $typeLabels[$typeKey] ?? 'Other Accounts';
+
+                if (! isset($assetGroupsMap[$typeKey])) {
+                    $assetGroupsMap[$typeKey] = [
+                        'label'    => $groupLabel,
+                        'items'    => [],
+                        'subtotal' => 0.0,
+                    ];
+                }
+
+                $assetGroupsMap[$typeKey]['items'][]  = [
+                    'id'      => $row->id,
+                    'name'    => $this->accountLabel($row->code, $row->name),
+                    'balance' => $balance,
+                ];
+                $assetGroupsMap[$typeKey]['subtotal'] += $balance;
+                $totalAssets += $balance;
+            } else {
+                $balance          = $credit - $debit;
+                $liabilityItems[] = [
+                    'id'      => $row->id,
+                    'name'    => $this->accountLabel($row->code, $row->name),
+                    'balance' => $balance,
+                ];
+                $totalLiabilities += $balance;
+            }
+        }
+
+        return [
+            'asset_groups'      => array_values($assetGroupsMap),
+            'liability_items'   => $liabilityItems,
+            'total_assets'      => $totalAssets,
+            'total_liabilities' => $totalLiabilities,
+            'is_balanced'       => abs($totalAssets - $totalLiabilities) < 0.01,
+            'meta'              => [
+                'company_name' => config('app.name'),
+                'as_of_date'   => $filters['to']->format('d M Y'),
+                'period_label' => 'As of '.$filters['to']->format('d M Y'),
+            ],
+            'from_date' => $filters['from']->toDateString(),
+            'to_date'   => $filters['to']->toDateString(),
+        ];
+    }
+
+    /**
      * @return \Illuminate\Support\Collection<int, \App\Models\Account>
      */
     protected function allAccounts(): Collection

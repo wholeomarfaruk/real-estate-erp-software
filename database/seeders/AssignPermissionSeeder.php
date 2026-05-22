@@ -274,6 +274,24 @@ class AssignPermissionSeeder extends Seeder
                 'hrm.employee-advances.update',
                 'hrm.payroll-payments.view',
                 'hrm.payroll-payments.create',
+
+                // Properties
+                'property.view',
+                'property.create',
+                'property.edit',
+                'property.delete',
+                'property.floor.view',
+                'property.floor.create',
+                'property.floor.edit',
+                'property.floor.delete',
+                'property.unit.view',
+                'property.unit.create',
+                'property.unit.edit',
+                'property.unit.delete',
+                'property_sale.view',
+                'property_sale.create',
+                'property_sale.edit',
+                'property_sale.delete',
             ])
             ->get();
 
