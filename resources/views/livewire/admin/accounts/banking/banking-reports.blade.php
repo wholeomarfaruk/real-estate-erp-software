@@ -11,41 +11,7 @@
 
     @php
         $reportLinks = [
-            [
-                'label'       => 'Cash Book',
-                'description' => 'Daily cash inflows and outflows.',
-                'route'       => 'admin.accounts.reports.cash-book',
-                'icon'        => '<rect x="2" y="6" width="20" height="12" rx="1"/><circle cx="12" cy="12" r="2.5"/>',
-                'color'       => 'text-amber-600 bg-amber-50 border-amber-200',
-            ],
-            [
-                'label'       => 'Bank Book',
-                'description' => 'Bank account transaction register.',
-                'route'       => 'admin.accounts.reports.bank-book',
-                'icon'        => '<path d="M3 21h18M5 21V10m4 11V10m6 11V10m4 11V10M2 10l10-7 10 7"/>',
-                'color'       => 'text-blue-600 bg-blue-50 border-blue-200',
-            ],
-            [
-                'label'       => 'Account Ledger',
-                'description' => 'Per-account transaction ledger.',
-                'route'       => 'admin.accounts.reports.account-ledger',
-                'icon'        => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/>',
-                'color'       => 'text-indigo-600 bg-indigo-50 border-indigo-200',
-            ],
-            [
-                'label'       => 'Daily Summary',
-                'description' => 'Day-wise income, expense, and net summary.',
-                'route'       => 'admin.accounts.reports.daily-summary',
-                'icon'        => '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
-                'color'       => 'text-emerald-600 bg-emerald-50 border-emerald-200',
-            ],
-            [
-                'label'       => 'Trial Balance',
-                'description' => 'Debit/credit summary across all accounts.',
-                'route'       => 'admin.accounts.reports.trial-balance',
-                'icon'        => '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
-                'color'       => 'text-violet-600 bg-violet-50 border-violet-200',
-            ],
+
             [
                 'label'       => 'Balance Sheet',
                 'description' => 'Assets, liabilities and equity position.',
@@ -53,12 +19,13 @@
                 'icon'        => '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>',
                 'color'       => 'text-gray-600 bg-gray-100 border-gray-200',
             ],
+           
             [
-                'label'       => 'Profit & Loss',
-                'description' => 'Revenue, expenses and net profit/loss.',
-                'route'       => 'admin.accounts.reports.profit-loss',
-                'icon'        => '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
-                'color'       => 'text-rose-600 bg-rose-50 border-rose-200',
+                'label'       => 'Daily Statement',
+                'description' => 'Transaction category based day-wise statement with preview and PDF download.',
+                'route'       => 'admin.accounts.reports.daily-statement',
+                'icon'        => '<path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="M8 14h3"/><path d="M8 18h8"/>',
+                'color'       => 'text-cyan-700 bg-cyan-50 border-cyan-200',
             ],
             [
                 'label'       => 'Statement Sheet',

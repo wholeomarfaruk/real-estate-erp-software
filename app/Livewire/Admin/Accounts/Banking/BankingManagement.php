@@ -2,11 +2,14 @@
 
 namespace App\Livewire\Admin\Accounts\Banking;
 
+use App\Enums\Accounts\PaymentRequestSourceType;
 use App\Enums\Accounts\TransactionType;
 use App\Models\BankAccount;
 use App\Models\BankingPaymentRequest;
+use App\Models\PayrollPayment;
 use App\Models\PurchaseFund;
 use App\Models\TransactionCategory;
+use App\Services\Hrm\PayrollService;
 use App\Services\Inventory\FundReleaseService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -86,8 +89,11 @@ class BankingManagement extends Component
             ])->find($this->viewingId);
         }
 
-        $bankAccounts      = BankAccount::where('status', 'active')->orderBy('bank_name')->get();
-        $sourceTypes       = TransactionType::cases();
+        $bankAccounts = BankAccount::where('status', 'active')->orderBy('bank_name')->get();
+        $filterSourceTypes = collect(TransactionType::cases())
+            ->push(PaymentRequestSourceType::PAYROLL)
+            ->values();
+        $createSourceTypes = collect(TransactionType::cases())->values();
         $advanceCategories = TransactionCategory::query()
             ->active()
             ->where('type', 'advance')
@@ -96,7 +102,7 @@ class BankingManagement extends Component
             ->get(['id', 'name']);
 
         return view('livewire.admin.accounts.banking.banking-management', compact(
-            'requests', 'kpi', 'viewingRequest', 'bankAccounts', 'sourceTypes', 'advanceCategories',
+            'requests', 'kpi', 'viewingRequest', 'bankAccounts', 'filterSourceTypes', 'createSourceTypes', 'advanceCategories',
         ))->layout('layouts.admin.admin');
     }
 
@@ -129,7 +135,7 @@ class BankingManagement extends Component
     public function createRequest(): void
     {
         $this->validate([
-            'source_type'             => ['required', 'in:' . implode(',', array_column(TransactionType::cases(), 'value'))],
+            'source_type'             => ['required', 'in:' . implode(',', $this->manualSourceTypes())],
             'transaction_category_id' => [$this->source_type === 'advance' ? 'required' : 'nullable', 'nullable', 'exists:transaction_categories,id'],
             'amount'                  => ['required', 'numeric', 'min:0.001'],
             'description'             => ['required', 'string', 'max:500'],
@@ -193,7 +199,76 @@ class BankingManagement extends Component
             return;
         }
 
-        // Generic completion — no ledger entry
+        // Expense banking flow — create DR/CR transactions on completion
+        if (
+            $request->source_type === TransactionType::EXPENSE->value
+            && $request->sourceable_type === \App\Models\Expense::class
+            && $request->sourceable_id
+        ) {
+            try {
+                app(\App\Services\Accounts\ExpenseService::class)->completeExpense($request, (int) Auth::id());
+                $this->dispatch('toast', ['type' => 'success', 'message' => 'Expense completed. Transaction recorded.']);
+            } catch (\Throwable $e) {
+                $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
+            }
+            return;
+        }
+
+        if ($request->source_type === PaymentRequestSourceType::PAYROLL->value) {
+            if ($request->sourceable_type !== PayrollPayment::class || ! $request->sourceable_id) {
+                $this->dispatch('toast', ['type' => 'error', 'message' => 'Payroll requests must come from the payroll module.']);
+                return;
+            }
+
+            try {
+                app(PayrollService::class)->completePayrollPayment($request, (int) Auth::id());
+                $this->dispatch('toast', ['type' => 'success', 'message' => 'Payroll payment completed. Transaction recorded.']);
+            } catch (\Throwable $e) {
+                $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
+            }
+            return;
+        }
+
+        // Generic deposit / income / opening-balance — create a single ledger transaction
+        // using the ledger Account linked to the BankAccount (BankAccount.account_id)
+        if ($request->bank_account_id) {
+            $bankAccount = \App\Models\BankAccount::find($request->bank_account_id);
+            $ledgerAccountId = $bankAccount?->account_id ? (int) $bankAccount->account_id : 0;
+
+            if ($ledgerAccountId <= 0) {
+                $this->dispatch('toast', ['type' => 'error', 'message' => 'Bank account has no linked Chart of Accounts entry. Please link it first.']);
+                return;
+            }
+
+            try {
+                $transaction = \App\Models\Transaction::query()->create([
+                    'account_id'              => $ledgerAccountId,
+                    'datetime'                => now()->format('Y-m-d H:i:s'),
+                    'type'                    => $request->source_type,
+                    'transaction_category_id' => $request->transaction_category_id,
+                    'reference_type'          => 'banking_payment_request',
+                    'reference_id'            => $request->id,
+                    'debit'                   => (float) $request->amount,
+                    'credit'                  => 0,
+                    'notes'                   => $request->description,
+                    'created_by'              => (int) Auth::id(),
+                ]);
+
+                $request->update([
+                    'transaction_id' => $transaction->id,
+                    'status'       => 'completed',
+                    'completed_by' => Auth::id(),
+                    'completed_at' => now(),
+                ]);
+
+                $this->dispatch('toast', ['type' => 'success', 'message' => 'Completed. Transaction recorded.']);
+            } catch (\Throwable $e) {
+                $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
+            }
+            return;
+        }
+
+        // Fallback — no bank account linked, just update status
         $this->transition($id, 'released', 'completed', [
             'completed_by' => Auth::id(),
             'completed_at' => now(),
@@ -254,5 +329,16 @@ class BankingManagement extends Component
     {
         $this->reset(['source_type', 'transaction_category_id', 'amount', 'description', 'bank_account_id', 'notes']);
         $this->source_type = 'expense';
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function manualSourceTypes(): array
+    {
+        return collect(TransactionType::cases())
+            ->map(static fn (TransactionType $type): string => $type->value)
+            ->values()
+            ->all();
     }
 }

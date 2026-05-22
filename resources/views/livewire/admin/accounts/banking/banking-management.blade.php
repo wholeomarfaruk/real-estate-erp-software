@@ -6,13 +6,22 @@
             <h1 class="text-lg font-bold text-gray-800">Banking Management</h1>
             <p class="text-sm text-gray-500">Review and approve outgoing payment requests.</p>
         </div>
-        <button type="button" wire:click="openCreateModal"
-            class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800">
-            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            New Request
-        </button>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('admin.accounts.transaction-categories') }}"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 6h16M4 12h8M4 18h4"/>
+                </svg>
+                Categories
+            </a>
+            <button type="button" wire:click="openCreateModal"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                New Request
+            </button>
+        </div>
     </div>
 
     {{-- ── Nav tabs ─────────────────────────────────────────────────────────── --}}
@@ -52,7 +61,7 @@
         <select wire:model.live="sourceFilter"
             class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none">
             <option value="">All Sources</option>
-            @foreach($sourceTypes as $src)
+            @foreach($filterSourceTypes as $src)
                 <option value="{{ $src->value }}">{{ $src->label() }}</option>
             @endforeach
         </select>
@@ -93,7 +102,7 @@
                                 'rejected'  => 'bg-rose-50 text-rose-700 border-rose-200',
                                 default     => 'bg-gray-100 text-gray-600 border-gray-200',
                             };
-                            $srcEnum = \App\Enums\Accounts\TransactionType::tryFrom($req->source_type);
+                            $srcEnum = $req->sourceTypeEnum();
                             $srcBadgeClass = $srcEnum?->badgeClass() ?? 'bg-gray-100 text-gray-600 border-gray-200';
                             $srcLabel = $srcEnum?->label() ?? ucfirst(str_replace('_', ' ', $req->source_type));
                         @endphp
@@ -213,7 +222,7 @@
                     'rejected'  => 'bg-rose-50 text-rose-700 border-rose-200',
                     default     => 'bg-gray-100 text-gray-600 border-gray-200',
                 };
-                $srcEnum = \App\Enums\Accounts\TransactionType::tryFrom($r->source_type);
+                $srcEnum = $r->sourceTypeEnum();
                 $srcBadgeClass = $srcEnum?->badgeClass() ?? 'bg-gray-100 text-gray-600 border-gray-200';
                 $srcLabel = $srcEnum?->label() ?? ucfirst(str_replace('_', ' ', $r->source_type));
             @endphp
@@ -385,7 +394,7 @@
                     <label class="text-sm font-medium text-gray-700">Source Type <span class="text-rose-500">*</span></label>
                     <select wire:model.live="source_type"
                         class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-                        @foreach($sourceTypes as $src)
+                        @foreach($createSourceTypes as $src)
                             <option value="{{ $src->value }}">{{ $src->label() }}</option>
                         @endforeach
                     </select>

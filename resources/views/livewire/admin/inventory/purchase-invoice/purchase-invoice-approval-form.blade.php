@@ -129,7 +129,6 @@
             <div class="rounded-2xl border border-gray-200 bg-white px-6 py-5">
                 <h2 class="text-sm font-semibold text-gray-700">Summary</h2>
 
-                {{-- Invoice-level discount & shipping (editable if pending) --}}
                 @if ($isEditable)
                     <div class="mt-4 space-y-3">
                         <div>
@@ -147,7 +146,8 @@
                     </div>
                 @endif
 
-                {{-- Totals breakdown --}}
+                @php $totalAdvance = collect($advanceFundLines)->sum('adjust_amount'); @endphp
+
                 <dl class="mt-4 space-y-2 text-sm">
                     <div class="flex justify-between">
                         <dt class="text-gray-500">Subtotal</dt>
@@ -172,13 +172,13 @@
                     @if ($paid_amount > 0)
                     <div class="flex justify-between text-emerald-600">
                         <dt>Paid (cash)</dt>
-                        <dd>{{ number_format($paid_amount, 2) }}</dd>
+                        <dd>- {{ number_format($paid_amount, 2) }}</dd>
                     </div>
                     @endif
-                    @if ($advance_adjusted_amount > 0)
+                    @if ($totalAdvance > 0)
                     <div class="flex justify-between text-amber-600">
                         <dt>Advance Applied</dt>
-                        <dd>- {{ number_format($advance_adjusted_amount, 2) }}</dd>
+                        <dd>- {{ number_format($totalAdvance, 2) }}</dd>
                     </div>
                     @endif
                     <div class="flex justify-between {{ $due_amount > 0 ? 'text-red-600' : 'text-gray-400' }} font-semibold">
@@ -219,8 +219,9 @@
                             @endif
                         </div>
 
-                        {{-- CR: Accounts Payable (visible when due > 0) --}}
-                        <div x-show="{{ $due_amount > 0 ? 'true' : 'false' }}">
+                        {{-- CR: Accounts Payable --}}
+                        @if ($due_amount > 0 || $isPosted)
+                        <div>
                             <label class="block text-xs font-medium text-gray-600">
                                 CR — Accounts Payable Account
                                 @if ($due_amount > 0) <span class="text-red-500">*</span> @endif
@@ -240,54 +241,43 @@
                                 </p>
                             @endif
                         </div>
+                        @endif
 
-                        {{-- Advance Adjustment (shown when PO has unreconciled advances) --}}
-                        @if ($totalAvailableAdvance > 0 || $advance_adjusted_amount > 0)
+                        {{-- Advance Adjustment — per-fund lines --}}
+                        @if (count($advanceFundLines) > 0)
                         <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <p class="text-xs font-semibold text-amber-800">Pre-Released Advance</p>
-                                    <p class="mt-0.5 text-xs text-amber-600">
-                                        Available: <strong>{{ number_format($totalAvailableAdvance, 2) }}</strong>
-                                    </p>
-                                </div>
-                                <span class="rounded-full bg-amber-200 px-2 py-0.5 text-xs font-bold text-amber-800">ADVANCE</span>
-                            </div>
-
-                            @if ($isEditable)
-                                <div class="mt-3 space-y-3">
-                                    <div>
-                                        <label class="block text-xs font-medium text-amber-800">
-                                            Adjust Advance Against This Invoice
-                                        </label>
-                                        <input type="number" step="0.01" min="0" max="{{ $totalAvailableAdvance }}"
-                                            wire:model.lazy="advance_adjusted_amount"
-                                            placeholder="0.00"
-                                            class="mt-1 h-9 w-full rounded-lg border border-amber-300 bg-white px-3 text-right text-sm focus:border-amber-500 focus:outline-none">
-                                        @error('advance_adjusted_amount') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            <p class="text-xs font-semibold text-amber-800 mb-3">Pre-Released Advance Funds</p>
+                            <div class="space-y-3">
+                                @foreach ($advanceFundLines as $fi => $fundLine)
+                                <div class="rounded-lg bg-white border border-amber-100 px-3 py-2.5">
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <span class="text-xs font-medium text-amber-800">{{ $fundLine['category'] }}</span>
+                                        <span class="text-xs text-amber-600">
+                                            Remaining: <strong>{{ number_format($fundLine['remaining'], 2) }}</strong>
+                                        </span>
                                     </div>
-
-                                    @if ($advance_adjusted_amount > 0)
-                                        <div>
-                                            <label class="block text-xs font-medium text-amber-800">
-                                                CR — Advance Account <span class="text-red-500">*</span>
-                                            </label>
-                                            <select wire:model.live="advance_account_id"
-                                                class="mt-1 h-9 w-full rounded-lg border border-amber-300 bg-white px-3 text-sm focus:border-amber-500 focus:outline-none">
-                                                <option value="">— Select advance account —</option>
-                                                @foreach ($advanceAccounts as $acc)
-                                                    <option value="{{ $acc->id }}">{{ $acc->code }} {{ $acc->name }}</option>
-                                                @endforeach
-                                            </select>
-                                            @error('advance_account_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                                        </div>
+                                    @if ($isEditable)
+                                        <input type="number" step="0.01" min="0"
+                                            max="{{ $fundLine['remaining'] }}"
+                                            wire:model.lazy="advanceFundLines.{{ $fi }}.adjust_amount"
+                                            placeholder="0.00"
+                                            class="h-8 w-full rounded border border-amber-200 bg-amber-50 px-2 text-right text-sm focus:border-amber-400 focus:outline-none">
+                                        @error("advanceFundLines.{{ $fi }}.adjust_amount")
+                                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                        @enderror
+                                    @else
+                                        <p class="text-right text-sm font-semibold text-amber-900">
+                                            {{ number_format($fundLine['adjust_amount'], 2) }}
+                                        </p>
                                     @endif
                                 </div>
-                            @else
-                                <div class="mt-2 flex justify-between text-sm">
-                                    <span class="text-amber-700">Adjusted</span>
-                                    <span class="font-semibold text-amber-900">{{ number_format($advance_adjusted_amount, 2) }}</span>
-                                </div>
+                                @endforeach
+                            </div>
+                            @if ($totalAdvance > 0)
+                            <div class="mt-2 flex justify-between border-t border-amber-200 pt-2 text-xs font-semibold text-amber-800">
+                                <span>Total Advance Applied</span>
+                                <span>{{ number_format($totalAdvance, 2) }}</span>
+                            </div>
                             @endif
                         </div>
                         @endif
@@ -298,7 +288,7 @@
                                 Initial Payment at Approval
                             </label>
                             @if ($isEditable)
-                                <p class="mt-0.5 text-xs text-gray-400">Optional — leave 0 if paying later through payment module.</p>
+                                <p class="mt-0.5 text-xs text-gray-400">Optional — leave 0 if paying later.</p>
                                 <input type="number" step="0.01" min="0"
                                     wire:model.lazy="paid_amount"
                                     placeholder="0.00"
@@ -370,10 +360,10 @@
                                             <span>{{ number_format($due_amount, 2) }}</span>
                                         </div>
                                     @endif
-                                    @if ($advance_adjusted_amount > 0)
+                                    @if ($totalAdvance > 0)
                                         <div class="flex justify-between pl-4 text-amber-700">
                                             <span>CR Advance Account</span>
-                                            <span>{{ number_format($advance_adjusted_amount, 2) }}</span>
+                                            <span>{{ number_format($totalAdvance, 2) }}</span>
                                         </div>
                                     @endif
                                     @if ($paid_amount > 0)

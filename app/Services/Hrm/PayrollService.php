@@ -2,12 +2,17 @@
 
 namespace App\Services\Hrm;
 
+use App\Enums\Accounts\PaymentRequestSourceType;
+use App\Models\BankAccount;
+use App\Models\BankingPaymentRequest;
 use App\Models\Employee;
 use App\Models\EmployeeAdvance;
 use App\Models\EmployeeAdvanceAdjustment;
 use App\Models\Payroll;
 use App\Models\PayrollPayment;
 use App\Models\SalaryStructure;
+use App\Models\TransactionCategory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class PayrollService
@@ -102,6 +107,7 @@ class PayrollService
     {
         return DB::transaction(function () use ($payroll, $payload, $actorId): PayrollPayment {
             $payroll = Payroll::query()->lockForUpdate()->findOrFail($payroll->id);
+            $bankAccount = BankAccount::query()->findOrFail((int) $payload['bank_account_id']);
 
             $amount = round((float) $payload['amount'], 2);
 
@@ -109,42 +115,112 @@ class PayrollService
                 throw new \DomainException('Payment amount must be greater than zero.');
             }
 
-            $alreadyPaid = round((float) PayrollPayment::query()
-                ->where('payroll_id', $payroll->id)
-                ->sum('amount'), 2);
+            if (! $bankAccount->account_id) {
+                throw new \DomainException('Selected bank/cash account is not linked to the chart of accounts.');
+            }
 
-            $remaining = round(max(0, (float) $payroll->net_salary - $alreadyPaid), 2);
+            $alreadyCommitted = $this->committedPayrollAmount($payroll->id);
+            $remaining = round(max(0, (float) $payroll->net_salary - $alreadyCommitted), 2);
 
             if ($amount > $remaining) {
                 throw new \DomainException('Payment amount cannot exceed unpaid salary amount.');
             }
 
+            $paymentMethod = $this->normalizePaymentMethod(
+                $payload['payment_method'] ?? null,
+                $bankAccount->type
+            );
+
             $payment = PayrollPayment::query()->create([
                 'payroll_id' => $payroll->id,
                 'payment_date' => $payload['payment_date'],
                 'amount' => $amount,
-                'payment_method' => $payload['payment_method'] ?? null,
+                'payment_method' => $paymentMethod,
                 'reference_no' => $payload['reference_no'] ?? null,
                 'notes' => $payload['notes'] ?? null,
                 'received_by' => $actorId,
             ]);
 
+            BankingPaymentRequest::query()->create([
+                'request_no' => BankingPaymentRequest::generateRequestNo(),
+                'source_type' => PaymentRequestSourceType::PAYROLL->value,
+                'sourceable_type' => PayrollPayment::class,
+                'sourceable_id' => $payment->id,
+                'transaction_category_id' => $this->payrollCategoryId(),
+                'transaction_id' => null,
+                'amount' => $amount,
+                'description' => $this->payrollRequestDescription($payroll),
+                'bank_account_id' => $bankAccount->id,
+                'status' => 'pending',
+                'notes' => $this->payrollRequestNotes($payroll, $payment),
+                'requested_by' => $actorId,
+            ]);
+
+            return $payment->refresh()->load('bankingRequest');
+        });
+    }
+
+    public function completePayrollPayment(BankingPaymentRequest $bankingRequest, int $actorId): PayrollPayment
+    {
+        return DB::transaction(function () use ($bankingRequest, $actorId): PayrollPayment {
+            if ($bankingRequest->status !== 'released') {
+                throw new \DomainException('Only a released payroll request can be completed.');
+            }
+
+            if ($bankingRequest->sourceable_type !== PayrollPayment::class || ! $bankingRequest->sourceable_id) {
+                throw new \DomainException('This banking request is not linked to a payroll payment.');
+            }
+
+            $payment = PayrollPayment::query()
+                ->lockForUpdate()
+                ->with(['payroll.employee:id,name'])
+                ->findOrFail($bankingRequest->sourceable_id);
+
+            if ($payment->transaction_id) {
+                throw new \DomainException('This payroll payment is already completed.');
+            }
+
+            $payroll = Payroll::query()
+                ->lockForUpdate()
+                ->with('employee:id,name')
+                ->findOrFail($payment->payroll_id);
+
+            $bankAccount = BankAccount::query()->findOrFail($bankingRequest->bank_account_id);
+            $paymentAccountId = (int) $bankAccount->account_id;
+
+            if ($paymentAccountId <= 0) {
+                throw new \DomainException('Selected bank/cash account is not linked to the chart of accounts.');
+            }
+
+            $paymentMethod = $this->normalizePaymentMethod($payment->payment_method, $bankAccount->type);
+
             $transaction = $this->accountingService->createPayrollPaymentTransaction(
-                amount: $amount,
-                date: (string) $payload['payment_date'],
-                paymentMethod: (string) ($payload['payment_method'] ?? ''),
-                notes: 'Payroll payment for payroll #'.$payroll->id,
+                amount: (float) $payment->amount,
+                date: $payment->payment_date->format('Y-m-d'),
+                paymentMethod: $paymentMethod,
+                notes: $this->payrollCompletionNotes($payroll, $payment),
                 actorId: $actorId,
                 referenceType: 'hrm_payroll_payment',
-                referenceId: $payment->id
+                referenceId: $payment->id,
+                paymentAccountId: $paymentAccountId,
+                transactionCategoryId: $bankingRequest->transaction_category_id ?: $this->payrollCategoryId(),
+                name: $payroll->employee?->name
             );
 
             $payment->transaction_id = $transaction->id;
+            $payment->payment_method = $paymentMethod;
             $payment->save();
+
+            $bankingRequest->update([
+                'transaction_id' => $transaction->related_transaction_id,
+                'status' => 'completed',
+                'completed_by' => $actorId,
+                'completed_at' => now(),
+            ]);
 
             $this->recalculatePayrollPaymentStatus($payroll->id);
 
-            return $payment->refresh();
+            return $payment->refresh()->load('bankingRequest');
         });
     }
 
@@ -154,9 +230,11 @@ class PayrollService
 
         $paid = round((float) PayrollPayment::query()
             ->where('payroll_id', $payrollId)
+            ->whereNotNull('transaction_id')
             ->sum('amount'), 2);
         $latestPaymentDate = PayrollPayment::query()
             ->where('payroll_id', $payrollId)
+            ->whereNotNull('transaction_id')
             ->max('payment_date');
 
         if ($paid <= 0) {
@@ -251,6 +329,90 @@ class PayrollService
         }
 
         return $normalized;
+    }
+
+    protected function committedPayrollAmount(int $payrollId): float
+    {
+        return round((float) PayrollPayment::query()
+            ->where('payroll_id', $payrollId)
+            ->where(function (Builder $query): void {
+                $query->whereNotNull('transaction_id')
+                    ->orWhereHas('bankingRequest', function (Builder $requestQuery): void {
+                        $requestQuery->whereIn('status', ['pending', 'approved', 'released', 'completed']);
+                    });
+            })
+            ->sum('amount'), 2);
+    }
+
+    protected function payrollCategoryId(): ?int
+    {
+        return TransactionCategory::query()
+            ->where('is_active', true)
+            ->where(function (Builder $query): void {
+                $query->where('slug', 'payroll')
+                    ->orWhere(function (Builder $subQuery): void {
+                        $subQuery->where('type', 'expense')
+                            ->whereRaw('LOWER(name) = ?', ['payroll']);
+                    });
+            })
+            ->value('id');
+    }
+
+    protected function payrollRequestDescription(Payroll $payroll): string
+    {
+        $period = now()->setDate($payroll->year, $payroll->month, 1)->format('F Y');
+
+        return sprintf(
+            'Payroll payment - %s - %s',
+            $payroll->employee?->name ?? 'Employee',
+            $period
+        );
+    }
+
+    protected function payrollRequestNotes(Payroll $payroll, PayrollPayment $payment): string
+    {
+        $parts = [
+            'Basic Salary: '.number_format((float) $payroll->basic_salary, 2),
+            'Allowance: '.number_format((float) $payroll->allowance_total, 2),
+            'Bonus: '.number_format((float) $payroll->bonus_total, 2),
+        ];
+
+        if ($payroll->deduction_total > 0) {
+            $parts[] = 'Deduction: '.number_format((float) $payroll->deduction_total, 2);
+        }
+
+        if ($payment->reference_no) {
+            $parts[] = 'Reference: '.$payment->reference_no;
+        }
+
+        if ($payment->notes) {
+            $parts[] = trim((string) $payment->notes);
+        }
+
+        return implode(' | ', array_filter($parts));
+    }
+
+    protected function payrollCompletionNotes(Payroll $payroll, PayrollPayment $payment): string
+    {
+        return $payment->notes
+            ? trim((string) $payment->notes)
+            : 'Payroll payment for '.$payroll->employee?->name.' ('.$payroll->month.'/'.$payroll->year.')';
+    }
+
+    protected function normalizePaymentMethod(?string $paymentMethod, ?string $bankAccountType = null): ?string
+    {
+        $normalized = strtolower(trim((string) $paymentMethod));
+
+        if (in_array($normalized, ['cash', 'bank', 'cheque', 'mobile_banking'], true)) {
+            return $normalized;
+        }
+
+        return match (strtolower(trim((string) $bankAccountType))) {
+            'cash' => 'cash',
+            'bank' => 'bank',
+            'mfs', 'wallet' => 'mobile_banking',
+            default => null,
+        };
     }
 
     /**
@@ -358,4 +520,3 @@ class PayrollService
         }
     }
 }
-

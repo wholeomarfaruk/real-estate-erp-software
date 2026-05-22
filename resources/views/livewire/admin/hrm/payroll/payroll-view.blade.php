@@ -16,7 +16,7 @@
             @can('hrm.payrolls.pay')
                 @if ($dueAmount > 0)
                     <button type="button" wire:click="openPaymentModal" class="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800">
-                        Add Payment
+                        Request Payment
                     </button>
                 @endif
             @endcan
@@ -69,6 +69,7 @@
                 </p>
                 <p><span class="text-gray-500">Payment Date:</span> {{ optional($payroll->payment_date)->format('d M, Y') ?: 'N/A' }}</p>
                 <p><span class="text-gray-500">Linked Transaction:</span> {{ $payroll->transaction_id ?: 'N/A' }}</p>
+                <p class="text-xs text-gray-500">Only completed banking requests are counted as paid.</p>
             </div>
         </div>
     </div>
@@ -131,28 +132,51 @@
 
     <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div class="rounded-2xl border border-gray-200 bg-white p-5">
-            <h2 class="text-sm font-semibold text-gray-700">Payroll Payments</h2>
+            <h2 class="text-sm font-semibold text-gray-700">Payroll Payment Requests</h2>
             <div class="mt-3 overflow-x-auto">
                 <table class="min-w-full">
                     <thead>
                         <tr class="border-b border-gray-100">
                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Date</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Method</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Reference</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Account</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Request / Reference</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Status</th>
                             <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Amount</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @forelse ($payroll->payments as $payment)
+                            @php
+                                $workflowStatus = $payment->bankingRequest?->status ?? ($payment->transaction_id ? 'completed' : 'pending');
+                                $workflowClass = match($workflowStatus) {
+                                    'pending' => 'bg-amber-100 text-amber-700',
+                                    'approved' => 'bg-blue-100 text-blue-700',
+                                    'released' => 'bg-violet-100 text-violet-700',
+                                    'completed' => 'bg-emerald-100 text-emerald-700',
+                                    'rejected' => 'bg-rose-100 text-rose-700',
+                                    default => 'bg-zinc-100 text-zinc-700',
+                                };
+                            @endphp
                             <tr>
                                 <td class="px-3 py-2 text-sm text-gray-700">{{ optional($payment->payment_date)->format('d M, Y') }}</td>
-                                <td class="px-3 py-2 text-sm text-gray-700">{{ $payment->payment_method ?: 'N/A' }}</td>
-                                <td class="px-3 py-2 text-sm text-gray-700">{{ $payment->reference_no ?: 'N/A' }}</td>
+                                <td class="px-3 py-2 text-sm text-gray-700">
+                                    <p>{{ $payment->bankingRequest?->bankAccount?->bank_name ?: 'N/A' }}</p>
+                                    <p class="text-xs text-gray-500">{{ $payment->payment_method ? ucfirst(str_replace('_', ' ', $payment->payment_method)) : 'N/A' }}</p>
+                                </td>
+                                <td class="px-3 py-2 text-sm text-gray-700">
+                                    <p>{{ $payment->bankingRequest?->request_no ?: 'N/A' }}</p>
+                                    <p class="text-xs text-gray-500">{{ $payment->reference_no ?: 'No reference' }}</p>
+                                </td>
+                                <td class="px-3 py-2 text-sm text-gray-700">
+                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {{ $workflowClass }}">
+                                        {{ ucfirst($workflowStatus) }}
+                                    </span>
+                                </td>
                                 <td class="px-3 py-2 text-right text-sm font-medium text-gray-700">{{ number_format((float) $payment->amount, 2) }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-3 py-8 text-center text-sm text-gray-500">No payroll payments recorded yet.</td>
+                                <td colspan="5" class="px-3 py-8 text-center text-sm text-gray-500">No payroll payment requests recorded yet.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -192,7 +216,10 @@
     <div x-cloak x-data="{ open: @entangle('showPaymentModal') }" x-show="open" x-transition class="fixed inset-0 z-50 grid place-content-center bg-black/50 p-4">
         <div class="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg">
             <div class="flex items-start justify-between">
-                <h2 class="text-xl font-bold text-gray-900">Add Payroll Payment</h2>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">Request Payroll Payment</h2>
+                    <p class="mt-1 text-sm text-gray-500">This creates a banking payment request. Payroll is marked paid only after banking completes it.</p>
+                </div>
                 <button type="button" @click="open = false; $wire.closePaymentModal()" class="-me-4 -mt-4 rounded-full p-2 text-gray-400 transition hover:bg-gray-50 hover:text-gray-600">
                     <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -211,6 +238,16 @@
                     <input type="number" min="0" step="0.01" wire:model.defer="amount" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
                     <p class="mt-1 text-xs text-gray-500">Due Amount: {{ number_format($dueAmount, 2) }}</p>
                     @error('amount') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Bank / Cash Account</label>
+                    <select wire:model.defer="bank_account_id" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                        <option value="">Select account</option>
+                        @foreach ($bankAccounts as $bankAccount)
+                            <option value="{{ $bankAccount->id }}">{{ $bankAccount->bank_name }} ({{ ucfirst($bankAccount->type) }})</option>
+                        @endforeach
+                    </select>
+                    @error('bank_account_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="text-sm font-medium text-gray-700">Payment Method</label>
@@ -237,11 +274,10 @@
                         Cancel
                     </button>
                     <button type="submit" class="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800">
-                        Save Payment
+                        Submit To Banking
                     </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-

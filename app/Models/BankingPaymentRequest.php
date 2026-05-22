@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Accounts\PaymentRequestSourceType;
 use App\Enums\Accounts\TransactionType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -86,9 +87,10 @@ class BankingPaymentRequest extends Model
         return $this->belongsTo(User::class, 'rejected_by');
     }
 
-    public function sourceTypeEnum(): ?TransactionType
+    public function sourceTypeEnum(): TransactionType|PaymentRequestSourceType|null
     {
-        return TransactionType::tryFrom($this->source_type);
+        return TransactionType::tryFrom($this->source_type)
+            ?? PaymentRequestSourceType::tryFrom($this->source_type);
     }
 
     public function statusBadgeClass(): string

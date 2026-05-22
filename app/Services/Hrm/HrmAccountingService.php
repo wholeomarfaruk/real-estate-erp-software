@@ -2,9 +2,11 @@
 
 namespace App\Services\Hrm;
 
+use App\Enums\Accounts\TransactionRelationType;
 use App\Enums\Accounts\TransactionType;
 use App\Models\Transaction;
-use Illuminate\Support\Facades\DB;
+use App\Models\TransactionCategory;
+use Carbon\Carbon;
 
 class HrmAccountingService
 {
@@ -26,28 +28,35 @@ class HrmAccountingService
 
         $salaryExpense = $this->accountResolver->resolveRequiredAccount('salary_expense');
         $salaryPayable = $this->accountResolver->resolveRequiredAccount('salary_payable');
+        $categoryId = $this->resolvePayrollCategoryId();
 
-        return $this->createJournalTransaction(
-            date: $date,
-            notes: $notes,
-            actorId: $actorId,
-            referenceType: $referenceType,
-            referenceId: $referenceId,
-            lines: [
-                [
-                    'account_id' => $salaryExpense->id,
-                    'debit' => $amount,
-                    'credit' => 0,
-                    'description' => 'Payroll generated (Salary Expense)',
-                ],
-                [
-                    'account_id' => $salaryPayable->id,
-                    'debit' => 0,
-                    'credit' => $amount,
-                    'description' => 'Payroll generated (Salary Payable)',
-                ],
-            ]
-        );
+        $payableTransaction = Transaction::query()->create([
+            'account_id' => $salaryPayable->id,
+            'datetime' => $this->asDateTime($date),
+            'type' => TransactionType::EXPENSE->value,
+            'transaction_category_id' => $categoryId,
+            'reference_type' => $referenceType,
+            'reference_id' => $referenceId,
+            'debit' => 0,
+            'credit' => $amount,
+            'notes' => $notes,
+            'created_by' => $actorId,
+        ]);
+
+        return Transaction::query()->create([
+            'account_id' => $salaryExpense->id,
+            'datetime' => $this->asDateTime($date),
+            'type' => TransactionType::EXPENSE->value,
+            'transaction_category_id' => $categoryId,
+            'reference_type' => $referenceType,
+            'reference_id' => $referenceId,
+            'debit' => $amount,
+            'credit' => 0,
+            'notes' => $notes,
+            'related_transaction_id' => $payableTransaction->id,
+            'relation_type' => TransactionRelationType::PAIR->value,
+            'created_by' => $actorId,
+        ]);
     }
 
     public function createPayrollPaymentTransaction(
@@ -57,36 +66,53 @@ class HrmAccountingService
         string $notes,
         int $actorId,
         string $referenceType,
-        ?int $referenceId = null
+        ?int $referenceId = null,
+        ?int $paymentAccountId = null,
+        ?int $transactionCategoryId = null,
+        ?string $name = null
     ): Transaction {
         if ($amount <= 0) {
             throw new \DomainException('Payroll payment amount must be greater than zero for accounting entry.');
         }
 
+        $normalizedMethod = $paymentMethod ?: 'cash';
         $salaryPayable = $this->accountResolver->resolveRequiredAccount('salary_payable');
-        $paymentAccount = $this->accountResolver->resolvePaymentAccountByMethod($paymentMethod);
+        $paymentAccount = $paymentAccountId
+            ? (object) ['id' => $paymentAccountId]
+            : $this->accountResolver->resolvePaymentAccountByMethod($paymentMethod);
+        $categoryId = $transactionCategoryId ?: $this->resolvePayrollCategoryId();
 
-        return $this->createJournalTransaction(
-            date: $date,
-            notes: $notes,
-            actorId: $actorId,
-            referenceType: $referenceType,
-            referenceId: $referenceId,
-            lines: [
-                [
-                    'account_id' => $salaryPayable->id,
-                    'debit' => $amount,
-                    'credit' => 0,
-                    'description' => 'Payroll payment (Salary Payable)',
-                ],
-                [
-                    'account_id' => $paymentAccount->id,
-                    'debit' => 0,
-                    'credit' => $amount,
-                    'description' => 'Payroll payment (Cash/Bank)',
-                ],
-            ]
-        );
+        $cashTransaction = Transaction::query()->create([
+            'account_id' => (int) $paymentAccount->id,
+            'datetime' => $this->asDateTime($date),
+            'type' => TransactionType::EXPENSE->value,
+            'transaction_category_id' => $categoryId,
+            'reference_type' => $referenceType,
+            'reference_id' => $referenceId,
+            'debit' => 0,
+            'credit' => $amount,
+            'method' => $normalizedMethod,
+            'name' => $name,
+            'notes' => $notes,
+            'created_by' => $actorId,
+        ]);
+
+        return Transaction::query()->create([
+            'account_id' => $salaryPayable->id,
+            'datetime' => $this->asDateTime($date),
+            'type' => TransactionType::EXPENSE->value,
+            'transaction_category_id' => $categoryId,
+            'reference_type' => $referenceType,
+            'reference_id' => $referenceId,
+            'debit' => $amount,
+            'credit' => 0,
+            'method' => $normalizedMethod,
+            'name' => $name,
+            'notes' => $notes,
+            'related_transaction_id' => $cashTransaction->id,
+            'relation_type' => TransactionRelationType::PAIR->value,
+            'created_by' => $actorId,
+        ]);
     }
 
     public function createEmployeeAdvanceTransaction(
@@ -102,72 +128,66 @@ class HrmAccountingService
             throw new \DomainException('Advance amount must be greater than zero for accounting entry.');
         }
 
+        $normalizedMethod = $paymentMethod ?: 'cash';
         $employeeAdvance = $this->accountResolver->resolveRequiredAccount('employee_advance');
         $paymentAccount = $this->accountResolver->resolvePaymentAccountByMethod($paymentMethod);
+        $categoryId = $this->resolveCategoryIdBySlug('employee-advance');
 
-        return $this->createJournalTransaction(
-            date: $date,
-            notes: $notes,
-            actorId: $actorId,
-            referenceType: $referenceType,
-            referenceId: $referenceId,
-            lines: [
-                [
-                    'account_id' => $employeeAdvance->id,
-                    'debit' => $amount,
-                    'credit' => 0,
-                    'description' => 'Employee advance disbursed',
-                ],
-                [
-                    'account_id' => $paymentAccount->id,
-                    'debit' => 0,
-                    'credit' => $amount,
-                    'description' => 'Employee advance paid from Cash/Bank',
-                ],
-            ]
-        );
+        $cashTransaction = Transaction::query()->create([
+            'account_id' => $paymentAccount->id,
+            'datetime' => $this->asDateTime($date),
+            'type' => TransactionType::ADVANCE->value,
+            'transaction_category_id' => $categoryId,
+            'reference_type' => $referenceType,
+            'reference_id' => $referenceId,
+            'debit' => 0,
+            'credit' => $amount,
+            'method' => $normalizedMethod,
+            'notes' => $notes,
+            'created_by' => $actorId,
+        ]);
+
+        return Transaction::query()->create([
+            'account_id' => $employeeAdvance->id,
+            'datetime' => $this->asDateTime($date),
+            'type' => TransactionType::ADVANCE->value,
+            'transaction_category_id' => $categoryId,
+            'reference_type' => $referenceType,
+            'reference_id' => $referenceId,
+            'debit' => $amount,
+            'credit' => 0,
+            'method' => $normalizedMethod,
+            'notes' => $notes,
+            'related_transaction_id' => $cashTransaction->id,
+            'relation_type' => TransactionRelationType::PAIR->value,
+            'created_by' => $actorId,
+        ]);
     }
 
-    /**
-     * @param  array<int, array{account_id:int,debit:float|int,credit:float|int,description:string}>  $lines
-     */
-    protected function createJournalTransaction(
-        string $date,
-        string $notes,
-        int $actorId,
-        string $referenceType,
-        ?int $referenceId,
-        array $lines
-    ): Transaction {
-        return DB::transaction(function () use ($date, $notes, $actorId, $referenceType, $referenceId, $lines): Transaction {
-            $totalDebit = 0.0;
-            $totalCredit = 0.0;
+    protected function asDateTime(string $date): string
+    {
+        return Carbon::parse($date)->startOfDay()->format('Y-m-d H:i:s');
+    }
 
-            foreach ($lines as $line) {
-                $totalDebit += (float) $line['debit'];
-                $totalCredit += (float) $line['credit'];
-            }
+    protected function resolvePayrollCategoryId(): ?int
+    {
+        return TransactionCategory::query()
+            ->where('is_active', true)
+            ->where(function ($query): void {
+                $query->where('slug', 'payroll')
+                    ->orWhere(function ($subQuery): void {
+                        $subQuery->where('type', 'expense')
+                            ->whereRaw('LOWER(name) = ?', ['payroll']);
+                    });
+            })
+            ->value('id');
+    }
 
-            $totalDebit = round($totalDebit, 3);
-            $totalCredit = round($totalCredit, 3);
-
-            if (abs($totalDebit - $totalCredit) > 0.0001) {
-                throw new \DomainException('Journal entry is not balanced.');
-            }
-
-            $transaction = Transaction::query()->create([
-                'date' => $date,
-                'type' => TransactionType::JOURNAL->value,
-                'reference_type' => $referenceType,
-                'reference_id' => $referenceId,
-                'notes' => $notes,
-                'created_by' => $actorId,
-            ]);
-
-            $transaction->lines()->createMany($lines);
-
-            return $transaction;
-        });
+    protected function resolveCategoryIdBySlug(string $slug): ?int
+    {
+        return TransactionCategory::query()
+            ->where('is_active', true)
+            ->where('slug', $slug)
+            ->value('id');
     }
 }
-

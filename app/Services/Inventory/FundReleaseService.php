@@ -2,7 +2,9 @@
 
 namespace App\Services\Inventory;
 
+use App\Enums\Accounts\TransactionRelationType;
 use App\Enums\Accounts\TransactionType;
+use App\Models\Account;
 use App\Models\BankAccount;
 use App\Models\BankingPaymentRequest;
 use App\Models\Employee;
@@ -187,33 +189,62 @@ class FundReleaseService
             $po           = $fund->purchaseOrder;
             $receiverName = $this->resolveReceiverName($fund->payto, (int) $fund->receiver_id, $po);
 
+            $datetime    = $fund->release_date->format('Y-m-d') . ' 00:00:00';
+            $categoryId  = $bankingRequest->transaction_category_id ?? $fund->transaction_category_id;
+            $amount      = (float) $fund->amount;
+            $notes       = $fund->remarks ?? ('Fund release – PO# ' . $po->po_no);
+
             // ------------------------------------------------------------------
-            // Create single Transaction row (money leaves the source account)
+            // TXN-CASH: CR bank/cash — money physically leaves the account
             // ------------------------------------------------------------------
-            $transaction = Transaction::query()->create([
+            $txnCash = Transaction::query()->create([
                 'account_id'              => $accountId,
-                'datetime'                => $fund->release_date->format('Y-m-d') . ' 00:00:00',
+                'datetime'                => $datetime,
                 'type'                    => TransactionType::ADVANCE->value,
-                'transaction_category_id' => $bankingRequest->transaction_category_id ?? $fund->transaction_category_id,
+                'transaction_category_id' => $categoryId,
                 'reference_type'          => 'purchase_order',
                 'reference_id'            => (int) $po->id,
-                'debit'                   => (float) $fund->amount,
-                'credit'                  => 0,
+                'debit'                   => 0,
+                'credit'                  => $amount,
                 'name'                    => $receiverName,
                 'method'                  => $fund->method,
-                'notes'                   => $fund->remarks ?? ('Fund release – PO# ' . $po->po_no),
+                'notes'                   => $notes,
                 'created_by'              => $userId,
             ]);
 
-            // Update PurchaseFund → completed
+            // ------------------------------------------------------------------
+            // TXN-ADVANCE: DR advance account — receivable/advance created
+            // This is the transaction tracked in PurchaseFund.transaction_id
+            // so remainingAdvance() works correctly.
+            // ------------------------------------------------------------------
+            $advanceAccount = $this->resolveAdvanceAccount();
+
+            $txnAdvance = Transaction::query()->create([
+                'account_id'              => $advanceAccount->id,
+                'datetime'                => $datetime,
+                'type'                    => TransactionType::ADVANCE->value,
+                'transaction_category_id' => $categoryId,
+                'reference_type'          => 'purchase_order',
+                'reference_id'            => (int) $po->id,
+                'debit'                   => $amount,
+                'credit'                  => 0,
+                'name'                    => $receiverName,
+                'method'                  => $fund->method,
+                'notes'                   => $notes,
+                'related_transaction_id'  => $txnCash->id,
+                'relation_type'           => TransactionRelationType::PAIR->value,
+                'created_by'              => $userId,
+            ]);
+
+            // Update PurchaseFund → completed (tracks the ADVANCE side)
             $fund->update([
-                'transaction_id' => $transaction->id,
+                'transaction_id' => $txnAdvance->id,
                 'status'         => 'completed',
             ]);
 
-            // Update BankingPaymentRequest → completed
+            // Update BankingPaymentRequest → completed (tracks the CASH side)
             $bankingRequest->update([
-                'transaction_id' => $transaction->id,
+                'transaction_id' => $txnCash->id,
                 'status'         => 'completed',
                 'completed_by'   => $userId,
                 'completed_at'   => now(),
@@ -245,6 +276,19 @@ class FundReleaseService
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
+
+    private function resolveAdvanceAccount(): Account
+    {
+        $account = Account::query()
+            ->whereRaw('LOWER(name) = ?', ['advance'])
+            ->first();
+
+        if (! $account) {
+            throw new \DomainException('No account named "advance" found. Please create a Ledger account named "Advance".');
+        }
+
+        return $account;
+    }
 
     private function resolveReceiverName(string $payeeType, int $receiverId, PurchaseOrder $po): ?string
     {

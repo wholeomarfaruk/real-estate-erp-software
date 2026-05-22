@@ -13,8 +13,6 @@ class ChartOfAccountsSeeder extends Seeder
     {
         // Parent accounts
    
-
-
         // Children
         Account::query()->firstOrCreate(
             ['name' => 'Office Cash', 'type' => AccountType::BANK->value, 'parent_id' => null],
@@ -24,6 +22,14 @@ class ChartOfAccountsSeeder extends Seeder
         Account::query()->firstOrCreate(
             ['name' => 'DBBL Bank', 'type' => AccountType::BANK->value, 'parent_id' => null],
             ['sub_type' => AccountSubType::BANK->value, 'is_active' => true]
+        );
+        Account::query()->firstOrCreate(
+            ['name' => 'Advance', 'type' => AccountType::LEDGER->value, 'parent_id' => null],
+             ['is_active' => true]
+        );
+        Account::query()->firstOrCreate(
+            ['name' => 'Expense', 'type' => AccountType::LEDGER->value, 'parent_id' => null],
+             ['is_active' => true]
         );
     }
 }

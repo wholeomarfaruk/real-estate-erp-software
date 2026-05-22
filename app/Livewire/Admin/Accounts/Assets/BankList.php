@@ -2,12 +2,15 @@
 
 namespace App\Livewire\Admin\Accounts\Assets;
 
-use App\Enums\Accounts\AccountSubType;
 use App\Enums\Accounts\BankAccountType;
+use App\Enums\Accounts\TransactionType;
 use App\Livewire\Traits\WithMediaPicker;
 use App\Models\Account;
 use App\Models\BankAccount;
+use App\Models\BankingPaymentRequest;
 use App\Models\Transaction;
+use App\Models\TransactionCategory;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -43,6 +46,15 @@ class BankList extends Component
     // ─── Detail modal ─────────────────────────────────────────────────────────
     public bool $showDetailModal = false;
     public ?int $viewingId       = null;
+
+    // ─── Deposit / Opening Balance modal ──────────────────────────────────────
+    public bool    $showDepositModal            = false;
+    public ?int    $deposit_bank_account_id     = null;
+    public string  $deposit_source_type         = 'income';
+    public ?int    $deposit_category_id         = null;
+    public string  $deposit_amount              = '';
+    public string  $deposit_date                = '';
+    public string  $deposit_description         = '';
 
     protected string $paginationTheme = 'tailwind';
 
@@ -124,10 +136,27 @@ class BankList extends Component
         }
 
         $assetAccounts = Account::where('is_active',true)->get();
-           
 
         $types = BankAccountType::cases();
-   
+
+        // Deposit modal data
+        $depositSourceTypes = collect(TransactionType::cases())
+            ->whereIn('value', ['income', 'opening_balance', 'transfer', 'adjustment'])
+            ->values();
+
+        $depositCategories = $this->deposit_source_type
+            ? TransactionCategory::query()
+                ->where('is_active', true)
+                ->where('type', $this->deposit_source_type)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+            : collect();
+
+        $allBankAccounts = BankAccount::with('account:id,name,code')
+            ->where('status', 'active')
+            ->whereNotNull('account_id')
+            ->orderBy('bank_name')
+            ->get(['id', 'bank_name', 'type', 'ac_number', 'account_id']);
 
         return view('livewire.admin.accounts.assets.bank-list', compact(
             'accounts',
@@ -137,7 +166,62 @@ class BankList extends Component
             'viewingAccount',
             'assetAccounts',
             'types',
+            'depositSourceTypes',
+            'depositCategories',
+            'allBankAccounts',
         ))->layout('layouts.admin.admin');
+    }
+
+    // ─── Deposit / Opening Balance modal ──────────────────────────────────────
+
+    public function openDepositModal(?int $bankAccountId = null): void
+    {
+        $this->deposit_bank_account_id = $bankAccountId;
+        $this->deposit_source_type     = 'income';
+        $this->deposit_category_id     = null;
+        $this->deposit_amount          = '';
+        $this->deposit_date            = now()->toDateString();
+        $this->deposit_description     = '';
+        $this->showDepositModal        = true;
+    }
+
+    public function closeDepositModal(): void
+    {
+        $this->showDepositModal = false;
+        $this->resetValidation();
+    }
+
+    public function updatedDepositSourceType(): void
+    {
+        $this->deposit_category_id = null;
+    }
+
+    public function createDeposit(): void
+    {
+        $this->validate([
+            'deposit_bank_account_id' => ['required', 'exists:bank_accounts,id'],
+            'deposit_source_type'     => ['required', 'string'],
+            'deposit_category_id'     => ['nullable', 'exists:transaction_categories,id'],
+            'deposit_amount'          => ['required', 'numeric', 'min:0.001'],
+            'deposit_date'            => ['required', 'date'],
+            'deposit_description'     => ['required', 'string', 'max:500'],
+        ]);
+
+        BankingPaymentRequest::query()->create([
+            'request_no'              => BankingPaymentRequest::generateRequestNo(),
+            'source_type'             => $this->deposit_source_type,
+            'sourceable_type'         => null,
+            'sourceable_id'           => null,
+            'transaction_category_id' => $this->deposit_category_id ?: null,
+            'bank_account_id'         => $this->deposit_bank_account_id,
+            'amount'                  => (float) $this->deposit_amount,
+            'description'             => $this->deposit_description,
+            'status'                  => 'pending',
+            'requested_by'            => Auth::id(),
+        ]);
+
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Request submitted to banking.']);
+        $this->closeDepositModal();
     }
 
     // ─── Detail modal ──────────────────────────────────────────────────────────

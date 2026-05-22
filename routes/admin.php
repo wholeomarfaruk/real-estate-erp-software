@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\Accounts\AccountReportExportController;
+use App\Http\Controllers\Admin\Accounts\DailyStatementReportController;
 use App\Http\Controllers\Admin\Accounts\StatementReportController;
 use App\Http\Controllers\Admin\Accounts\TransactionAttachmentController;
 use App\Http\Controllers\Admin\FileUploadController;
@@ -197,6 +198,25 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
         ->middleware('can:accounts.transaction.list')
         ->name('transactions.index');
 
+    Route::get('/advance-refund', App\Livewire\Admin\Accounts\AdvanceRefundForm::class)
+        ->middleware('can:accounts.advance.refund')
+        ->name('advance-refund');
+
+    Route::get('/transaction-categories', App\Livewire\Admin\Accounts\TransactionCategoryManager::class)
+        ->name('transaction-categories');
+
+    Route::prefix('expenses')->name('expenses.')->group(function (): void {
+        Route::get('/', App\Livewire\Admin\Accounts\Expense\ExpenseList::class)
+            ->middleware('can:accounts.expense.list')
+            ->name('index');
+        Route::get('/create', App\Livewire\Admin\Accounts\Expense\ExpenseForm::class)
+            ->middleware('can:accounts.expense.create')
+            ->name('create');
+        Route::get('/{expense}', App\Livewire\Admin\Accounts\Expense\ExpenseForm::class)
+            ->middleware('can:accounts.expense.list')
+            ->name('show');
+    });
+
     Route::get('/transactions/{transaction}/attachments/{file}/download', [TransactionAttachmentController::class, 'download'])
         ->middleware('can:accounts.transaction-attachment.view')
         ->name('transactions.attachments.download');
@@ -204,6 +224,18 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
     Route::get('/reports/statement', App\Livewire\Admin\Accounts\Reports\StatementReport::class)
         ->middleware('can:accounts.reports.statement.view')
         ->name('reports.statement');
+
+    Route::get('/reports/daily-statement', App\Livewire\Admin\Accounts\Reports\DailyStatementView::class)
+        ->middleware('can:accounts.reports.statement.view')
+        ->name('reports.daily-statement');
+
+    Route::get('/reports/daily-statement/preview', [DailyStatementReportController::class, 'preview'])
+        ->middleware('can:accounts.reports.statement.view')
+        ->name('reports.daily-statement.preview');
+
+    Route::get('/reports/daily-statement/pdf', [DailyStatementReportController::class, 'export'])
+        ->middleware('can:accounts.reports.statement.export')
+        ->name('reports.daily-statement.pdf');
 
     Route::get('/reports/statement/print', [StatementReportController::class, 'print'])
         ->middleware('can:accounts.reports.statement.print')
@@ -351,6 +383,11 @@ Route::get('/inventory/stock-receives', App\Livewire\Admin\Inventory\StockReceiv
 Route::get('/inventory/stock-receives/create', App\Livewire\Admin\Inventory\StockReceive\StockReceiveForm::class)->name('inventory.stock-receives.create');
 Route::get('/inventory/stock-receives/{stockReceive}/view', App\Livewire\Admin\Inventory\StockReceive\StockReceiveView::class)->name('inventory.stock-receives.view');
 Route::get('/inventory/stock-receives/{stockReceive}/edit', App\Livewire\Admin\Inventory\StockReceive\StockReceiveForm::class)->name('inventory.stock-receives.edit');
+
+// purchase invoices
+Route::get('/inventory/purchase-invoices', App\Livewire\Admin\Inventory\PurchaseInvoice\PurchaseInvoiceList::class)->name('inventory.purchase-invoices.index');
+Route::get('/inventory/purchase-invoices/{purchaseInvoice}/view', App\Livewire\Admin\Inventory\PurchaseInvoice\PurchaseInvoiceApprovalForm::class)->name('inventory.purchase-invoices.view');
+Route::get('/inventory/purchase-invoices/{purchaseInvoice}/approve', App\Livewire\Admin\Inventory\PurchaseInvoice\PurchaseInvoiceApprovalForm::class)->name('inventory.purchase-invoices.approve');
 
 // inventory purchase returns
 Route::get('/inventory/purchase-returns', App\Livewire\Admin\Inventory\PurchaseReturn\PurchaseReturnList::class)->name('inventory.purchase-returns.index');

@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Hrm\Payroll;
 
 use App\Livewire\Admin\Hrm\Concerns\InteractsWithHrmAccess;
+use App\Models\BankAccount;
 use App\Models\Payroll;
 use App\Services\Hrm\PayrollService;
 use Illuminate\Contracts\View\View;
@@ -20,6 +21,8 @@ class PayrollView extends Component
     public string $payment_date = '';
 
     public float|int|string $amount = '';
+
+    public ?int $bank_account_id = null;
 
     public ?string $payment_method = null;
 
@@ -61,7 +64,7 @@ class PayrollView extends Component
             return;
         }
 
-        $this->dispatch('toast', ['type' => 'success', 'message' => 'Payroll payment saved successfully.']);
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Payroll payment request sent to banking successfully.']);
         $this->showPaymentModal = false;
         $this->resetPaymentForm();
     }
@@ -80,20 +83,28 @@ class PayrollView extends Component
                 'items:id,payroll_id,type,label,amount,sort_order',
                 'payments:id,payroll_id,transaction_id,payment_date,amount,payment_method,reference_no,notes,received_by',
                 'payments.receiver:id,name',
+                'payments.bankingRequest:id,sourceable_type,sourceable_id,bank_account_id,status,request_no',
+                'payments.bankingRequest.bankAccount:id,bank_name,type',
                 'advanceAdjustments:id,payroll_id,employee_advance_id,amount,adjustment_date',
                 'advanceAdjustments.employeeAdvance:id,employee_id,amount,remaining_amount,status',
             ])
-            ->withSum('payments as total_paid', 'amount')
+            ->withSum('completedPayments as total_paid', 'amount')
             ->findOrFail($this->payroll->id);
 
         $totalPaid = round((float) ($payroll->total_paid ?? 0), 2);
         $dueAmount = round(max(0, (float) $payroll->net_salary - $totalPaid), 2);
+        $bankAccounts = BankAccount::query()
+            ->where('status', 'active')
+            ->whereNotNull('account_id')
+            ->orderBy('bank_name')
+            ->get(['id', 'bank_name', 'type', 'ac_number']);
 
         return view('livewire.admin.hrm.payroll.payroll-view', [
             'payroll' => $payroll,
             'itemsByType' => $payroll->items->groupBy('type'),
             'totalPaid' => $totalPaid,
             'dueAmount' => $dueAmount,
+            'bankAccounts' => $bankAccounts,
             'paymentMethods' => ['cash', 'bank', 'cheque', 'mobile_banking'],
         ])->layout('layouts.admin.admin');
     }
@@ -106,6 +117,7 @@ class PayrollView extends Component
         return [
             'payment_date' => ['required', 'date'],
             'amount' => ['required', 'numeric', 'gt:0'],
+            'bank_account_id' => ['required', 'exists:bank_accounts,id'],
             'payment_method' => ['nullable', Rule::in(['cash', 'bank', 'cheque', 'mobile_banking'])],
             'reference_no' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string'],
@@ -120,14 +132,14 @@ class PayrollView extends Component
         return [
             'amount.required' => 'Payment amount is required.',
             'amount.gt' => 'Payment amount must be greater than zero.',
+            'bank_account_id.required' => 'Bank or cash account is required.',
             'payment_date.required' => 'Payment date is required.',
         ];
     }
 
     protected function resetPaymentForm(): void
     {
-        $this->reset(['amount', 'payment_method', 'reference_no', 'notes']);
+        $this->reset(['amount', 'bank_account_id', 'payment_method', 'reference_no', 'notes']);
         $this->payment_date = now()->toDateString();
     }
 }
-

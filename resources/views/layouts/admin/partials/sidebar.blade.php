@@ -643,6 +643,11 @@
                                         'permission' => 'accounts.chart.list',
                                     ],
                                     [
+                                        'label' => 'Expenses',
+                                        'route' => 'admin.accounts.expenses.index',
+                                        'permission' => 'accounts.expense.list',
+                                    ],
+                                    [
                                         'label' => 'Banks',
                                         'route' => 'admin.accounts.banks.list',
                                         'permission' => 'accounts.chart.list',
@@ -650,6 +655,16 @@
                                     [
                                         'label' => 'Transactions',
                                         'route' => 'admin.accounts.transactions.index',
+                                        'permission' => 'accounts.transaction.list',
+                                    ],
+                                    [
+                                        'label' => 'Advance Refund',
+                                        'route' => 'admin.accounts.advance-refund',
+                                        'permission' => 'accounts.advance.refund',
+                                    ],
+                                    [
+                                        'label' => 'TX Categories',
+                                        'route' => 'admin.accounts.transaction-categories',
                                         'permission' => 'accounts.transaction.list',
                                     ],
                                 ];
@@ -829,6 +844,11 @@
                                         'label' => 'Purchase Orders',
                                         'route' => 'admin.inventory.purchase-orders.index',
                                         'permission' => 'inventory.purchase_order.view',
+                                    ],
+                                    [
+                                        'label' => 'Purchase Invoices',
+                                        'route' => 'admin.inventory.purchase-invoices.index',
+                                        'permission' => 'inventory.purchase_invoice.view',
                                     ],
                                     [
                                         'label' => 'Stock Receive',

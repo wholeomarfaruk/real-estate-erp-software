@@ -131,11 +131,17 @@ class EmployeeView extends Component
 
         $paymentHistory = PayrollPayment::query()
             ->whereHas('payroll', fn ($query) => $query->where('employee_id', $employee->id))
+            ->whereNotNull('transaction_id')
             ->with('payroll:id,employee_id,month,year')
             ->latest('payment_date')
             ->latest('id')
             ->limit(15)
             ->get();
+
+        $totalPaidSalary = round((float) PayrollPayment::query()
+            ->whereHas('payroll', fn ($query) => $query->where('employee_id', $employee->id))
+            ->whereNotNull('transaction_id')
+            ->sum('amount'), 2);
 
         return view('livewire.admin.hrm.employee.employee-view', [
             'employee' => $employee,
@@ -148,7 +154,7 @@ class EmployeeView extends Component
                 'total_net_salary' => round((float) $payrolls->sum('net_salary'), 2),
                 'total_advances' => round((float) $advances->sum('amount'), 2),
                 'total_advance_remaining' => round((float) $advances->sum('remaining_amount'), 2),
-                'total_paid_salary' => round((float) $paymentHistory->sum('amount'), 2),
+                'total_paid_salary' => $totalPaidSalary,
             ],
         ])->layout('layouts.admin.admin');
     }

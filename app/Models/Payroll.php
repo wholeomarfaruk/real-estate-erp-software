@@ -84,13 +84,21 @@ class Payroll extends Model
         return $this->hasMany(PayrollPayment::class)->orderByDesc('payment_date')->orderByDesc('id');
     }
 
+    public function completedPayments(): HasMany
+    {
+        return $this->hasMany(PayrollPayment::class)
+            ->whereNotNull('transaction_id')
+            ->orderByDesc('payment_date')
+            ->orderByDesc('id');
+    }
+
     public function getTotalPaidAttribute(): float
     {
         if (array_key_exists('total_paid', $this->attributes)) {
             return round((float) $this->attributes['total_paid'], 2);
         }
 
-        return round((float) $this->payments()->sum('amount'), 2);
+        return round((float) $this->completedPayments()->sum('amount'), 2);
     }
 
     public function getDueAmountAttribute(): float
@@ -98,4 +106,3 @@ class Payroll extends Model
         return round(max(0, (float) $this->net_salary - $this->total_paid), 2);
     }
 }
-

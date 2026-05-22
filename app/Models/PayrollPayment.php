@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class PayrollPayment extends Model
 {
@@ -40,5 +41,9 @@ class PayrollPayment extends Model
     {
         return $this->belongsTo(User::class, 'received_by');
     }
-}
 
+    public function bankingRequest(): MorphOne
+    {
+        return $this->morphOne(BankingPaymentRequest::class, 'sourceable');
+    }
+}

@@ -158,7 +158,7 @@ class PayrollList extends Component
                 'employee:id,name,employee_id',
                 'generatedBy:id,name',
             ])
-            ->withSum('payments as total_paid', 'amount')
+            ->withSum('completedPayments as total_paid', 'amount')
             ->when($this->search !== '', function (Builder $query): void {
                 $search = '%'.$this->search.'%';
                 $query->whereHas('employee', function (Builder $subQuery) use ($search): void {
@@ -250,4 +250,3 @@ class PayrollList extends Component
         $this->deduction_items = [['label' => '', 'amount' => '']];
     }
 }
-

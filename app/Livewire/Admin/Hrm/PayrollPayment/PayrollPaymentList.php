@@ -66,18 +66,24 @@ class PayrollPaymentList extends Component
                 'payroll:id,employee_id,month,year,net_salary,payment_status',
                 'payroll.employee:id,name,employee_id',
                 'receiver:id,name',
+                'bankingRequest:id,sourceable_type,sourceable_id,bank_account_id,status,request_no',
+                'bankingRequest.bankAccount:id,bank_name',
             ])
             ->when($this->search !== '', function (Builder $query): void {
                 $search = '%'.$this->search.'%';
 
                 $query->where(function (Builder $subQuery) use ($search): void {
                     $subQuery->where('reference_no', 'like', $search)
-                        ->orWhere('notes', 'like', $search);
-                })
-                    ->orWhereHas('payroll.employee', function (Builder $employeeQuery) use ($search): void {
-                        $employeeQuery->where('name', 'like', $search)
-                            ->orWhere('employee_id', 'like', $search);
-                    });
+                        ->orWhere('notes', 'like', $search)
+                        ->orWhereHas('bankingRequest', function (Builder $requestQuery) use ($search): void {
+                            $requestQuery->where('request_no', 'like', $search)
+                                ->orWhere('description', 'like', $search);
+                        })
+                        ->orWhereHas('payroll.employee', function (Builder $employeeQuery) use ($search): void {
+                            $employeeQuery->where('name', 'like', $search)
+                                ->orWhere('employee_id', 'like', $search);
+                        });
+                });
             })
             ->when($this->employeeFilter, function (Builder $query): Builder {
                 return $query->whereHas('payroll', fn (Builder $payrollQuery) => $payrollQuery->where('employee_id', $this->employeeFilter));
@@ -98,4 +104,3 @@ class PayrollPaymentList extends Component
         ])->layout('layouts.admin.admin');
     }
 }
-

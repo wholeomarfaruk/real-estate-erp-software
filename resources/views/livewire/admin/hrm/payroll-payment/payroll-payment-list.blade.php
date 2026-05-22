@@ -59,14 +59,27 @@
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Date</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Employee</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Payroll</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Bank Account</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Method</th>
-                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Reference</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Request / Reference</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Status</th>
                                 <th class="px-5 py-3 text-right text-xs font-medium text-gray-500">Amount</th>
-                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Received By</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Requested By</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             @forelse ($payments as $payment)
+                                @php
+                                    $workflowStatus = $payment->bankingRequest?->status ?? ($payment->transaction_id ? 'completed' : 'pending');
+                                    $workflowClass = match($workflowStatus) {
+                                        'pending' => 'bg-amber-100 text-amber-700',
+                                        'approved' => 'bg-blue-100 text-blue-700',
+                                        'released' => 'bg-violet-100 text-violet-700',
+                                        'completed' => 'bg-emerald-100 text-emerald-700',
+                                        'rejected' => 'bg-rose-100 text-rose-700',
+                                        default => 'bg-zinc-100 text-zinc-700',
+                                    };
+                                @endphp
                                 <tr>
                                     <td class="px-5 py-4 text-sm text-gray-700">{{ optional($payment->payment_date)->format('d M, Y') }}</td>
                                     <td class="px-5 py-4 text-sm text-gray-700">
@@ -82,14 +95,23 @@
                                             N/A
                                         @endif
                                     </td>
+                                    <td class="px-5 py-4 text-sm text-gray-700">{{ $payment->bankingRequest?->bankAccount?->bank_name ?: 'N/A' }}</td>
                                     <td class="px-5 py-4 text-sm text-gray-700">{{ $payment->payment_method ? ucfirst(str_replace('_', ' ', $payment->payment_method)) : 'N/A' }}</td>
-                                    <td class="px-5 py-4 text-sm text-gray-700">{{ $payment->reference_no ?: 'N/A' }}</td>
+                                    <td class="px-5 py-4 text-sm text-gray-700">
+                                        <p>{{ $payment->bankingRequest?->request_no ?: 'N/A' }}</p>
+                                        <p class="text-xs text-gray-500">{{ $payment->reference_no ?: 'No reference' }}</p>
+                                    </td>
+                                    <td class="px-5 py-4 text-sm text-gray-700">
+                                        <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {{ $workflowClass }}">
+                                            {{ ucfirst($workflowStatus) }}
+                                        </span>
+                                    </td>
                                     <td class="px-5 py-4 text-right text-sm font-medium text-gray-700">{{ number_format((float) $payment->amount, 2) }}</td>
                                     <td class="px-5 py-4 text-sm text-gray-700">{{ $payment->receiver?->name ?: 'N/A' }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-5 py-12 text-center">
+                                    <td colspan="9" class="px-5 py-12 text-center">
                                         <p class="text-sm font-medium text-gray-700">No payment history found.</p>
                                         <p class="mt-1 text-xs text-gray-500">Try changing filters.</p>
                                     </td>
@@ -108,4 +130,3 @@
         </div>
     </div>
 </div>
-

@@ -21,6 +21,7 @@ class PermissionSeeder extends Seeder
             'chairman',
             'md',
             'supplier',
+            'salesmarketing',
         ];
 
         foreach ($roles as $role) {
@@ -287,6 +288,15 @@ class PermissionSeeder extends Seeder
             ['id' => 222, 'name' => 'property_sale.create'],
             ['id' => 223, 'name' => 'property_sale.edit'],
             ['id' => 224, 'name' => 'property_sale.delete'],
+
+            // Purchase Invoice
+            ['id' => 225, 'name' => 'inventory.purchase_invoice.view'],
+            ['id' => 226, 'name' => 'inventory.purchase_invoice.approve'],
+            ['id' => 227, 'name' => 'inventory.purchase_invoice.cancel'],
+            ['id' => 228, 'name' => 'inventory.purchase_invoice.delete'],
+
+            // Advance Refund
+            ['id' => 229, 'name' => 'accounts.advance.refund'],
         ];
 
         foreach ($permissions as $permission) {

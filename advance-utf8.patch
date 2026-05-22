@@ -1,0 +1,1706 @@
+diff --git a/app/Enums/Accounts/AccountType.php b/app/Enums/Accounts/AccountType.php
+index ea28e2d..e1dfe82 100644
+--- a/app/Enums/Accounts/AccountType.php
++++ b/app/Enums/Accounts/AccountType.php
+@@ -8,6 +8,7 @@ enum AccountType: string
+     case BANK = 'bank';
+     case MFS = 'mfs';
+     case WALLET = 'wallet';
++    case LEDGER = 'ledger';
+ 
+     public function label(): string
+     {
+@@ -16,6 +17,19 @@ public function label(): string
+             self::BANK => 'Bank',
+             self::MFS => 'MFS',
+             self::WALLET => 'Wallet',
++            self::LEDGER => 'Ledger',
++        };
++    }
++
++    public function badgeClass(): string
++    {
++        //tailwind css
++        return match ($this) {
++            self::CASH => 'bg-green-500',    
++            self::BANK => 'bg-blue-500',
++            self::MFS => 'bg-pink-500',
++            self::WALLET => 'bg-yellow-500',
++            self::LEDGER => 'bg-gray-500',
+         };
+     }
+ }
+diff --git a/app/Enums/Accounts/TransactionRelationType.php b/app/Enums/Accounts/TransactionRelationType.php
+new file mode 100644
+index 0000000..7690c7d
+--- /dev/null
++++ b/app/Enums/Accounts/TransactionRelationType.php
+@@ -0,0 +1,21 @@
++<?php
++
++namespace App\Enums\Accounts;
++
++enum TransactionRelationType: string
++{
++    case PAIR          = 'pair';           // two single-entry txns forming one logical entry
++    case ADVANCE_CLEAR = 'advance_clear';  // advance being cleared against invoice/expense
++    case REFUND        = 'refund';         // unused advance returned to cash
++    case REVERSE       = 'reverse';        // full reversal of a prior transaction
++
++    public function label(): string
++    {
++        return match ($this) {
++            self::PAIR          => 'Pair',
++            self::ADVANCE_CLEAR => 'Advance Clear',
++            self::REFUND        => 'Refund',
++            self::REVERSE       => 'Reverse',
++        };
++    }
++}
+diff --git a/app/Enums/Accounts/TransactionType.php b/app/Enums/Accounts/TransactionType.php
+index 123fb39..16c02bc 100644
+--- a/app/Enums/Accounts/TransactionType.php
++++ b/app/Enums/Accounts/TransactionType.php
+@@ -4,35 +4,38 @@
+ 
+ enum TransactionType: string
+ {
+-       case INCOME = 'income';
+-    case EXPENSE = 'expense';
+-    case ADVANCE = 'advance';
+-    case TRANSFER = 'transfer';
+-    case ADJUSTMENT = 'adjustment';
+-    case OPENING_BALANCE = 'opening_balance';
++       case INCOME           = 'income';
++    case EXPENSE          = 'expense';
++    case ADVANCE          = 'advance';
++    case TRANSFER         = 'transfer';
++    case ADJUSTMENT       = 'adjustment';
++    case OPENING_BALANCE  = 'opening_balance';
++    case PURCHASE_INVOICE = 'purchase_invoice';
+ 
+ 
+     public function label(): string
+     {
+         return match ($this) {
+-            self::INCOME          => 'Income',
+-            self::EXPENSE         => 'Expense',
+-            self::ADVANCE         => 'Advance',
+-            self::TRANSFER        => 'Transfer',
+-            self::ADJUSTMENT      => 'Adjustment',
+-            self::OPENING_BALANCE => 'Opening Balance',
++            self::INCOME           => 'Income',
++            self::EXPENSE          => 'Expense',
++            self::ADVANCE          => 'Advance',
++            self::TRANSFER         => 'Transfer',
++            self::ADJUSTMENT       => 'Adjustment',
++            self::OPENING_BALANCE  => 'Opening Balance',
++            self::PURCHASE_INVOICE => 'Purchase Invoice',
+         };
+     }
+ 
+     public function badgeClass(): string
+     {
+         return match ($this) {
+-            self::INCOME          => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+-            self::EXPENSE         => 'bg-rose-50 text-rose-700 border-rose-200',
+-            self::ADVANCE         => 'bg-violet-50 text-violet-700 border-violet-200',
+-            self::TRANSFER        => 'bg-blue-50 text-blue-700 border-blue-200',
+-            self::ADJUSTMENT      => 'bg-amber-50 text-amber-700 border-amber-200',
+-            self::OPENING_BALANCE => 'bg-gray-100 text-gray-600 border-gray-200',
++            self::INCOME           => 'bg-emerald-50 text-emerald-700 border-emerald-200',
++            self::EXPENSE          => 'bg-rose-50 text-rose-700 border-rose-200',
++            self::ADVANCE          => 'bg-violet-50 text-violet-700 border-violet-200',
++            self::TRANSFER         => 'bg-blue-50 text-blue-700 border-blue-200',
++            self::ADJUSTMENT       => 'bg-amber-50 text-amber-700 border-amber-200',
++            self::OPENING_BALANCE  => 'bg-gray-100 text-gray-600 border-gray-200',
++            self::PURCHASE_INVOICE => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+         };
+     }
+ }
+diff --git a/app/Livewire/Admin/Accounts/AdvanceRefundForm.php b/app/Livewire/Admin/Accounts/AdvanceRefundForm.php
+new file mode 100644
+index 0000000..8fce4df
+--- /dev/null
++++ b/app/Livewire/Admin/Accounts/AdvanceRefundForm.php
+@@ -0,0 +1,179 @@
++<?php
++
++namespace App\Livewire\Admin\Accounts;
++
++use App\Enums\Accounts\AccountType;
++use App\Enums\Accounts\EntryMethod;
++use App\Enums\Accounts\TransactionRelationType;
++use App\Enums\Accounts\TransactionType;
++use App\Models\Account;
++use App\Models\AdvanceAdjustment;
++use App\Models\PurchaseFund;
++use App\Models\Transaction;
++use Illuminate\Contracts\View\View;
++use Illuminate\Support\Facades\Auth;
++use Illuminate\Support\Facades\DB;
++use Livewire\Component;
++
++/**
++ * Handles returning unused advance cash back to the office.
++ *
++ * Flow:
++ *   Employee received advance → did not spend all → returns remainder.
++ *   TXN-CASH-RETURN : DR cash_account   (money back in office)
++ *   TXN-ADV-REDUCE  : CR advance_account (advance balance clears)
++ *   advance_adjustments row links TXN-ADV-REDUCE → original advance TXN
++ */
++class AdvanceRefundForm extends Component
++{
++    public string $fund_id       = '';
++    public float  $refund_amount = 0;
++    public string $cash_account_id = '';
++    public string $refund_date   = '';
++    public string $method        = '';
++    public string $remarks       = '';
++
++    public function mount(): void
++    {
++        $this->refund_date = now()->toDateString();
++    }
++
++    public function save(): void
++    {
++        $this->validate($this->rules());
++
++        $fund = PurchaseFund::query()
++            ->where('id', (int) $this->fund_id)
++            ->where('status', 'completed')
++            ->whereNotNull('transaction_id')
++            ->firstOrFail();
++
++        $advanceTxn = Transaction::query()->findOrFail($fund->transaction_id);
++        $remaining  = $advanceTxn->remainingAdvance();
++
++        if ($this->refund_amount > round($remaining, 3)) {
++            $this->addError('refund_amount', sprintf(
++                'Refund amount exceeds available advance of %s.',
++                number_format($remaining, 2)
++            ));
++            return;
++        }
++
++        try {
++            DB::transaction(function (): void {
++                $fund       = PurchaseFund::query()->findOrFail((int) $this->fund_id);
++                $advanceTxn = Transaction::query()->findOrFail($fund->transaction_id);
++
++                $advanceAccount = Account::query()
++                    ->whereRaw('LOWER(name) = ?', ['advance'])
++                    ->firstOrFail();
++
++                $datetime = $this->refund_date . ' 00:00:00';
++                $actorId  = (int) Auth::id();
++
++                // TXN-CASH-RETURN: DR cash/bank (money comes back in)
++                $txnCash = Transaction::query()->create([
++                    'account_id'     => (int) $this->cash_account_id,
++                    'datetime'       => $datetime,
++                    'type'           => TransactionType::ADVANCE->value,
++                    'reference_type' => 'purchase_fund',
++                    'reference_id'   => $fund->id,
++                    'debit'          => $this->refund_amount,
++                    'credit'         => 0,
++                    'method'         => $this->method,
++                    'notes'          => $this->remarks ?: ('Advance refund – Fund #' . $fund->id),
++                    'created_by'     => $actorId,
++                ]);
++
++                // TXN-ADV-REDUCE: CR advance account (advance balance reduces)
++                $txnAdvReduce = Transaction::query()->create([
++                    'account_id'             => $advanceAccount->id,
++                    'datetime'               => $datetime,
++                    'type'                   => TransactionType::ADVANCE->value,
++                    'reference_type'         => 'purchase_fund',
++                    'reference_id'           => $fund->id,
++                    'debit'                  => 0,
++                    'credit'                 => $this->refund_amount,
++                    'method'                 => $this->method,
++                    'notes'                  => $this->remarks ?: ('Advance refund – Fund #' . $fund->id),
++                    'related_transaction_id' => $txnCash->id,
++                    'relation_type'          => TransactionRelationType::REFUND->value,
++                    'created_by'             => $actorId,
++                ]);
++
++                // Record in advance_adjustments so remainingAdvance() is updated
++                AdvanceAdjustment::query()->create([
++                    'advance_transaction_id' => $advanceTxn->id,
++                    'adjust_transaction_id'  => $txnAdvReduce->id,
++                    'amount'                 => $this->refund_amount,
++                    'notes'                  => 'Refund – ' . ($this->remarks ?: 'Fund #' . $fund->id),
++                    'created_by'             => $actorId,
++                ]);
++            });
++
++            $this->dispatch('toast', ['type' => 'success', 'message' => 'Advance refund recorded successfully.']);
++            $this->reset(['fund_id', 'refund_amount', 'remarks']);
++            $this->refund_date = now()->toDateString();
++        } catch (\Throwable $e) {
++            $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
++        }
++    }
++
++    public function render(): View
++    {
++        // Funds with remaining advance > 0
++        $availableFunds = PurchaseFund::query()
++            ->where('status', 'completed')
++            ->whereNotNull('transaction_id')
++            ->with([
++                'purchaseOrder:id,po_no',
++                'transactionCategory:id,name',
++                'transaction:id,debit',
++                'receiver',
++            ])
++            ->get()
++            ->filter(fn ($fund) => $fund->transaction && $fund->transaction->remainingAdvance() > 0)
++            ->map(fn ($fund) => [
++                'id'        => $fund->id,
++                'label'     => sprintf(
++                    '#%d – %s – %s (Remaining: %s)',
++                    $fund->id,
++                    $fund->purchaseOrder?->po_no ?? 'No PO',
++                    $fund->transactionCategory?->name ?? '—',
++                    number_format($fund->transaction->remainingAdvance(), 2)
++                ),
++                'remaining' => $fund->transaction->remainingAdvance(),
++            ]);
++
++        $selectedFundRemaining = 0.0;
++        if ($this->fund_id) {
++            $fund = $availableFunds->firstWhere('id', (int) $this->fund_id);
++            $selectedFundRemaining = $fund ? $fund['remaining'] : 0.0;
++        }
++
++        $cashBankAccounts = Account::query()
++            ->where('is_active', true)
++            ->whereIn('type', [AccountType::CASH->value, AccountType::BANK->value, AccountType::MFS->value])
++            ->orderBy('name')
++            ->get(['id', 'name', 'type']);
++
++        return view('livewire.admin.accounts.advance-refund-form', [
++            'availableFunds'        => $availableFunds,
++            'cashBankAccounts'      => $cashBankAccounts,
++            'paymentMethods'        => EntryMethod::cases(),
++            'selectedFundRemaining' => round($selectedFundRemaining, 2),
++        ])->layout('layouts.admin.admin');
++    }
++
++    private function rules(): array
++    {
++        return [
++            'fund_id'        => ['required', 'integer', 'exists:purchase_funds,id'],
++            'refund_amount'  => ['required', 'numeric', 'min:0.01'],
++            'cash_account_id'=> ['required', 'integer', 'exists:accounts,id'],
++            'refund_date'    => ['required', 'date'],
++            'method'         => ['required', 'string'],
++            'remarks'        => ['nullable', 'string', 'max:500'],
++        ];
++    }
++}
+diff --git a/app/Livewire/Admin/Inventory/PurchaseInvoice/PurchaseInvoiceApprovalForm.php b/app/Livewire/Admin/Inventory/PurchaseInvoice/PurchaseInvoiceApprovalForm.php
+index dd15639..75907fc 100644
+--- a/app/Livewire/Admin/Inventory/PurchaseInvoice/PurchaseInvoiceApprovalForm.php
++++ b/app/Livewire/Admin/Inventory/PurchaseInvoice/PurchaseInvoiceApprovalForm.php
+@@ -6,9 +6,11 @@
+ use App\Enums\Accounts\EntryMethod;
+ use App\Livewire\Admin\Inventory\Concerns\InteractsWithInventoryAccess;
+ use App\Models\Account;
++use App\Models\PurchaseFund;
+ use App\Models\PurchaseInvoice;
+ use App\Services\Inventory\PurchaseInvoiceService;
+ use Illuminate\Contracts\View\View;
++use Illuminate\Support\Facades\Auth;
+ use Livewire\Component;
+ 
+ class PurchaseInvoiceApprovalForm extends Component
+@@ -27,12 +29,17 @@ class PurchaseInvoiceApprovalForm extends Component
+     public ?int   $accounts_payable_account_id   = null;
+     public ?int   $payment_account_id            = null;
+     public string $payment_method                = '';
+-    public float  $advance_adjusted_amount       = 0;
+-    public ?int   $advance_account_id            = null;
+     public string $due_date                      = '';
+     public string $supplier_invoice_no           = '';
+     public string $remarks                       = '';
+ 
++    /**
++     * Per-fund advance adjustment lines.
++     * Each element: {fund_id, category, total_amount, remaining, adjust_amount}
++     * The user edits adjust_amount per row.
++     */
++    public array $advanceFundLines = [];
++
+     // -------------------------------------------------------------------------
+     // Line items  (editable: unit_price + item discount while PENDING)
+     // -------------------------------------------------------------------------
+@@ -67,11 +74,11 @@ public function mount(PurchaseInvoice $purchaseInvoice): void
+     // Reactive recalculation
+     // -------------------------------------------------------------------------
+ 
+-    public function updatedDiscountAmount(): void              { $this->recalculate(); }
+-    public function updatedShippingAmount(): void              { $this->recalculate(); }
+-    public function updatedPaidAmount(): void                  { $this->recalculate(); }
+-    public function updatedAdvanceAdjustedAmount(): void       { $this->recalculate(); }
+-    public function updatedItems(): void                       { $this->recalculate(); }
++    public function updatedDiscountAmount(): void        { $this->recalculate(); }
++    public function updatedShippingAmount(): void        { $this->recalculate(); }
++    public function updatedPaidAmount(): void            { $this->recalculate(); }
++    public function updatedAdvanceFundLines(): void      { $this->recalculate(); }
++    public function updatedItems(): void                 { $this->recalculate(); }
+ 
+     // -------------------------------------------------------------------------
+     // Actions
+@@ -93,7 +100,7 @@ public function saveDraft(): void
+             $updated = app(PurchaseInvoiceService::class)->updatePending(
+                 $this->invoice,
+                 $this->buildPayload(),
+-                (int) auth()->id()
++                (int) Auth::id()
+             );
+ 
+             $this->invoice = $updated->loadMissing([
+@@ -128,7 +135,7 @@ public function approve(): void
+             $approved = app(PurchaseInvoiceService::class)->approve(
+                 $this->invoice,
+                 $this->buildPayload(),
+-                (int) auth()->id()
++                (int) Auth::id()
+             );
+ 
+             $this->invoice = $approved->loadMissing([
+@@ -154,44 +161,30 @@ public function approve(): void
+ 
+     public function render(): View
+     {
+-        $accounts = Account::query()
++        $ledgerAccounts = Account::query()
++            ->where('is_active', true)
++            ->where('type', AccountType::LEDGER->value)
++            ->orderBy('name')
++            ->get(['id', 'name', 'code', 'type']);
++
++        $cashBankAccounts = Account::query()
+             ->where('is_active', true)
++            ->whereNot('type', AccountType::LEDGER->value)
+             ->orderBy('name')
+             ->get(['id', 'name', 'code', 'type']);
+ 
+-        $cashBankAccounts  = $accounts->filter(fn ($a) => in_array($a->type?->value, [AccountType::CASH->value, AccountType::BANK->value]));
+-
+-        $inventoryAccounts = $accounts->sortBy('name');
+-        $payableAccounts   = $accounts->sortBy('name');
+-        $paymentAccounts   = $cashBankAccounts->sortBy('name');
+-        $advanceAccounts   = $accounts
+-            ->filter(fn ($a) => stripos($a->name, 'advance') !== false)
+-            ->sortBy('name');
+-
+-        // Total unreconciled advance for this PO
+-        $totalAdvance = 0.0;
+-        if ($this->invoice->purchase_order_id) {
+-            $released  = (float) \App\Models\PurchaseFund::query()
+-                ->where('purchase_order_id', $this->invoice->purchase_order_id)
+-                ->whereNotNull('transaction_id')
+-                ->sum('amount');
+-            $adjusted  = (float) \App\Models\PurchaseInvoice::query()
+-                ->where('purchase_order_id', $this->invoice->purchase_order_id)
+-                ->where('id', '!=', $this->invoice->id)
+-                ->whereNotNull('transaction_id')
+-                ->sum('advance_adjusted_amount');
+-            $totalAdvance = round(max(0, $released - $adjusted), 2);
++        // Refresh advance fund lines every render so remaining balances are live
++        if ($this->invoice->purchase_order_id && $this->invoice->status->isEditable()) {
++            $this->syncAdvanceFundLines();
+         }
+ 
+         return view('livewire.admin.inventory.purchase-invoice.purchase-invoice-approval-form', [
+-            'inventoryAccounts' => $inventoryAccounts,
+-            'payableAccounts'   => $payableAccounts,
+-            'paymentAccounts'   => $paymentAccounts,
+-            'advanceAccounts'   => $advanceAccounts,
++            'inventoryAccounts' => $ledgerAccounts,
++            'payableAccounts'   => $ledgerAccounts,
++            'paymentAccounts'   => $cashBankAccounts,
+             'paymentMethods'    => EntryMethod::cases(),
+             'isEditable'        => $this->invoice->status->isEditable(),
+             'isPosted'          => $this->invoice->status->isPosted(),
+-            'totalAvailableAdvance' => $totalAdvance,
+         ])->layout('layouts.admin.admin');
+     }
+ 
+@@ -208,8 +201,6 @@ private function populateFromInvoice(): void
+         $this->accounts_payable_account_id = $this->invoice->accounts_payable_account_id;
+         $this->payment_account_id          = $this->invoice->payment_account_id;
+         $this->payment_method              = (string) ($this->invoice->payment_method ?? '');
+-        $this->advance_adjusted_amount     = (float) ($this->invoice->advance_adjusted_amount ?? 0);
+-        $this->advance_account_id          = $this->invoice->advance_account_id;
+         $this->due_date                    = $this->invoice->due_date?->format('Y-m-d') ?? '';
+         $this->supplier_invoice_no         = (string) ($this->invoice->supplier_invoice_no ?? '');
+         $this->remarks                     = (string) ($this->invoice->remarks ?? '');
+@@ -225,9 +216,47 @@ private function populateFromInvoice(): void
+             'remarks'         => (string) ($item->remarks ?? ''),
+         ])->toArray();
+ 
++        $this->syncAdvanceFundLines();
+         $this->recalculate();
+     }
+ 
++    /**
++     * Load (or refresh) advanceFundLines from the PO's completed fund releases.
++     * Preserves any adjust_amount the user already typed.
++     */
++    private function syncAdvanceFundLines(): void
++    {
++        if (! $this->invoice->purchase_order_id) {
++            $this->advanceFundLines = [];
++            return;
++        }
++
++        $existing = collect($this->advanceFundLines)->keyBy('fund_id');
++
++        $funds = PurchaseFund::query()
++            ->where('purchase_order_id', $this->invoice->purchase_order_id)
++            ->where('status', 'completed')
++            ->whereNotNull('transaction_id')
++            ->with(['transactionCategory:id,name', 'transaction:id,debit,type'])
++            ->get();
++
++        $this->advanceFundLines = $funds->map(function ($fund) use ($existing) {
++            $remaining = $fund->transaction ? $fund->transaction->remainingAdvance() : 0.0;
++
++            // Preserve user-typed amount if already set; default to 0
++            $adjustAmount = (float) ($existing->get($fund->id)['adjust_amount'] ?? 0);
++            $adjustAmount = round(min($adjustAmount, $remaining), 3);
++
++            return [
++                'fund_id'       => $fund->id,
++                'category'      => $fund->transactionCategory?->name ?? '—',
++                'total_amount'  => (float) $fund->amount,
++                'remaining'     => round($remaining, 2),
++                'adjust_amount' => $adjustAmount,
++            ];
++        })->toArray();
++    }
++
+     private function recalculate(): void
+     {
+         $subtotal = 0.0;
+@@ -246,27 +275,32 @@ private function recalculate(): void
+         $total              = round(max(0, $subtotal - $this->discount_amount + $this->shipping_amount), 3);
+         $this->total_amount = $total;
+         $paid               = round(min(max(0, $this->paid_amount), $total), 3);
+-        $advance            = round(min(max(0, $this->advance_adjusted_amount), $total - $paid), 3);
+-        $this->due_amount   = round(max(0, $total - $paid - $advance), 3);
++        $totalAdvance       = round(array_sum(array_column($this->advanceFundLines, 'adjust_amount')), 3);
++        $this->due_amount   = round(max(0, $total - $paid - $totalAdvance), 3);
+     }
+ 
+     /** @return array<string, mixed> */
+     private function buildPayload(): array
+     {
+         return [
+-            'discount_amount'              => $this->discount_amount,
+-            'shipping_amount'              => $this->shipping_amount,
+-            'paid_amount'                  => $this->paid_amount,
+-            'inventory_account_id'         => $this->inventory_account_id,
+-            'accounts_payable_account_id'  => $this->accounts_payable_account_id,
+-            'payment_account_id'           => $this->payment_account_id,
+-            'payment_method'               => $this->payment_method ?: null,
+-            'advance_adjusted_amount'      => $this->advance_adjusted_amount,
+-            'advance_account_id'           => $this->advance_account_id,
+-            'due_date'                     => $this->due_date ?: null,
+-            'supplier_invoice_no'          => $this->supplier_invoice_no ?: null,
+-            'remarks'                      => $this->remarks ?: null,
+-            'items'                        => array_map(fn ($i) => [
++            'discount_amount'             => $this->discount_amount,
++            'shipping_amount'             => $this->shipping_amount,
++            'paid_amount'                 => $this->paid_amount,
++            'inventory_account_id'        => $this->inventory_account_id,
++            'accounts_payable_account_id' => $this->accounts_payable_account_id,
++            'payment_account_id'          => $this->payment_account_id,
++            'payment_method'              => $this->payment_method ?: null,
++            'due_date'                    => $this->due_date ?: null,
++            'supplier_invoice_no'         => $this->supplier_invoice_no ?: null,
++            'remarks'                     => $this->remarks ?: null,
++            'advance_adjustments'         => array_values(array_filter(
++                array_map(fn ($line) => [
++                    'fund_id' => $line['fund_id'],
++                    'amount'  => (float) $line['adjust_amount'],
++                ], $this->advanceFundLines),
++                fn ($line) => $line['amount'] > 0
++            )),
++            'items' => array_map(fn ($i) => [
+                 'id'              => $i['id'],
+                 'unit_price'      => $i['unit_price'],
+                 'discount_amount' => $i['discount_amount'],
+@@ -279,11 +313,12 @@ private function buildPayload(): array
+     private function draftRules(): array
+     {
+         return [
+-            'discount_amount'  => ['numeric', 'min:0'],
+-            'shipping_amount'  => ['numeric', 'min:0'],
+-            'paid_amount'      => ['numeric', 'min:0'],
+-            'items.*.unit_price'      => ['numeric', 'min:0'],
+-            'items.*.discount_amount' => ['numeric', 'min:0'],
++            'discount_amount'             => ['numeric', 'min:0'],
++            'shipping_amount'             => ['numeric', 'min:0'],
++            'paid_amount'                 => ['numeric', 'min:0'],
++            'items.*.unit_price'          => ['numeric', 'min:0'],
++            'items.*.discount_amount'     => ['numeric', 'min:0'],
++            'advanceFundLines.*.adjust_amount' => ['numeric', 'min:0'],
+         ];
+     }
+ 
+@@ -292,20 +327,18 @@ private function approvalRules(): array
+     {
+         $needsPayable = $this->due_amount > 0;
+         $needsPayment = $this->paid_amount > 0;
+-        $hasAdvance   = $this->advance_adjusted_amount > 0;
+ 
+         return [
+-            'discount_amount'             => ['numeric', 'min:0'],
+-            'shipping_amount'             => ['numeric', 'min:0'],
+-            'paid_amount'                 => ['numeric', 'min:0'],
+-            'advance_adjusted_amount'     => ['numeric', 'min:0'],
+-            'inventory_account_id'        => ['required', 'integer', 'exists:accounts,id'],
+-            'accounts_payable_account_id' => $needsPayable ? ['required', 'integer', 'exists:accounts,id'] : ['nullable'],
+-            'advance_account_id'          => $hasAdvance   ? ['required', 'integer', 'exists:accounts,id'] : ['nullable'],
+-            'payment_account_id'          => $needsPayment ? ['required', 'integer', 'exists:accounts,id'] : ['nullable'],
+-            'payment_method'              => $needsPayment ? ['required', 'string'] : ['nullable'],
+-            'items.*.unit_price'          => ['numeric', 'min:0'],
+-            'items.*.discount_amount'     => ['numeric', 'min:0'],
++            'discount_amount'                  => ['numeric', 'min:0'],
++            'shipping_amount'                  => ['numeric', 'min:0'],
++            'paid_amount'                      => ['numeric', 'min:0'],
++            'inventory_account_id'             => ['required', 'integer', 'exists:accounts,id'],
++            'accounts_payable_account_id'      => $needsPayable ? ['required', 'integer', 'exists:accounts,id'] : ['nullable'],
++            'payment_account_id'               => $needsPayment ? ['required', 'integer', 'exists:accounts,id'] : ['nullable'],
++            'payment_method'                   => $needsPayment ? ['required', 'string'] : ['nullable'],
++            'advanceFundLines.*.adjust_amount' => ['numeric', 'min:0'],
++            'items.*.unit_price'               => ['numeric', 'min:0'],
++            'items.*.discount_amount'          => ['numeric', 'min:0'],
+         ];
+     }
+ }
+diff --git a/app/Models/Transaction.php b/app/Models/Transaction.php
+index 0ba7da0..66c6d08 100644
+--- a/app/Models/Transaction.php
++++ b/app/Models/Transaction.php
+@@ -2,6 +2,7 @@
+ 
+ namespace App\Models;
+ 
++use App\Enums\Accounts\TransactionRelationType;
+ use App\Enums\Accounts\TransactionType;
+ use Illuminate\Database\Eloquent\Builder;
+ use Illuminate\Database\Eloquent\Factories\HasFactory;
+@@ -27,6 +28,8 @@ class Transaction extends Model
+         'adjusted_at',
+         'adjusted_by',
+         'adjusted_transaction_id',
++        'related_transaction_id',
++        'relation_type',
+         'created_by',
+         'reference_no',
+         'name',
+@@ -39,9 +42,10 @@ class Transaction extends Model
+         'datetime'    => 'datetime',
+         'adjusted_at' => 'datetime',
+         'type'        => TransactionType::class,
+-        'debit'       => 'decimal:3',
+-        'credit'      => 'decimal:3',
+-        'attachments' => 'array',
++        'debit'         => 'decimal:3',
++        'credit'        => 'decimal:3',
++        'attachments'   => 'array',
++        'relation_type' => TransactionRelationType::class,
+     ];
+ 
+     // ── Relationships ────────────────────────────────────────────────────────
+@@ -86,6 +90,18 @@ public function reference()
+         return $this->morphTo();
+     }
+ 
++    /** The parent transaction this one was created in relation to. */
++    public function relatedTo(): BelongsTo
++    {
++        return $this->belongsTo(Transaction::class, 'related_transaction_id');
++    }
++
++    /** Child transactions created in relation to this one (e.g. advance-clear, payable). */
++    public function relatedTransactions(): HasMany
++    {
++        return $this->hasMany(Transaction::class, 'related_transaction_id');
++    }
++
+     /** Advance adjustments where this transaction is the source advance. */
+     public function advanceAdjustmentsGiven(): HasMany
+     {
+diff --git a/app/Services/Inventory/FundReleaseService.php b/app/Services/Inventory/FundReleaseService.php
+index 0c3ae3a..305e5be 100644
+--- a/app/Services/Inventory/FundReleaseService.php
++++ b/app/Services/Inventory/FundReleaseService.php
+@@ -2,7 +2,9 @@
+ 
+ namespace App\Services\Inventory;
+ 
++use App\Enums\Accounts\TransactionRelationType;
+ use App\Enums\Accounts\TransactionType;
++use App\Models\Account;
+ use App\Models\BankAccount;
+ use App\Models\BankingPaymentRequest;
+ use App\Models\Employee;
+@@ -191,40 +193,69 @@ public function completeRelease(BankingPaymentRequest $bankingRequest, int $user
+                 ->firstOrFail();
+ 
+             $bankAccount = BankAccount::query()->findOrFail($bankingRequest->bank_account_id);
+-            $accountId   = (int) $bankAccount->account_id;
++            $cashAccountId = (int) $bankAccount->account_id;
+ 
+             $po           = $fund->purchaseOrder;
+             $receiverName = $this->resolveReceiverName($fund->payto, (int) $fund->receiver_id, $po);
+ 
++            $advanceAccount = $this->resolveAdvanceAccount();
++
++            $datetime   = $fund->release_date->format('Y-m-d') . ' 00:00:00';
++            $amount     = (float) $fund->amount;
++            $categoryId = $bankingRequest->transaction_category_id ?? $fund->transaction_category_id;
++            $notes      = $fund->remarks ?? ('Fund release – PO# ' . $po->po_no);
++
+             // ------------------------------------------------------------------
+-            // Create single Transaction row (money leaves the source account)
++            // TXN-CASH: money leaves cash/bank (credit = outflow from the account)
+             // ------------------------------------------------------------------
+-            $transaction = Transaction::query()->create([
+-                'account_id'              => $accountId,
+-                'datetime'                => $fund->release_date->format('Y-m-d') . ' 00:00:00',
++            $txnCash = Transaction::query()->create([
++                'account_id'              => $cashAccountId,
++                'datetime'                => $datetime,
+                 'type'                    => TransactionType::ADVANCE->value,
+-                'transaction_category_id' => $bankingRequest->transaction_category_id ?? $fund->transaction_category_id,
++                'transaction_category_id' => $categoryId,
+                 'reference_type'          => 'purchase_order',
+                 'reference_id'            => (int) $po->id,
+-                'debit'                   => (float) $fund->amount,
+-                'credit'                  => 0,
++                'debit'                   => 0,
++                'credit'                  => $amount,
+                 'name'                    => $receiverName,
+                 'method'                  => $fund->method,
+-                'notes'                   => $fund->remarks ?? ('Fund release – PO# ' . $po->po_no),
++                'notes'                   => $notes,
+                 'reference_no'            => $bankingRequest->reference_no ?: null,
+                 'attachments'             => $bankingRequest->attachments ?: null,
+                 'created_by'              => $userId,
+             ]);
+ 
+-            // Update PurchaseFund → completed
++            // ------------------------------------------------------------------
++            // TXN-ADVANCE: advance receivable created (debit = money owed back)
++            // PurchaseFund.transaction_id points here so remainingAdvance() works.
++            // ------------------------------------------------------------------
++            $txnAdvance = Transaction::query()->create([
++                'account_id'              => $advanceAccount->id,
++                'datetime'                => $datetime,
++                'type'                    => TransactionType::ADVANCE->value,
++                'transaction_category_id' => $categoryId,
++                'reference_type'          => 'purchase_order',
++                'reference_id'            => (int) $po->id,
++                'debit'                   => $amount,
++                'credit'                  => 0,
++                'name'                    => $receiverName,
++                'method'                  => $fund->method,
++                'notes'                   => $notes,
++                'reference_no'            => $bankingRequest->reference_no ?: null,
++                'related_transaction_id'  => $txnCash->id,
++                'relation_type'           => TransactionRelationType::PAIR->value,
++                'created_by'              => $userId,
++            ]);
++
++            // Update PurchaseFund → completed, linked to the advance transaction
+             $fund->update([
+-                'transaction_id' => $transaction->id,
++                'transaction_id' => $txnAdvance->id,
+                 'status'         => 'completed',
+             ]);
+ 
+-            // Update BankingPaymentRequest → completed
++            // Update BankingPaymentRequest → completed (link to the cash outflow transaction)
+             $bankingRequest->update([
+-                'transaction_id' => $transaction->id,
++                'transaction_id' => $txnCash->id,
+                 'status'         => 'completed',
+                 'completed_by'   => $userId,
+                 'completed_at'   => now(),
+@@ -257,6 +288,21 @@ public function unreconciled(PurchaseOrder $po): float
+     // Private helpers
+     // -------------------------------------------------------------------------
+ 
++    private function resolveAdvanceAccount(): Account
++    {
++        $account = Account::query()
++            ->whereRaw('LOWER(name) = ?', ['advance'])
++            ->first();
++
++        if (! $account) {
++            throw new \DomainException(
++                'Advance account not found. Please create a ledger account named "Advance" in the chart of accounts.'
++            );
++        }
++
++        return $account;
++    }
++
+     private function resolveReceiverName(string $payeeType, int $receiverId, PurchaseOrder $po): ?string
+     {
+         if ($receiverId <= 0) {
+diff --git a/app/Services/Inventory/PurchaseInvoiceService.php b/app/Services/Inventory/PurchaseInvoiceService.php
+index 3be6de1..e9c7781 100644
+--- a/app/Services/Inventory/PurchaseInvoiceService.php
++++ b/app/Services/Inventory/PurchaseInvoiceService.php
+@@ -2,12 +2,14 @@
+ 
+ namespace App\Services\Inventory;
+ 
+-use App\Enums\Accounts\PurchasePayableStatus;
++use App\Enums\Accounts\EntryMethod;
++use App\Enums\Accounts\TransactionRelationType;
+ use App\Enums\Accounts\TransactionType;
+ use App\Enums\Inventory\PurchaseInvoiceStatus;
+-use App\Models\Payment;
++use App\Models\Account;
++use App\Models\AdvanceAdjustment;
++use App\Models\PurchaseFund;
+ use App\Models\PurchaseInvoice;
+-use App\Models\PurchasePayable;
+ use App\Models\StockReceive;
+ use App\Models\Transaction;
+ use App\Services\NumberSequenceService;
+@@ -185,35 +187,30 @@ public function updatePending(PurchaseInvoice $invoice, array $payload, ?int $us
+     // -------------------------------------------------------------------------
+ 
+     /**
+-     * Approve a PENDING invoice.  Creates the journal entry, payable (if any due),
+-     * and initial payment record (if paid_amount > 0), then flips the status.
++     * Approve a PENDING invoice using single-entry transactions.
+      *
+-     * Accounting rules:
+-     *   Case 1 — no payment:
+-     *       DR inventory_account_id     [total]
+-     *       CR accounts_payable_account [total]
++     * Transactions created:
++     *   TXN-PURCHASE : DR inventory_account          [total]         (primary)
++     *   TXN-ADV-CLEAR: CR advance_account            [per-fund amt]  (one per fund, linked)
++     *   TXN-PAYMENT  : CR payment_account            [paid]          (if paid_amount > 0)
++     *   TXN-PAYABLE  : CR accounts_payable_account   [due]           (if due > 0)
+      *
+-     *   Case 2 — partial payment:
+-     *       DR inventory_account_id     [total]
+-     *       CR accounts_payable_account [due]
+-     *       CR payment_account_id       [paid]
+-     *
+-     *   Case 3 — full payment:
+-     *       DR inventory_account_id     [total]
+-     *       CR payment_account_id       [total]
++     * advance_adjustments rows are created to link each TXN-ADV-CLEAR
++     * back to its original PurchaseFund advance transaction.
+      *
+      * @param  array{
+-     *   inventory_account_id:int,
+-     *   accounts_payable_account_id?:int|null,
+-     *   payment_account_id?:int|null,
+-     *   payment_method?:string|null,
+-     *   discount_amount?:float|null,
+-     *   shipping_amount?:float|null,
+-     *   paid_amount?:float|null,
+-     *   due_date?:string|null,
+-     *   supplier_invoice_no?:string|null,
+-     *   remarks?:string|null,
+-     *   items?:array<int, array{id:int, unit_price:float, discount_amount?:float, remarks?:string|null}>
++     *   inventory_account_id: int,
++     *   accounts_payable_account_id?: int|null,
++     *   payment_account_id?: int|null,
++     *   payment_method?: string|null,
++     *   discount_amount?: float|null,
++     *   shipping_amount?: float|null,
++     *   paid_amount?: float|null,
++     *   due_date?: string|null,
++     *   supplier_invoice_no?: string|null,
++     *   remarks?: string|null,
++     *   advance_adjustments?: array<int, array{fund_id: int, amount: float}>,
++     *   items?: array<int, array{id:int, unit_price:float, discount_amount?:float, remarks?:string|null}>
+      * }  $payload
+      */
+     public function approve(PurchaseInvoice $invoice, array $payload, ?int $userId = null): PurchaseInvoice
+@@ -231,7 +228,7 @@ public function approve(PurchaseInvoice $invoice, array $payload, ?int $userId =
+             }
+ 
+             // ------------------------------------------------------------------
+-            // 1. Update line items if provided (same logic as updatePending)
++            // 1. Update line items if provided
+             // ------------------------------------------------------------------
+             foreach ($payload['items'] ?? [] as $row) {
+                 $item = $locked->items->firstWhere('id', (int) ($row['id'] ?? 0));
+@@ -256,35 +253,37 @@ public function approve(PurchaseInvoice $invoice, array $payload, ?int $userId =
+             // ------------------------------------------------------------------
+             // 2. Compute final totals
+             // ------------------------------------------------------------------
+-            $subtotal  = round((float) $locked->items->sum('total_amount'), 3);
+-            $discount  = round(max(0, (float) ($payload['discount_amount'] ?? $locked->discount_amount)), 3);
+-            $shipping  = round(max(0, (float) ($payload['shipping_amount'] ?? $locked->shipping_amount)), 3);
+-            $total     = round(max(0, $subtotal - $discount + $shipping), 3);
++            $subtotal = round((float) $locked->items->sum('total_amount'), 3);
++            $discount = round(max(0, (float) ($payload['discount_amount'] ?? $locked->discount_amount)), 3);
++            $shipping = round(max(0, (float) ($payload['shipping_amount'] ?? $locked->shipping_amount)), 3);
++            $total    = round(max(0, $subtotal - $discount + $shipping), 3);
+ 
+             if ($total <= 0) {
+                 throw new \DomainException('Invoice total must be greater than zero before approval.');
+             }
+ 
+-            $paid = round(max(0, min((float) ($payload['paid_amount'] ?? $locked->paid_amount), $total)), 3);
++            $paid          = round(max(0, min((float) ($payload['paid_amount'] ?? $locked->paid_amount), $total)), 3);
++            $paymentMethod = (string) ($payload['payment_method'] ?? $locked->payment_method ?? '');
+ 
+-            // Advance adjustment: how much of a pre-released advance offsets this invoice
+-            $advanceAdjusted  = round(max(0, (float) ($payload['advance_adjusted_amount'] ?? $locked->advance_adjusted_amount ?? 0)), 3);
+-            $advanceAdjusted  = round(min($advanceAdjusted, $total - $paid), 3); // can't exceed remaining
+-            $advanceAccountId = (int) ($payload['advance_account_id'] ?? $locked->advance_account_id ?? 0);
++            // ------------------------------------------------------------------
++            // 3. Validate and resolve advance adjustment lines
++            // ------------------------------------------------------------------
++            $advanceLines     = $this->resolveAdvanceAdjustments($payload['advance_adjustments'] ?? []);
++            $totalAdvance     = round(array_sum(array_column($advanceLines, 'amount')), 3);
++            $advanceAccountId = $totalAdvance > 0 ? $this->resolveAdvanceAccountId() : 0;
+ 
+-            if ($advanceAdjusted > 0 && $advanceAccountId <= 0) {
+-                throw new \DomainException('Advance account is required when adjusting an advance amount.');
++            if ($totalAdvance > round($total - $paid, 3)) {
++                throw new \DomainException('Total advance adjustment exceeds the invoice amount minus direct payment.');
+             }
+ 
+-            $due = round(max(0, $total - $paid - $advanceAdjusted), 3);
++            $due = round(max(0, $total - $paid - $totalAdvance), 3);
+ 
+             // ------------------------------------------------------------------
+-            // 3. Validate required accounts
++            // 4. Validate required accounts
+             // ------------------------------------------------------------------
+             $inventoryAccountId = (int) ($payload['inventory_account_id'] ?? $locked->inventory_account_id ?? 0);
+             $payableAccountId   = (int) ($payload['accounts_payable_account_id'] ?? $locked->accounts_payable_account_id ?? 0);
+             $paymentAccountId   = (int) ($payload['payment_account_id'] ?? $locked->payment_account_id ?? 0);
+-            $paymentMethod      = (string) ($payload['payment_method'] ?? $locked->payment_method ?? '');
+ 
+             if ($inventoryAccountId <= 0) {
+                 throw new \DomainException('Inventory / expense account is required.');
+@@ -299,139 +298,118 @@ public function approve(PurchaseInvoice $invoice, array $payload, ?int $userId =
+                 throw new \DomainException('Payment method is required when a payment is made.');
+             }
+ 
+-            // ------------------------------------------------------------------
+-            // 4. Build journal entry lines
+-            //
+-            //  Case A (no advance):  DR Inventory / CR AP + CR Cash
+-            //  Case B (advance):     DR Inventory / CR AP + CR Advance + CR Cash
+-            //  Case C (full advance): DR Inventory / CR Advance
+-            // ------------------------------------------------------------------
+-            $lines = [
+-                [
+-                    'account_id'  => $inventoryAccountId,
+-                    'debit'       => $total,
+-                    'credit'      => 0,
+-                    'description' => 'Inventory / expense – ' . $locked->invoice_no,
+-                ],
+-            ];
+-
+-            if ($due > 0) {
+-                $lines[] = [
+-                    'account_id'  => $payableAccountId,
+-                    'debit'       => 0,
+-                    'credit'      => $due,
+-                    'description' => 'Accounts payable – ' . $locked->invoice_no,
+-                ];
+-            }
+-
+-            if ($advanceAdjusted > 0) {
+-                $lines[] = [
+-                    'account_id'  => $advanceAccountId,
+-                    'debit'       => 0,
+-                    'credit'      => $advanceAdjusted,
+-                    'description' => 'Advance adjustment – ' . $locked->invoice_no,
+-                ];
+-            }
+-
+-            if ($paid > 0) {
+-                $lines[] = [
+-                    'account_id'  => $paymentAccountId,
+-                    'debit'       => 0,
+-                    'credit'      => $paid,
+-                    'description' => 'Initial payment – ' . $locked->invoice_no,
+-                ];
+-            }
++            $datetime = $locked->invoice_date->format('Y-m-d') . ' 00:00:00';
++            $notes    = 'Purchase Invoice #' . $locked->invoice_no;
+ 
+             // ------------------------------------------------------------------
+-            // 5. Post the journal transaction
++            // 5. TXN-PURCHASE — DR Inventory (primary transaction)
+             // ------------------------------------------------------------------
+-            $transaction = Transaction::query()->create([
+-                'date'           => $locked->invoice_date,
++            $txnPurchase = Transaction::query()->create([
++                'account_id'     => $inventoryAccountId,
++                'datetime'       => $datetime,
+                 'type'           => TransactionType::PURCHASE_INVOICE->value,
+                 'reference_type' => 'purchase_invoice',
+                 'reference_id'   => (int) $locked->id,
+-                'notes'          => 'Purchase Invoice #' . $locked->invoice_no,
++                'debit'          => $total,
++                'credit'         => 0,
++                'notes'          => $notes,
++                'method'         => $paymentMethod ?: 'adjustment',
+                 'created_by'     => $actorId,
+             ]);
+ 
+-            $transaction->lines()->createMany($lines);
+-
+             // ------------------------------------------------------------------
+-            // 6. Create PurchasePayable when there is an outstanding due amount
+-            //    payable_amount = amount credited to AP account (= due)
++            // 6. TXN-ADV-CLEAR — CR Advance (one per fund, linked to TXN-PURCHASE)
+             // ------------------------------------------------------------------
+-            $payable   = null;
+-            $payableId = null;
+-
+-            if ($due > 0) {
+-                $payable = PurchasePayable::query()->create([
+-                    'purchase_order_id'   => $locked->purchase_order_id,
+-                    'purchase_invoice_id' => (int) $locked->id,
+-                    'supplier_id'         => $locked->supplier_id,
+-                    'transaction_id'      => (int) $transaction->id,
+-                    'payable_amount'      => $due,
+-                    'paid_amount'         => 0,
+-                    'due_amount'          => $due,
+-                    'status'              => PurchasePayableStatus::UNPAID->value,
+-                    'notes'               => 'Invoice #' . $locked->invoice_no,
++            foreach ($advanceLines as $line) {
++                $txnAdvClear = Transaction::query()->create([
++                    'account_id'             => $advanceAccountId,
++                    'datetime'               => $datetime,
++                    'type'                   => TransactionType::ADJUSTMENT->value,
++                    'reference_type'         => 'purchase_invoice',
++                    'reference_id'           => (int) $locked->id,
++                    'debit'                  => 0,
++                    'credit'                 => $line['amount'],
++                    'notes'                  => 'Advance clear – ' . $notes,
++                    'related_transaction_id' => $txnPurchase->id,
++                    'relation_type'          => TransactionRelationType::ADVANCE_CLEAR->value,
++                    'created_by'             => $actorId,
+                 ]);
+ 
+-                $payableId = (int) $payable->id;
++                AdvanceAdjustment::query()->create([
++                    'advance_transaction_id' => $line['advance_transaction_id'],
++                    'adjust_transaction_id'  => $txnAdvClear->id,
++                    'amount'                 => $line['amount'],
++                    'notes'                  => $notes,
++                    'created_by'             => $actorId,
++                ]);
+             }
+ 
+             // ------------------------------------------------------------------
+-            // 7. Create Payment record for the initial payment
++            // 7. TXN-PAYMENT — CR Cash/Bank (if paid_amount > 0)
+             // ------------------------------------------------------------------
+-            $paymentRecord   = null;
+-            $paymentRecordId = null;
+-
+             if ($paid > 0) {
+-                $paymentRecord = Payment::query()->create([
+-                    'transaction_id'   => (int) $transaction->id,
+-                    'payment_no'       => $this->generatePaymentNo(),
+-                    'date'             => $locked->invoice_date,
+-                    'method'           => $paymentMethod,
+-                    'payment_account_id' => $paymentAccountId,
+-                    'purpose_account_id' => $due > 0 ? $payableAccountId : $inventoryAccountId,
+-                    'amount'           => $paid,
+-                    'reference_type'   => 'purchase_invoice',
+-                    'reference_id'     => (int) $locked->id,
+-                    'notes'            => 'Initial payment – Invoice #' . $locked->invoice_no,
+-                    'created_by'       => $actorId,
++                Transaction::query()->create([
++                    'account_id'             => $paymentAccountId,
++                    'datetime'               => $datetime,
++                    'type'                   => TransactionType::PURCHASE_INVOICE->value,
++                    'reference_type'         => 'purchase_invoice',
++                    'reference_id'           => (int) $locked->id,
++                    'debit'                  => 0,
++                    'credit'                 => $paid,
++                    'notes'                  => 'Direct payment – ' . $notes,
++                    'method'                 => $paymentMethod,
++                    'related_transaction_id' => $txnPurchase->id,
++                    'relation_type'          => TransactionRelationType::PAIR->value,
++                    'created_by'             => $actorId,
+                 ]);
++            }
+ 
+-                $paymentRecordId = (int) $paymentRecord->id;
++            // ------------------------------------------------------------------
++            // 8. TXN-PAYABLE — CR Accounts Payable (if due > 0)
++            // ------------------------------------------------------------------
++            if ($due > 0) {
++                Transaction::query()->create([
++                    'account_id'             => $payableAccountId,
++                    'datetime'               => $datetime,
++                    'type'                   => TransactionType::PURCHASE_INVOICE->value,
++                    'reference_type'         => 'purchase_invoice',
++                    'reference_id'           => (int) $locked->id,
++                    'debit'                  => 0,
++                    'credit'                 => $due,
++                    'notes'                  => 'Accounts payable – ' . $notes,
++                    'related_transaction_id' => $txnPurchase->id,
++                    'relation_type'          => TransactionRelationType::PAIR->value,
++                    'created_by'             => $actorId,
++                ]);
+             }
+ 
+             // ------------------------------------------------------------------
+-            // 8. Determine final invoice status
++            // 9. Determine final invoice status
+             // ------------------------------------------------------------------
+             $newStatus = match (true) {
+-                $due <= 0   => PurchaseInvoiceStatus::PAID,
+-                $paid > 0   => PurchaseInvoiceStatus::PARTIALLY_PAID,
+-                default     => PurchaseInvoiceStatus::APPROVED,
++                $due <= 0 => PurchaseInvoiceStatus::PAID,
++                $paid > 0 || $totalAdvance > 0 => PurchaseInvoiceStatus::PARTIALLY_PAID,
++                default   => PurchaseInvoiceStatus::APPROVED,
+             };
+ 
+             // ------------------------------------------------------------------
+-            // 9. Persist invoice
++            // 10. Persist invoice
+             // ------------------------------------------------------------------
+             $locked->update([
+                 'subtotal'                    => $subtotal,
+                 'discount_amount'             => $discount,
+                 'shipping_amount'             => $shipping,
+                 'total_amount'                => $total,
+-                'paid_amount'                 => $paid,
++                'paid_amount'                 => round($paid + $totalAdvance, 3),
+                 'due_amount'                  => $due,
+                 'status'                      => $newStatus->value,
+                 'inventory_account_id'        => $inventoryAccountId,
+                 'accounts_payable_account_id' => $payableAccountId ?: null,
+                 'payment_account_id'          => $paymentAccountId ?: null,
+                 'advance_account_id'          => $advanceAccountId ?: null,
+-                'advance_adjusted_amount'     => $advanceAdjusted,
++                'advance_adjusted_amount'     => $totalAdvance,
+                 'payment_method'              => $paymentMethod ?: null,
+-                'transaction_id'              => (int) $transaction->id,
+-                'purchase_payable_id'         => $payableId,
+-                'payment_id'                  => $paymentRecordId,
++                'transaction_id'              => $txnPurchase->id,
+                 'due_date'                    => $payload['due_date'] ?? $locked->due_date,
+                 'supplier_invoice_no'         => $payload['supplier_invoice_no'] ?? $locked->supplier_invoice_no,
+                 'remarks'                     => $payload['remarks'] ?? $locked->remarks,
+@@ -443,6 +421,76 @@ public function approve(PurchaseInvoice $invoice, array $payload, ?int $userId =
+         });
+     }
+ 
++    /**
++     * Validate advance adjustment lines and enrich with advance_transaction_id.
++     *
++     * @param  array<int, array{fund_id: int, amount: float}>  $lines
++     * @return array<int, array{fund_id: int, amount: float, advance_transaction_id: int}>
++     */
++    private function resolveAdvanceAdjustments(array $lines): array
++    {
++        $resolved = [];
++
++        foreach ($lines as $line) {
++            $fundId = (int) ($line['fund_id'] ?? 0);
++            $amount = round((float) ($line['amount'] ?? 0), 3);
++
++            if ($amount <= 0 || $fundId <= 0) {
++                continue;
++            }
++
++            $fund = PurchaseFund::query()
++                ->where('id', $fundId)
++                ->where('status', 'completed')
++                ->whereNotNull('transaction_id')
++                ->first();
++
++            if (! $fund) {
++                throw new \DomainException("Advance fund #{$fundId} not found or not yet released.");
++            }
++
++            $advanceTxn = Transaction::query()->find($fund->transaction_id);
++
++            if (! $advanceTxn) {
++                throw new \DomainException("Advance transaction for fund #{$fundId} not found.");
++            }
++
++            $remaining = $advanceTxn->remainingAdvance();
++
++            if ($amount > round($remaining, 3)) {
++                throw new \DomainException(sprintf(
++                    'Adjustment amount %s for fund #%d exceeds remaining advance of %s.',
++                    number_format($amount, 2),
++                    $fundId,
++                    number_format($remaining, 2)
++                ));
++            }
++
++            $resolved[] = [
++                'fund_id'                => $fundId,
++                'amount'                 => $amount,
++                'advance_transaction_id' => (int) $fund->transaction_id,
++            ];
++        }
++
++        return $resolved;
++    }
++
++    private function resolveAdvanceAccountId(): int
++    {
++        $account = Account::query()
++            ->whereRaw('LOWER(name) = ?', ['advance'])
++            ->value('id');
++
++        if (! $account) {
++            throw new \DomainException(
++                'Advance account not found. Please create a ledger account named "Advance" in the chart of accounts.'
++            );
++        }
++
++        return (int) $account;
++    }
++
+     // -------------------------------------------------------------------------
+     // Cancel
+     // -------------------------------------------------------------------------
+@@ -482,6 +530,10 @@ public function cancelInvoice(PurchaseInvoice $invoice, ?int $userId = null, ?st
+      * Totals:
+      *   invoice.paid_amount = initial_payment_at_approval + sum(payable.paid_amount)
+      */
++    /**
++     * Re-sync invoice paid_amount and status after additional payments
++     * have been posted against this invoice's reference transactions.
++     */
+     public function syncPaymentStatus(PurchaseInvoice $invoice): void
+     {
+         $locked = PurchaseInvoice::query()->lockForUpdate()->findOrFail($invoice->id);
+@@ -490,23 +542,14 @@ public function syncPaymentStatus(PurchaseInvoice $invoice): void
+             return;
+         }
+ 
+-        // Initial payment made at approval time
+-        $initialPaid = 0.0;
+-        if ($locked->payment_id) {
+-            $initialPaid = (float) Payment::query()
+-                ->where('id', $locked->payment_id)
+-                ->value('amount');
+-        }
+-
+-        // Subsequent payments recorded against the payable
+-        $subsequentPaid = 0.0;
+-        if ($locked->purchase_payable_id) {
+-            $subsequentPaid = (float) PurchasePayable::query()
+-                ->where('id', $locked->purchase_payable_id)
+-                ->value('paid_amount');
+-        }
++        // Sum all CR transactions posted against this invoice (payment + advance clear)
++        $totalCredited = (float) Transaction::query()
++            ->where('reference_type', 'purchase_invoice')
++            ->where('reference_id', $locked->id)
++            ->where('credit', '>', 0)
++            ->sum('credit');
+ 
+-        $locked->paid_amount = round($initialPaid + $subsequentPaid, 3);
++        $locked->paid_amount = round($totalCredited, 3);
+         $locked->recalculatePaymentStatus();
+         $locked->save();
+     }
+diff --git a/database/migrations/2026_05_22_000001_alter_transactions_add_relation_fields.php b/database/migrations/2026_05_22_000001_alter_transactions_add_relation_fields.php
+new file mode 100644
+index 0000000..76a4583
+--- /dev/null
++++ b/database/migrations/2026_05_22_000001_alter_transactions_add_relation_fields.php
+@@ -0,0 +1,38 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::table('transactions', function (Blueprint $table): void {
++            if (! Schema::hasColumn('transactions', 'related_transaction_id')) {
++                $table->unsignedBigInteger('related_transaction_id')->nullable()->after('adjusted_transaction_id');
++                $table->foreign('related_transaction_id')
++                    ->references('id')
++                    ->on('transactions')
++                    ->nullOnDelete();
++            }
++
++            if (! Schema::hasColumn('transactions', 'relation_type')) {
++                $table->string('relation_type', 30)->nullable()->after('related_transaction_id');
++            }
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::table('transactions', function (Blueprint $table): void {
++            if (Schema::hasColumn('transactions', 'relation_type')) {
++                $table->dropColumn('relation_type');
++            }
++            if (Schema::hasColumn('transactions', 'related_transaction_id')) {
++                $table->dropForeign(['related_transaction_id']);
++                $table->dropColumn('related_transaction_id');
++            }
++        });
++    }
++};
+diff --git a/database/migrations/2026_05_22_000002_alter_purchase_invoices_add_missing_columns.php b/database/migrations/2026_05_22_000002_alter_purchase_invoices_add_missing_columns.php
+new file mode 100644
+index 0000000..c4aa1e2
+--- /dev/null
++++ b/database/migrations/2026_05_22_000002_alter_purchase_invoices_add_missing_columns.php
+@@ -0,0 +1,62 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::table('purchase_invoices', function (Blueprint $table): void {
++            if (! Schema::hasColumn('purchase_invoices', 'accounts_payable_account_id')) {
++                $table->unsignedBigInteger('accounts_payable_account_id')->nullable()->after('inventory_account_id');
++                $table->foreign('accounts_payable_account_id')
++                    ->references('id')->on('accounts')->nullOnDelete();
++            }
++
++            if (! Schema::hasColumn('purchase_invoices', 'advance_account_id')) {
++                $table->unsignedBigInteger('advance_account_id')->nullable()->after('accounts_payable_account_id');
++                $table->foreign('advance_account_id')
++                    ->references('id')->on('accounts')->nullOnDelete();
++            }
++
++            if (! Schema::hasColumn('purchase_invoices', 'payment_account_id')) {
++                $table->unsignedBigInteger('payment_account_id')->nullable()->after('advance_account_id');
++                $table->foreign('payment_account_id')
++                    ->references('id')->on('accounts')->nullOnDelete();
++            }
++
++            if (! Schema::hasColumn('purchase_invoices', 'payment_method')) {
++                $table->string('payment_method', 30)->nullable()->after('payment_account_id');
++            }
++
++            if (! Schema::hasColumn('purchase_invoices', 'purchase_payable_id')) {
++                $table->unsignedBigInteger('purchase_payable_id')->nullable()->after('payment_method');
++            }
++
++            if (! Schema::hasColumn('purchase_invoices', 'payment_id')) {
++                $table->unsignedBigInteger('payment_id')->nullable()->after('purchase_payable_id');
++            }
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::table('purchase_invoices', function (Blueprint $table): void {
++            $fks = ['accounts_payable_account_id', 'advance_account_id', 'payment_account_id'];
++            foreach ($fks as $col) {
++                if (Schema::hasColumn('purchase_invoices', $col)) {
++                    $table->dropForeign([$col]);
++                    $table->dropColumn($col);
++                }
++            }
++
++            foreach (['payment_method', 'purchase_payable_id', 'payment_id'] as $col) {
++                if (Schema::hasColumn('purchase_invoices', $col)) {
++                    $table->dropColumn($col);
++                }
++            }
++        });
++    }
++};
+diff --git a/database/seeders/AssignPermissionSeeder.php b/database/seeders/AssignPermissionSeeder.php
+index 12ca46d..ba35db9 100644
+--- a/database/seeders/AssignPermissionSeeder.php
++++ b/database/seeders/AssignPermissionSeeder.php
+@@ -75,6 +75,11 @@ public function run(): void
+                 'inventory.purchase_return.update',
+                 'inventory.purchase_return.post',
+                 'inventory.purchase_return.delete',
++                'inventory.purchase_invoice.view',
++                'inventory.purchase_invoice.approve',
++                'inventory.purchase_invoice.cancel',
++                'inventory.purchase_invoice.delete',
++                'accounts.advance.refund',
+                 'inventory.stock_request.view',
+                 'inventory.stock_request.create',
+                 'inventory.stock_request.update',
+@@ -202,6 +207,10 @@ public function run(): void
+                 'inventory.purchase_order.complete',
+                 'inventory.purchase_return.view',
+                 'inventory.purchase_return.post',
++                'inventory.purchase_invoice.view',
++                'inventory.purchase_invoice.approve',
++                'inventory.purchase_invoice.cancel',
++                'accounts.advance.refund',
+                 'inventory.stock_request.view',
+                 'section.general.access',
+                 'module.accounts.access',
+diff --git a/database/seeders/PermissionSeeder.php b/database/seeders/PermissionSeeder.php
+index b58aa0e..42a353d 100644
+--- a/database/seeders/PermissionSeeder.php
++++ b/database/seeders/PermissionSeeder.php
+@@ -287,6 +287,15 @@ public function run(): void
+             ['id' => 222, 'name' => 'property_sale.create'],
+             ['id' => 223, 'name' => 'property_sale.edit'],
+             ['id' => 224, 'name' => 'property_sale.delete'],
++
++            // Purchase Invoice
++            ['id' => 225, 'name' => 'inventory.purchase_invoice.view'],
++            ['id' => 226, 'name' => 'inventory.purchase_invoice.approve'],
++            ['id' => 227, 'name' => 'inventory.purchase_invoice.cancel'],
++            ['id' => 228, 'name' => 'inventory.purchase_invoice.delete'],
++
++            // Advance Refund
++            ['id' => 229, 'name' => 'accounts.advance.refund'],
+         ];
+ 
+         foreach ($permissions as $permission) {
+diff --git a/resources/views/layouts/admin/partials/sidebar.blade.php b/resources/views/layouts/admin/partials/sidebar.blade.php
+index 272b5e1..a1af0ce 100644
+--- a/resources/views/layouts/admin/partials/sidebar.blade.php
++++ b/resources/views/layouts/admin/partials/sidebar.blade.php
+@@ -652,6 +652,11 @@ class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800
+                                         'route' => 'admin.accounts.transactions.index',
+                                         'permission' => 'accounts.transaction.list',
+                                     ],
++                                    [
++                                        'label' => 'Advance Refund',
++                                        'route' => 'admin.accounts.advance-refund',
++                                        'permission' => 'accounts.advance.refund',
++                                    ],
+                                 ];
+ 
+                                 $accountsReportRoutes = [
+@@ -830,6 +835,11 @@ class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800
+                                         'route' => 'admin.inventory.purchase-orders.index',
+                                         'permission' => 'inventory.purchase_order.view',
+                                     ],
++                                    [
++                                        'label' => 'Purchase Invoices',
++                                        'route' => 'admin.inventory.purchase-invoices.index',
++                                        'permission' => 'inventory.purchase_invoice.view',
++                                    ],
+                                     [
+                                         'label' => 'Stock Receive',
+                                         'route' => 'admin.inventory.stock-receives.index',
+diff --git a/resources/views/livewire/admin/accounts/advance-refund-form.blade.php b/resources/views/livewire/admin/accounts/advance-refund-form.blade.php
+new file mode 100644
+index 0000000..a760aed
+--- /dev/null
++++ b/resources/views/livewire/admin/accounts/advance-refund-form.blade.php
+@@ -0,0 +1,140 @@
++<div x-data x-init="$store.pageName = { name: 'Advance Refund', slug: 'advance-refund' }">
++
++    {{-- Breadcrumb --}}
++    <div class="flex flex-wrap items-center justify-between gap-4">
++        <nav>
++            <ol class="flex items-center gap-1.5 text-sm text-gray-500">
++                <li><a href="{{ route('admin.dashboard') }}" class="hover:text-gray-800">Dashboard</a></li>
++                <li>/</li>
++                <li><a href="{{ route('admin.accounts.transactions.index') }}" class="hover:text-gray-800">Transactions</a></li>
++                <li>/</li>
++                <li class="text-gray-800">Advance Refund</li>
++            </ol>
++        </nav>
++    </div>
++
++    <div class="mt-6 mx-auto max-w-xl">
++        <div class="rounded-2xl border border-gray-200 bg-white px-6 py-6 shadow-sm">
++
++            <div class="mb-5">
++                <h2 class="text-base font-semibold text-gray-800">Return Unused Advance</h2>
++                <p class="mt-1 text-xs text-gray-500">
++                    Record cash returned by an employee or supplier against a previously released advance.
++                </p>
++            </div>
++
++            <div class="space-y-4">
++
++                {{-- Select Fund --}}
++                <div>
++                    <label class="block text-xs font-medium text-gray-600">
++                        Advance Fund <span class="text-red-500">*</span>
++                    </label>
++                    <select wire:model.live="fund_id"
++                        class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
++                        <option value="">— Select advance fund —</option>
++                        @foreach ($availableFunds as $fund)
++                            <option value="{{ $fund['id'] }}">{{ $fund['label'] }}</option>
++                        @endforeach
++                    </select>
++                    @error('fund_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
++                </div>
++
++                @if ($fund_id && $selectedFundRemaining > 0)
++                <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm">
++                    <span class="text-amber-700">Available to refund:</span>
++                    <span class="ml-2 font-semibold text-amber-900">{{ number_format($selectedFundRemaining, 2) }}</span>
++                </div>
++                @endif
++
++                {{-- Refund Amount --}}
++                <div>
++                    <label class="block text-xs font-medium text-gray-600">
++                        Refund Amount <span class="text-red-500">*</span>
++                    </label>
++                    <input type="number" step="0.01" min="0.01"
++                        max="{{ $selectedFundRemaining }}"
++                        wire:model.lazy="refund_amount"
++                        placeholder="0.00"
++                        class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-right text-sm focus:border-indigo-500 focus:outline-none">
++                    @error('refund_amount') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
++                </div>
++
++                {{-- Cash / Bank Account --}}
++                <div>
++                    <label class="block text-xs font-medium text-gray-600">
++                        DR — Cash / Bank Account <span class="text-red-500">*</span>
++                    </label>
++                    <p class="mt-0.5 text-xs text-gray-400">Where the returned cash is deposited.</p>
++                    <select wire:model.live="cash_account_id"
++                        class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
++                        <option value="">— Select account —</option>
++                        @foreach ($cashBankAccounts as $acc)
++                            <option value="{{ $acc->id }}">{{ $acc->name }}</option>
++                        @endforeach
++                    </select>
++                    @error('cash_account_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
++                </div>
++
++                {{-- Payment Method --}}
++                <div>
++                    <label class="block text-xs font-medium text-gray-600">
++                        Payment Method <span class="text-red-500">*</span>
++                    </label>
++                    <select wire:model.live="method"
++                        class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
++                        <option value="">— Select method —</option>
++                        @foreach ($paymentMethods as $m)
++                            <option value="{{ $m->value }}">{{ $m->label() }}</option>
++                        @endforeach
++                    </select>
++                    @error('method') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
++                </div>
++
++                {{-- Refund Date --}}
++                <div>
++                    <label class="block text-xs font-medium text-gray-600">
++                        Refund Date <span class="text-red-500">*</span>
++                    </label>
++                    <input type="date" wire:model.lazy="refund_date"
++                        class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
++                    @error('refund_date') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
++                </div>
++
++                {{-- Remarks --}}
++                <div>
++                    <label class="block text-xs font-medium text-gray-600">Remarks</label>
++                    <textarea wire:model.lazy="remarks" rows="2"
++                        class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
++                        placeholder="Optional notes…"></textarea>
++                    @error('remarks') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
++                </div>
++
++                {{-- Journal preview --}}
++                @if ($fund_id && $refund_amount > 0)
++                <div class="rounded-lg bg-gray-50 p-4 text-xs font-mono">
++                    <p class="mb-2 font-sans text-xs font-semibold text-gray-500">Journal Preview</p>
++                    <div class="space-y-1">
++                        <div class="flex justify-between">
++                            <span class="text-indigo-700">DR Cash / Bank</span>
++                            <span class="font-semibold">{{ number_format($refund_amount, 2) }}</span>
++                        </div>
++                        <div class="flex justify-between pl-4 text-amber-700">
++                            <span>CR Advance Account</span>
++                            <span>{{ number_format($refund_amount, 2) }}</span>
++                        </div>
++                    </div>
++                </div>
++                @endif
++
++                {{-- Submit --}}
++                <button type="button" wire:click="save"
++                    wire:confirm="Record this advance refund?"
++                    class="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700">
++                    Record Refund
++                </button>
++
++            </div>
++        </div>
++    </div>
++</div>
+diff --git a/resources/views/livewire/admin/inventory/purchase-invoice/purchase-invoice-approval-form.blade.php b/resources/views/livewire/admin/inventory/purchase-invoice/purchase-invoice-approval-form.blade.php
+index 58481b8..4195c2a 100644
+--- a/resources/views/livewire/admin/inventory/purchase-invoice/purchase-invoice-approval-form.blade.php
++++ b/resources/views/livewire/admin/inventory/purchase-invoice/purchase-invoice-approval-form.blade.php
+@@ -175,10 +175,11 @@ class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-right text-sm
+                         <dd>{{ number_format($paid_amount, 2) }}</dd>
+                     </div>
+                     @endif
+-                    @if ($advance_adjusted_amount > 0)
++                    @php $totalAdvanceApplied = collect($advanceFundLines)->sum('adjust_amount'); @endphp
++                    @if ($totalAdvanceApplied > 0)
+                     <div class="flex justify-between text-amber-600">
+                         <dt>Advance Applied</dt>
+-                        <dd>- {{ number_format($advance_adjusted_amount, 2) }}</dd>
++                        <dd>- {{ number_format($totalAdvanceApplied, 2) }}</dd>
+                     </div>
+                     @endif
+                     <div class="flex justify-between {{ $due_amount > 0 ? 'text-red-600' : 'text-gray-400' }} font-semibold">
+@@ -241,54 +242,45 @@ class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:bord
+                             @endif
+                         </div>
+ 
+-                        {{-- Advance Adjustment (shown when PO has unreconciled advances) --}}
+-                        @if ($totalAvailableAdvance > 0 || $advance_adjusted_amount > 0)
++                        {{-- Advance Adjustment — per-fund lines --}}
++                        @if (count($advanceFundLines) > 0)
+                         <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                             <div class="flex items-start justify-between">
+-                                <div>
+-                                    <p class="text-xs font-semibold text-amber-800">Pre-Released Advance</p>
+-                                    <p class="mt-0.5 text-xs text-amber-600">
+-                                        Available: <strong>{{ number_format($totalAvailableAdvance, 2) }}</strong>
+-                                    </p>
+-                                </div>
++                                <p class="text-xs font-semibold text-amber-800">Pre-Released Advances (PO)</p>
+                                 <span class="rounded-full bg-amber-200 px-2 py-0.5 text-xs font-bold text-amber-800">ADVANCE</span>
+                             </div>
+ 
+-                            @if ($isEditable)
+-                                <div class="mt-3 space-y-3">
+-                                    <div>
+-                                        <label class="block text-xs font-medium text-amber-800">
+-                                            Adjust Advance Against This Invoice
+-                                        </label>
+-                                        <input type="number" step="0.01" min="0" max="{{ $totalAvailableAdvance }}"
+-                                            wire:model.lazy="advance_adjusted_amount"
+-                                            placeholder="0.00"
+-                                            class="mt-1 h-9 w-full rounded-lg border border-amber-300 bg-white px-3 text-right text-sm focus:border-amber-500 focus:outline-none">
+-                                        @error('advance_adjusted_amount') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
++                            <div class="mt-3 space-y-3">
++                                @foreach ($advanceFundLines as $index => $line)
++                                <div class="rounded border border-amber-100 bg-white p-3">
++                                    <div class="flex items-center justify-between">
++                                        <span class="text-xs font-medium text-amber-900">{{ $line['category'] }}</span>
++                                        <span class="text-xs text-amber-600">Remaining: <strong>{{ number_format($line['remaining'], 2) }}</strong></span>
+                                     </div>
+-
+-                                    @if ($advance_adjusted_amount > 0)
+-                                        <div>
+-                                            <label class="block text-xs font-medium text-amber-800">
+-                                                CR — Advance Account <span class="text-red-500">*</span>
+-                                            </label>
+-                                            <select wire:model.live="advance_account_id"
+-                                                class="mt-1 h-9 w-full rounded-lg border border-amber-300 bg-white px-3 text-sm focus:border-amber-500 focus:outline-none">
+-                                                <option value="">— Select advance account —</option>
+-                                                @foreach ($advanceAccounts as $acc)
+-                                                    <option value="{{ $acc->id }}">{{ $acc->code }} {{ $acc->name }}</option>
+-                                                @endforeach
+-                                            </select>
+-                                            @error('advance_account_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
++                                    @if ($isEditable)
++                                        <input type="number" step="0.01" min="0" max="{{ $line['remaining'] }}"
++                                            wire:model.lazy="advanceFundLines.{{ $index }}.adjust_amount"
++                                            placeholder="0.00"
++                                            class="mt-2 h-9 w-full rounded border border-amber-300 bg-white px-3 text-right text-sm focus:border-amber-500 focus:outline-none">
++                                        @error("advanceFundLines.{{ $index }}.adjust_amount")
++                                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
++                                        @enderror
++                                    @else
++                                        <div class="mt-2 flex justify-between text-sm">
++                                            <span class="text-amber-700">Adjusted</span>
++                                            <span class="font-semibold text-amber-900">{{ number_format($line['adjust_amount'], 2) }}</span>
+                                         </div>
+                                     @endif
+                                 </div>
+-                            @else
+-                                <div class="mt-2 flex justify-between text-sm">
+-                                    <span class="text-amber-700">Adjusted</span>
+-                                    <span class="font-semibold text-amber-900">{{ number_format($advance_adjusted_amount, 2) }}</span>
++                                @endforeach
++
++                                @if (collect($advanceFundLines)->sum('adjust_amount') > 0)
++                                <div class="flex justify-between border-t border-amber-200 pt-2 text-xs font-semibold text-amber-800">
++                                    <span>Total Advance Applied</span>
++                                    <span>{{ number_format(collect($advanceFundLines)->sum('adjust_amount'), 2) }}</span>
+                                 </div>
+-                            @endif
++                                @endif
++                            </div>
+                         </div>
+                         @endif
+ 
+@@ -370,10 +362,10 @@ class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:bord
+                                             <span>{{ number_format($due_amount, 2) }}</span>
+                                         </div>
+                                     @endif
+-                                    @if ($advance_adjusted_amount > 0)
++                                    @if (collect($advanceFundLines)->sum('adjust_amount') > 0)
+                                         <div class="flex justify-between pl-4 text-amber-700">
+                                             <span>CR Advance Account</span>
+-                                            <span>{{ number_format($advance_adjusted_amount, 2) }}</span>
++                                            <span>{{ number_format(collect($advanceFundLines)->sum('adjust_amount'), 2) }}</span>
+                                         </div>
+                                     @endif
+                                     @if ($paid_amount > 0)
+diff --git a/routes/admin.php b/routes/admin.php
+index 9e83d36..35233bb 100644
+--- a/routes/admin.php
++++ b/routes/admin.php
+@@ -197,6 +197,10 @@
+         ->middleware('can:accounts.transaction.list')
+         ->name('transactions.index');
+ 
++    Route::get('/advance-refund', App\Livewire\Admin\Accounts\AdvanceRefundForm::class)
++        ->middleware('can:accounts.advance.refund')
++        ->name('advance-refund');
++
+     Route::get('/transactions/{transaction}/attachments/{file}/download', [TransactionAttachmentController::class, 'download'])
+         ->middleware('can:accounts.transaction-attachment.view')
+         ->name('transactions.attachments.download');
+@@ -346,6 +350,11 @@
+ Route::get('/inventory/purchase-orders/{purchaseOrder}/funds', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseFundForm::class)->name('inventory.purchase-orders.funds');
+ Route::get('/inventory/purchase-orders/{purchaseOrder}/settlement', App\Livewire\Admin\Inventory\PurchaseOrder\PurchaseSettlementForm::class)->name('inventory.purchase-orders.settlement');
+ 
++// inventory purchase invoices
++Route::get('/inventory/purchase-invoices', App\Livewire\Admin\Inventory\PurchaseInvoice\PurchaseInvoiceList::class)->name('inventory.purchase-invoices.index');
++Route::get('/inventory/purchase-invoices/{purchaseInvoice}/view', App\Livewire\Admin\Inventory\PurchaseInvoice\PurchaseInvoiceApprovalForm::class)->name('inventory.purchase-invoices.view');
++Route::get('/inventory/purchase-invoices/{purchaseInvoice}/approve', App\Livewire\Admin\Inventory\PurchaseInvoice\PurchaseInvoiceApprovalForm::class)->name('inventory.purchase-invoices.approve');
++
+ // inventory stock receives
+ Route::get('/inventory/stock-receives', App\Livewire\Admin\Inventory\StockReceive\StockReceiveList::class)->name('inventory.stock-receives.index');
+ Route::get('/inventory/stock-receives/create', App\Livewire\Admin\Inventory\StockReceive\StockReceiveForm::class)->name('inventory.stock-receives.create');

@@ -75,6 +75,11 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.purchase_return.update',
                 'inventory.purchase_return.post',
                 'inventory.purchase_return.delete',
+                'inventory.purchase_invoice.view',
+                'inventory.purchase_invoice.approve',
+                'inventory.purchase_invoice.cancel',
+                'inventory.purchase_invoice.delete',
+                'accounts.advance.refund',
                 'inventory.stock_request.view',
                 'inventory.stock_request.create',
                 'inventory.stock_request.update',
@@ -202,6 +207,10 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.purchase_order.complete',
                 'inventory.purchase_return.view',
                 'inventory.purchase_return.post',
+                'inventory.purchase_invoice.view',
+                'inventory.purchase_invoice.approve',
+                'inventory.purchase_invoice.cancel',
+                'accounts.advance.refund',
                 'inventory.stock_request.view',
                 'section.general.access',
                 'module.accounts.access',
@@ -400,6 +409,117 @@ class AssignPermissionSeeder extends Seeder
 
         Role::findByName('engineer')->syncPermissions($siteengineerPermissions);
 
+        $employeePermissions = Permission::query()
+            ->whereIn('name', [
+                'section.general.access',
+                'module.dashboard.access',
+                'dashboard.view',
+                'dashboard.readonly',
+            ])
+            ->get();
+
+        Role::findByName('employee')->syncPermissions($employeePermissions);
+
+        $supplierPermissions = Permission::query()
+            ->whereIn('name', [
+                'module.suppliers.access',
+                'supplier.list.view',
+                'supplier.bill.list',
+                'supplier.bill.view',
+                'supplier.payment.list',
+                'supplier.payment.view',
+                'supplier.return.list',
+                'supplier.return.view',
+                'supplier.ledger.view',
+                'supplier.statement.view',
+                'supplier.statement.print',
+                'supplier.reports.supplier-wise',
+                'supplier.reports.product-wise',
+                'supplier.reports.due',
+                'supplier.reports.aging',
+                'section.general.access',
+            ])
+            ->get();
+
+        Role::findByName('supplier')->syncPermissions($supplierPermissions);
+
+        $salesMarketingPermissions = Permission::query()
+            ->whereIn('name', [
+                'section.general.access',
+                'module.dashboard.access',
+                'dashboard.view',
+                'customer.view',
+                'customer.create',
+                'customer.edit',
+                'customer.delete',
+                'property_sale.view',
+                'property_sale.create',
+                'property_sale.edit',
+                'property_sale.delete',
+                'property.view',
+                'property.floor.view',
+                'property.unit.view',
+            ])
+            ->get();
+
+        Role::findByName('salesmarketing')->syncPermissions($salesMarketingPermissions);
+
+        $mdPermissions = Permission::query()
+            ->whereIn('name', [
+                'section.general.access',
+                'module.projects.access',
+                'module.inventory.access',
+                'module.accounts.access',
+                'module.hrm.access',
+                'module.suppliers.access',
+                'module.materials.access',
+                'module.dashboard.access',
+                'dashboard.view',
+                'inventory.dashboard.view',
+                'supplier.dashboard.view',
+                'inventory.purchase_order.view',
+                'inventory.purchase_order.fund_release',
+                'inventory.stock.report.view',
+                'inventory.stock.ledger.view',
+                'inventory.report.view',
+                'accounts.chart.list',
+                'accounts.transaction.list',
+                'accounts.transaction.view',
+                'accounts.payment.list',
+                'accounts.collection.list',
+                'accounts.expense.list',
+                'accounts.purchase-payable.list',
+                'accounts.reports.statement.view',
+                'accounts.reports.statement.print',
+                'accounts.reports.statement.export',
+                'accounts.report.view',
+                'supplier.list.view',
+                'supplier.bill.list',
+                'supplier.payment.list',
+                'supplier.ledger.view',
+                'supplier.statement.view',
+                'supplier.reports.supplier-wise',
+                'supplier.reports.product-wise',
+                'supplier.reports.due',
+                'supplier.reports.aging',
+                'hrm.departments.view',
+                'hrm.designations.view',
+                'hrm.employees.view',
+                'hrm.salary-structures.view',
+                'hrm.payrolls.view',
+                'hrm.payrolls.create',
+                'hrm.payrolls.update',
+                'hrm.payrolls.pay',
+                'hrm.payrolls.print',
+                'hrm.employee-advances.view',
+                'hrm.payroll-payments.view',
+                'customer.view',
+                'property_sale.view',
+            ])
+            ->get();
+
+        Role::findByName('md')->syncPermissions($mdPermissions);
+
         $adminPanelId = Panel::where('slug', 'admin')->value('id');
 
         $this->assignRoleAndPanel('superadmin@gmail.com', 'superadmin', $adminPanelId);
@@ -410,6 +530,9 @@ class AssignPermissionSeeder extends Seeder
         $this->assignRoleAndPanel('accountant@gmail.com', 'accounts', $adminPanelId);
         $this->assignRoleAndPanel('engineer@gmail.com', 'engineer', $adminPanelId);
         $this->assignRoleAndPanel('md@gmail.com', 'md', $adminPanelId);
+        $this->assignRoleAndPanel('employee@gmail.com', 'employee', $adminPanelId);
+        $this->assignRoleAndPanel('supplier@gmail.com', 'supplier', $adminPanelId);
+        $this->assignRoleAndPanel('salesmarketing@gmail.com', 'salesmarketing', $adminPanelId);
 
     }
 

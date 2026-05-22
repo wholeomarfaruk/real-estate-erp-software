@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Accounts\TransactionRelationType;
 use App\Enums\Accounts\TransactionType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -33,12 +34,15 @@ class Transaction extends Model
         'phone',
         'method',
         'attachments',
+        'related_transaction_id',
+        'relation_type',
     ];
 
     protected $casts = [
         'datetime'    => 'datetime',
         'adjusted_at' => 'datetime',
         'type'        => TransactionType::class,
+        'relation_type' => TransactionRelationType::class,
         'debit'       => 'decimal:3',
         'credit'      => 'decimal:3',
         'attachments' => 'array',
@@ -84,6 +88,16 @@ class Transaction extends Model
     public function reference()
     {
         return $this->morphTo();
+    }
+
+    public function relatedTo(): BelongsTo
+    {
+        return $this->belongsTo(Transaction::class, 'related_transaction_id');
+    }
+
+    public function relatedTransactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class, 'related_transaction_id');
     }
 
     /** Advance adjustments where this transaction is the source advance. */
