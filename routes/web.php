@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', \App\Livewire\Website\Home\Home::class)->name('home');
+Route::get('/', fn () => redirect()->route('login'))->name('home');
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
