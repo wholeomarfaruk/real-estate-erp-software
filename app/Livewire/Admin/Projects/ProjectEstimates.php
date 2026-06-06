@@ -33,6 +33,7 @@ class ProjectEstimates extends Component
     public string $form_estimate_date = '';
     public string $form_notes         = '';
     public array $attachments        = [];
+    public array $estimateAttachments = [];  // For managing active estimate attachments
 
     /**
      * Each row:
@@ -129,31 +130,6 @@ class ProjectEstimates extends Component
         $this->resetValidation();
     }
 
-    public function mediaSelected($field, $id): void
-    {
-        // Prevent adding attachments to locked estimates
-        if ($this->editingId && $field === 'attachments') {
-            $estimate = ProjectEstimate::find($this->editingId);
-            if ($estimate && $estimate->isLocked()) {
-                $this->dispatch('toast', ['type' => 'error', 'message' => 'Cannot modify attachments on locked estimates. Duplicate the estimate to make changes.']);
-                return;
-            }
-        }
-        parent::mediaSelected($field, $id);
-    }
-
-    public function removeMedia($field, $id = null): void
-    {
-        // Prevent removing attachments from locked estimates
-        if ($this->editingId && $field === 'attachments') {
-            $estimate = ProjectEstimate::find($this->editingId);
-            if ($estimate && $estimate->isLocked()) {
-                $this->dispatch('toast', ['type' => 'error', 'message' => 'Cannot modify attachments on locked estimates. Duplicate the estimate to make changes.']);
-                return;
-            }
-        }
-        parent::removeMedia($field, $id);
-    }
 
     protected function blankItem(): array
     {
@@ -430,6 +406,46 @@ class ProjectEstimates extends Component
         $estimate->delete();
         $this->activeEstimateId = null;
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Estimate deleted.']);
+    }
+
+    // Handle estimate attachment uploads (works even when locked)
+    public function mediaSelected($field, $id): void
+    {
+        if ($field === 'estimateAttachments' && $this->activeEstimateId) {
+            $estimate = ProjectEstimate::find($this->activeEstimateId);
+            if ($estimate) {
+                $current = $estimate->attachments ?? [];
+                if (is_array($id)) {
+                    $updated = array_values(array_unique(array_merge($current, $id), SORT_REGULAR));
+                } else {
+                    $updated = array_values(array_unique(array_merge($current, [$id]), SORT_REGULAR));
+                }
+                $estimate->update(['attachments' => $updated]);
+                $this->dispatch('toast', ['type' => 'success', 'message' => 'File(s) attached successfully.']);
+            }
+            return;
+        }
+        parent::mediaSelected($field, $id);
+    }
+
+    // Remove attachment from active estimate (works even when locked)
+    public function removeEstimateAttachment(int $index): void
+    {
+        if (!auth()->user()->can('project.edit')) {
+            abort(403);
+        }
+        if (!$this->activeEstimateId) {
+            return;
+        }
+        $estimate = ProjectEstimate::find($this->activeEstimateId);
+        if ($estimate) {
+            $attachments = $estimate->attachments ?? [];
+            if (isset($attachments[$index])) {
+                array_splice($attachments, $index, 1);
+                $estimate->update(['attachments' => !empty($attachments) ? $attachments : null]);
+                $this->dispatch('toast', ['type' => 'success', 'message' => 'File removed.']);
+            }
+        }
     }
 
     /** Live grand total while building. */

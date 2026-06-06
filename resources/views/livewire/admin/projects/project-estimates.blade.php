@@ -207,21 +207,47 @@ tfoot .grand-val { text-align:right; font-family:"JetBrains Mono",ui-monospace,m
 
   @if($activeEstimate)
 
-  {{-- Attachments section --}}
-  @if($activeEstimate->attachments && is_array($activeEstimate->attachments) && count($activeEstimate->attachments) > 0)
+  {{-- Attachments section (always accessible, even when locked) --}}
   <div style="background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:16px;margin-bottom:16px;">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:var(--muted);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      <span style="font-size:12px;font-weight:600;color:var(--ink);">Attachments</span>
-      <span style="font-size:10.5px;color:var(--muted);">({{ count($activeEstimate->attachments) }} file{{ count($activeEstimate->attachments) !== 1 ? 's' : '' }})</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:var(--muted);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span style="font-size:12px;font-weight:600;color:var(--ink);">Attachments</span>
+        @if($activeEstimate->attachments && is_array($activeEstimate->attachments) && count($activeEstimate->attachments) > 0)
+          <span style="font-size:10.5px;color:var(--muted);">({{ count($activeEstimate->attachments) }} file{{ count($activeEstimate->attachments) !== 1 ? 's' : '' }})</span>
+        @else
+          <span style="font-size:10.5px;color:var(--muted);">(No files)</span>
+        @endif
+      </div>
+      @can('project.edit')
+        <button type="button" wire:click="$dispatch('openMediaPicker', {'field': 'estimateAttachments', 'multiple': true})" class="btn" style="padding:6px 12px;font-size:11px;">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload
+        </button>
+      @endcan
     </div>
-    <ul style="font-size:11px;color:var(--ink);padding-left:20px;line-height:1.6;">
-      @foreach($activeEstimate->attachments as $fileId)
-        <li>File ID: {{ $fileId }}</li>
-      @endforeach
-    </ul>
+    @if($activeEstimate->attachments && is_array($activeEstimate->attachments) && count($activeEstimate->attachments) > 0)
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(120px, 1fr));gap:8px;">
+        @foreach($activeEstimate->attachments as $idx => $fileId)
+          <div style="background:var(--paper-alt);border:1px solid var(--rule);border-radius:8px;padding:10px;text-align:center;position:relative;">
+            <div style="font-size:11px;font-weight:600;color:var(--ink);margin-bottom:6px;word-break:break-word;">File #{{ $fileId }}</div>
+            <div style="display:flex;gap:4px;justify-content:center;">
+              <a href="#" style="flex:1;padding:4px 8px;background:var(--accent);color:#fff;text-decoration:none;border-radius:4px;font-size:10px;text-align:center;" title="Download">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;display:inline;margin-right:2px;vertical-align:-1px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </a>
+              @can('project.edit')
+                <button type="button" wire:click="removeEstimateAttachment({{ $idx }})" style="flex:1;padding:4px 8px;background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-bd);border-radius:4px;font-size:10px;cursor:pointer;" title="Remove">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;display:inline;margin-right:2px;vertical-align:-1px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              @endcan
+            </div>
+          </div>
+        @endforeach
+      </div>
+    @else
+      <div style="padding:12px;text-align:center;color:var(--muted);font-style:italic;font-size:11px;">No files uploaded</div>
+    @endif
   </div>
-  @endif
 
   {{-- Summary cards --}}
   <div class="summary">
