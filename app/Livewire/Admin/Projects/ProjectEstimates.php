@@ -408,7 +408,7 @@ class ProjectEstimates extends Component
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Estimate deleted.']);
     }
 
-    // Handle estimate attachment uploads (works even when locked)
+    // Handle estimate attachment updates from media picker (works even when locked)
     public function mediaSelected($field, $id): void
     {
         if ($field === 'estimateAttachments' && $this->activeEstimateId) {
@@ -420,7 +420,7 @@ class ProjectEstimates extends Component
                 } else {
                     $updated = array_values(array_unique(array_merge($current, [$id]), SORT_REGULAR));
                 }
-                $estimate->update(['attachments' => $updated]);
+                $estimate->update(['attachments' => !empty($updated) ? $updated : null]);
                 $this->dispatch('toast', ['type' => 'success', 'message' => 'File(s) attached successfully.']);
             }
             return;
@@ -429,23 +429,27 @@ class ProjectEstimates extends Component
     }
 
     // Remove attachment from active estimate (works even when locked)
-    public function removeEstimateAttachment(int $index): void
+    public function removeMedia($field, $id = null): void
     {
-        if (!auth()->user()->can('project.edit')) {
-            abort(403);
-        }
-        if (!$this->activeEstimateId) {
-            return;
-        }
-        $estimate = ProjectEstimate::find($this->activeEstimateId);
-        if ($estimate) {
-            $attachments = $estimate->attachments ?? [];
-            if (isset($attachments[$index])) {
-                array_splice($attachments, $index, 1);
+        if ($field === 'estimateAttachments' && $this->activeEstimateId) {
+            if (!auth()->user()->can('project.edit')) {
+                abort(403);
+            }
+            $estimate = ProjectEstimate::find($this->activeEstimateId);
+            if ($estimate) {
+                $attachments = $estimate->attachments ?? [];
+                $attachments = array_values(array_filter(
+                    $attachments,
+                    function ($item) use ($id) {
+                        return $item != $id;
+                    }
+                ));
                 $estimate->update(['attachments' => !empty($attachments) ? $attachments : null]);
                 $this->dispatch('toast', ['type' => 'success', 'message' => 'File removed.']);
             }
+            return;
         }
+        parent::removeMedia($field, $id);
     }
 
     /** Live grand total while building. */
