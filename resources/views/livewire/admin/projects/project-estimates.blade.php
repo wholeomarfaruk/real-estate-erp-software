@@ -214,6 +214,7 @@ tfoot .grand-val { text-align:right; font-family:"JetBrains Mono",ui-monospace,m
       label="Attachments"
       :value="$activeEstimate->attachments ?? []"
       :multiple="true"
+      type="all"
       placeholder="Click to upload files"
       :canEdit="auth()->user()->can('project.edit')" />
   @endif
