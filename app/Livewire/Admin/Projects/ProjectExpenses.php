@@ -77,6 +77,8 @@ class ProjectExpenses extends Component
             return $expense;
         });
 
+        $showEditButton = true;
+
         // KPIs from all posted expense transactions for this project
         $all = $this->baseQuery()->with('transactionCategory')->get();
 
@@ -108,7 +110,7 @@ class ProjectExpenses extends Component
         $project = $this->project;
         return view('livewire.admin.projects.project-expenses', compact(
             'project', 'expenses', 'totalAmount', 'thisMonth',
-            'labourTotal', 'otherTotal', 'pendingTotal', 'categories', 'actualByCategory'
+            'labourTotal', 'otherTotal', 'pendingTotal', 'categories', 'actualByCategory', 'showEditButton'
         ))->layout('layouts.admin.admin');
     }
 }

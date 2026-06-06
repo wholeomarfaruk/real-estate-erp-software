@@ -41,6 +41,20 @@ class ExpenseForm extends Component
         if ($first) {
             $this->selectTab($first->id);
         }
+
+        // If project_id is passed in query params, find the project expense tab and select it
+        $projectId = request()->query('project_id');
+        if ($projectId) {
+            $projectTab = TransactionCategory::query()
+                ->where('type', 'expense')
+                ->where('slug', 'project-expense')
+                ->first();
+
+            if ($projectTab) {
+                $this->selectTab($projectTab->id);
+                $this->reference_id = (int) $projectId;
+            }
+        }
     }
 
     /** Parent expense categories — the dynamic tabs. */
