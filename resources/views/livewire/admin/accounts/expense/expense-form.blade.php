@@ -99,6 +99,17 @@
             </select>
             @error('reference_id') <div class="err-msg">{{ $message }}</div> @enderror
           </div>
+
+          <div>
+            <label class="lbl">Work Phase (Optional)</label>
+            <select wire:model="project_work_phase" class="inp @error('project_work_phase') err @enderror">
+              <option value="">— No phase / Others —</option>
+              @foreach($workPhases as $phase)
+                <option value="{{ $phase['value'] }}">{{ $phase['label'] }}</option>
+              @endforeach
+            </select>
+            @error('project_work_phase') <div class="err-msg">{{ $message }}</div> @enderror
+          </div>
         @elseif($isSupplierTab)
           <div>
             <label class="lbl">Supplier *</label>

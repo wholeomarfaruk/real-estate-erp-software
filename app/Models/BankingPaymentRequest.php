@@ -32,6 +32,7 @@ class BankingPaymentRequest extends Model
         'completed_at',
         'rejected_by',
         'rejected_at',
+        'external_data',
     ];
 
     protected $casts = [
@@ -40,6 +41,7 @@ class BankingPaymentRequest extends Model
         'released_at'  => 'datetime',
         'completed_at' => 'datetime',
         'rejected_at'  => 'datetime',
+        'external_data' => 'array',
     ];
 
     public function bankAccount(): BelongsTo

@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Accounts\Expense;
 
 use App\Enums\Accounts\TransactionType;
+use App\Enums\Projects\WorkPhase;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Models\BankAccount;
 use App\Models\BankingPaymentRequest;
@@ -26,6 +27,7 @@ class ExpenseForm extends Component
     public string $amount                  = '';
     public string $notes                   = '';
     public ?int   $reference_id            = null;    // project or supplier id
+    public ?string $project_work_phase     = null;    // optional work phase for project expenses
 
     public function mount(): void
     {
@@ -63,6 +65,7 @@ class ExpenseForm extends Component
         $this->parent_category_id      = $parentCategoryId;
         $this->transaction_category_id = $parentCategoryId; // default = the tab's category
         $this->reference_id            = null;
+        $this->project_work_phase      = null;
         $this->resetValidation();
     }
 
@@ -101,6 +104,7 @@ class ExpenseForm extends Component
 
         if ($this->isProjectTab()) {
             $rules['reference_id'] = ['required', 'integer', 'exists:projects,id'];
+            $rules['project_work_phase'] = ['nullable', 'string', 'in:' . implode(',', array_map(fn($c) => $c->value, WorkPhase::cases()))];
         } elseif ($this->isSupplierTab()) {
             $rules['reference_id'] = ['required', 'integer', 'exists:suppliers,id'];
         }
@@ -113,6 +117,11 @@ class ExpenseForm extends Component
         }
 
         try {
+            $externalData = null;
+            if ($this->isProjectTab() && $this->project_work_phase) {
+                $externalData = ['project_work_phase' => $this->project_work_phase];
+            }
+
             $bpr = BankingPaymentRequest::create([
                 'request_no'              => BankingPaymentRequest::generateRequestNo(),
                 'source_type'             => TransactionType::EXPENSE->value,
@@ -123,6 +132,7 @@ class ExpenseForm extends Component
                 'status'                  => 'pending',
                 'notes'                   => $this->notes ?: null,
                 'requested_by'            => Auth::id(),
+                'external_data'           => $externalData,
             ]);
 
             // Project / supplier reference via the existing sourceable morph.
@@ -171,12 +181,15 @@ class ExpenseForm extends Component
             ? Supplier::query()->orderBy('name')->get(['id', 'name'])
             : collect();
 
+        $workPhases = array_map(fn($case) => ['value' => $case->value, 'label' => $case->label()], WorkPhase::cases());
+
         return view('livewire.admin.accounts.expense.expense-form', [
             'tabs'              => $tabs,
             'expenseCategories' => $expenseCategories,
             'bankAccounts'     => $bankAccounts,
             'projects'         => $projects,
             'suppliers'        => $suppliers,
+            'workPhases'       => $workPhases,
             'isProjectTab'     => $this->isProjectTab(),
             'isSupplierTab'    => $this->isSupplierTab(),
         ])->layout('layouts.admin.admin');

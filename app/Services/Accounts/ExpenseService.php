@@ -59,6 +59,7 @@ class ExpenseService
                 'name'                    => 'Expense Payment',
                 'notes'                   => $notes,
                 'created_by'              => $userId,
+                'external_data'           => $bankingRequest->external_data,
             ]);
 
             // ------------------------------------------------------------------

@@ -218,6 +218,7 @@ td.amt { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12.5px; 
           <th style="width:120px">Date</th>
           <th style="width:24%">Category</th>
           <th>Description</th>
+          <th style="width:100px">Phase</th>
           <th>Ledger Account</th>
           <th class="right" style="width:130px">Amount</th>
         </tr>
@@ -237,8 +238,9 @@ td.amt { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12.5px; 
             @endif
           </td>
           <td>{{ $expense->name ?? $expense->notes ?? '—' }}</td>
+          <td style="font-size:11px;"><span style="display:inline-block;padding:2px 8px;background:#f0f0f1;border-radius:4px;color:var(--muted);">{{ $expense->phase }}</span></td>
           <td>{{ $expense->account?->name ?? '—' }}</td>
-          <td class="right amt">BDT {{ number_format($expense->debit, 2) }}</td>
+          <td class="right amt">BDT {{ number_format($expense->credit, 2) }}</td>
         </tr>
         @endforeach
       </tbody>

@@ -28,33 +28,37 @@ class ProjectExpenses extends Component
     }
 
     /**
-     * IDs of this project's expense banking requests (the "request holders").
-     * Posted ledger transactions reference these via reference_type/reference_id.
+     * Actual project expenses live in the transactions ledger as a single
+     * expense entry (type=expense) that references the Project directly via
+     * reference_type/reference_id, with the amount recorded on the credit side
+     * (money leaving the account).
      */
-    private function projectRequestIds()
-    {
-        return BankingPaymentRequest::query()
-            ->where('source_type', 'expense')
-            ->where('sourceable_type', Project::class)
-            ->where('sourceable_id', $this->project->id)
-            ->pluck('id');
-    }
-
-    /** Actual project expenses live in the transactions ledger (type=expense, DR side). */
-    private function baseQuery($requestIds)
+    private function baseQuery()
     {
         return Transaction::query()
             ->where('type', TransactionType::EXPENSE->value)
-            ->where('debit', '>', 0)
-            ->where('reference_type', 'banking_payment_request')
-            ->whereIn('reference_id', $requestIds);
+            ->where('credit', '>', 0)
+            ->where('reference_type', Project::class)
+            ->where('reference_id', $this->project->id);
+    }
+
+    private function getPhaseLabel(?string $phaseValue): string
+    {
+        if (!$phaseValue) {
+            return 'Others';
+        }
+
+        try {
+            $phase = \App\Enums\Projects\WorkPhase::from($phaseValue);
+            return $phase->label();
+        } catch (\ValueError) {
+            return 'Others';
+        }
     }
 
     public function render()
     {
-        $requestIds = $this->projectRequestIds();
-
-        $expenses = $this->baseQuery($requestIds)
+        $expenses = $this->baseQuery()
             ->with(['transactionCategory:id,name', 'account:id,name'])
             ->when($this->search, fn($q) => $q->where(function ($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
@@ -67,16 +71,22 @@ class ProjectExpenses extends Component
             ->latest('id')
             ->paginate(15);
 
-        // KPIs from all posted expense transactions for this project
-        $all = $this->baseQuery($requestIds)->with('transactionCategory')->get();
+        // Map expenses to include phase info
+        $expenses->getCollection()->transform(function ($expense) {
+            $expense->phase = $this->getPhaseLabel($expense->external_data['project_work_phase'] ?? null);
+            return $expense;
+        });
 
-        $totalAmount = (float) $all->sum('debit');
-        $thisMonth   = (float) $all->filter(fn($t) => $t->datetime?->isCurrentMonth())->sum('debit');
+        // KPIs from all posted expense transactions for this project
+        $all = $this->baseQuery()->with('transactionCategory')->get();
+
+        $totalAmount = (float) $all->sum('credit');
+        $thisMonth   = (float) $all->filter(fn($t) => $t->datetime?->isCurrentMonth())->sum('credit');
 
         $labourTotal = (float) $all->filter(fn($t) =>
             str_contains(strtolower($t->transactionCategory?->name ?? ''), 'labour') ||
             str_contains(strtolower($t->transactionCategory?->name ?? ''), 'labor')
-        )->sum('debit');
+        )->sum('credit');
         $otherTotal = $totalAmount - $labourTotal;
 
         // Pending (requested but not yet posted to ledger) — informational
@@ -89,7 +99,7 @@ class ProjectExpenses extends Component
 
         // Estimate vs actual — actual per category from posted transactions
         $actualByCategory = $all->groupBy('transaction_category_id')
-            ->map(fn($g) => (float) $g->sum('debit'));
+            ->map(fn($g) => (float) $g->sum('credit'));
 
         $categories = TransactionCategory::active()
             ->where('type', 'expense')

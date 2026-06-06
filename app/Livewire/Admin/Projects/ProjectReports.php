@@ -70,13 +70,28 @@ class ProjectReports extends Component
 
         $actualLabour = 0;
         $actualOther  = 0;
+        $actualByPhase = []; // phase => ['labour' => X, 'other' => Y]
+
         foreach ($expenses as $exp) {
             $name = strtolower($exp->transactionCategory?->name ?? '');
-            if (str_contains($name, 'labour') || str_contains($name, 'labor')) {
-                $actualLabour += (float)$exp->debit;
+            $isLabour = str_contains($name, 'labour') || str_contains($name, 'labor');
+            $type = $isLabour ? 'labour' : 'other';
+            $amount = (float)$exp->credit;
+
+            if ($isLabour) {
+                $actualLabour += $amount;
             } else {
-                $actualOther += (float)$exp->debit;
+                $actualOther += $amount;
             }
+
+            // Get phase from external_data
+            $phase = $exp->external_data['project_work_phase'] ?? null;
+            $phase = $phase && in_array($phase, array_map(fn($c) => $c->value, \App\Enums\Projects\WorkPhase::cases())) ? $phase : 'others';
+
+            if (!isset($actualByPhase[$phase])) {
+                $actualByPhase[$phase] = ['labour' => 0, 'other' => 0];
+            }
+            $actualByPhase[$phase][$type] += $amount;
         }
 
         $totalSpent    = $actualMaterialCost + $actualLabour + $actualOther;
@@ -86,7 +101,7 @@ class ProjectReports extends Component
         // Monthly spend trend (last 12 months)
         $monthlySpend = $expenses
             ->groupBy(fn($e) => $e->datetime?->format('Y-m') ?? 'unknown')
-            ->map(fn($group) => $group->sum('debit'))
+            ->map(fn($group) => $group->sum('credit'))
             ->sortKeys()
             ->take(-12);
 
@@ -103,7 +118,7 @@ class ProjectReports extends Component
             }
         }
 
-        // Phase-wise cost summary with proportional allocation
+        // Phase-wise cost summary with direct allocation (no proportional spread)
         $phaseRows = [];
         foreach (\App\Enums\Projects\WorkPhase::cases() as $phase) {
             $key   = $phase->value;
@@ -115,21 +130,10 @@ class ProjectReports extends Component
             $phaseOtherEst    = $phaseEstimates['indirect'] ?? 0;
             $phaseEstTotal    = $phaseMaterialEst + $phaseLabourEst + $phaseOtherEst;
 
-            // Allocation ratios (phase estimate / total estimate for each type)
-            $materialRatio = $estTotalByType['material'] > 0 
-                ? ($phaseMaterialEst / $estTotalByType['material']) 
-                : 0;
-            $labourRatio = $estTotalByType['labour'] > 0 
-                ? ($phaseLabourEst / $estTotalByType['labour']) 
-                : 0;
-            $otherRatio = $estTotalByType['indirect'] > 0 
-                ? ($phaseOtherEst / $estTotalByType['indirect']) 
-                : 0;
-
-            // Allocate actuals proportionally
-            $phaseMaterialActual = $materialRatio * $actualMaterialCost;
-            $phaseLabourActual   = $labourRatio * $actualLabour;
-            $phaseOtherActual    = $otherRatio * $actualOther;
+            // Actual: from stock consumptions (material) and from phase-tagged transactions (labour/other)
+            $phaseMaterialActual = 0;
+            $phaseLabourActual   = $actualByPhase[$key]['labour'] ?? 0;
+            $phaseOtherActual    = $actualByPhase[$key]['other'] ?? 0;
             $phaseActualTotal    = $phaseMaterialActual + $phaseLabourActual + $phaseOtherActual;
 
             $phaseRows[] = [
@@ -142,6 +146,26 @@ class ProjectReports extends Component
                 'labour_actual'    => $phaseLabourActual,
                 'other_actual'     => $phaseOtherActual,
                 'actual'           => $phaseActualTotal,
+            ];
+        }
+
+        // Add "Others" row for unassigned expenses
+        $othersMaterialActual = 0;
+        $othersLabourActual   = $actualByPhase['others']['labour'] ?? 0;
+        $othersOtherActual    = $actualByPhase['others']['other'] ?? 0;
+        $othersActualTotal    = $othersMaterialActual + $othersLabourActual + $othersOtherActual;
+
+        if ($othersActualTotal > 0) {
+            $phaseRows[] = [
+                'phase'            => 'Others',
+                'estimated'        => 0,
+                'material_est'     => 0,
+                'labour_est'       => 0,
+                'other_est'        => 0,
+                'material_actual'  => $othersMaterialActual,
+                'labour_actual'    => $othersLabourActual,
+                'other_actual'     => $othersOtherActual,
+                'actual'           => $othersActualTotal,
             ];
         }
 

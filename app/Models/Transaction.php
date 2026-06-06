@@ -36,6 +36,7 @@ class Transaction extends Model
         'attachments',
         'related_transaction_id',
         'relation_type',
+        'external_data',
     ];
 
     protected $casts = [
@@ -46,6 +47,7 @@ class Transaction extends Model
         'debit'       => 'decimal:3',
         'credit'      => 'decimal:3',
         'attachments' => 'array',
+        'external_data' => 'array',
     ];
 
     // ── Relationships ────────────────────────────────────────────────────────
