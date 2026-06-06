@@ -27,6 +27,7 @@ class ProjectEstimates extends Component
     // ── Builder (create / edit) state ────────────────────
     public bool $showForm   = false;
     public ?int $editingId  = null;
+    public bool $isEditingLocked = false;
 
     public string $form_title         = '';
     public string $form_estimate_date = '';
@@ -64,6 +65,7 @@ class ProjectEstimates extends Component
         }
 
         $this->editingId          = null;
+        $this->isEditingLocked    = false;
         $this->form_title         = 'Project Estimate';
         $this->form_estimate_date = now()->format('Y-m-d');
         $this->form_notes         = '';
@@ -89,6 +91,7 @@ class ProjectEstimates extends Component
         }
 
         $this->editingId          = $estimate->id;
+        $this->isEditingLocked    = false;
         $this->form_title         = $estimate->title ?? 'Project Estimate';
         $this->form_estimate_date = optional($estimate->estimate_date)->format('Y-m-d') ?? now()->format('Y-m-d');
         $this->form_notes         = $estimate->notes ?? '';
@@ -120,9 +123,36 @@ class ProjectEstimates extends Component
     {
         $this->showForm  = false;
         $this->editingId = null;
+        $this->isEditingLocked = false;
         $this->items     = [];
         $this->attachments = [];
         $this->resetValidation();
+    }
+
+    public function mediaSelected($field, $id): void
+    {
+        // Prevent adding attachments to locked estimates
+        if ($this->editingId && $field === 'attachments') {
+            $estimate = ProjectEstimate::find($this->editingId);
+            if ($estimate && $estimate->isLocked()) {
+                $this->dispatch('toast', ['type' => 'error', 'message' => 'Cannot modify attachments on locked estimates. Duplicate the estimate to make changes.']);
+                return;
+            }
+        }
+        parent::mediaSelected($field, $id);
+    }
+
+    public function removeMedia($field, $id = null): void
+    {
+        // Prevent removing attachments from locked estimates
+        if ($this->editingId && $field === 'attachments') {
+            $estimate = ProjectEstimate::find($this->editingId);
+            if ($estimate && $estimate->isLocked()) {
+                $this->dispatch('toast', ['type' => 'error', 'message' => 'Cannot modify attachments on locked estimates. Duplicate the estimate to make changes.']);
+                return;
+            }
+        }
+        parent::removeMedia($field, $id);
     }
 
     protected function blankItem(): array

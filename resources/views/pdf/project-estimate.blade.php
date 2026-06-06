@@ -17,7 +17,7 @@
     margin: 10mm;
     padding: 0;
   }
-  .page { padding: 0; margin: 0; }
+  .page { padding: 15px; margin: 0; }
 
   /* ---------- Letterhead ---------- */
   .letterhead {

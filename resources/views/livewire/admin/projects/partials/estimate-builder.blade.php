@@ -46,12 +46,19 @@
   <div class="builder-card">
     <div class="bc-head">Attachments</div>
     <div class="bc-body">
+      @if($isEditingLocked)
+        <div style="padding:12px;background:#fff3cd;border:1px solid #ffecb5;border-radius:8px;font-size:12px;color:#664d03;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:inline;margin-right:6px;vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Approved estimates are locked. Duplicate to modify attachments.
+        </div>
+      @else
       <div style="margin-bottom:12px;">
         <button type="button" wire:click="$dispatch('openMediaPicker', {'field': 'attachments', 'multiple': true})" class="btn" style="width:100%;text-align:center;">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Add Files/Images
         </button>
       </div>
+      @endif
       @if(!empty($attachments))
         <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--rule);">
           <div style="font-size:10.5px;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px;">Selected Attachments ({{ count($attachments) }})</div>
