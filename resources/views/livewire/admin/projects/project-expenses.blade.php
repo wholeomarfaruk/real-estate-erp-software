@@ -74,7 +74,7 @@ td.amt { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12.5px; 
 .table-foot { padding:10px 14px; font-size:11.5px; color:var(--muted); background:#fafafb; border-top:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center; }
 </style>
 
-  @include('livewire.admin.projects.partials.project-hero', ['project' => $project])
+  @include('livewire.admin.projects.partials.project-hero', ['project' => $project, 'showEditButton' => false])
   @include('livewire.admin.projects.partials.tab-bar', [
       'project' => $project,
       'activeTab' => 'expenses',

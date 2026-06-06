@@ -86,7 +86,7 @@ table.rep tfoot td { padding:12px 18px; border-top:2px solid var(--ink); font-we
 .tbar-val { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10px; color:var(--ink-2); font-weight:600; }
 </style>
 
-  @include('livewire.admin.projects.partials.project-hero', ['project' => $project])
+  @include('livewire.admin.projects.partials.project-hero', ['project' => $project, 'showEditButton' => false])
   @include('livewire.admin.projects.partials.tab-bar', ['project' => $project, 'activeTab' => 'reports'])
 
   {{-- Toolbar --}}

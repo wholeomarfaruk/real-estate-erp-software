@@ -72,7 +72,7 @@ td.extra .none { color:var(--muted-2); }
 .table-foot { padding:10px 14px; font-size:11.5px; color:var(--muted); background:#fafafb; border-top:1px solid var(--rule); }
 </style>
 
-  @include('livewire.admin.projects.partials.project-hero', ['project' => $project])
+  @include('livewire.admin.projects.partials.project-hero', ['project' => $project, 'showEditButton' => false])
   @include('livewire.admin.projects.partials.tab-bar', ['project' => $project, 'activeTab' => 'consumption'])
 
   {{-- Toolbar --}}

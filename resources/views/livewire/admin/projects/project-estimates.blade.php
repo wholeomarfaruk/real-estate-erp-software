@@ -129,7 +129,7 @@ tfoot .grand-val { text-align:right; font-family:"JetBrains Mono",ui-monospace,m
 .panel-body { padding:8px 18px 14px; }
 </style>
 
-  @include('livewire.admin.projects.partials.project-hero', ['project' => $project])
+  @include('livewire.admin.projects.partials.project-hero', ['project' => $project, 'showEditButton' => false])
   @include('livewire.admin.projects.partials.tab-bar', [
       'project' => $project,
       'activeTab' => 'estimates',
