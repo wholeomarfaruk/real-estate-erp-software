@@ -10,8 +10,14 @@
     font-size: 8.5px;
     color: #000;
     line-height: 1.3;
+    margin: 0;
+    padding: 0;
   }
-  .page { padding: 0; }
+  @page {
+    margin: 10mm;
+    padding: 0;
+  }
+  .page { padding: 0; margin: 0; }
 
   /* ---------- Letterhead ---------- */
   .letterhead {
@@ -44,7 +50,7 @@
   }
 
   /* ---------- Meta block (two columns) ---------- */
-  .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+  .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
   .meta-table td { vertical-align: top; width: 50%; padding: 0 0 1px; font-size: 8.5px; }
   .meta-table .k { color: #333; display: inline-block; width: 80px; }
   .meta-table .v { font-weight: bold; }
@@ -70,7 +76,8 @@
     border: 1px solid #000;
     border-bottom: none;
     padding: 3px 6px;
-    margin-top: 4px;
+    margin-top: 8px;
+    margin-bottom: 0;
   }
 
   /* ---------- BOQ table ---------- */
@@ -122,7 +129,7 @@
   .boq tfoot .grand-val { text-align: right; font-family: "Courier New", monospace; font-size: 11px; font-weight: bold; }
 
   /* ---------- Summary table ---------- */
-  .sum { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+  .sum { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
   .sum td { border: 1px solid #999; padding: 3px 6px; font-size: 8.5px; }
   .sum .lbl { background: #f5f5f5; font-weight: bold; width: 70%; }
   .sum .val { text-align: right; font-family: "Courier New", monospace; width: 30%; }
@@ -130,11 +137,11 @@
   .sum .total .val { font-size: 10px; }
 
   /* ---------- Notes ---------- */
-  .notes-box { border: 1px solid #999; padding: 8px; font-size: 10px; margin-bottom: 14px; }
+  .notes-box { border: 1px solid #999; padding: 6px; font-size: 9px; margin-bottom: 8px; }
   .notes-box .lbl { font-weight: bold; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px; margin-bottom: 3px; }
 
   /* ---------- Signatures ---------- */
-  .sig-table { width: 100%; border-collapse: collapse; margin-top: 36px; }
+  .sig-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
   .sig-table td { width: 33.33%; vertical-align: bottom; padding: 0 12px; }
   .sig-line { border-top: 1px solid #000; padding-top: 4px; text-align: center; }
   .sig-role { font-size: 9.5px; font-weight: bold; }
@@ -142,8 +149,8 @@
 
   /* ---------- Footer ---------- */
   .doc-footer {
-    margin-top: 20px;
-    padding-top: 6px;
+    margin-top: 12px;
+    padding-top: 4px;
     border-top: 1px solid #000;
     font-size: 8px;
     color: #444;
