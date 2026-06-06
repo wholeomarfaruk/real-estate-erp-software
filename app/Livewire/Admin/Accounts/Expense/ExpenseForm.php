@@ -13,10 +13,11 @@ use App\Models\TransactionCategory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class ExpenseForm extends Component
 {
-    use InteractsWithAccountsAccess;
+    use InteractsWithAccountsAccess, WithFileUploads;
 
     // ─── Form fields ─────────────────────────────────────────────────────────
     public ?int   $parent_category_id      = null;   // active tab (parent expense category)
@@ -28,6 +29,7 @@ class ExpenseForm extends Component
     public string $notes                   = '';
     public ?int   $reference_id            = null;    // project or supplier id
     public ?string $project_work_phase     = null;    // optional work phase for project expenses
+    public array  $attachments             = [];      // uploaded file paths
 
     public function mount(): void
     {
@@ -69,6 +71,12 @@ class ExpenseForm extends Component
         $this->resetValidation();
     }
 
+    public function removeAttachment(int $index): void
+    {
+        unset($this->attachments[$index]);
+        $this->attachments = array_values($this->attachments);
+    }
+
     /** Slug of the active tab (to detect project / supplier tabs). */
     private function activeTabSlug(): ?string
     {
@@ -100,6 +108,7 @@ class ExpenseForm extends Component
             'date'                    => ['required', 'date'],
             'amount'                  => ['required', 'numeric', 'gt:0'],
             'notes'                   => ['nullable', 'string', 'max:1000'],
+            'attachments.*'           => ['nullable', 'file', 'max:5120', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx'],
         ];
 
         if ($this->isProjectTab()) {
@@ -122,6 +131,15 @@ class ExpenseForm extends Component
                 $externalData = ['project_work_phase' => $this->project_work_phase];
             }
 
+            // Store attachments and collect paths
+            $storedAttachments = [];
+            foreach ($this->attachments as $file) {
+                if ($file) {
+                    $path = $file->store('expense-attachments', 'public');
+                    $storedAttachments[] = $path;
+                }
+            }
+
             $bpr = BankingPaymentRequest::create([
                 'request_no'              => BankingPaymentRequest::generateRequestNo(),
                 'source_type'             => TransactionType::EXPENSE->value,
@@ -140,6 +158,15 @@ class ExpenseForm extends Component
                 $bpr->sourceable()->associate(Project::find($this->reference_id))->save();
             } elseif ($this->isSupplierTab() && $this->reference_id) {
                 $bpr->sourceable()->associate(Supplier::find($this->reference_id))->save();
+            }
+
+            // Store attachment paths in external_data
+            if (!empty($storedAttachments)) {
+                if (!$externalData) {
+                    $externalData = [];
+                }
+                $externalData['attachments'] = $storedAttachments;
+                $bpr->update(['external_data' => $externalData]);
             }
         } catch (\Throwable $e) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Save failed: ' . $e->getMessage()]);

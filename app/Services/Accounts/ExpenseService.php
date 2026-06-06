@@ -47,6 +47,8 @@ class ExpenseService
             // ------------------------------------------------------------------
             // TXN-CASH: CR bank/cash ledger — money physically leaves the account
             // ------------------------------------------------------------------
+            $attachmentPaths = $bankingRequest->external_data['attachments'] ?? null;
+
             $txnCash = Transaction::query()->create([
                 'account_id'              => $cashAccountId,
                 'datetime'                => $datetime,
@@ -60,6 +62,7 @@ class ExpenseService
                 'notes'                   => $notes,
                 'created_by'              => $userId,
                 'external_data'           => $bankingRequest->external_data,
+                'attachments'             => $attachmentPaths ? json_encode($attachmentPaths) : null,
             ]);
 
             // ------------------------------------------------------------------
