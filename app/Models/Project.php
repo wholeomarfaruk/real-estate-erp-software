@@ -128,18 +128,17 @@ class Project extends Model
     }
 
     /**
-     * Actual posted project expenses live in the transactions ledger
-     * (type=expense, DR side), linked back through the expense request holder.
+     * Actual posted project expenses live in the transactions ledger as single entries
+     * (type=expense) that reference this project directly with the amount on the credit side
+     * (money leaving the account).
      */
     public function expenseTransactions()
     {
-        $requestIds = $this->expenseRequests()->pluck('id');
-
         return Transaction::query()
             ->where('type', 'expense')
-            ->where('debit', '>', 0)
-            ->where('reference_type', 'banking_payment_request')
-            ->whereIn('reference_id', $requestIds);
+            ->where('credit', '>', 0)
+            ->where('reference_type', self::class)
+            ->where('reference_id', $this->id);
     }
 
     public function daysToHandover(): ?int
@@ -153,7 +152,7 @@ class Project extends Model
     /** Actual money spent = posted expense transactions (not pending requests). */
     public function totalSpent(): float
     {
-        return (float) $this->expenseTransactions()->sum('debit');
+        return (float) $this->expenseTransactions()->sum('credit');
     }
 
     public function approvedEstimate(): ?ProjectEstimate

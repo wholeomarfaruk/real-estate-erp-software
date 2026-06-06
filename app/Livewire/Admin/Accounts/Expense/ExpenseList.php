@@ -35,11 +35,11 @@ class ExpenseList extends Component
 
     public function render(): View
     {
-        // Expenses live in the ledger: transactions of type 'expense'.
-        // Show the DR side (debit > 0) so each expense appears once.
+        // Expenses are recorded as a single entry: the cash CR side (credit > 0)
+        // so each expense appears once.
         $expenses = Transaction::query()
             ->where('type', TransactionType::EXPENSE->value)
-            ->where('debit', '>', 0)
+            ->where('credit', '>', 0)
             ->with([
                 'account:id,name,code',
                 'transactionCategory:id,name',
@@ -77,8 +77,8 @@ class ExpenseList extends Component
 
         $kpi = Transaction::query()
             ->where('type', TransactionType::EXPENSE->value)
-            ->where('debit', '>', 0)
-            ->selectRaw('COUNT(*) AS cnt, COALESCE(SUM(debit),0) AS total')
+            ->where('credit', '>', 0)
+            ->selectRaw('COUNT(*) AS cnt, COALESCE(SUM(credit),0) AS total')
             ->first();
 
         return view('livewire.admin.accounts.expense.expense-list', compact(

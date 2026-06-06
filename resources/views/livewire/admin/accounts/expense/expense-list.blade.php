@@ -101,7 +101,7 @@ table.t tbody tr:hover{ background:#fafafb; }
             <td>{{ $txn->transactionCategory?->name ?? '—' }}</td>
             <td>@if($ref)<span class="ref-chip">{{ $ref }}</span>@else <span style="color:var(--muted-2)">—</span> @endif</td>
             <td>{{ $txn->account?->name ?? '—' }}</td>
-            <td class="r mono" style="font-weight:600;">{{ number_format($txn->debit, 2) }}</td>
+            <td class="r mono" style="font-weight:600;">{{ number_format($txn->credit, 2) }}</td>
           </tr>
         @empty
           <tr><td colspan="6" style="text-align:center;padding:36px;color:var(--muted);font-style:italic;">
