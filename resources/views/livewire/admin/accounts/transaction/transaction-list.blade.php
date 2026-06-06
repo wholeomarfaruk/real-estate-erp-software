@@ -142,11 +142,11 @@
 
         {{-- Date from --}}
         <input type="date" wire:model.live="dateFrom"
-            class="h-9 rounded-md border border-gray-200 bg-white px-2.5 text-xs text-gray-700 focus:border-gray-400 focus:outline-none">
+            class="h-9 rounded-md border border-gray-200 bg-white px-2.5 text-xs text-gray-700 focus:border-gray-400 focus:outline-none flatpickr-only-date">
 
         {{-- Date to --}}
         <input type="date" wire:model.live="dateTo"
-            class="h-9 rounded-md border border-gray-200 bg-white px-2.5 text-xs text-gray-700 focus:border-gray-400 focus:outline-none">
+            class="h-9 rounded-md border border-gray-200 bg-white px-2.5 text-xs text-gray-700 focus:border-gray-400 focus:outline-none flatpickr-only-date">
     </div>
 
     {{-- Workspace: table + side drawer --}}
@@ -532,30 +532,11 @@
                     </div>
 
                     {{-- Source reference --}}
-                    @if ($viewTransaction->reference_type || $viewTransaction->reference_no)
+                    @if ($viewTransactionReference)
                         <div class="mt-4">
                             <p class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">Source
                                 Reference</p>
-                            <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
-                                <span
-                                    class="inline-grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gray-600 text-white">
-                                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"
-                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                                    </svg>
-                                </span>
-                                <div>
-                                    @if ($viewTransaction->reference_type)
-                                        <p class="text-[9.5px] font-semibold uppercase tracking-wide text-gray-400">
-                                            {{ $viewTransaction->reference_type }}</p>
-                                    @endif
-                                    <p class="font-mono text-xs font-semibold text-gray-800">
-                                        {{ $viewTransaction->reference_no ?? $viewTransaction->reference_type . '#' . $viewTransaction->reference_id }}
-                                    </p>
-                                </div>
-                            </div>
+                            <x-transaction-reference-card :reference="$viewTransactionReference" />
                         </div>
                     @endif
 

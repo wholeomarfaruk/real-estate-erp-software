@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Accounts\Transaction;
 
 use App\Enums\Accounts\EntryMethod;
 use App\Enums\Accounts\TransactionType;
+use App\Helpers\TransactionReferenceFormatter;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Models\Account;
 use App\Models\File;
@@ -126,6 +127,16 @@ class TransactionList extends Component
             }
         }
 
+        // Format reference data
+        $viewTransactionReference = null;
+        if ($viewTransaction) {
+            $viewTransactionReference = TransactionReferenceFormatter::resolve(
+                $viewTransaction->reference_type,
+                $viewTransaction->reference_id,
+                $viewTransaction->reference_no
+            );
+        }
+
         // Type tab counts (always global, no date filter)
         $typeCounts = Transaction::query()
             ->selectRaw("
@@ -166,15 +177,16 @@ class TransactionList extends Component
             ->get(['id', 'name', 'code', 'type']);
 
         return view('livewire.admin.accounts.transaction.transaction-list', [
-            'transactions'         => $transactions,
-            'types'                => TransactionType::cases(),
-            'methods'              => EntryMethod::cases(),
-            'categories'           => $categories,
-            'accounts'             => $accounts,
-            'viewTransaction'      => $viewTransaction,
-            'viewTransactionFiles' => $viewTransactionFiles,
-            'kpi'                  => $kpi,
-            'typeCounts'           => $typeCounts,
+            'transactions'               => $transactions,
+            'types'                      => TransactionType::cases(),
+            'methods'                    => EntryMethod::cases(),
+            'categories'                 => $categories,
+            'accounts'                   => $accounts,
+            'viewTransaction'            => $viewTransaction,
+            'viewTransactionFiles'       => $viewTransactionFiles,
+            'viewTransactionReference'   => $viewTransactionReference,
+            'kpi'                        => $kpi,
+            'typeCounts'                 => $typeCounts,
         ])->layout('layouts.admin.admin');
     }
 }
