@@ -31,6 +31,9 @@ class PropertySaleCreate extends Component
     public string $dDownPaymentPercentage = '0';
     public string $dPaymentTerms          = '';
 
+    // ── Service Charge (both types) ──────────────────────────────────────────
+    public string $dServiceCharge          = '0';
+
     // ── Rent ─────────────────────────────────────────────────────────────────
     public string $dRentStartDate          = '';
     public string $dRentEndDate            = '';
@@ -67,6 +70,7 @@ class PropertySaleCreate extends Component
         $this->dSaleAmount            = '0';
         $this->dDownPaymentPercentage = '0';
         $this->dDownPaymentAmount     = '0';
+        $this->dServiceCharge         = '0';
         $this->recalcNet();
     }
 
@@ -85,6 +89,8 @@ class PropertySaleCreate extends Component
                 $this->dDownPaymentPercentage = (string) (float) $unit->down_payment_percentage;
             }
 
+            $this->dServiceCharge = (string) (float) ($unit->service_charge ?? 0);
+
             $this->recalcNet();
             $this->recalcDownPaymentFromPercentage();
             $this->recalcScheduleAmount();
@@ -96,6 +102,7 @@ class PropertySaleCreate extends Component
             }
             $rentAmount = (float) ($unit->rent_amount ?: $unit->price ?: 0);
             if ($rentAmount > 0) $this->dScheduleAmount = (string) $rentAmount;
+            $this->dServiceCharge = (string) (float) ($unit->service_charge ?? 0);
             if ($this->dIsScheduled) $this->generateSchedulePreview();
         }
     }
@@ -146,6 +153,7 @@ class PropertySaleCreate extends Component
         $this->dDownPaymentAmount     = '0';
         $this->dSecurityDepositAmount = '0';
         $this->dScheduleAmount        = '0';
+        $this->dServiceCharge         = '0';
         $this->recalcNet();
     }
 
@@ -324,7 +332,7 @@ class PropertySaleCreate extends Component
         ]);
 
         // Generate payment schedules
-        app(ScheduleGeneratorService::class)->generateForSale($sale);
+        app(ScheduleGeneratorService::class)->generateForSale($sale, (float) $this->dServiceCharge);
 
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Property sale created successfully.']);
         $this->redirect(route('admin.properties.sales.show', $sale), navigate: true);

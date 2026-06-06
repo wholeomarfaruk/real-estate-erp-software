@@ -55,6 +55,7 @@ class PropertySaleDetails extends Component
     public ?int    $payNowScheduleId     = null;
     public string  $payNowAccountType    = '';
     public string  $payNowAccountId      = '';
+    public array   $payNowAccounts       = [];
     public string  $payNowPaymentMethod  = 'cash';
     public string  $payNowPayerName      = '';
     public string  $payNowReferenceNo    = '';
@@ -73,6 +74,20 @@ class PropertySaleDetails extends Component
             'propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
             'paymentSchedules',
         ]);
+
+        $this->dPropertyUnitId      = (string) $this->sale->property_unit_id;
+        $this->dCustomerId          = (string) $this->sale->customer_id;
+        $this->dSaleDate            = $this->sale->sale_date?->format('Y-m-d') ?? '';
+        $this->dContractDate        = $this->sale->contract_date?->format('Y-m-d') ?? '';
+        $this->dSaleAmount          = (string) $this->sale->sale_amount;
+        $this->dDiscountAmount      = (string) $this->sale->discount_amount;
+        $this->dTaxAmount           = (string) $this->sale->tax_amount;
+        $this->dNetAmount           = (string) $this->sale->net_amount;
+        $this->dPaymentTerms        = (string) ($this->sale->payment_terms ?? '');
+        $this->dPaymentStatus       = $this->sale->payment_status;
+        $this->dStatus              = $this->sale->status;
+        $this->dSalesRepresentative = $this->sale->sales_representative ?? '';
+        $this->dNotes               = $this->sale->notes ?? '';
     }
 
     // ── Financial auto-calculation ───────────────────────────────────────────
@@ -89,27 +104,6 @@ class PropertySaleDetails extends Component
     }
 
     // ── Edit drawer ───────────────────────────────────────────────────────────
-    public function openEdit(): void
-    {
-        abort_unless(Auth::user()?->can('property_sale.edit'), 403);
-
-        $this->dPropertyUnitId      = (string) $this->sale->property_unit_id;
-        $this->dCustomerId          = (string) $this->sale->customer_id;
-        $this->dSaleDate            = $this->sale->sale_date?->format('Y-m-d') ?? '';
-        $this->dContractDate        = $this->sale->contract_date?->format('Y-m-d') ?? '';
-        $this->dSaleAmount          = (string) $this->sale->sale_amount;
-        $this->dDiscountAmount      = (string) $this->sale->discount_amount;
-        $this->dTaxAmount           = (string) $this->sale->tax_amount;
-        $this->dNetAmount           = (string) $this->sale->net_amount;
-        $this->dPaymentTerms        = (string) ($this->sale->payment_terms ?? '');
-        $this->dPaymentStatus       = $this->sale->payment_status;
-        $this->dStatus              = $this->sale->status;
-        $this->dSalesRepresentative = $this->sale->sales_representative ?? '';
-        $this->dNotes               = $this->sale->notes ?? '';
-
-        $this->drawerOpen = true;
-    }
-
     public function closeDrawer(): void
     {
         $this->drawerOpen = false;
@@ -422,7 +416,14 @@ class PropertySaleDetails extends Component
 
     public function updatedPayNowAccountType(): void
     {
-        $this->payNowAccountId = '';
+        $this->payNowAccountId  = '';
+        $this->payNowAccounts   = $this->payNowAccountType
+            ? Account::where('is_active', true)
+                ->where('sub_type', $this->payNowAccountType)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->toArray()
+            : [];
     }
 
     // ── Render ─────────────────────────────────────────────────────────────────
@@ -432,13 +433,11 @@ class PropertySaleDetails extends Component
 
         $units     = PropertyUnit::with('property')->orderBy('code')->get();
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
-        $accounts  = Account::where('is_active', true)->whereNotNull('sub_type')->orderBy('name')->get();
 
         return view('livewire.admin.properties.property-sale-details', [
             'sale'      => $this->sale,
             'units'     => $units,
             'customers' => $customers,
-            'accounts'  => $accounts,
         ])->layout('layouts.admin.admin');
     }
 }

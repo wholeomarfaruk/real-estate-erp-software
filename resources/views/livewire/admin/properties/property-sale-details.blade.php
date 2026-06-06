@@ -28,6 +28,7 @@
     "
     class="min-h-screen"
 >
+<style>@keyframes spin { to { transform: rotate(360deg); } }</style>
 
     {{-- ─── HEADER ─────────────────────────────────────────────────────────── --}}
     <div style="padding:28px 24px 0;" class="flex items-start justify-between gap-6 flex-wrap">
@@ -94,7 +95,7 @@
         </div>
         <div style="display:flex; gap:8px; flex-shrink:0;">
             @can('property_sale.edit')
-                <button wire:click="openEdit"
+                <button @click="drawerOpen = true"
                     style="appearance:none; border:1px solid var(--ink-1); background:var(--ink-1); color:var(--paper);
                            padding:7px 14px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
                            display:inline-flex; align-items:center; gap:6px;">
@@ -142,6 +143,82 @@
                     <span style="font:600 11px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2);">Net Amount (Sale − Discount + Tax)</span>
                     <span style="font:700 26px var(--mono); color:var(--accent); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->net_amount, 2) }}</span>
                 </div>
+            </div>
+
+            {{-- Sale Details --}}
+            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; overflow:hidden;">
+                <div style="padding:14px 20px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0; font-size:13px; font-weight:600;">Sale Details</h3>
+                    <span style="font:11px var(--mono); color:var(--ink-3);">BDT (৳)</span>
+                </div>
+
+                @if($sale->sale_type === 'rent')
+                    {{-- ── RENT ── --}}
+                    <div style="padding:16px 20px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div style="background:var(--canvas); border-radius:8px; padding:12px 14px;">
+                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Monthly Rent</div>
+                            <div style="font:600 16px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->propertyUnit->rent_amount ?? 0, 2) }}</div>
+                        </div>
+                        <div style="background:var(--canvas); border-radius:8px; padding:12px 14px;">
+                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Security Deposit</div>
+                            <div style="font:600 16px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->security_deposit_amount ?? 0, 2) }}</div>
+                        </div>
+                        <div style="background:var(--canvas); border-radius:8px; padding:12px 14px;">
+                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Service Charge</div>
+                            <div style="font:600 16px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->propertyUnit->service_charge ?? 0, 2) }}</div>
+                        </div>
+                        @if($sale->rent_start_date || $sale->rent_end_date)
+                            <div style="background:var(--canvas); border-radius:8px; padding:12px 14px;">
+                                <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Rent Period</div>
+                                <div style="font:500 12px var(--mono); color:var(--ink-1);">
+                                    {{ $sale->rent_start_date?->format('d M Y') ?? '--' }} &rarr; {{ $sale->rent_end_date?->format('d M Y') ?? '--' }}
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                    <div style="padding:12px 20px; background:#F5F2E8; display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--rule);">
+                        <span style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Move-in Cost (Deposit + Service Charge)</span>
+                        <span style="font:700 18px var(--mono); color:var(--accent); font-variant-numeric:tabular-nums;">৳ {{ number_format(($sale->security_deposit_amount ?? 0) + ($sale->propertyUnit->service_charge ?? 0), 2) }}</span>
+                    </div>
+
+                @else
+                    {{-- ── SALE ── --}}
+                    <div style="padding:16px 20px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div style="background:var(--canvas); border-radius:8px; padding:12px 14px;">
+                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Unit Price</div>
+                            <div style="font:600 16px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->propertyUnit->price ?? $sale->propertyUnit->sell_price ?? 0, 2) }}</div>
+                        </div>
+                        <div style="background:var(--canvas); border-radius:8px; padding:12px 14px;">
+                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Down Payment</div>
+                            <div style="font:600 16px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->down_payment_amount ?? 0, 2) }}</div>
+                            @if($sale->down_payment_percentage)
+                                <span style="display:block; font:500 11px var(--mono); color:var(--ink-3); margin-top:2px;">({{ number_format($sale->down_payment_percentage, 2) }}%)</span>
+                            @endif
+                        </div>
+                        <div style="background:var(--canvas); border-radius:8px; padding:12px 14px;">
+                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Service Charge</div>
+                            <div style="font:600 16px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->propertyUnit->service_charge ?? 0, 2) }}</div>
+                        </div>
+                        <div style="background:var(--canvas); border-radius:8px; padding:12px 14px;">
+                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--rj-fg); margin-bottom:5px;">Discount</div>
+                            <div style="font:600 16px var(--mono); color:var(--rj-fg); font-variant-numeric:tabular-nums;">− ৳ {{ number_format($sale->discount_amount ?? 0, 2) }}</div>
+                        </div>
+                        <div style="background:var(--canvas); border-radius:8px; padding:12px 14px;">
+                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Tax</div>
+                            <div style="font:600 16px var(--mono); font-variant-numeric:tabular-nums;">+ ৳ {{ number_format($sale->tax_amount ?? 0, 2) }}</div>
+                        </div>
+                    </div>
+                    <div style="border-top:1px solid var(--rule);">
+                        <div style="padding:10px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--rule);">
+                            <span style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Initial Commitment (Down Payment + Service Charge)</span>
+                            <span style="font:600 14px var(--mono); color:var(--ink-2); font-variant-numeric:tabular-nums;">৳ {{ number_format(($sale->down_payment_amount ?? 0) + ($sale->propertyUnit->service_charge ?? 0), 2) }}</span>
+                        </div>
+                        <div style="padding:12px 20px; background:#F5F2E8; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2);">Final Amount (Unit Price + Service Charge − Discount + Tax)</span>
+                            <span style="font:700 20px var(--mono); color:var(--accent); font-variant-numeric:tabular-nums;">৳ {{ number_format(($sale->propertyUnit->price ?? $sale->propertyUnit->sell_price ?? 0) + ($sale->propertyUnit->service_charge ?? 0) - ($sale->discount_amount ?? 0) + ($sale->tax_amount ?? 0), 2) }}</span>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             {{-- Timeline / Dates --}}
@@ -269,7 +346,7 @@
                                         @can('property_sale.edit')
                                             <div style="display:inline-flex; align-items:center; gap:6px;">
                                                 @if($sched->status !== 'paid')
-                                                    <button wire:click="OpenPayNowModal({{ $sched->id }})"
+                                                    <button @click="payNowModalOpen = true; $wire.OpenPayNowModal({{ $sched->id }})"
                                                         title="Pay Now"
                                                         style="appearance:none; border:none; background:var(--av-bg); color:var(--av-fg);
                                                                padding:4px 10px; font:600 10.5px 'Inter', sans-serif; border-radius:6px; cursor:pointer; white-space:nowrap;
@@ -278,7 +355,7 @@
                                                         Pay Now
                                                     </button>
                                                 @else
-                                                    <button title="Payment Details" wire:click="OpenPayNowModal({{ $sched->id }})"
+                                                    <button title="Payment Details" @click="payNowModalOpen = true; $wire.OpenPayNowModal({{ $sched->id }})"
                                                         style="appearance:none; border:none; background:var(--av-bg); color:var(--av-fg);
                                                                padding:4px 10px; font:600 10.5px 'Inter', sans-serif; border-radius:6px; cursor:pointer; white-space:nowrap;
                                                                display:inline-flex; align-items:center; gap:4px; letter-spacing:.01em;">
@@ -540,7 +617,7 @@
         </div>
 
         {{-- Body --}}
-        <div style="flex:1; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:18px;">
+        <div style="flex:1; min-height:0; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:18px;">
 
             {{-- Category & Sequence --}}
             <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
@@ -658,7 +735,7 @@
         x-transition:leave="transition ease-in duration-150"
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
-        @click="$wire.closeDrawer()"
+        @click="drawerOpen = false"
         style="position:fixed; inset:0; background:rgba(20,18,16,.45); backdrop-filter:blur(4px); z-index:50;"
         x-cloak
     ></div>
@@ -672,21 +749,22 @@
         x-transition:leave="transition ease-in duration-200"
         x-transition:leave-start="transform translate-x-0"
         x-transition:leave-end="transform translate-x-full"
-        style="position:fixed; top:0; right:0; bottom:0; width:680px; max-width:100vw;
-               background:var(--canvas); z-index:51; display:flex; flex-direction:column;
-               box-shadow:-20px 0 40px -20px rgba(0,0,0,.25);"
         x-cloak
+        style="position:fixed; top:0; right:0; bottom:0; width:680px; max-width:100vw; z-index:51;"
     >
+        <div style="width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden;
+                    background:var(--canvas); box-shadow:-20px 0 40px -20px rgba(0,0,0,.25);">
+
         {{-- Drawer Head --}}
         <div style="padding:18px 24px; border-bottom:1px solid var(--rule); background:var(--paper);
-                    display:flex; justify-content:space-between; align-items:center;">
+                    display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
             <div>
                 <h3 style="margin:0; font-size:16px; font-weight:600;">Edit Sale</h3>
                 <div style="margin-top:2px; font:500 11px var(--mono); color:var(--ink-3); letter-spacing:.04em; text-transform:uppercase;">
                     Update sale details
                 </div>
             </div>
-            <button @click="$wire.closeDrawer()"
+            <button @click="drawerOpen = false"
                 style="appearance:none; border:0; background:transparent; color:var(--ink-2);
                        width:32px; height:32px; border-radius:6px; cursor:pointer;
                        display:flex; align-items:center; justify-content:center;"
@@ -695,8 +773,9 @@
             </button>
         </div>
 
+
         {{-- Drawer Body --}}
-        <div style="flex:1; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:18px;">
+        <div style="flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; padding:24px; display:flex; flex-direction:column; gap:18px;">
 
             {{-- 1. Property & Customer --}}
             <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
@@ -851,7 +930,7 @@
         </div>
 
         {{-- Drawer Footer --}}
-        <div style="border-top:1px solid var(--rule); background:var(--paper);">
+        <div style="border-top:1px solid var(--rule); background:var(--paper); flex-shrink:0;">
             @if($errors->any())
                 <div style="padding:9px 24px; background:var(--rj-bg); border-bottom:1px solid rgba(0,0,0,.06);">
                     <ul style="margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:3px;">
@@ -871,18 +950,22 @@
                     Cancel
                 </button>
                 <button wire:click="savePropertySale"
-                    wire:loading.attr="disabled"
+                    wire:loading.attr="disabled" wire:target="savePropertySale"
                     style="appearance:none; border:1px solid var(--accent); background:var(--accent); color:#fff;
                            padding:7px 18px; font:600 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
                            display:inline-flex; align-items:center; gap:6px;">
-                    <span wire:loading.remove wire:target="savePropertySale" style="display:inline-flex; align-items:center; gap:6px;">
+                    <span wire:loading.remove wire:target="savePropertySale" style="display:contents;">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                         Update Sale
                     </span>
-                    <span wire:loading wire:target="savePropertySale">Saving…</span>
+                    <span wire:loading.flex wire:target="savePropertySale" style="align-items:center; gap:6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                        Saving…
+                    </span>
                 </button>
             </div>
         </div>
+        </div>{{-- /flex layer --}}
     </aside>
 
 
@@ -901,14 +984,25 @@
                         <div style="font:500 10.5px var(--mono); color:var(--ink-3); letter-spacing:.04em; text-transform:uppercase; margin-top:1px;">{{ $sale->sale_number }}</div>
                     </div>
                 </div>
-                <button @click="$wire.closePayNowModal()"
+                <button @click="payNowModalOpen = false"
                     style="appearance:none; border:0; background:transparent; color:var(--ink-2); width:30px; height:30px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
 
             {{-- Body --}}
-            <div style="padding:20px 22px; display:flex; flex-direction:column; gap:14px;">
+            <div style="padding:20px 22px; display:flex; flex-direction:column; gap:14px; position:relative; min-height:120px;">
+
+                {{-- Loading overlay --}}
+                <div wire:loading.flex wire:target="OpenPayNowModal"
+                    style="position:absolute; inset:0; background:var(--canvas); z-index:10; border-radius:0 0 14px 14px;
+                           align-items:center; justify-content:center; gap:10px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        style="animation:spin 1s linear infinite; color:var(--accent);">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
+                    <span style="font:500 13px 'Inter', sans-serif; color:var(--ink-2);">Loading…</span>
+                </div>
 
                 @if((float)$payNowAmount > 0)
                 {{-- Row 1: Account Type + Account --}}
@@ -927,18 +1021,18 @@
                         @error('payNowAccountType') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                        <label style="display:flex; align-items:center; gap:5px; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
                             Account <span style="color:var(--rj-fg)">*</span>
+                            <svg wire:loading wire:target="payNowAccountType" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite; color:var(--accent);"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                         </label>
                         <select wire:model="payNowAccountId"
+                            wire:loading.attr="disabled" wire:target="payNowAccountType"
                             @if(!$payNowAccountType) disabled @endif
                             style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif; {{ !$payNowAccountType ? 'opacity:.5; cursor:not-allowed;' : '' }}">
                             <option value="">— Select account —</option>
-                            @if($payNowAccountType)
-                                @foreach($accounts->where('sub_type', $payNowAccountType) as $account)
-                                    <option value="{{ $account->id }}">{{ $account->name }}</option>
-                                @endforeach
-                            @endif
+                            @foreach($payNowAccounts as $account)
+                                <option value="{{ $account['id'] }}">{{ $account['name'] }}</option>
+                            @endforeach
                         </select>
                         @error('payNowAccountId') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
                     </div>
@@ -1114,7 +1208,7 @@
             {{-- Footer --}}
             <div style="padding:14px 22px; border-top:1px solid var(--rule); background:var(--paper); border-radius:0 0 14px 14px;
                         display:flex; justify-content:flex-end; align-items:center; gap:10px;">
-                <button @click="$wire.closePayNowModal()"
+                <button @click="payNowModalOpen = false"
                     style="appearance:none; border:1px solid var(--rule); background:transparent; color:var(--ink-2);
                            padding:7px 16px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;">
                     Cancel

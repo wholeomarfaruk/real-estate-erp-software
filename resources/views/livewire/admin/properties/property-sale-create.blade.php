@@ -19,19 +19,17 @@
     "
     class="min-h-screen"
 >
+<style>@keyframes spin { to { transform: rotate(360deg); } }</style>
 
     {{-- ─── HEADER ──────────────────────────────────────────────────────────── --}}
+    {{-- Breadcrumb & Back --}}
     <div style="padding:28px 24px 0;" class="flex items-start justify-between gap-6 flex-wrap">
-        <div>
-            <div style="font-size:11.5px; color:var(--ink-3); font-family:var(--mono); display:flex; gap:6px; align-items:center; margin-bottom:8px;">
-                <span>Real Estate</span>
-                <span style="opacity:.5">/</span>
-                <a href="{{ route('admin.properties.sales.index') }}" style="color:var(--ink-3); text-decoration:none;">Property Sales</a>
-                <span style="opacity:.5">/</span>
-                <span style="color:var(--ink-1);">New Sale</span>
-            </div>
-            <div style="font-size:24px; font-weight:600; letter-spacing:-.01em;">New Property Sale</div>
-            <div style="margin-top:4px; font-size:13px; color:var(--ink-2);">Record a new property sale or rent agreement.</div>
+        <div style="font-size:11.5px; color:var(--ink-3); font-family:var(--mono); display:flex; gap:6px; align-items:center;">
+            <span>Real Estate</span>
+            <span style="opacity:.5">/</span>
+            <a href="{{ route('admin.properties.sales.index') }}" style="color:var(--ink-3); text-decoration:none;">Property Sales</a>
+            <span style="opacity:.5">/</span>
+            <span style="color:var(--ink-1);">New Sale</span>
         </div>
         <a href="{{ route('admin.properties.sales.index') }}"
             style="appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2);
@@ -42,14 +40,26 @@
         </a>
     </div>
 
+    {{-- Title & description — centered, aligned with form --}}
+    <div style="padding:16px 24px 0; max-width:860px; margin:0 auto; width:100%;">
+        <div style="font-size:24px; font-weight:600; letter-spacing:-.01em;">New Property Sale</div>
+        <div style="margin-top:4px; font-size:13px; color:var(--ink-2);">Record a new property sale or rent agreement.</div>
+    </div>
+
     {{-- ─── BODY ────────────────────────────────────────────────────────────── --}}
-    <div style="padding:24px; max-width:860px; display:flex; flex-direction:column; gap:18px;">
+    <div style="padding:24px; max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:18px;">
 
         {{-- ══ 1. SALE TYPE ══ --}}
         <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:20px 24px;">
-            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                 <h3 style="margin:0; font-size:14px; font-weight:600;">Sale Type</h3>
-                <span style="font:11px var(--mono); color:var(--rj-fg);">required</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span wire:loading.flex wire:target="dSaleType" style="align-items:center; gap:5px; font:500 11px 'Inter', sans-serif; color:var(--ink-3);">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                        Switching…
+                    </span>
+                    <span wire:loading.remove wire:target="dSaleType" style="font:11px var(--mono); color:var(--rj-fg);">required</span>
+                </div>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; max-width:420px;">
                 @foreach(['sale' => ['icon'=>'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z','label'=>'Property Sale','desc'=>'Flat, shop, office, land sale'],
@@ -77,9 +87,15 @@
 
         {{-- ══ 2. PROPERTY & CUSTOMER ══ --}}
         <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:20px 24px;">
-            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                 <h3 style="margin:0; font-size:14px; font-weight:600;">Property &amp; Customer</h3>
-                <span style="font:11px var(--mono); color:var(--rj-fg);">required</span>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span wire:loading.flex wire:target="dPropertyId,dPropertyUnitId" style="align-items:center; gap:5px; font:500 11px 'Inter', sans-serif; color:var(--ink-3);">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                        Loading…
+                    </span>
+                    <span wire:loading.remove wire:target="dPropertyId,dPropertyUnitId" style="font:11px var(--mono); color:var(--rj-fg);">required</span>
+                </div>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
                 <div>
@@ -87,6 +103,7 @@
                         Property <span style="color:var(--rj-fg)">*</span>
                     </label>
                     <select wire:model.live="dPropertyId"
+                        wire:loading.attr="disabled" wire:target="dPropertyId"
                         style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font:13px 'Inter', sans-serif;">
                         <option value="">— Select property —</option>
                         @foreach($properties as $property)
@@ -99,29 +116,35 @@
                     <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">
                         Unit <span style="color:var(--rj-fg)">*</span>
                     </label>
-                    <select wire:model="dPropertyUnitId"
-                        @if(!$dPropertyId) disabled @endif
-                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule);
-                               background:{{ $dPropertyId ? 'var(--paper)' : 'var(--canvas)' }};
-                               color:var(--ink-1); padding:10px 14px; border-radius:7px; font:13px 'Inter', sans-serif;
-                               opacity:{{ $dPropertyId ? '1' : '.5' }};">
-                        <option value="">{{ $dPropertyId ? '— Select unit —' : '— Select property first —' }}</option>
-                        @foreach($units as $unit)
-                            @php
-                                $purposeLabel = match($unit->purpose) {
-                                    'sell' => ' · For Sale',
-                                    'rent' => ' · For Rent',
-                                    default => '',
-                                };
-                                $isDisabled = ($dSaleType === 'sale' && $unit->purpose === 'rent')
-                                           || ($dSaleType === 'rent' && $unit->purpose === 'sell');
-                            @endphp
-                            <option value="{{ $unit->id }}" @disabled($isDisabled)>
-                                {{ $unit->code }}
-                                ({{ ucfirst($unit->type ?? '') }}, {{ ucfirst($unit->status ?? '') }}){{ $purposeLabel }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div style="position:relative;">
+                        <select wire:model.live="dPropertyUnitId"
+                            wire:loading.attr="disabled" wire:target="dPropertyId,dPropertyUnitId"
+                            @if(!$dPropertyId) disabled @endif
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule);
+                                   background:{{ $dPropertyId ? 'var(--paper)' : 'var(--canvas)' }};
+                                   color:var(--ink-1); padding:10px 14px; border-radius:7px; font:13px 'Inter', sans-serif;
+                                   opacity:{{ $dPropertyId ? '1' : '.5' }};">
+                            <option value="">{{ $dPropertyId ? '— Select unit —' : '— Select property first —' }}</option>
+                            @foreach($units as $unit)
+                                @php
+                                    $purposeLabel = match($unit->purpose) {
+                                        'sell' => ' · For Sale',
+                                        'rent' => ' · For Rent',
+                                        default => '',
+                                    };
+                                    $isDisabled = ($dSaleType === 'sale' && $unit->purpose === 'rent')
+                                               || ($dSaleType === 'rent' && $unit->purpose === 'sell');
+                                @endphp
+                                <option value="{{ $unit->id }}" @disabled($isDisabled)>
+                                    {{ $unit->code }}
+                                    ({{ ucfirst($unit->type ?? '') }}, {{ ucfirst($unit->status ?? '') }}){{ $purposeLabel }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <span wire:loading wire:target="dPropertyId" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); pointer-events:none;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" stroke-width="2.5" style="animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                        </span>
+                    </div>
                     @error('dPropertyUnitId') <p style="margin-top:5px; font-size:11.5px; color:var(--rj-fg);">{{ $message }}</p> @enderror
                 </div>
                 <div style="grid-column:span 2;">
@@ -143,9 +166,15 @@
         {{-- ══ 3a. SALE FINANCIAL (sale only) ══ --}}
         <div x-show="saleType === 'sale'" x-cloak
             style="background:#F5F2E8; border:1px solid var(--rule); border-radius:10px; padding:20px 24px;">
-            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                 <h3 style="margin:0; font-size:14px; font-weight:600;">Financial Details</h3>
-                <span style="font:11px var(--mono); color:var(--ink-3);">BDT (৳)</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span wire:loading.flex wire:target="dPropertyUnitId,dSaleType" style="align-items:center; gap:5px; font:500 11px 'Inter', sans-serif; color:var(--ink-3);">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                        Resolving…
+                    </span>
+                    <span style="font:11px var(--mono); color:var(--ink-3);">BDT (৳)</span>
+                </div>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:14px;">
                 <div>
@@ -197,13 +226,25 @@
                     <input wire:model="dPaymentTerms" type="number" min="0" placeholder="e.g. 30"
                         style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
                 </div>
+                <div>
+                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Service Charge (৳)</label>
+                    <input wire:model="dServiceCharge" type="number" min="0" step="0.01" placeholder="0.00"
+                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                    <p style="margin-top:4px; font:11px 'Inter', sans-serif; color:var(--ink-3);">Auto-filled from unit — editable</p>
+                </div>
             </div>
         </div>
 
         {{-- ══ 3b. RENT DETAILS (rent only) ══ --}}
         <div x-show="saleType === 'rent'" x-cloak
             style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:20px 24px;">
-            <h3 style="margin:0 0 16px; font-size:14px; font-weight:600;">Rent Details</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="margin:0; font-size:14px; font-weight:600;">Rent Details</h3>
+                <span wire:loading.flex wire:target="dPropertyUnitId,dSaleType" style="align-items:center; gap:5px; font:500 11px 'Inter', sans-serif; color:var(--ink-3);">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                    Resolving…
+                </span>
+            </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
                 <div>
                     <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Rent Start Date</label>
@@ -225,6 +266,12 @@
                     <input wire:model="dScheduleAmount" type="number" min="0" step="0.01" placeholder="0.00"
                         style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
                     <p style="margin-top:4px; font:11px 'Inter', sans-serif; color:var(--ink-3);">Used for auto-generating rent schedules</p>
+                </div>
+                <div>
+                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Service Charge (৳)</label>
+                    <input wire:model="dServiceCharge" type="number" min="0" step="0.01" placeholder="0.00"
+                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                    <p style="margin-top:4px; font:11px 'Inter', sans-serif; color:var(--ink-3);">Auto-filled from unit — editable</p>
                 </div>
                 {{-- Renewal --}}
                 <div style="grid-column:span 2; padding:14px 16px; background:var(--canvas); border-radius:8px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
@@ -263,20 +310,27 @@
         {{-- ══ 5. PAYMENT SCHEDULE ══ --}}
         <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; overflow:hidden;">
             {{-- Header toggle --}}
-            <div style="padding:16px 24px; display:flex; justify-content:space-between; align-items:center;"
+            <div class="p-3!" style="padding:20px 24px; display:flex; justify-content:space-between; align-items:center;"
                 :style="isScheduled ? 'border-bottom:1px solid var(--rule)' : ''">
-                <div>
+                <div class="px-3">
                     <h3 style="margin:0; font-size:14px; font-weight:600;">Auto Payment Schedule</h3>
                     <div style="margin-top:3px; font:12px 'Inter', sans-serif; color:var(--ink-3);">
                         <span x-show="saleType === 'sale'">Auto-generate installment schedule</span>
                         <span x-show="saleType === 'rent'" x-cloak>Auto-generate monthly rent schedule</span>
                     </div>
                 </div>
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                    <input type="checkbox" wire:model.live="dIsScheduled"
-                        style="width:17px; height:17px; accent-color:var(--accent); cursor:pointer;">
-                    <span style="font:500 13px 'Inter', sans-serif;" x-text="isScheduled ? 'Enabled' : 'Disabled'"></span>
-                </label>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span wire:loading.flex wire:target="dIsScheduled" style="align-items:center; gap:5px; font:500 11px 'Inter', sans-serif; color:var(--ink-3);">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                        Updating…
+                    </span>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                        <input type="checkbox" wire:model.live="dIsScheduled"
+                            wire:loading.attr="disabled" wire:target="dIsScheduled"
+                            style="width:17px; height:17px; accent-color:var(--accent); cursor:pointer;">
+                        <span wire:loading.remove wire:target="dIsScheduled" style="font:500 13px 'Inter', sans-serif;" x-text="isScheduled ? 'Enabled' : 'Disabled'"></span>
+                    </label>
+                </div>
             </div>
 
             {{-- Schedule settings (visible when enabled) --}}
@@ -370,8 +424,8 @@
                     </div>
                 @elseif($dIsScheduled && $dScheduleStartDate && $dScheduleCount)
                     <div style="padding:16px; text-align:center; font-size:12.5px; color:var(--ink-3); background:var(--canvas); border-radius:8px;">
-                        <span wire:loading wire:target="dScheduleCount,dScheduleDay,dScheduleStartDate,dScheduleType">Generating preview…</span>
-                        <span wire:loading.remove>No preview — check schedule settings.</span>
+                        <span wire:loading wire:target="dScheduleCount,dScheduleDay,dScheduleStartDate,dScheduleType,dScheduleAmount">Generating preview…</span>
+                        <span wire:loading.remove wire:target="dScheduleCount,dScheduleDay,dScheduleStartDate,dScheduleType,dScheduleAmount">No preview — check schedule settings.</span>
                     </div>
                 @endif
 

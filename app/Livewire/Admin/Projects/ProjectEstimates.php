@@ -48,6 +48,13 @@ class ProjectEstimates extends Component
             abort(403);
         }
         $this->project = $project;
+
+        // Load attachments for the default active estimate (last one)
+        $last = ProjectEstimate::where('project_id', $project->id)->latest('version')->first();
+        if ($last) {
+            $this->activeEstimateId    = $last->id;
+            $this->estimateAttachments = $last->attachments ?? [];
+        }
     }
 
     public function selectEstimate(int $id): void
@@ -55,6 +62,10 @@ class ProjectEstimates extends Component
         $this->activeEstimateId = $id;
         $this->filterPhase      = '';
         $this->filterCostType   = '';
+
+        // Sync attachment property from DB for this estimate
+        $estimate = ProjectEstimate::find($id);
+        $this->estimateAttachments = $estimate?->attachments ?? [];
     }
 
     // ── Create / Edit builder ────────────────────────────
@@ -408,48 +419,29 @@ class ProjectEstimates extends Component
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Estimate deleted.']);
     }
 
-    // Handle estimate attachment updates from media picker (works even when locked)
-    public function mediaSelected($field, $id): void
+    // Save estimateAttachments property to the active estimate in DB (works even when locked)
+    public function saveEstimateAttachments(): void
     {
-        if ($field === 'estimateAttachments' && $this->activeEstimateId) {
-            $estimate = ProjectEstimate::find($this->activeEstimateId);
-            if ($estimate) {
-                $current = $estimate->attachments ?? [];
-                if (is_array($id)) {
-                    $updated = array_values(array_unique(array_merge($current, $id), SORT_REGULAR));
-                } else {
-                    $updated = array_values(array_unique(array_merge($current, [$id]), SORT_REGULAR));
-                }
-                $estimate->update(['attachments' => !empty($updated) ? $updated : null]);
-                $this->dispatch('toast', ['type' => 'success', 'message' => 'File(s) attached successfully.']);
-            }
-            return;
+        if (!auth()->user()->can('project.edit')) {
+            abort(403);
         }
-        parent::mediaSelected($field, $id);
-    }
 
-    // Remove attachment from active estimate (works even when locked)
-    public function removeMedia($field, $id = null): void
-    {
-        if ($field === 'estimateAttachments' && $this->activeEstimateId) {
-            if (!auth()->user()->can('project.edit')) {
-                abort(403);
-            }
-            $estimate = ProjectEstimate::find($this->activeEstimateId);
-            if ($estimate) {
-                $attachments = $estimate->attachments ?? [];
-                $attachments = array_values(array_filter(
-                    $attachments,
-                    function ($item) use ($id) {
-                        return $item != $id;
-                    }
-                ));
-                $estimate->update(['attachments' => !empty($attachments) ? $attachments : null]);
-                $this->dispatch('toast', ['type' => 'success', 'message' => 'File removed.']);
-            }
+        if (!$this->activeEstimateId) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'No estimate selected.']);
             return;
         }
-        parent::removeMedia($field, $id);
+
+        $estimate = ProjectEstimate::find($this->activeEstimateId);
+        if (!$estimate) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Estimate not found.']);
+            return;
+        }
+
+        $estimate->update([
+            'attachments' => !empty($this->estimateAttachments) ? $this->estimateAttachments : null,
+        ]);
+
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Attachments saved.']);
     }
 
     /** Live grand total while building. */
@@ -504,10 +496,17 @@ class ProjectEstimates extends Component
 
         $project = $this->project;
 
+        // Load File models for the active estimate's attachments
+        $estimateFiles = collect();
+        if ($activeEstimate && !empty($activeEstimate->attachments)) {
+            $estimateFiles = File::whereIn('id', $activeEstimate->attachments)->get();
+        }
+
         $showEditButton = false;
         return view('livewire.admin.projects.project-estimates', compact(
             'project', 'estimates', 'activeEstimate', 'boqItems', 'totals',
-            'approvedBudget', 'totalSpent', 'materials', 'categories', 'showEditButton'
+            'approvedBudget', 'totalSpent', 'materials', 'categories', 'showEditButton',
+            'estimateFiles'
         ))->layout('layouts.admin.admin');
     }
 }

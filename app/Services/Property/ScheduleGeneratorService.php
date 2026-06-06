@@ -6,7 +6,6 @@ use App\Enums\Property\PaymentCategory;
 use App\Models\PaymentSchedule;
 use App\Models\PropertySale;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Collection;
 
 class ScheduleGeneratorService
 {
@@ -14,12 +13,18 @@ class ScheduleGeneratorService
      * Generate all schedules for a property sale immediately after creation.
      * Called explicitly from Livewire – NOT from observer – to avoid double fire.
      */
-    public function generateForSale(PropertySale $sale): void
+    public function generateForSale(PropertySale $sale, ?float $serviceChargeOverride = null): void
     {
+        if (!$sale->relationLoaded('propertyUnit')) {
+            $sale->load('propertyUnit');
+        }
+
+        $serviceCharge = $serviceChargeOverride ?? (float) ($sale->propertyUnit?->service_charge ?? 0);
+
         if ($sale->sale_type === 'sale') {
-            $this->generateSaleSchedules($sale);
+            $this->generateSaleSchedules($sale, $serviceCharge);
         } elseif ($sale->sale_type === 'rent') {
-            $this->generateRentSchedules($sale);
+            $this->generateRentSchedules($sale, $serviceCharge);
         }
     }
 
@@ -38,7 +43,7 @@ class ScheduleGeneratorService
 
     // ── Sale type generation ──────────────────────────────────────────────────
 
-    private function generateSaleSchedules(PropertySale $sale): void
+    private function generateSaleSchedules(PropertySale $sale, float $serviceCharge): void
     {
         // Down payment
         if ($sale->down_payment_amount > 0) {
@@ -53,6 +58,22 @@ class ScheduleGeneratorService
                 'status'            => 'pending',
                 'is_auto_generated' => true,
                 'remarks'           => 'Down payment',
+            ]);
+        }
+
+        // Service charge
+        if ($serviceCharge > 0) {
+            PaymentSchedule::create([
+                'property_sale_id'  => $sale->id,
+                'payment_category'  => PaymentCategory::EXTRA_CHARGE->value,
+                'sequence_no'       => null,
+                'due_date'          => $sale->sale_date ?? $sale->contract_date ?? today(),
+                'amount'            => $serviceCharge,
+                'paid_amount'       => 0,
+                'due_amount'        => $serviceCharge,
+                'status'            => 'pending',
+                'is_auto_generated' => true,
+                'remarks'           => 'Service charge',
             ]);
         }
 
@@ -82,7 +103,7 @@ class ScheduleGeneratorService
         }
     }
 
-    private function generateRentSchedules(PropertySale $sale): void
+    private function generateRentSchedules(PropertySale $sale, float $serviceCharge): void
     {
         // Security deposit
         if ($sale->security_deposit_amount > 0) {
@@ -97,6 +118,22 @@ class ScheduleGeneratorService
                 'status'            => 'pending',
                 'is_auto_generated' => true,
                 'remarks'           => 'Security deposit',
+            ]);
+        }
+
+        // Service charge
+        if ($serviceCharge > 0) {
+            PaymentSchedule::create([
+                'property_sale_id'  => $sale->id,
+                'payment_category'  => PaymentCategory::EXTRA_CHARGE->value,
+                'sequence_no'       => null,
+                'due_date'          => $sale->rent_start_date ?? today(),
+                'amount'            => $serviceCharge,
+                'paid_amount'       => 0,
+                'due_amount'        => $serviceCharge,
+                'status'            => 'pending',
+                'is_auto_generated' => true,
+                'remarks'           => 'Service charge',
             ]);
         }
 

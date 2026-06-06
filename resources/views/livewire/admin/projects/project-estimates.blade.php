@@ -127,6 +127,23 @@ tfoot .grand-val { text-align:right; font-family:"JetBrains Mono",ui-monospace,m
 .panel-head h3 { font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:17px; margin:0; }
 .panel-head .vs { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; color:var(--muted); background:#f0f1f3; padding:2px 8px; border-radius:5px; }
 .panel-body { padding:8px 18px 14px; }
+
+/* Attachment file list */
+.doc-list { display:flex; flex-direction:column; gap:2px; }
+.doc-row { display:flex; align-items:center; gap:12px; padding:9px 10px; border-radius:8px; cursor:pointer; }
+.doc-row:hover { background:#fafafb; }
+.doc-icon { width:34px; height:34px; border-radius:7px; display:grid; place-items:center; flex-shrink:0; }
+.doc-icon svg { width:15px; height:15px; }
+.doc-icon.pdf { background:var(--danger-bg); color:var(--danger); }
+.doc-icon.img { background:var(--info-bg); color:var(--info); }
+.doc-icon.dwg { background:#f3edfb; color:#6d28d9; }
+.doc-icon.file { background:var(--accent-soft); color:var(--accent); }
+.doc-info { flex:1; min-width:0; }
+.doc-info .name { font-size:12.5px; font-weight:500; color:var(--ink); }
+.doc-info .meta { font-size:10.5px; color:var(--muted); margin-top:1px; }
+.doc-dl { color:var(--muted-2); padding:4px; border-radius:5px; }
+.doc-row:hover .doc-dl { color:var(--accent); }
+.doc-dl svg { width:15px; height:15px; display:block; }
 </style>
 
   @include('livewire.admin.projects.partials.project-hero', ['project' => $project, 'showEditButton' => false])
@@ -207,17 +224,64 @@ tfoot .grand-val { text-align:right; font-family:"JetBrains Mono",ui-monospace,m
 
   @if($activeEstimate)
 
-  {{-- Attachments section (always accessible, even when locked) --}}
-  @if($activeEstimate)
-    <x-media-picker-field
-      field="estimateAttachments"
-      label="Attachments"
-      :value="$activeEstimate->attachments ?? []"
-      :multiple="true"
-      type="all"
-      placeholder="Click to upload files"
-      :canEdit="auth()->user()->can('project.edit')" />
-  @endif
+  {{-- Attachments (always accessible, even when estimate is locked/approved) --}}
+  <div class="panel" style="margin-bottom:18px;">
+    <div class="panel-head">
+      <h3>Attachments
+        @if($estimateFiles->count())
+          <span style="font-family:'JetBrains Mono',monospace;background:#f0f1f3;color:var(--ink-2);padding:1px 7px;border-radius:999px;font-size:10px;font-weight:600;margin-left:4px;">{{ $estimateFiles->count() }}</span>
+        @endif
+      </h3>
+    </div>
+    <div class="card-body" style="padding:10px 12px;">
+      @can('project.edit')
+        <div style="margin-bottom:12px;">
+          <x-media-picker-field
+            field="estimateAttachments"
+            :value="$estimateAttachments"
+            placeholder="Click to upload files"
+            :multiple="true"
+            type="all"
+            label="Manage Attachments"
+            required="false" />
+          <div style="margin-top:6px;display:flex;gap:8px;">
+            <button wire:click="saveEstimateAttachments" class="btn" style="padding:6px 12px;font-size:12px;"
+              wire:loading.attr="disabled" wire:target="saveEstimateAttachments">
+              Save Attachments
+            </button>
+          </div>
+        </div>
+      @endcan
+
+      {{-- File list --}}
+      <div class="doc-list">
+        @forelse($estimateFiles as $file)
+          @php
+            $ext = strtolower($file->extension ?? pathinfo($file->name ?? '', PATHINFO_EXTENSION) ?? 'file');
+            $iconClass = in_array($ext, ['pdf']) ? 'pdf' : (in_array($ext, ['jpg','jpeg','png','gif','webp']) ? 'img' : (in_array($ext, ['dwg','dxf']) ? 'dwg' : 'file'));
+          @endphp
+          <div class="doc-row">
+            <div class="doc-icon {{ $iconClass }}">
+              @if($iconClass === 'img')
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              @else
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              @endif
+            </div>
+            <div class="doc-info">
+              <div class="name">{{ $file->name ?? 'File ' . $loop->iteration }}</div>
+              <div class="meta">{{ strtoupper($ext) }}</div>
+            </div>
+            <a href="{{ file_path($file->id) }}" download class="doc-dl">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </a>
+          </div>
+        @empty
+          <p style="font-size:12.5px;color:var(--muted-2);font-style:italic;padding:8px 10px;">No attachments for this estimate.</p>
+        @endforelse
+      </div>
+    </div>
+  </div>
 
   {{-- Summary cards --}}
   <div class="summary">
