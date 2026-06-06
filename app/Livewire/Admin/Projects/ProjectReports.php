@@ -180,11 +180,12 @@ class ProjectReports extends Component
         }
 
         $project = $this->project;
+        $showEditButton = false;
         return view('livewire.admin.projects.project-reports', compact(
             'project', 'approvedBudget', 'totalSpent', 'remaining', 'budgetDiff',
             'estMaterial', 'estLabour', 'estOther',
             'actualMaterialCost', 'actualLabour', 'actualOther',
-            'monthlySpend', 'phaseRows', 'composition'
+            'monthlySpend', 'phaseRows', 'composition', 'showEditButton'
         ))->layout('layouts.admin.admin');
     }
 }

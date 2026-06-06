@@ -77,7 +77,7 @@ class ProjectExpenses extends Component
             return $expense;
         });
 
-        $showEditButton = true;
+        $showEditButton = false;
 
         // KPIs from all posted expense transactions for this project
         $all = $this->baseQuery()->with('transactionCategory')->get();

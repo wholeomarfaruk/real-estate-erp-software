@@ -147,9 +147,10 @@ class ProjectConsumption extends Component
         $overCount      = count(array_filter($rows, fn($r) => $r['status'] === 'over_consumed'));
 
         $project = $this->project;
+        $showEditButton = false;
         return view('livewire.admin.projects.project-consumption', compact(
             'project', 'rowsByPhase', 'totalEstimated', 'totalConsumed', 'totalOver', 'overCount',
-            'totalEstimatedValue', 'totalConsumedValue', 'totalRemainingValue', 'totalOverValue'
+            'totalEstimatedValue', 'totalConsumedValue', 'totalRemainingValue', 'totalOverValue', 'showEditButton'
         ))->layout('layouts.admin.admin');
     }
 }

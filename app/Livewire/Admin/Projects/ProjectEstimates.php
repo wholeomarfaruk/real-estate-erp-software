@@ -443,9 +443,10 @@ class ProjectEstimates extends Component
 
         $project = $this->project;
 
+        $showEditButton = false;
         return view('livewire.admin.projects.project-estimates', compact(
             'project', 'estimates', 'activeEstimate', 'boqItems', 'totals',
-            'approvedBudget', 'totalSpent', 'materials', 'categories'
+            'approvedBudget', 'totalSpent', 'materials', 'categories', 'showEditButton'
         ))->layout('layouts.admin.admin');
     }
 }
