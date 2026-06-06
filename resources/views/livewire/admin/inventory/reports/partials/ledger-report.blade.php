@@ -39,11 +39,11 @@
         <div class="grid grid-cols-1 gap-3 lg:grid-cols-6">
             <div>
                 <label class="text-xs text-gray-500">Date From</label>
-                <input type="date" wire:model.live="date_from" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm">
+                <input type="date" wire:model.live="date_from" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm flatpickr-only-date">
             </div>
             <div>
                 <label class="text-xs text-gray-500">Date To</label>
-                <input type="date" wire:model.live="date_to" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm">
+                <input type="date" wire:model.live="date_to" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm flatpickr-only-date">
             </div>
             <div>
                 <label class="text-xs text-gray-500">Movement Type</label>

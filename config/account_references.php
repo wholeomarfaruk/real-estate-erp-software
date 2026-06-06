@@ -36,11 +36,6 @@ return [
     | Accounts / Expense / Payment
     |--------------------------------------------------------------------------
     */
-    'expense' => [
-        'label' => 'Expense',
-        'model' => App\Models\Expense::class,
-        'multiple' => false,
-    ],
 
     'transaction' => [
         'label' => 'Transaction',
@@ -48,11 +43,7 @@ return [
         'multiple' => false,
     ],
 
-    'purchase_payable' => [
-        'label' => 'Purchase Payable',
-        'model' => App\Models\PurchasePayable::class,
-        'multiple' => false,
-    ],
+
 
     /*
     |--------------------------------------------------------------------------
@@ -95,10 +86,10 @@ return [
         'multiple' => false,
     ],
 
-    // 'customer' => [
-    //     'label' => 'Customer',
-    //     'model' => App\Models\Customer::class,
-    //     'multiple' => false,
-    // ],
+    'customer' => [
+        'label' => 'Customer',
+        'model' => App\Models\Customer::class,
+        'multiple' => false,
+    ],
 
 ];

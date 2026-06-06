@@ -133,7 +133,7 @@
                                     Release Date <span class="text-red-500">*</span>
                                 </label>
                                 <input type="date" wire:model="release_date"
-                                    class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
+                                    class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none flatpickr-only-date">
                                 <x-input-error for="release_date" class="mt-1" />
                             </div>
 

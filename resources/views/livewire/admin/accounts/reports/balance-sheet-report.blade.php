@@ -31,7 +31,7 @@
                 <div>
                     <label class="text-xs font-medium uppercase tracking-wide text-gray-500">As of Date</label>
                     <input type="date" wire:model.live="to_date"
-                           class="mt-1 h-10 w-44 rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                           class=\"mt-1 h-10 w-44 rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 flatpickr-only-date\">
                 </div>
                 <button wire:click="resetFilters"
                         class="h-10 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-600 transition hover:bg-gray-50">

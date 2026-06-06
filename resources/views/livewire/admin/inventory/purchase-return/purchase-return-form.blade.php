@@ -43,7 +43,7 @@
 
                 <div>
                     <label for="return_date" class="text-sm font-medium text-gray-700">Return Date *</label>
-                    <input id="return_date" type="date" wire:model="return_date" @disabled($isLocked)
+                    <input id="return_date" type="date" wire:model="return_date" class="flatpickr-only-date" @disabled($isLocked)
                         class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                     <x-input-error for="return_date" class="mt-1" />
                 </div>

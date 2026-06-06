@@ -171,7 +171,28 @@
                             @endcan
                         </div>
                     </div>
+
                 @endcan
+                  @can('module.projects.access')
+                                   <a href="{{ route('admin.projects.list') }}" x-data="tooltip" x-on:mouseover="show = true"
+                            x-on:mouseleave="show = false"
+                            class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400 text-xs
+                    {{ Route::currentRouteName() == 'admin.projects.list' ? 'text-gray-200 bg-gray-800' : '' }}
+
+                    ">
+
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                                stroke="currentColor" class="h-4 w-4">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
+                            </svg>
+
+                            <p x-cloak
+                                x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full ?
+                                    'sm:hidden' : ''">
+                                Projects</p>
+                        </a>
+                  @endcan
 
                 @can('section.general.access')
                     <!-- General  -->
@@ -296,54 +317,9 @@
                             </div>
 
                         </div>
-                    @endcan
-                    @can('module.projects.access')
-                        <!-- Projects Management -->
-                        <div x-data="dropdown" class="relative">
-                            <div @click="toggle('projects')" x-data="tooltip" @mouseover="show = true"
-                                @mouseleave="show = false"
-                                class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
-                                :class="{
-                                    'justify-start': $store.sidebar.full,
-                                    'sm:justify-center': !$store.sidebar.full,
-                                    'text-gray-200 bg-gray-800': $store.sidebar.active == 'projects',
-                                    'text-gray-400': $store.sidebar.active != 'projects'
-                                }">
-                                <div class="relative flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                        stroke-width="2" stroke="currentColor" class="h-4 w-4">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                                    </svg>
-
-                                    <p x-cloak class="text-xs"
-                                        :class="!$store.sidebar.full ? (show ? visibleClass : 'sm:hidden') : ''">
-                                        Projects Management
-                                    </p>
-                                </div>
-
-                                <svg x-cloak :class="$store.sidebar.full ? '' : 'sm:hidden'"
-                                    xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 size-6" viewBox="0 0 20 20"
-                                    stroke-width="1.5" fill="currentColor">
-                                    <path fill-rule="evenodd"
-                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                        clip-rule="evenodd" />
-                                </svg>
-                            </div>
-
-                            <div x-cloak x-show="open" @click.outside="open=false"
-                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
-                                <a href="{{ route('admin.projects.list') }}"
-                                    class="hover:text-gray-200 cursor-pointer text-xs">Projects</a>
-                            </div>
-                            <div x-cloak x-show="open" @click.outside="open=false"
-                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
-                                <a href="{{ route('admin.projects.properties') }}"
-                                    class="hover:text-gray-200 cursor-pointer text-xs">Properties</a>
-                            </div>
-                        </div>
-                    @endcan
-
+                    @endcan       
+                    
+                    
                     @can('module.suppliers.access')
                         <!-- Supplier Management -->
                         <div x-data="dropdown" class="relative">
@@ -365,13 +341,11 @@
                                             d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
                                     </svg>
 
-
-
-
                                     <p x-cloak class="text-xs"
                                         :class="!$store.sidebar.full ? (show ? visibleClass : 'sm:hidden') : ''">
                                         Supplier Management
                                     </p>
+
                                 </div>
 
                                 <svg x-cloak :class="$store.sidebar.full ? '' : 'sm:hidden'"

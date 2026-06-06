@@ -122,7 +122,7 @@
         {{-- Date --}}
         <div>
           <label class="lbl">Date *</label>
-          <input type="date" wire:model="date" class="inp @error('date') err @enderror" />
+          <input type="date" wire:model="date" class="inp @error('date') err @enderror flatpickr-only-date" />
           @error('date') <div class="err-msg">{{ $message }}</div> @enderror
         </div>
 

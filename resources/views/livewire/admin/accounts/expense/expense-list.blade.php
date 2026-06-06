@@ -69,8 +69,8 @@ table.t tbody tr:hover{ background:#fafafb; }
         <option value="{{ $c->id }}">{{ $c->name }}</option>
       @endforeach
     </select>
-    <input type="date" wire:model.live="dateFrom" class="inp" />
-    <input type="date" wire:model.live="dateTo" class="inp" />
+    <input type="date" wire:model.live="dateFrom" class="inp flatpickr-only-date" />
+    <input type="date" wire:model.live="dateTo" class="inp flatpickr-only-date" />
   </div>
 
   {{-- Table --}}

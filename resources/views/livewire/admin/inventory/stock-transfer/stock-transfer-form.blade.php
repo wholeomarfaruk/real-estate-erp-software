@@ -43,7 +43,7 @@
 
                 <div>
                     <label for="transfer_date" class="text-sm font-medium text-gray-700">Transfer Date *</label>
-                    <input id="transfer_date" type="date" wire:model="transfer_date" @disabled($isLocked)
+                    <input id="transfer_date" type="date" wire:model="transfer_date" class="flatpickr-only-date" @disabled($isLocked)
                         class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                     <x-input-error for="transfer_date" class="mt-1" />
                 </div>

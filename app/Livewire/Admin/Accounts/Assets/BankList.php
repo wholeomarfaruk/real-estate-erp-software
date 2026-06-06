@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Accounts\Assets;
 
+use App\Enums\Accounts\AccountType;
 use App\Enums\Accounts\BankAccountType;
 use App\Enums\Accounts\TransactionType;
 use App\Livewire\Traits\WithMediaPicker;
@@ -137,11 +138,11 @@ class BankList extends Component
 
         $assetAccounts = Account::where('is_active',true)->get();
 
-        $types = BankAccountType::cases();
+        $types = AccountType::cases();
 
         // Deposit modal data
         $depositSourceTypes = collect(TransactionType::cases())
-            ->whereIn('value', ['income', 'opening_balance', 'transfer', 'adjustment'])
+            ->whereIn('value', ['opening_balance', 'transfer', 'adjustment'])
             ->values();
 
         $depositCategories = $this->deposit_source_type

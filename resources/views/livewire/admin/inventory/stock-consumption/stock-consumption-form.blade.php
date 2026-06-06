@@ -39,7 +39,7 @@
 
                 <div>
                     <label for="consumption_date" class="text-xs font-medium text-gray-600">Consumption Date *</label>
-                    <input id="consumption_date" type="date" wire:model="consumption_date" class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
+                    <input id="consumption_date" type="date" wire:model="consumption_date" class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none flatpickr-only-date">
                     <x-input-error for="consumption_date" class="mt-1" />
                 </div>
 

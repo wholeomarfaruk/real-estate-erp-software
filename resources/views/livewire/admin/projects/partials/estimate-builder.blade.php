@@ -30,7 +30,7 @@
         </div>
         <div>
           <label class="field-label">Estimate Date *</label>
-          <input type="date" wire:model="form_estimate_date" class="field-input @error('form_estimate_date') error @enderror" />
+          <input type="date" wire:model="form_estimate_date" class="field-input flatpickr-only-date @error('form_estimate_date') error @enderror" />
           @error('form_estimate_date') <div class="field-err">{{ $message }}</div> @enderror
         </div>
       </div>

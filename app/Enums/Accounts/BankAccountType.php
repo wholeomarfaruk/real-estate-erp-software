@@ -26,6 +26,7 @@ enum BankAccountType: string
             self::CASH   => '#b45309',
             self::MFS    => '#be185d',
             self::WALLET => '#6d28d9',
+
         };
     }
 

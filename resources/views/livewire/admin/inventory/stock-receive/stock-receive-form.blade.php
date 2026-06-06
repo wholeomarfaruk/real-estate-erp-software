@@ -54,7 +54,7 @@
 
                 <div>
                     <label for="receive_date" class="text-sm font-medium text-gray-700">Receive Date *</label>
-                    <input id="receive_date" type="date" wire:model="receive_date" @disabled($isLocked)
+                    <input id="receive_date" type="date" wire:model="receive_date" class="flatpickr-only-date" @disabled($isLocked)
                         class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500">
                     <x-input-error for="receive_date" class="mt-1" />
                 </div>
@@ -312,7 +312,7 @@
                 </div>
                 <div class="mb-1 flex items-center justify-between" x-data="{ editingDiscount: false }">
                     <div class="rounded-lg bg-gray-50 px-2 py-1 text-right">
-                        <p class="text-xs text-gray-500 inline-flex items-center">Discount Amount 
+                        <p class="text-xs text-gray-500 inline-flex items-center">Discount Amount
                             <span class="text-xs text-gray-400 ml-1  cursor-pointer hover:text-black"
                                 @click="editingDiscount = !editingDiscount">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -342,7 +342,7 @@
                 </div>
                 <div class="mb-1 flex items-center justify-between" x-data="{ editingDiscount: false }">
                     <div class="rounded-lg bg-gray-50 px-2 py-1 text-right">
-                        <p class="text-xs text-gray-500 inline-flex items-center">Shipping Cost 
+                        <p class="text-xs text-gray-500 inline-flex items-center">Shipping Cost
                             <span class="text-xs text-gray-400 ml-1  cursor-pointer hover:text-black"
                                 @click="editingDiscount = !editingDiscount">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"

@@ -50,13 +50,13 @@
 
                 <div class="col-span-6 sm:col-span-2">
                     <x-label for="bill_date" value="Bill Date *" />
-                    <x-input wire:model="bill_date" id="bill_date" type="date" class="mt-1 block w-full" />
+                    <x-input wire:model="bill_date" id="bill_date" type="date" class="mt-1 block w-full flatpickr-only-date" />
                     <x-input-error for="bill_date" class="mt-2" />
                 </div>
 
                 <div class="col-span-6 sm:col-span-2">
                     <x-label for="due_date" value="Due Date" />
-                    <x-input wire:model="due_date" id="due_date" type="date" class="mt-1 block w-full" />
+                    <x-input wire:model="due_date" id="due_date" type="date" class="mt-1 block w-full flatpickr-only-date" />
                     <x-input-error for="due_date" class="mt-2" />
                 </div>
 

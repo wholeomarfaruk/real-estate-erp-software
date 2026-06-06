@@ -608,7 +608,7 @@
                 <div>
                   <x-label value="Start Date (optional)" class="text-xs" />
                   <x-input wire:model="phases.{{ $i }}.start_date"
-                    type="date" class="mt-1 block w-full text-sm {{ $errors->has('phases.'.$i.'.start_date') ? 'border-red-400' : '' }}" />
+                    type="date" class="mt-1 block w-full text-sm flatpickr-only-date {{ $errors->has('phases.'.$i.'.start_date') ? 'border-red-400' : '' }}" />
                   @error("phases.{$i}.start_date")
                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                   @enderror
@@ -616,7 +616,7 @@
                 <div>
                   <x-label value="End Date (optional)" class="text-xs" />
                   <x-input wire:model="phases.{{ $i }}.end_date"
-                    type="date" class="mt-1 block w-full text-sm {{ $errors->has('phases.'.$i.'.end_date') ? 'border-red-400' : '' }}" />
+                    type="date" class="mt-1 block w-full text-sm flatpickr-only-date {{ $errors->has('phases.'.$i.'.end_date') ? 'border-red-400' : '' }}" />
                   @error("phases.{$i}.end_date")
                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                   @enderror
@@ -763,7 +763,7 @@
           <div>
             <x-label for="edit_start_date" value="Start Date *" />
             <x-input wire:model="edit_start_date" id="edit_start_date" type="date"
-              class="mt-1 block w-full" />
+              class="mt-1 block w-full flatpickr-only-date" />
             <x-input-error for="edit_start_date" class="mt-1" />
           </div>
 
@@ -771,7 +771,7 @@
           <div>
             <x-label for="edit_end_date" value="End Date *" />
             <x-input wire:model="edit_end_date" id="edit_end_date" type="date"
-              class="mt-1 block w-full" />
+              class="mt-1 block w-full flatpickr-only-date" />
             <x-input-error for="edit_end_date" class="mt-1" />
           </div>
 
@@ -779,7 +779,7 @@
           <div>
             <x-label for="edit_handover_date" value="Handover Date" />
             <x-input wire:model="edit_handover_date" id="edit_handover_date" type="date"
-              class="mt-1 block w-full" />
+              class="mt-1 block w-full flatpickr-only-date" />
             <x-input-error for="edit_handover_date" class="mt-1" />
           </div>
 

@@ -50,7 +50,7 @@
 
                 <div class="col-span-6 sm:col-span-2">
                     <x-label for="return_date" value="Return Date *" />
-                    <x-input wire:model="return_date" id="return_date" type="date" class="mt-1 block w-full" />
+                    <x-input wire:model="return_date" id="return_date" type="date" class="mt-1 block w-full flatpickr-only-date" />
                     <x-input-error for="return_date" class="mt-2" />
                 </div>
 

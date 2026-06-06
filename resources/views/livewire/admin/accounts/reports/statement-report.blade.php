@@ -77,12 +77,12 @@
             <div class="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-12">
                 <div class="lg:col-span-2">
                     <label class="text-xs font-medium uppercase tracking-wide text-gray-500">From Date</label>
-                    <input type="date" wire:model.live="fromDate" class="mt-1 h-11 w-full rounded-xl border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
+                    <input type="date" wire:model.live="fromDate" class="mt-1 h-11 w-full rounded-xl border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none flatpickr-only-date">
                 </div>
 
                 <div class="lg:col-span-2">
                     <label class="text-xs font-medium uppercase tracking-wide text-gray-500">To Date</label>
-                    <input type="date" wire:model.live="toDate" class="mt-1 h-11 w-full rounded-xl border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
+                    <input type="date" wire:model.live="toDate" class="mt-1 h-11 w-full rounded-xl border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none flatpickr-only-date">
                 </div>
 
                 <div class="lg:col-span-3">

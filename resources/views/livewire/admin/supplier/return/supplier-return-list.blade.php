@@ -78,7 +78,7 @@
                     <input
                         type="date"
                         wire:model.live="dateFrom"
-                        class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none"
+                        class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none flatpickr-only-date"
                     >
                 </div>
 
@@ -86,7 +86,7 @@
                     <input
                         type="date"
                         wire:model.live="dateTo"
-                        class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none"
+                        class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none flatpickr-only-date"
                     >
                 </div>
 

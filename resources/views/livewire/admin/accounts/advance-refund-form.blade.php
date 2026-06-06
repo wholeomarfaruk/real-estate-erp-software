@@ -97,7 +97,7 @@
                         Refund Date <span class="text-red-500">*</span>
                     </label>
                     <input type="date" wire:model.lazy="refund_date"
-                        class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                        class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none flatpickr-only-date" />
                     @error('refund_date') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
 

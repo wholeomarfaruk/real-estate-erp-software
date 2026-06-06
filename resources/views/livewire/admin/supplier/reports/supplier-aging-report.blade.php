@@ -46,7 +46,7 @@
             </div>
             <div>
                 <label class="text-xs text-gray-500">As On Date</label>
-                <input type="date" wire:model.live="as_on_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm">
+                <input type="date" wire:model.live="as_on_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm flatpickr-only-date">
             </div>
             <div>
                 <label class="text-xs text-gray-500">Per Page</label>

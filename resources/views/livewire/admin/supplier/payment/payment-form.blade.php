@@ -50,7 +50,7 @@
 
                 <div class="col-span-6 sm:col-span-2">
                     <x-label for="payment_date" value="Payment Date *" />
-                    <x-input wire:model="payment_date" id="payment_date" type="date" class="mt-1 block w-full" />
+                    <x-input wire:model="payment_date" id="payment_date" type="date" class="mt-1 block w-full flatpickr-only-date" />
                     <x-input-error for="payment_date" class="mt-2" />
                 </div>
 

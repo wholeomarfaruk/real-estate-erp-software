@@ -289,7 +289,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">Registered Date</label>
-                    <input wire:model="fRegisteredAt" type="date" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)">
+                    <input wire:model="fRegisteredAt" type="date" class="w-full rounded-lg border px-3 py-2 text-sm flatpickr-only-date" style="border-color:var(--rule)">
                 </div>
             </div>
             <div>

@@ -8,7 +8,14 @@
       "Bash(php -l /f/projects/erp-software/.claude/worktrees/agent-ab0a1d2394be13cb1/app/Models/Customer.php)",
       "Bash(php -l /f/projects/erp-software/.claude/worktrees/agent-ab0a1d2394be13cb1/app/Livewire/Admin/Customers/CustomerList.php)",
       "Bash(php -l /f/projects/erp-software/.claude/worktrees/agent-ab0a1d2394be13cb1/app/Livewire/Admin/Customers/CustomerShow.php)",
-      "Bash(php -l /f/projects/erp-software/.claude/worktrees/agent-ab0a1d2394be13cb1/database/migrations/2026_05_16_230000_create_customers_table.php)"
+      "Bash(php -l /f/projects/erp-software/.claude/worktrees/agent-ab0a1d2394be13cb1/database/migrations/2026_05_16_230000_create_customers_table.php)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(curl -s http://127.0.0.1:8000/)",
+      "Bash(php -l app/Helpers/TransactionReferenceFormatter.php)",
+      "Bash(php -l app/Livewire/Admin/Accounts/Transaction/TransactionList.php)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

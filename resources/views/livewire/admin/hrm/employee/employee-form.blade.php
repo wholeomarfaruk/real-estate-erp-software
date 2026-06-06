@@ -52,7 +52,7 @@
                 </div>
                 <div>
                     <label class="text-sm font-medium text-gray-700">Date of Birth</label>
-                    <input type="date" wire:model.defer="date_of_birth" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                    <input type="date" wire:model.defer="date_of_birth" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none flatpickr-only-date">
                     @error('date_of_birth') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
             </div>
@@ -83,17 +83,17 @@
                 </div>
                 <div>
                     <label class="text-sm font-medium text-gray-700">Joining Date <span class="text-rose-500">*</span></label>
-                    <input type="date" wire:model.defer="joining_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                    <input type="date" wire:model.defer="joining_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none flatpickr-only-date">
                     @error('joining_date') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="text-sm font-medium text-gray-700">Confirmation Date</label>
-                    <input type="date" wire:model.defer="confirmation_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                    <input type="date" wire:model.defer="confirmation_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none flatpickr-only-date">
                     @error('confirmation_date') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="text-sm font-medium text-gray-700">Exit Date</label>
-                    <input type="date" wire:model.defer="exit_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                    <input type="date" wire:model.defer="exit_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none flatpickr-only-date">
                     @error('exit_date') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 <div>

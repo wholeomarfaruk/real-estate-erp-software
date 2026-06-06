@@ -398,7 +398,7 @@
                         <label class="block text-xs font-medium text-gray-600">Payment Due Date</label>
                         @if ($isEditable)
                             <input type="date" wire:model.lazy="due_date"
-                                class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                                class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none flatpickr-only-date" />
                         @else
                             <p class="mt-1 text-sm text-gray-800">{{ $due_date ? \Carbon\Carbon::parse($due_date)->format('d M, Y') : '—' }}</p>
                         @endif

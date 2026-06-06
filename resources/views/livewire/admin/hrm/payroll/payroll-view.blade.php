@@ -230,7 +230,7 @@
             <form wire:submit.prevent="addPayment" class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                     <label class="text-sm font-medium text-gray-700">Payment Date</label>
-                    <input type="date" wire:model.defer="payment_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                    <input type="date" wire:model.defer="payment_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none flatpickr-only-date">
                     @error('payment_date') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 <div>

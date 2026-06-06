@@ -24,12 +24,12 @@
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
                 <div>
                     <label class="text-xs font-medium uppercase tracking-wide text-gray-500">From Date</label>
-                    <input type="date" wire:model.defer="from_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm">
+                    <input type="date" wire:model.defer="from_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm flatpickr-only-date">
                 </div>
 
                 <div>
                     <label class="text-xs font-medium uppercase tracking-wide text-gray-500">To Date</label>
-                    <input type="date" wire:model.defer="to_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm">
+                    <input type="date" wire:model.defer="to_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm flatpickr-only-date">
                 </div>
 
                 @if ($definition['filters']['account'] ?? false)

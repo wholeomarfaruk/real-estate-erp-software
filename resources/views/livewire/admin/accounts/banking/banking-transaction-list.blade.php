@@ -95,9 +95,9 @@
         </select>
 
         <input type="date" wire:model.live="dateFrom"
-            class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none">
+            class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none flatpickr-only-date">
         <input type="date" wire:model.live="dateTo"
-            class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none">
+            class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none flatpickr-only-date">
 
         @if($dateFrom || $dateTo || $bankAccountFilter || $typeFilter || $search)
             <button type="button" wire:click="$set('dateFrom', ''); $set('dateTo', ''); $set('bankAccountFilter', null); $set('typeFilter', ''); $set('search', '')"
@@ -247,7 +247,7 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-600 mb-1">Date <span class="text-red-500">*</span></label>
                             <input type="date" wire:model="deposit_date"
-                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none @error('deposit_date') border-red-400 @enderror">
+                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none flatpickr-only-date @error('deposit_date') border-red-400 @enderror">
                             @error('deposit_date') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                         </div>
 
@@ -348,7 +348,7 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-600 mb-1">Date <span class="text-red-500">*</span></label>
                             <input type="date" wire:model="withdrawal_date"
-                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none @error('withdrawal_date') border-red-400 @enderror">
+                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none flatpickr-only-date @error('withdrawal_date') border-red-400 @enderror">
                             @error('withdrawal_date') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                         </div>
 
@@ -450,7 +450,7 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-600 mb-1">Date <span class="text-red-500">*</span></label>
                             <input type="date" wire:model="transfer_date"
-                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none @error('transfer_date') border-red-400 @enderror">
+                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none flatpickr-only-date @error('transfer_date') border-red-400 @enderror">
                             @error('transfer_date') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                         </div>
 

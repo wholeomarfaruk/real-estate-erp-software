@@ -208,12 +208,12 @@
                 <div>
                     <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Rent Start Date</label>
                     <input wire:model="dRentStartDate" type="date"
-                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" class="flatpickr-only-date" />
                 </div>
                 <div>
                     <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Rent End Date</label>
                     <input wire:model="dRentEndDate" type="date"
-                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" class="flatpickr-only-date" />
                 </div>
                 <div>
                     <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Security Deposit (৳)</label>
@@ -236,7 +236,7 @@
                         <div style="display:flex; align-items:center; gap:8px;">
                             <label style="font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); white-space:nowrap;">Renewal Date</label>
                             <input wire:model="dRenewalDate" type="date"
-                                style="appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:8px 12px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                                style="appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:8px 12px; border-radius:7px; font-family:var(--mono); font-size:13px;" class="flatpickr-only-date" />
                         </div>
                     @endif
                 </div>
@@ -250,12 +250,12 @@
                 <div x-show="saleType === 'sale'" x-cloak>
                     <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Sale Date</label>
                     <input wire:model="dSaleDate" type="date"
-                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" class="flatpickr-only-date" />
                 </div>
                 <div>
                     <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Contract Date</label>
                     <input wire:model="dContractDate" type="date"
-                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" class="flatpickr-only-date" />
                 </div>
             </div>
         </div>
@@ -330,7 +330,7 @@
                         Schedule Start Date <span style="color:var(--rj-fg)">*</span>
                     </label>
                     <input wire:model.live="dScheduleStartDate" type="date"
-                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" class="flatpickr-only-date" />
                     @error('dScheduleStartDate') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
                 </div>
 

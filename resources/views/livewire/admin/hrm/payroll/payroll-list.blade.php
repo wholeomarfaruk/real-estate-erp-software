@@ -174,7 +174,7 @@
                     </div>
                     <div>
                         <label class="text-sm font-medium text-gray-700">Payroll Date</label>
-                        <input type="date" wire:model.defer="payroll_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                        <input type="date" wire:model.defer="payroll_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none flatpickr-only-date">
                         @error('payroll_date') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
                     <div class="md:col-span-3">
