@@ -286,6 +286,7 @@ class ProjectDetails extends Component
         $daysLeft   = $this->project->daysToHandover();
 
         $engineers = User::orderBy('name')->get(['id', 'name']);
+        $showEditButton = true;
 
         return view('livewire.admin.projects.project-details', [
             'project'    => $this->project,
@@ -293,6 +294,7 @@ class ProjectDetails extends Component
             'remaining'  => $remaining,
             'daysLeft'   => $daysLeft,
             'engineers'  => $engineers,
+            'showEditButton' => $showEditButton,
             'stats'      => [
                 'floors'          => $this->project->floors->count(),
                 'units'           => $this->project->units->count(),
