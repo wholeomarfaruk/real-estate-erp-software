@@ -42,6 +42,34 @@
     </div>
   </div>
 
+  {{-- Attachments --}}
+  <div class="builder-card">
+    <div class="bc-head">Attachments</div>
+    <div class="bc-body">
+      <div style="margin-bottom:12px;">
+        <button type="button" wire:click="$dispatch('openMediaPicker', {'field': 'attachments', 'multiple': true})" class="btn" style="width:100%;text-align:center;">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Add Files/Images
+        </button>
+      </div>
+      @if(!empty($attachments))
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--rule);">
+          <div style="font-size:10.5px;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px;">Selected Attachments ({{ count($attachments) }})</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(80px, 1fr));gap:8px;">
+            @foreach($attachments as $idx => $fileId)
+              <div style="position:relative;background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:8px;text-align:center;">
+                <div style="font-size:10px;color:var(--muted);word-break:break-word;margin-bottom:4px;">ID: {{ $fileId }}</div>
+                <button type="button" wire:click="removeMedia('attachments', {{ $idx }})" class="li-remove" style="position:absolute;top:2px;right:2px;width:20px;height:20px;" title="Remove">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            @endforeach
+          </div>
+        </div>
+      @endif
+    </div>
+  </div>
+
   {{-- Line items --}}
   <div class="builder-card">
     <div class="bc-head" style="display:flex;align-items:center;justify-content:space-between;">

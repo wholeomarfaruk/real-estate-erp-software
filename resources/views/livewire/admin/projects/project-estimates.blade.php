@@ -207,6 +207,22 @@ tfoot .grand-val { text-align:right; font-family:"JetBrains Mono",ui-monospace,m
 
   @if($activeEstimate)
 
+  {{-- Attachments section --}}
+  @if($activeEstimate->attachments && is_array($activeEstimate->attachments) && count($activeEstimate->attachments) > 0)
+  <div style="background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:16px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:var(--muted);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <span style="font-size:12px;font-weight:600;color:var(--ink);">Attachments</span>
+      <span style="font-size:10.5px;color:var(--muted);">({{ count($activeEstimate->attachments) }} file{{ count($activeEstimate->attachments) !== 1 ? 's' : '' }})</span>
+    </div>
+    <ul style="font-size:11px;color:var(--ink);padding-left:20px;line-height:1.6;">
+      @foreach($activeEstimate->attachments as $fileId)
+        <li>File ID: {{ $fileId }}</li>
+      @endforeach
+    </ul>
+  </div>
+  @endif
+
   {{-- Summary cards --}}
   <div class="summary">
     <div class="sum-card material">
@@ -316,9 +332,15 @@ tfoot .grand-val { text-align:right; font-family:"JetBrains Mono",ui-monospace,m
           @endcan
         @endif
         <span style="width:1px;height:22px;background:var(--rule);margin:0 2px;"></span>
-        <button class="btn" onclick="window.print()">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Export PDF
-        </button>
+        @if($activeEstimate)
+          <a href="{{ route('admin.projects.estimates.pdf', [$project->id, $activeEstimate->id]) }}" class="btn" target="_blank">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Export PDF
+          </a>
+        @else
+          <button class="btn" disabled style="opacity:0.5;cursor:not-allowed;">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Export PDF
+          </button>
+        @endif
         <button class="btn">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export Excel
         </button>

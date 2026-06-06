@@ -5,7 +5,9 @@ namespace App\Livewire\Admin\Projects;
 use App\Enums\Projects\CostType;
 use App\Enums\Projects\EstimateStatus;
 use App\Enums\Projects\WorkPhase;
+use App\Livewire\Traits\WithMediaPicker;
 use App\Models\EstimateItem;
+use App\Models\File;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\ProjectEstimate;
@@ -14,6 +16,8 @@ use Livewire\Component;
 
 class ProjectEstimates extends Component
 {
+    use WithMediaPicker;
+
     public Project $project;
 
     public string $filterPhase    = '';
@@ -27,6 +31,7 @@ class ProjectEstimates extends Component
     public string $form_title         = '';
     public string $form_estimate_date = '';
     public string $form_notes         = '';
+    public array $attachments        = [];
 
     /**
      * Each row:
@@ -62,6 +67,7 @@ class ProjectEstimates extends Component
         $this->form_title         = 'Project Estimate';
         $this->form_estimate_date = now()->format('Y-m-d');
         $this->form_notes         = '';
+        $this->attachments        = [];
         $this->items              = [$this->blankItem()];
         $this->resetValidation();
         $this->showForm           = true;
@@ -86,6 +92,7 @@ class ProjectEstimates extends Component
         $this->form_title         = $estimate->title ?? 'Project Estimate';
         $this->form_estimate_date = optional($estimate->estimate_date)->format('Y-m-d') ?? now()->format('Y-m-d');
         $this->form_notes         = $estimate->notes ?? '';
+        $this->attachments        = $estimate->attachments ?? [];
 
         $this->items = $estimate->items->map(fn($it) => [
             'id'                      => $it->id,
@@ -114,6 +121,7 @@ class ProjectEstimates extends Component
         $this->showForm  = false;
         $this->editingId = null;
         $this->items     = [];
+        $this->attachments = [];
         $this->resetValidation();
     }
 
@@ -267,6 +275,7 @@ class ProjectEstimates extends Component
                     'notes'                  => $this->form_notes,
                     'status'                 => $status,
                     'total_estimated_amount' => $total,
+                    'attachments'            => !empty($this->attachments) ? $this->attachments : null,
                 ]);
                 $estimate->items()->delete();
             } else {
@@ -282,6 +291,7 @@ class ProjectEstimates extends Component
                     'status'                 => $status,
                     'total_estimated_amount' => $total,
                     'notes'                  => $this->form_notes,
+                    'attachments'            => !empty($this->attachments) ? $this->attachments : null,
                     'created_by'             => auth()->id(),
                 ]);
             }
@@ -363,6 +373,7 @@ class ProjectEstimates extends Component
         $new->created_by  = auth()->id();
         $new->approved_by = null;
         $new->approved_at = null;
+        $new->attachments = $source->attachments;
         $new->save();
 
         foreach ($source->items as $item) {

@@ -39,6 +39,7 @@ Route::get('/projects/{project}/consumption', App\Livewire\Admin\Projects\Projec
 Route::get('/projects/{project}/expenses', App\Livewire\Admin\Projects\ProjectExpenses::class)->name('projects.expenses');
 Route::get('/projects/{project}/reports', App\Livewire\Admin\Projects\ProjectReports::class)->name('projects.reports');
 Route::get('/projects/{project}/pdf/details', [ProjectPdfController::class, 'details'])->name('projects.pdf.details');
+Route::get('/projects/{project}/estimates/{estimate}/pdf', [ProjectPdfController::class, 'estimate'])->name('projects.estimates.pdf');
 
 // properties (linked to projects) - Property Management module
 Route::get('/projects/properties', App\Livewire\Admin\Properties\PropertyList::class)->name('projects.properties');
