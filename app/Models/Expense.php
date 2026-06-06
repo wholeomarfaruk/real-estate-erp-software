@@ -14,6 +14,7 @@ class Expense extends Model
         'date',
         'amount',
         'status',
+        'expense_type_id',
         'expense_account_id',
         'payment_account_id',
         'bank_account_id',
@@ -50,6 +51,11 @@ class Expense extends Model
     public function transactionCategory(): BelongsTo
     {
         return $this->belongsTo(TransactionCategory::class);
+    }
+
+    public function expenseType(): BelongsTo
+    {
+        return $this->belongsTo(ExpenseType::class, 'expense_type_id');
     }
 
     public function transaction(): BelongsTo

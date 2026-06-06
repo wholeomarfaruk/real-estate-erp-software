@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Project Expenses — Star Unity Heights</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink:#14181f; --ink-2:#2a2f3a; --ink-3:#4a5160; --muted:#6b7280; --muted-2:#9aa0a6;
+    --rule:#e4e4e7; --rule-soft:#ececec; --paper:#ffffff; --canvas:#f6f6f7;
+    --accent:#0d2a4a; --accent-soft:#eaf0f8;
+    --warn:#a16207; --warn-bg:#fef9e7; --warn-bd:#f3e3a8;
+    --ok:#1f6f43; --ok-bg:#e9f4ee; --ok-bd:#bfddc8;
+    --info:#0e63a8; --info-bg:#e9f2fb; --info-bd:#c2dcf3;
+    --danger:#8a1212; --danger-bg:#fbeaea; --danger-bd:#f1c2c2;
+    --labour:#0e7490; --labour-bg:#e6f5f8;
+    --other:#a16207;  --other-bg:#fef9e7;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; padding:0; background:var(--canvas); color:var(--ink); font-family:"Inter",system-ui,-apple-system,sans-serif; font-size:13px; line-height:1.45; -webkit-font-smoothing:antialiased; }
+  .page { padding:22px 24px 80px; max-width:1320px; margin:0 auto; }
+
+  /* Hero */
+  .hero { display:grid; grid-template-columns:300px 1fr; background:var(--paper); border:1px solid var(--rule); border-radius:12px; overflow:hidden; margin-bottom:18px; }
+  .hero-cover { position:relative; background:linear-gradient(135deg,#1a3a5c 0%,#0d2a4a 100%); min-height:170px; display:grid; place-items:center; }
+  .hero-cover .ph { text-align:center; color:rgba(255,255,255,0.5); }
+  .hero-cover .ph svg { width:38px; height:38px; }
+  .hero-cover .ph div { font-size:11px; margin-top:8px; letter-spacing:0.5px; }
+  .hero-cover .cover-tag { position:absolute; bottom:10px; left:12px; background:rgba(0,0,0,0.35); color:#fff; font-size:10px; padding:3px 9px; border-radius:999px; backdrop-filter:blur(4px); }
+  .hero-body { padding:20px 26px; display:flex; flex-direction:column; }
+  .hero-top { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+  .hero-code { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; font-weight:600; color:var(--accent); background:var(--accent-soft); padding:3px 9px; border-radius:5px; display:inline-block; letter-spacing:0.5px; }
+  .hero h1 { font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:30px; margin:10px 0 6px; line-height:1.1; }
+  .hero .types { display:flex; gap:6px; flex-wrap:wrap; }
+  .type-chip { font-size:10.5px; padding:3px 10px; border-radius:999px; background:#f0f1f3; color:var(--ink-2); font-weight:500; border:1px solid var(--rule); }
+  .status-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 11px; border-radius:999px; font-size:11px; font-weight:600; border:1px solid; }
+  .status-badge .dot { width:7px; height:7px; border-radius:50%; }
+  .status-badge.running { background:var(--info-bg); border-color:var(--info-bd); color:var(--info); }
+  .status-badge.running .dot { background:var(--info); }
+
+  /* Nav tabs */
+  .nav-tabs { display:flex; gap:4px; margin-bottom:18px; border-bottom:1px solid var(--rule); padding:0 2px; }
+  .nav-tab { background:transparent; border:0; font-family:inherit; font-size:13px; font-weight:500; color:var(--muted); padding:10px 16px 12px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; border-bottom:2px solid transparent; margin-bottom:-1px; text-decoration:none; }
+  .nav-tab:hover { color:var(--ink-2); }
+  .nav-tab.active { color:var(--ink); border-bottom-color:var(--ink); font-weight:600; }
+  .nav-tab .ic { width:15px; height:15px; }
+  .nav-tab .pill { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10.5px; padding:1px 7px; border-radius:999px; background:#f0f0f1; color:var(--ink-2); font-weight:600; }
+  .nav-tab.active .pill { background:var(--accent); color:#fff; }
+
+  .btn { font-family:inherit; font-size:12.5px; font-weight:500; padding:8px 14px; border-radius:6px; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2); cursor:pointer; display:inline-flex; align-items:center; gap:6px; line-height:1; text-decoration:none; }
+  .btn:hover { background:#fafafb; }
+  .btn.primary { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .btn.primary:hover { background:#000; }
+  .btn .ic { width:13px; height:13px; }
+
+  /* toolbar */
+  .c-toolbar { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:16px; }
+  .c-title-wrap { display:flex; align-items:baseline; gap:12px; }
+  .c-title-wrap h2 { font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:24px; margin:0; }
+  .c-title-wrap .note { font-size:12px; color:var(--muted); }
+
+  /* KPI cards */
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px; }
+  .kpi { background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:14px 16px; border-left:4px solid var(--rule); }
+  .kpi.total { border-left-color:var(--accent); }
+  .kpi.month { border-left-color:var(--info); }
+  .kpi.labour { border-left-color:var(--labour); }
+  .kpi.other { border-left-color:var(--other); }
+  .kpi .label { font-size:10.5px; letter-spacing:0.7px; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .kpi .value { font-family:"Instrument Serif",Georgia,serif; font-size:25px; line-height:1; margin-top:8px; color:var(--ink); }
+  .kpi .value .cur { font-family:"Inter",sans-serif; font-size:11px; color:var(--muted); vertical-align:5px; margin-right:3px; }
+  .kpi .meta { font-size:10.5px; color:var(--muted); margin-top:7px; }
+
+  /* Estimate vs actual widget */
+  .eva { background:var(--paper); border:1px solid var(--rule); border-radius:12px; overflow:hidden; margin-bottom:18px; }
+  .eva-head { padding:12px 18px; border-bottom:1px solid var(--rule); display:flex; align-items:center; justify-content:space-between; }
+  .eva-head h3 { font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:17px; margin:0; }
+  .eva-head .sub { font-size:11px; color:var(--muted); }
+  table.eva-tbl { width:100%; border-collapse:collapse; }
+  table.eva-tbl th { text-align:left; font-size:9.5px; letter-spacing:0.6px; text-transform:uppercase; color:var(--muted); font-weight:600; padding:8px 18px; background:#fafafb; border-bottom:1px solid var(--rule); }
+  table.eva-tbl th.right, table.eva-tbl td.right { text-align:right; }
+  table.eva-tbl td { padding:10px 18px; font-size:12.5px; border-bottom:1px solid var(--rule-soft); }
+  table.eva-tbl tr:last-child td { border-bottom:none; }
+  table.eva-tbl .cat { font-weight:500; color:var(--ink); display:flex; align-items:center; gap:8px; }
+  table.eva-tbl .mono { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12px; }
+  .util { display:flex; align-items:center; gap:8px; justify-content:flex-end; }
+  .util-track { width:80px; height:6px; background:#eef0f2; border-radius:999px; overflow:hidden; }
+  .util-fill { height:100%; border-radius:999px; }
+  .util-pct { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; font-weight:600; min-width:36px; text-align:right; }
+  .remain-pos { color:var(--ok); font-weight:600; }
+  .remain-neg { color:var(--danger); font-weight:600; }
+  .type-tag { font-size:9px; font-weight:600; letter-spacing:0.3px; text-transform:uppercase; padding:1px 6px; border-radius:3px; }
+  .type-tag.labour { background:var(--labour-bg); color:var(--labour); }
+  .type-tag.other  { background:var(--other-bg); color:var(--other); }
+
+  /* filter bar */
+  .filterbar { background:var(--paper); border:1px solid var(--rule); border-radius:10px 10px 0 0; border-bottom:none; padding:10px 12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .filterbar .grow { flex:1; }
+  .tabs { display:flex; gap:2px; background:#f3f4f6; padding:3px; border-radius:8px; }
+  .tab { font-size:12px; padding:6px 10px; border-radius:6px; cursor:pointer; color:var(--ink-3); display:inline-flex; align-items:center; gap:6px; border:0; background:transparent; font-family:inherit; }
+  .tab:hover { color:var(--ink); }
+  .tab.active { background:var(--paper); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,0.08); font-weight:600; }
+  .tab .count { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10.5px; padding:1px 6px; border-radius:999px; background:rgba(0,0,0,0.05); color:var(--ink-2); font-weight:600; }
+  .tab.active .count { background:var(--accent); color:#fff; }
+  .search-wrap { position:relative; }
+  .search-wrap svg { position:absolute; left:9px; top:50%; transform:translateY(-50%); color:var(--muted-2); }
+  .input { font-family:inherit; font-size:12.5px; padding:7px 10px 7px 30px; border:1px solid var(--rule); border-radius:6px; background:var(--paper); color:var(--ink-2); min-width:190px; }
+  .input::placeholder { color:var(--muted-2); }
+  .select { font-family:inherit; font-size:12.5px; padding:7px 26px 7px 10px; border:1px solid var(--rule); border-radius:6px; background:var(--paper) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right 10px center; appearance:none; color:var(--ink-2); cursor:pointer; }
+
+  /* table */
+  .table-wrap { background:var(--paper); border:1px solid var(--rule); border-radius:0 0 10px 10px; overflow:hidden; }
+  table.exp { width:100%; border-collapse:collapse; }
+  table.exp thead th { text-align:left; font-size:9.5px; letter-spacing:0.7px; text-transform:uppercase; color:var(--muted); font-weight:600; padding:9px 14px; background:#fafafb; border-bottom:1px solid var(--rule); }
+  table.exp th.right, table.exp td.right { text-align:right; }
+  table.exp th.center, table.exp td.center { text-align:center; }
+  table.exp tbody td { padding:11px 14px; font-size:12.5px; color:var(--ink); border-bottom:1px solid var(--rule-soft); vertical-align:middle; }
+  table.exp tbody tr { cursor:pointer; }
+  table.exp tbody tr:hover { background:#fafafb; }
+  .exp-no { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; font-weight:600; color:var(--ink); }
+  .exp-date { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10px; color:var(--muted); margin-top:2px; }
+  .cat-cell .name { font-weight:500; color:var(--ink); }
+  .cat-cell .inv { font-size:10.5px; color:var(--muted); margin-top:2px; font-family:"JetBrains Mono",ui-monospace,monospace; }
+  .vendor-cell .v { color:var(--ink); font-weight:500; }
+  .ct-badge { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:600; }
+  .ct-badge .d { width:5px; height:5px; border-radius:50%; }
+  .ct-badge.labour { background:var(--labour-bg); color:var(--labour); }
+  .ct-badge.other  { background:var(--other-bg); color:var(--other); }
+  .ct-badge.labour .d { background:var(--labour); }
+  .ct-badge.other .d { background:var(--other); }
+  .method-pill { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border:1px solid var(--rule); border-radius:999px; font-size:10.5px; color:var(--ink-2); background:#fafafb; }
+  .method-pill svg { width:10px; height:10px; color:var(--muted); }
+  td.amt { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12.5px; font-weight:600; }
+  .estatus { display:inline-flex; align-items:center; gap:5px; padding:2px 9px; border-radius:999px; font-size:10px; font-weight:600; letter-spacing:0.3px; border:1px solid; }
+  .estatus .d { width:5px; height:5px; border-radius:50%; }
+  .estatus.approved { background:var(--ok-bg); border-color:var(--ok-bd); color:var(--ok); }
+  .estatus.draft { background:#f0f0f1; border-color:var(--rule); color:var(--muted); }
+  .estatus.approved .d { background:var(--ok); }
+  .estatus.draft .d { background:var(--muted); }
+  .att-icon { color:var(--muted-2); display:inline-flex; align-items:center; gap:3px; font-size:10.5px; font-family:"JetBrains Mono",ui-monospace,monospace; }
+  .att-icon svg { width:12px; height:12px; }
+
+  .table-foot { padding:10px 14px; font-size:11.5px; color:var(--muted); background:#fafafb; border-top:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center; }
+  .pagination { display:inline-flex; gap:2px; }
+  .pagination button { background:transparent; border:1px solid var(--rule); border-radius:4px; padding:3px 8px; font-size:11px; cursor:pointer; color:var(--ink-2); font-family:inherit; }
+  .pagination button.active { background:var(--ink); color:#fff; border-color:var(--ink); }
+
+  /* Drawer */
+  .drawer-overlay { display:none; position:fixed; inset:0; z-index:100; }
+  .drawer-overlay.open { display:block; }
+  .drawer-backdrop { position:absolute; inset:0; background:rgba(20,24,31,0.4); backdrop-filter:blur(2px); animation:fadeIn .15s ease; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .drawer { position:absolute; top:0; right:0; bottom:0; width:460px; max-width:94vw; background:var(--paper); box-shadow:-12px 0 40px rgba(0,0,0,0.18); display:flex; flex-direction:column; animation:slideIn .2s ease; }
+  @keyframes slideIn { from{transform:translateX(30px); opacity:0.5} to{transform:translateX(0); opacity:1} }
+  .drawer-head { padding:18px 22px; border-bottom:1px solid var(--rule); }
+  .drawer-head .top { display:flex; justify-content:space-between; align-items:flex-start; }
+  .drawer-head .dh-no { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12px; color:var(--muted); }
+  .drawer-head .dh-amt { font-family:"Instrument Serif",Georgia,serif; font-size:32px; color:var(--ink); line-height:1.1; margin-top:6px; }
+  .drawer-head .dh-amt .cur { font-size:14px; color:var(--muted); font-family:"Inter",sans-serif; vertical-align:6px; margin-right:4px; }
+  .drawer-head .badge-row { margin-top:10px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .drawer-close { background:transparent; border:0; cursor:pointer; color:var(--muted); padding:4px; border-radius:5px; }
+  .drawer-close:hover { background:#f0f0f1; color:var(--ink); }
+  .drawer-body { flex:1; padding:18px 22px; overflow-y:auto; }
+  .field-grid { display:grid; grid-template-columns:110px 1fr; row-gap:10px; column-gap:14px; font-size:12.5px; margin-bottom:18px; }
+  .field-grid dt { color:var(--muted); font-size:10.5px; letter-spacing:0.3px; text-transform:uppercase; font-weight:600; padding-top:1px; }
+  .field-grid dd { margin:0; color:var(--ink); }
+  .field-grid dd.mono { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12px; }
+  .section-h { font-size:10.5px; letter-spacing:0.8px; text-transform:uppercase; color:var(--muted); font-weight:600; margin:0 0 10px; }
+  .files-list { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:18px; }
+  .file-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--rule); border-radius:6px; font-size:11.5px; color:var(--ink-2); background:#fafafb; cursor:pointer; }
+  .file-chip:hover { border-color:var(--ink-3); background:#fff; }
+  .file-chip svg { width:12px; height:12px; color:var(--muted); }
+  .notes-box { padding:10px 12px; background:#fafafb; border:1px solid var(--rule-soft); border-radius:6px; font-size:11.5px; color:var(--ink-2); line-height:1.55; }
+  .drawer-foot { border-top:1px solid var(--rule); padding:14px 22px; background:#fafafb; display:flex; gap:8px; }
+  .drawer-foot .btn { flex:1; justify-content:center; }
+  .btn.ok { background:var(--ok); color:#fff; border-color:var(--ok); }
+  .btn.ok:hover { background:#185933; }
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="Project Expenses">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-cover">
+      <div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><div>Cover image</div></div>
+      <span class="cover-tag">Bashundhara R/A, Dhaka</span>
+    </div>
+    <div class="hero-body">
+      <div class="hero-top">
+        <div>
+          <span class="hero-code">PRJ-2024-0007</span>
+          <h1>Star Unity Heights</h1>
+          <div class="types"><span class="type-chip">Residential</span><span class="type-chip">Mixed Use</span></div>
+        </div>
+        <span class="status-badge running"><span class="dot"></span>Running</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nav tabs -->
+  <nav class="nav-tabs" role="tablist">
+    <a class="nav-tab" href="Project Details.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13"/><path d="M10 21V14h4v7"/></svg>Details</a>
+    <a class="nav-tab" href="Project Estimates.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7h6M9 11h6M9 15h4"/><rect x="4" y="3" width="16" height="18" rx="2"/></svg>Estimates <span class="pill">3</span></a>
+    <a class="nav-tab" href="Project Consumption.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7L9 18l-5-5"/><path d="M3 3h18v4H3z"/></svg>Consumption <span class="pill">9</span></a>
+    <a class="nav-tab active" href="Project Expenses.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Expenses <span class="pill">63</span></a>
+    <a class="nav-tab" href="Project Reports.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Reports</a>
+  </nav>
+
+  <!-- Toolbar -->
+  <div class="c-toolbar">
+    <div class="c-title-wrap">
+      <h2>Expenses</h2>
+      <span class="note">Labour &amp; other project costs · estimate vs actual</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn" onclick="window.print()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>PDF</button>
+      <button class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Excel</button>
+      <button class="btn primary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Expense</button>
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  <div class="kpis">
+    <div class="kpi total">
+      <div class="label">Total Expense</div>
+      <div class="value"><span class="cur">BDT</span>4,82,30,000</div>
+      <div class="meta">63 expense entries · all time</div>
+    </div>
+    <div class="kpi month">
+      <div class="label">This Month</div>
+      <div class="value"><span class="cur">BDT</span>38,60,000</div>
+      <div class="meta">11 entries · June 2026</div>
+    </div>
+    <div class="kpi labour">
+      <div class="label">Labour Expense</div>
+      <div class="value"><span class="cur">BDT</span>3,21,50,000</div>
+      <div class="meta">66.7% of total</div>
+    </div>
+    <div class="kpi other">
+      <div class="label">Other Expense</div>
+      <div class="value"><span class="cur">BDT</span>1,60,80,000</div>
+      <div class="meta">33.3% of total</div>
+    </div>
+  </div>
+
+  <!-- Estimate vs Actual widget -->
+  <div class="eva">
+    <div class="eva-head">
+      <h3>Estimate vs Actual — by Category</h3>
+      <span class="sub">Against approved estimate v2</span>
+    </div>
+    <table class="eva-tbl">
+      <thead>
+        <tr>
+          <th style="width:30%">Category</th>
+          <th class="right" style="width:18%">Estimate</th>
+          <th class="right" style="width:18%">Actual</th>
+          <th class="right" style="width:18%">Remaining</th>
+          <th class="right" style="width:16%">Utilisation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="cat"><span class="type-tag labour">Labour</span>Mason Labour</div></td>
+          <td class="right mono">30,00,000</td>
+          <td class="right mono">24,50,000</td>
+          <td class="right"><span class="remain-pos mono">+5,50,000</span></td>
+          <td class="right"><div class="util"><div class="util-track"><div class="util-fill" style="width:82%;background:var(--labour)"></div></div><span class="util-pct">82%</span></div></td>
+        </tr>
+        <tr>
+          <td><div class="cat"><span class="type-tag labour">Labour</span>Helper Labour</div></td>
+          <td class="right mono">12,00,000</td>
+          <td class="right mono">9,80,000</td>
+          <td class="right"><span class="remain-pos mono">+2,20,000</span></td>
+          <td class="right"><div class="util"><div class="util-track"><div class="util-fill" style="width:82%;background:var(--labour)"></div></div><span class="util-pct">82%</span></div></td>
+        </tr>
+        <tr>
+          <td><div class="cat"><span class="type-tag labour">Labour</span>Electrician Labour</div></td>
+          <td class="right mono">8,00,000</td>
+          <td class="right mono">8,90,000</td>
+          <td class="right"><span class="remain-neg mono">−90,000</span></td>
+          <td class="right"><div class="util"><div class="util-track"><div class="util-fill" style="width:100%;background:var(--danger)"></div></div><span class="util-pct" style="color:var(--danger)">111%</span></div></td>
+        </tr>
+        <tr>
+          <td><div class="cat"><span class="type-tag other">Other</span>Transport</div></td>
+          <td class="right mono">5,00,000</td>
+          <td class="right mono">3,20,000</td>
+          <td class="right"><span class="remain-pos mono">+1,80,000</span></td>
+          <td class="right"><div class="util"><div class="util-track"><div class="util-fill" style="width:64%;background:var(--other)"></div></div><span class="util-pct">64%</span></div></td>
+        </tr>
+        <tr>
+          <td><div class="cat"><span class="type-tag other">Other</span>Generator Fuel</div></td>
+          <td class="right mono">3,50,000</td>
+          <td class="right mono">2,95,000</td>
+          <td class="right"><span class="remain-pos mono">+55,000</span></td>
+          <td class="right"><div class="util"><div class="util-track"><div class="util-fill" style="width:84%;background:var(--other)"></div></div><span class="util-pct">84%</span></div></td>
+        </tr>
+        <tr>
+          <td><div class="cat"><span class="type-tag other">Other</span>Security</div></td>
+          <td class="right mono">2,00,000</td>
+          <td class="right mono">1,60,000</td>
+          <td class="right"><span class="remain-pos mono">+40,000</span></td>
+          <td class="right"><div class="util"><div class="util-track"><div class="util-fill" style="width:80%;background:var(--other)"></div></div><span class="util-pct">80%</span></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filterbar">
+    <div class="tabs" id="type-tabs">
+      <button class="tab active" data-type="all">All <span class="count" id="c-all">—</span></button>
+      <button class="tab" data-type="labour">Labour <span class="count" id="c-lab">—</span></button>
+      <button class="tab" data-type="other">Other <span class="count" id="c-oth">—</span></button>
+      <button class="tab" data-type="draft">Drafts <span class="count" id="c-draft">—</span></button>
+    </div>
+    <div class="grow"></div>
+    <div class="search-wrap">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" class="input" id="search" placeholder="Search expense, vendor, invoice…" />
+    </div>
+    <select class="select" id="f-cat"><option value="">All categories</option><option>Mason Labour</option><option>Helper Labour</option><option>Electrician Labour</option><option>Transport</option><option>Generator Fuel</option><option>Security</option><option>Site Office Expense</option><option>Consultant Fee</option></select>
+    <select class="select" id="f-method"><option value="">All methods</option><option>Cash</option><option>Bank Transfer</option><option>Cheque</option></select>
+    <select class="select"><option>Last 90 days</option><option>This month</option><option>This quarter</option><option>All time</option></select>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="exp">
+      <thead>
+        <tr>
+          <th style="width:120px">Expense No.</th>
+          <th style="width:20%">Category</th>
+          <th>Vendor</th>
+          <th style="width:110px">Method</th>
+          <th class="center" style="width:70px">Files</th>
+          <th class="right" style="width:130px">Amount</th>
+          <th class="center" style="width:100px">Status</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="table-foot">
+      <span id="foot">—</span>
+      <div class="pagination"><button>‹</button><button class="active">1</button><button>2</button><button>3</button><button>›</button></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Drawer -->
+<div class="drawer-overlay" id="drawer">
+  <div class="drawer-backdrop" onclick="closeDrawer()"></div>
+  <div class="drawer" id="drawer-panel"></div>
+</div>
+
+<script>
+  const EXPENSES = [
+    { id:1, no:"EXP-2026-0063", date:"03 Jun 2026", category:"Mason Labour", type:"labour", vendor:"Karim Construction Crew", invoice:"INV-2026-221", amount:480000, method:"Bank Transfer", account:"EBL Operations", status:"approved", files:2, desc:"Mason labour payment for 5th–7th floor RCC casting, May–June work order.", createdBy:"Habibur Rahman" },
+    { id:2, no:"EXP-2026-0062", date:"02 Jun 2026", category:"Transport", type:"other", vendor:"ABC Transport", invoice:"INV-2026-001", amount:120000, method:"Cash", account:"Site Cash · Heights", status:"approved", files:1, desc:"Material haulage — cement & rod from main store to site.", createdBy:"Site Admin" },
+    { id:3, no:"EXP-2026-0061", date:"01 Jun 2026", category:"Generator Fuel", type:"other", vendor:"Padma Filling Station", invoice:"INV-5521", amount:95000, method:"Cash", account:"Site Cash · Heights", status:"approved", files:1, desc:"Diesel for site generators — June week 1.", createdBy:"Site Admin" },
+    { id:4, no:"EXP-2026-0060", date:"31 May 2026", category:"Helper Labour", type:"labour", vendor:"Daily Wage Pool", invoice:"—", amount:185000, method:"Cash", account:"Site Cash · Heights", status:"approved", files:0, desc:"Helper labour wages — last week of May (38 workers).", createdBy:"Habibur Rahman" },
+    { id:5, no:"EXP-2026-0059", date:"30 May 2026", category:"Electrician Labour", type:"labour", vendor:"Bright Electric Works", invoice:"INV-BE-088", amount:142000, method:"Bank Transfer", account:"EBL Operations", status:"approved", files:2, desc:"Electrical rough-in labour — floors 3–5.", createdBy:"Habibur Rahman" },
+    { id:6, no:"EXP-2026-0058", date:"28 May 2026", category:"Security", type:"other", vendor:"Guardian Security Ltd.", invoice:"INV-GS-2605", amount:80000, method:"Bank Transfer", account:"EBL Operations", status:"approved", files:1, desc:"Site security — monthly retainer, May 2026.", createdBy:"Site Admin" },
+    { id:7, no:"EXP-2026-0057", date:"26 May 2026", category:"Consultant Fee", type:"other", vendor:"Structura Engineers", invoice:"INV-SE-114", amount:250000, method:"Cheque", account:"DBBL Sales Collection", status:"approved", files:3, desc:"Structural consultancy — monthly retainer + site visits.", createdBy:"Rahim Khan" },
+    { id:8, no:"EXP-2026-0056", date:"24 May 2026", category:"Site Office Expense", type:"other", vendor:"Misc.", invoice:"—", amount:34000, method:"Cash", account:"Site Cash · Heights", status:"approved", files:0, desc:"Site office supplies, tea/refreshments, printing.", createdBy:"Site Admin" },
+    { id:9, no:"EXP-2026-0055", date:"22 May 2026", category:"Mason Labour", type:"labour", vendor:"Karim Construction Crew", invoice:"INV-2026-208", amount:520000, method:"Bank Transfer", account:"EBL Operations", status:"approved", files:1, desc:"Mason labour — column & beam work, 4th floor.", createdBy:"Habibur Rahman" },
+    { id:10, no:"EXP-2026-0054", date:"20 May 2026", category:"Transport", type:"other", vendor:"Speedy Logistics", invoice:"INV-SL-771", amount:68000, method:"Cash", account:"Site Cash · Heights", status:"draft", files:1, desc:"Tiles & finishing material transport — pending approval.", createdBy:"Site Admin" },
+    { id:11, no:"EXP-2026-0053", date:"18 May 2026", category:"Helper Labour", type:"labour", vendor:"Daily Wage Pool", invoice:"—", amount:176000, method:"Cash", account:"Site Cash · Heights", status:"approved", files:0, desc:"Helper labour wages — mid-May.", createdBy:"Habibur Rahman" },
+    { id:12, no:"EXP-2026-0052", date:"16 May 2026", category:"Generator Fuel", type:"other", vendor:"Padma Filling Station", invoice:"INV-5489", amount:88000, method:"Cash", account:"Site Cash · Heights", status:"draft", files:1, desc:"Diesel refill — mid-May. Awaiting bill verification.", createdBy:"Site Admin" },
+  ];
+
+  const METHOD_ICONS = {
+    "Cash": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="1"/><circle cx="12" cy="12" r="2.5"/></svg>',
+    "Bank Transfer": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V10m4 11V10m6 11V10m4 11V10M2 10l10-7 10 7"/></svg>',
+    "Cheque": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="1.5"/><path d="M6 10h6M6 14h4"/></svg>',
+  };
+
+  const fmt = (n) => n.toLocaleString("en-BD", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  let filters = { q:"", cat:"", method:"", tab:"all" };
+
+  function match(e) {
+    if (filters.tab === "labour" && e.type !== "labour") return false;
+    if (filters.tab === "other" && e.type !== "other") return false;
+    if (filters.tab === "draft" && e.status !== "draft") return false;
+    if (filters.cat && e.category !== filters.cat) return false;
+    if (filters.method && e.method !== filters.method) return false;
+    if (filters.q) {
+      const hay = `${e.no} ${e.category} ${e.vendor} ${e.invoice} ${e.desc}`.toLowerCase();
+      if (!hay.includes(filters.q)) return false;
+    }
+    return true;
+  }
+
+  function render() {
+    const list = EXPENSES.filter(match);
+    document.getElementById("rows").innerHTML = list.length ? list.map(e => `
+      <tr onclick="openDrawer(${e.id})">
+        <td><div class="exp-no">${e.no}</div><div class="exp-date">${e.date}</div></td>
+        <td class="cat-cell">
+          <div class="name"><span class="ct-badge ${e.type}"><span class="d"></span>${e.category}</span></div>
+          <div class="inv">${e.invoice !== "—" ? "Inv " + e.invoice : "No invoice"}</div>
+        </td>
+        <td class="vendor-cell"><div class="v">${e.vendor}</div></td>
+        <td><span class="method-pill">${METHOD_ICONS[e.method] || ''}${e.method}</span></td>
+        <td class="center">${e.files > 0 ? `<span class="att-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${e.files}</span>` : '<span style="color:var(--muted-2)">—</span>'}</td>
+        <td class="right amt">BDT ${fmt(e.amount)}</td>
+        <td class="center"><span class="estatus ${e.status}"><span class="d"></span>${e.status === "approved" ? "Approved" : "Draft"}</span></td>
+      </tr>
+    `).join("") : `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);font-style:italic;">No expenses match your filters.</td></tr>`;
+
+    const total = list.reduce((s,e) => s + e.amount, 0);
+    document.getElementById("foot").textContent = `Showing ${list.length} of ${EXPENSES.length} entries · BDT ${fmt(total)}`;
+
+    document.getElementById("c-all").textContent = EXPENSES.length;
+    document.getElementById("c-lab").textContent = EXPENSES.filter(e => e.type === "labour").length;
+    document.getElementById("c-oth").textContent = EXPENSES.filter(e => e.type === "other").length;
+    document.getElementById("c-draft").textContent = EXPENSES.filter(e => e.status === "draft").length;
+  }
+
+  function openDrawer(id) {
+    const e = EXPENSES.find(x => x.id === id);
+    if (!e) return;
+    const fileChips = e.files > 0
+      ? Array.from({length:e.files}).map((_, i) => `<div class="file-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${["Invoice","Bill Photo","Money Receipt","Challan"][i] || "File "+(i+1)}</div>`).join("")
+      : '<span style="font-size:11.5px;color:var(--muted-2);font-style:italic;">No attachments.</span>';
+
+    document.getElementById("drawer-panel").innerHTML = `
+      <div class="drawer-head">
+        <div class="top">
+          <div>
+            <div class="dh-no">${e.no}</div>
+            <div class="dh-amt"><span class="cur">BDT</span>${fmt(e.amount)}</div>
+          </div>
+          <button class="drawer-close" onclick="closeDrawer()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+        <div class="badge-row">
+          <span class="ct-badge ${e.type}"><span class="d"></span>${e.category}</span>
+          <span class="method-pill">${METHOD_ICONS[e.method] || ''}${e.method}</span>
+          <span class="estatus ${e.status}"><span class="d"></span>${e.status === "approved" ? "Approved" : "Draft"}</span>
+        </div>
+      </div>
+      <div class="drawer-body">
+        <dl class="field-grid">
+          <dt>Date</dt><dd class="mono">${e.date}</dd>
+          <dt>Category</dt><dd>${e.category}</dd>
+          <dt>Vendor</dt><dd><strong>${e.vendor}</strong></dd>
+          <dt>Invoice No.</dt><dd class="mono">${e.invoice}</dd>
+          <dt>Payment</dt><dd>${e.method} · ${e.account}</dd>
+          <dt>Created by</dt><dd>${e.createdBy}</dd>
+        </dl>
+        <div class="section-h">Attachments <span style="font-family:'JetBrains Mono',monospace;background:#f0f1f3;color:var(--ink-2);padding:1px 7px;border-radius:999px;font-size:10px;font-weight:600;margin-left:4px;">${e.files}</span></div>
+        <div class="files-list">${fileChips}</div>
+        <div class="section-h">Description</div>
+        <div class="notes-box">${e.desc}</div>
+      </div>
+      <div class="drawer-foot">
+        ${e.status === "draft"
+          ? `<button class="btn">Edit</button><button class="btn ok"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Approve</button>`
+          : `<button class="btn">Print voucher</button><button class="btn">Duplicate</button>`}
+      </div>
+    `;
+    document.getElementById("drawer").classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+  function closeDrawer() {
+    document.getElementById("drawer").classList.remove("open");
+    document.body.style.overflow = "";
+  }
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
+
+  document.getElementById("type-tabs").addEventListener("click", e => {
+    const t = e.target.closest(".tab"); if (!t) return;
+    document.querySelectorAll("#type-tabs .tab").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    filters.tab = t.dataset.type;
+    render();
+  });
+  document.getElementById("search").addEventListener("input", e => { filters.q = e.target.value.toLowerCase(); render(); });
+  document.getElementById("f-cat").addEventListener("change", e => { filters.cat = e.target.value; render(); });
+  document.getElementById("f-method").addEventListener("change", e => { filters.method = e.target.value; render(); });
+
+  render();
+</script>
+</body>
+</html>

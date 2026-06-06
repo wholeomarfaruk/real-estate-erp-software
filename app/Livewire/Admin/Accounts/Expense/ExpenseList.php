@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Admin\Accounts\Expense;
 
+use App\Enums\Accounts\TransactionType;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
-use App\Models\Account;
-use App\Models\Expense;
+use App\Models\BankingPaymentRequest;
+use App\Models\Transaction;
+use App\Models\TransactionCategory;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -14,11 +16,10 @@ class ExpenseList extends Component
     use InteractsWithAccountsAccess;
     use WithPagination;
 
-    public string  $search        = '';
-    public string  $statusFilter  = '';
-    public string  $dateFrom      = '';
-    public string  $dateTo        = '';
-    public string  $accountFilter = '';
+    public string $search        = '';
+    public string $dateFrom      = '';
+    public string $dateTo        = '';
+    public string $categoryFilter = '';
 
     protected string $paginationTheme = 'tailwind';
 
@@ -27,52 +28,61 @@ class ExpenseList extends Component
         $this->authorizePermission('accounts.expense.list');
     }
 
-    public function updatedSearch(): void        { $this->resetPage(); }
-    public function updatedStatusFilter(): void  { $this->resetPage(); }
-    public function updatedDateFrom(): void      { $this->resetPage(); }
-    public function updatedDateTo(): void        { $this->resetPage(); }
-    public function updatedAccountFilter(): void { $this->resetPage(); }
+    public function updatedSearch(): void         { $this->resetPage(); }
+    public function updatedDateFrom(): void       { $this->resetPage(); }
+    public function updatedDateTo(): void         { $this->resetPage(); }
+    public function updatedCategoryFilter(): void { $this->resetPage(); }
 
     public function render(): View
     {
-        $expenses = Expense::query()
+        // Expenses live in the ledger: transactions of type 'expense'.
+        // Show the DR side (debit > 0) so each expense appears once.
+        $expenses = Transaction::query()
+            ->where('type', TransactionType::EXPENSE->value)
+            ->where('debit', '>', 0)
             ->with([
-                'expenseAccount:id,name,code',
+                'account:id,name,code',
                 'transactionCategory:id,name',
-                'bankAccount:id,bank_name,type',
                 'creator:id,name',
             ])
             ->when($this->search, fn ($q, $s) =>
                 $q->where(fn ($q2) =>
-                    $q2->where('expense_no', 'like', "%{$s}%")
-                       ->orWhere('title', 'like', "%{$s}%")
+                    $q2->where('name', 'like', "%{$s}%")
+                       ->orWhere('notes', 'like', "%{$s}%")
                 )
             )
-            ->when($this->statusFilter,  fn ($q, $s) => $q->where('status', $s))
-            ->when($this->dateFrom,      fn ($q, $d) => $q->whereDate('date', '>=', $d))
-            ->when($this->dateTo,        fn ($q, $d) => $q->whereDate('date', '<=', $d))
-            ->when($this->accountFilter, fn ($q, $a) => $q->where('expense_account_id', (int) $a))
-            ->latest('date')
+            ->when($this->categoryFilter, fn ($q, $c) => $q->where('transaction_category_id', (int) $c))
+            ->when($this->dateFrom, fn ($q, $d) => $q->whereDate('datetime', '>=', $d))
+            ->when($this->dateTo,   fn ($q, $d) => $q->whereDate('datetime', '<=', $d))
+            ->latest('datetime')
             ->latest('id')
             ->paginate(20);
 
-        $expenseAccounts = Account::query()
-            ->where('type', 'ledger')
+        // Resolve project/supplier reference via the linked banking payment request's sourceable.
+        $bprIds = $expenses->getCollection()
+            ->where('reference_type', 'banking_payment_request')
+            ->pluck('reference_id')
+            ->filter()
+            ->unique();
+
+        $bprs = $bprIds->isNotEmpty()
+            ? BankingPaymentRequest::with('sourceable')->whereIn('id', $bprIds)->get()->keyBy('id')
+            : collect();
+
+        $expenseCategories = TransactionCategory::query()
+            ->where('type', 'expense')
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'code']);
+            ->get(['id', 'name']);
 
-        $kpi = Expense::query()
-            ->selectRaw("
-                SUM(CASE WHEN status='draft'   THEN 1 ELSE 0 END) AS draft_count,
-                SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) AS pending_count,
-                SUM(CASE WHEN status='posted'  THEN 1 ELSE 0 END) AS posted_count,
-                SUM(CASE WHEN status='posted'  THEN amount ELSE 0 END) AS total_posted
-            ")
+        $kpi = Transaction::query()
+            ->where('type', TransactionType::EXPENSE->value)
+            ->where('debit', '>', 0)
+            ->selectRaw('COUNT(*) AS cnt, COALESCE(SUM(debit),0) AS total')
             ->first();
 
         return view('livewire.admin.accounts.expense.expense-list', compact(
-            'expenses', 'expenseAccounts', 'kpi'
+            'expenses', 'bprs', 'expenseCategories', 'kpi'
         ))->layout('layouts.admin.admin');
     }
 }

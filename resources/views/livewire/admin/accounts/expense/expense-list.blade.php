@@ -1,145 +1,118 @@
-<div x-data x-init="$store.pageName = { name: 'Expenses', slug: 'expenses' }">
+{{-- Expense List — reads the transactions ledger (type = expense) --}}
+<div class="prj-page" x-data x-init="$store.pageName = { name: 'Expenses', slug: 'accounts' }">
+<style>
+:root{
+  --ink:#14181f; --ink-2:#2a2f3a; --muted:#6b7280; --muted-2:#9aa0a6;
+  --rule:#e4e4e7; --rule-soft:#ececec; --paper:#fff; --canvas:#f6f6f7;
+  --accent:#0d2a4a; --accent-soft:#eaf0f8; --ok:#1f6f43;
+}
+.exp-wrap{ font-family:"Inter",system-ui,sans-serif;color:var(--ink); }
+.exp-head{ display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px; }
+.exp-head h2{ font-family:"Instrument Serif",Georgia,serif;font-weight:400;font-size:26px;margin:0; }
+.exp-head .sub{ font-size:12px;color:var(--muted);margin-top:2px; }
+.btn{ font-family:inherit;font-size:12.5px;font-weight:500;padding:9px 15px;border-radius:7px;border:1px solid var(--rule);background:var(--paper);color:var(--ink-2);cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none; }
+.btn.primary{ background:var(--accent);color:#fff;border-color:var(--accent); }
+.btn .ic{ width:14px;height:14px; }
 
-    {{-- Breadcrumb --}}
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-5">
-        <nav>
-            <ol class="flex items-center gap-1.5 text-sm text-gray-500">
-                <li><a href="{{ route('admin.dashboard') }}" class="hover:text-gray-800">Dashboard</a></li>
-                <li>/</li>
-                <li class="text-gray-800">Expenses</li>
-            </ol>
-        </nav>
-        @can('accounts.expense.create')
-        <a href="{{ route('admin.accounts.expenses.create') }}" wire:navigate
-            class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800">
-            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            New Expense
-        </a>
-        @endcan
+.kpis{ display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px;max-width:520px; }
+.kpi{ background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;border-left:4px solid var(--accent); }
+.kpi .l{ font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:600; }
+.kpi .v{ font-family:"Instrument Serif",Georgia,serif;font-size:24px;margin-top:6px; }
+.kpi .v .cur{ font-family:"Inter",sans-serif;font-size:11px;color:var(--muted);margin-right:3px; }
+
+.filters{ background:var(--paper);border:1px solid var(--rule);border-radius:10px 10px 0 0;border-bottom:none;padding:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center; }
+.inp{ font-family:inherit;font-size:12.5px;padding:8px 11px;border:1px solid var(--rule);border-radius:7px;background:var(--paper);color:var(--ink); }
+.inp:focus{ outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft); }
+.grow{ flex:1; }
+
+.table-wrap{ background:var(--paper);border:1px solid var(--rule);border-radius:0 0 10px 10px;overflow:hidden; }
+table.t{ width:100%;border-collapse:collapse; }
+table.t thead th{ text-align:left;font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:600;padding:10px 14px;background:#fafafb;border-bottom:1px solid var(--rule); }
+table.t th.r,table.t td.r{ text-align:right; }
+table.t tbody td{ padding:11px 14px;font-size:12.5px;border-bottom:1px solid var(--rule-soft); }
+table.t tbody tr:hover{ background:#fafafb; }
+.mono{ font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px; }
+.ref-chip{ display:inline-block;font-size:10px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);border:1px solid #c2dcf3; }
+.foot{ padding:12px 14px;font-size:11.5px;color:var(--muted);background:#fafafb;border-top:1px solid var(--rule); }
+</style>
+
+<div class="exp-wrap">
+  <div class="exp-head">
+    <div>
+      <h2>Expenses</h2>
+      <div class="sub">Posted expense transactions from the ledger. New expenses are routed through banking approval before appearing here.</div>
     </div>
+    <a href="{{ route('admin.accounts.expenses.create') }}" class="btn primary">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Expense
+    </a>
+  </div>
 
-    {{-- KPI Strip --}}
-    <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div class="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            <p class="text-xs text-gray-500">Draft</p>
-            <p class="mt-1 text-2xl font-bold text-gray-700">{{ number_format($kpi->draft_count ?? 0) }}</p>
-        </div>
-        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <p class="text-xs text-amber-600">Pending</p>
-            <p class="mt-1 text-2xl font-bold text-amber-700">{{ number_format($kpi->pending_count ?? 0) }}</p>
-        </div>
-        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-            <p class="text-xs text-emerald-600">Posted</p>
-            <p class="mt-1 text-2xl font-bold text-emerald-700">{{ number_format($kpi->posted_count ?? 0) }}</p>
-        </div>
-        <div class="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3">
-            <p class="text-xs text-indigo-600">Total Posted</p>
-            <p class="mt-1 text-xl font-bold text-indigo-700">{{ number_format($kpi->total_posted ?? 0, 2) }}</p>
-        </div>
+  {{-- KPIs --}}
+  <div class="kpis">
+    <div class="kpi">
+      <div class="l">Total Expense Transactions</div>
+      <div class="v">{{ number_format($kpi->cnt ?? 0) }}</div>
     </div>
-
-    {{-- Filters --}}
-    <div class="mb-4 flex flex-wrap gap-2">
-        <div class="relative">
-            <svg class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <input type="text" wire:model.live.debounce.400ms="search" placeholder="Search expenses…"
-                class="h-9 rounded-lg border border-gray-300 pl-8 pr-3 text-sm focus:border-indigo-500 focus:outline-none min-w-52">
-        </div>
-
-        <select wire:model.live="statusFilter"
-            class="h-9 rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-            <option value="">All Statuses</option>
-            <option value="draft">Draft</option>
-            <option value="pending">Pending</option>
-            <option value="posted">Posted</option>
-        </select>
-
-        <input type="date" wire:model.live="dateFrom"
-            class="h-9 rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-        <input type="date" wire:model.live="dateTo"
-            class="h-9 rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-
-        <select wire:model.live="accountFilter"
-            class="h-9 rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none max-w-48">
-            <option value="">All Accounts</option>
-            @foreach($expenseAccounts as $acc)
-                <option value="{{ $acc->id }}">{{ $acc->name }}</option>
-            @endforeach
-        </select>
+    <div class="kpi">
+      <div class="l">Total Posted Amount</div>
+      <div class="v"><span class="cur">BDT</span>{{ number_format($kpi->total ?? 0, 2) }}</div>
     </div>
+  </div>
 
-    {{-- Table --}}
-    <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <thead>
-                    <tr class="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
-                        <th class="px-5 py-3 text-left font-medium">Expense No</th>
-                        <th class="px-5 py-3 text-left font-medium">Title</th>
-                        <th class="px-5 py-3 text-left font-medium">Date</th>
-                        <th class="px-5 py-3 text-left font-medium">Category</th>
-                        <th class="px-5 py-3 text-left font-medium">Account</th>
-                        <th class="px-5 py-3 text-right font-medium">Amount</th>
-                        <th class="px-5 py-3 text-center font-medium">Status</th>
-                        <th class="px-5 py-3 text-right font-medium">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-50">
-                    @forelse($expenses as $expense)
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="px-5 py-3 font-mono text-xs text-gray-500">
-                            {{ $expense->expense_no ?? '—' }}
-                        </td>
-                        <td class="px-5 py-3 font-medium text-gray-800 max-w-xs truncate">
-                            {{ $expense->title }}
-                        </td>
-                        <td class="px-5 py-3 text-gray-600 whitespace-nowrap">
-                            {{ $expense->date->format('d M, Y') }}
-                        </td>
-                        <td class="px-5 py-3 text-gray-600">
-                            {{ $expense->transactionCategory?->name ?? '—' }}
-                        </td>
-                        <td class="px-5 py-3 text-gray-600 text-xs">
-                            {{ $expense->expenseAccount?->name ?? '—' }}
-                        </td>
-                        <td class="px-5 py-3 text-right font-semibold text-gray-800">
-                            {{ number_format($expense->amount, 2) }}
-                        </td>
-                        <td class="px-5 py-3 text-center">
-                            <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $expense->statusBadgeClass() }}">
-                                {{ $expense->statusLabel() }}
-                            </span>
-                        </td>
-                        <td class="px-5 py-3 text-right">
-                            <a href="{{ route('admin.accounts.expenses.show', $expense) }}" wire:navigate
-                                class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition inline-flex">
-                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                    <circle cx="12" cy="12" r="3"/>
-                                </svg>
-                            </a>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="8" class="px-5 py-12 text-center text-sm text-gray-400 italic">
-                            No expenses found.
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+  {{-- Filters --}}
+  <div class="filters">
+    <input type="text" wire:model.live.debounce="search" class="inp grow" placeholder="Search name or notes…" />
+    <select wire:model.live="categoryFilter" class="inp">
+      <option value="">All categories</option>
+      @foreach($expenseCategories as $c)
+        <option value="{{ $c->id }}">{{ $c->name }}</option>
+      @endforeach
+    </select>
+    <input type="date" wire:model.live="dateFrom" class="inp" />
+    <input type="date" wire:model.live="dateTo" class="inp" />
+  </div>
 
-        @if($expenses->hasPages())
-        <div class="border-t border-gray-100 px-5 py-3">
-            {{ $expenses->links() }}
-        </div>
-        @endif
-    </div>
-
+  {{-- Table --}}
+  <div class="table-wrap">
+    <table class="t">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Description</th>
+          <th>Category</th>
+          <th>Reference</th>
+          <th>Ledger Account</th>
+          <th class="r">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        @forelse($expenses as $txn)
+          @php
+            $ref = null;
+            if ($txn->reference_type === 'banking_payment_request' && $bprs->has($txn->reference_id)) {
+                $src = $bprs->get($txn->reference_id)->sourceable;
+                $ref = $src?->name ?? null;
+            }
+          @endphp
+          <tr>
+            <td class="mono">{{ optional($txn->datetime)->format('d M Y') }}</td>
+            <td>{{ $txn->name ?? $txn->notes ?? '—' }}</td>
+            <td>{{ $txn->transactionCategory?->name ?? '—' }}</td>
+            <td>@if($ref)<span class="ref-chip">{{ $ref }}</span>@else <span style="color:var(--muted-2)">—</span> @endif</td>
+            <td>{{ $txn->account?->name ?? '—' }}</td>
+            <td class="r mono" style="font-weight:600;">{{ number_format($txn->debit, 2) }}</td>
+          </tr>
+        @empty
+          <tr><td colspan="6" style="text-align:center;padding:36px;color:var(--muted);font-style:italic;">
+            No expense transactions yet. Create an expense and complete it in Banking to see it here.
+          </td></tr>
+        @endforelse
+      </tbody>
+    </table>
+    @if($expenses->hasPages())
+      <div class="foot">{{ $expenses->links() }}</div>
+    @endif
+  </div>
+</div>
 </div>

@@ -176,6 +176,7 @@
                             <th class="px-3 py-2">Category</th>
                             <th class="px-3 py-2">Brand</th>
                             <th class="px-3 py-2">Unit</th>
+                            <th class="px-3 py-2">Stock (All Stores)</th>
                             <th class="px-3 py-2">Actions</th>
                         </tr>
                     </thead>
@@ -202,6 +203,21 @@
                                 <td class="px-3 py-2 text-gray-600">{{ $product->category?->name }}</td>
                                 <td class="px-3 py-2 text-gray-600">{{ $product->brand?->name ?? '-' }}</td>
                                 <td class="px-3 py-2 text-gray-600">{{ $product->unit ?? '-' }}</td>
+                                <td class="px-3 py-2 text-gray-600">
+                                    @if ($product->stockBalances->count() > 0)
+                                        <div class="text-xs space-y-1">
+                                            @foreach ($product->stockBalances as $stock)
+                                                <div class="flex justify-between gap-2">
+                                                    <span class="font-medium">{{ $stock->store->name }}:</span>
+                                                    <span class="font-semibold text-blue-600">{{ number_format($stock->quantity, 3) }}</span>
+                                                    <span class="text-gray-500">{{ $product->unit ?? 'unit' }}</span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <span class="text-gray-400">No stock</span>
+                                    @endif
+                                </td>
                                 <td class="px-3 py-2 space-x-2">
                                     <button wire:click="editProduct({{ $product->id }})"
                                         class="text-xs px-2 py-1 rounded border cursor-pointer hover:bg-gray-100">Edit</button>
@@ -212,7 +228,7 @@
 
                         @empty
                             <tr>
-                                <td colspan="5" class="px-3 py-6 text-center text-gray-500">No products yet.</td>
+                                <td colspan="6" class="px-3 py-6 text-center text-gray-500">No products yet.</td>
                             </tr>
                         @endforelse
                     </tbody>

@@ -25,6 +25,9 @@ class ExpenseService
      *   transaction_category_id:int,
      *   bank_account_id:int,
      *   amount:float|string,
+     *   expense_type_id?:int|null,
+     *   reference_type?:string|null,
+     *   reference_id?:int|null,
      *   notes?:string|null
      * } $payload
      */
@@ -40,10 +43,13 @@ class ExpenseService
                 'amount'                  => round(max(0, (float) $payload['amount']), 3),
                 'status'                  => 'draft',
                 'expense_account_id'      => (int) $payload['expense_account_id'],
+                'expense_type_id'         => isset($payload['expense_type_id']) ? (int) $payload['expense_type_id'] : null,
                 'payment_account_id'      => null,
                 'bank_account_id'         => (int) $payload['bank_account_id'],
                 'transaction_category_id' => (int) $payload['transaction_category_id'],
                 'transaction_id'          => null,
+                'reference_type'          => $payload['reference_type'] ?? null,
+                'reference_id'            => isset($payload['reference_id']) ? (int) $payload['reference_id'] : null,
                 'notes'                   => $payload['notes'] ?: null,
                 'created_by'              => $userId,
             ]);

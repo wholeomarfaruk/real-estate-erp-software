@@ -5,7 +5,6 @@ namespace App\Livewire\Admin\Supplier\Supplier;
 use App\Livewire\Admin\Supplier\Concerns\InteractsWithSupplierAccess;
 use App\Models\Supplier;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class SupplierView extends Component
@@ -26,7 +25,7 @@ class SupplierView extends Component
 
         $supplier = Supplier::query()
             ->withCount([
-                'purchaseOrders as purchase_orders_count' => fn ($query) => $query->select(DB::raw('COUNT(DISTINCT purchase_orders.id)')),
+                'purchaseOrders',
                 'stockReceives',
                 'purchaseReturns',
                 'supplierBills',
@@ -34,8 +33,6 @@ class SupplierView extends Component
             ->findOrFail($this->supplier->id);
 
         $latestPurchases = $supplier->purchaseOrders()
-            ->select('purchase_orders.*')
-            ->distinct('purchase_orders.id')
             ->latest('order_date')
             ->latest('id')
             ->limit(5)

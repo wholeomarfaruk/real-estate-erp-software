@@ -31,7 +31,7 @@
     "src": "node_modules/boxicons/fonts/boxicons.woff2"
   },
   "resources/css/admin.css": {
-    "file": "assets/app-Cv6y570x.css",
+    "file": "assets/app-CmXoWafK.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "admin",
@@ -41,7 +41,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-Cv6y570x.css",
+    "file": "assets/app-CmXoWafK.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "admin",

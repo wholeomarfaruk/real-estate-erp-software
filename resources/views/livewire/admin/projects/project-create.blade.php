@@ -64,16 +64,20 @@
                             <x-input-error for="code" class="mt-2" />
                         </div>
 
-                        <!-- Project Type -->
-                        <div class="col-span-6 sm:col-span-3">
-                            <x-label for="project_type" value="Project Type *" />
-                              <select wire:model="project_type" id="project_type"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-                                <option value="">Select Type</option>
-                                @foreach (\App\Enums\Project\Type::cases() as $type )
-                                    <option value="{{ $type->value }}">{{ $type?->label() }}</option>
+                        <!-- Project Type (multiple) -->
+                        <div class="col-span-6">
+                            <x-label value="Project Type * (select one or more)" />
+                            <div class="mt-2 flex flex-wrap gap-4">
+                                @foreach(\App\Enums\Project\Type::cases() as $type)
+                                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox"
+                                            wire:model="project_type"
+                                            value="{{ $type->value }}"
+                                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" />
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ $type->label() }}</span>
+                                    </label>
                                 @endforeach
-                            </select>
+                            </div>
                             <x-input-error for="project_type" class="mt-2" />
                         </div>
 

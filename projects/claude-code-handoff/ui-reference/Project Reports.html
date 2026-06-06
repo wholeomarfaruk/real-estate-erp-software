@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Project Reports — Star Unity Heights</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink:#14181f; --ink-2:#2a2f3a; --ink-3:#4a5160; --muted:#6b7280; --muted-2:#9aa0a6;
+    --rule:#e4e4e7; --rule-soft:#ececec; --paper:#ffffff; --canvas:#f6f6f7;
+    --accent:#0d2a4a; --accent-soft:#eaf0f8;
+    --warn:#a16207; --warn-bg:#fef9e7; --warn-bd:#f3e3a8;
+    --ok:#1f6f43; --ok-bg:#e9f4ee; --ok-bd:#bfddc8;
+    --info:#0e63a8; --info-bg:#e9f2fb; --info-bd:#c2dcf3;
+    --danger:#8a1212; --danger-bg:#fbeaea; --danger-bd:#f1c2c2;
+    --material:#0d2a4a; --labour:#0e7490; --other:#a16207;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; padding:0; background:var(--canvas); color:var(--ink); font-family:"Inter",system-ui,-apple-system,sans-serif; font-size:13px; line-height:1.45; -webkit-font-smoothing:antialiased; }
+  .page { padding:22px 24px 80px; max-width:1320px; margin:0 auto; }
+
+  /* Hero */
+  .hero { display:grid; grid-template-columns:300px 1fr; background:var(--paper); border:1px solid var(--rule); border-radius:12px; overflow:hidden; margin-bottom:18px; }
+  .hero-cover { position:relative; background:linear-gradient(135deg,#1a3a5c 0%,#0d2a4a 100%); min-height:170px; display:grid; place-items:center; }
+  .hero-cover .ph { text-align:center; color:rgba(255,255,255,0.5); }
+  .hero-cover .ph svg { width:38px; height:38px; }
+  .hero-cover .ph div { font-size:11px; margin-top:8px; letter-spacing:0.5px; }
+  .hero-cover .cover-tag { position:absolute; bottom:10px; left:12px; background:rgba(0,0,0,0.35); color:#fff; font-size:10px; padding:3px 9px; border-radius:999px; backdrop-filter:blur(4px); }
+  .hero-body { padding:20px 26px; display:flex; flex-direction:column; }
+  .hero-top { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+  .hero-code { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; font-weight:600; color:var(--accent); background:var(--accent-soft); padding:3px 9px; border-radius:5px; display:inline-block; letter-spacing:0.5px; }
+  .hero h1 { font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:30px; margin:10px 0 6px; line-height:1.1; }
+  .hero .types { display:flex; gap:6px; flex-wrap:wrap; }
+  .type-chip { font-size:10.5px; padding:3px 10px; border-radius:999px; background:#f0f1f3; color:var(--ink-2); font-weight:500; border:1px solid var(--rule); }
+  .status-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 11px; border-radius:999px; font-size:11px; font-weight:600; border:1px solid; }
+  .status-badge .dot { width:7px; height:7px; border-radius:50%; }
+  .status-badge.running { background:var(--info-bg); border-color:var(--info-bd); color:var(--info); }
+  .status-badge.running .dot { background:var(--info); }
+
+  /* Nav tabs */
+  .nav-tabs { display:flex; gap:4px; margin-bottom:18px; border-bottom:1px solid var(--rule); padding:0 2px; }
+  .nav-tab { background:transparent; border:0; font-family:inherit; font-size:13px; font-weight:500; color:var(--muted); padding:10px 16px 12px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; border-bottom:2px solid transparent; margin-bottom:-1px; text-decoration:none; }
+  .nav-tab:hover { color:var(--ink-2); }
+  .nav-tab.active { color:var(--ink); border-bottom-color:var(--ink); font-weight:600; }
+  .nav-tab .ic { width:15px; height:15px; }
+  .nav-tab .pill { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10.5px; padding:1px 7px; border-radius:999px; background:#f0f0f1; color:var(--ink-2); font-weight:600; }
+  .nav-tab.active .pill { background:var(--accent); color:#fff; }
+
+  .btn { font-family:inherit; font-size:12.5px; font-weight:500; padding:8px 14px; border-radius:6px; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2); cursor:pointer; display:inline-flex; align-items:center; gap:6px; line-height:1; text-decoration:none; }
+  .btn:hover { background:#fafafb; }
+  .btn .ic { width:13px; height:13px; }
+
+  /* toolbar */
+  .c-toolbar { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:16px; }
+  .c-title-wrap { display:flex; align-items:baseline; gap:12px; }
+  .c-title-wrap h2 { font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:24px; margin:0; }
+  .c-title-wrap .note { font-size:12px; color:var(--muted); }
+  .select { font-family:inherit; font-size:12.5px; padding:7px 26px 7px 10px; border:1px solid var(--rule); border-radius:6px; background:var(--paper) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right 10px center; appearance:none; color:var(--ink-2); cursor:pointer; }
+
+  /* KPI cards */
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px; }
+  .kpi { background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:15px 17px; }
+  .kpi.hero-kpi { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .kpi .label { font-size:10.5px; letter-spacing:0.7px; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .kpi.hero-kpi .label { color:rgba(255,255,255,0.7); }
+  .kpi .value { font-family:"Instrument Serif",Georgia,serif; font-size:27px; line-height:1; margin-top:8px; color:var(--ink); }
+  .kpi.hero-kpi .value { color:#fff; }
+  .kpi .value .cur { font-family:"Inter",sans-serif; font-size:11px; color:var(--muted); vertical-align:5px; margin-right:3px; }
+  .kpi.hero-kpi .value .cur { color:rgba(255,255,255,0.7); }
+  .kpi .meta { font-size:10.5px; color:var(--muted); margin-top:8px; }
+  .kpi.hero-kpi .meta { color:rgba(255,255,255,0.7); }
+  .kpi .bar { height:6px; background:#eef0f2; border-radius:999px; overflow:hidden; margin-top:10px; }
+  .kpi.hero-kpi .bar { background:rgba(255,255,255,0.2); }
+  .kpi .bar .fill { height:100%; border-radius:999px; background:var(--accent); }
+  .kpi.hero-kpi .bar .fill { background:#fff; }
+
+  /* grid layouts */
+  .grid-2 { display:grid; grid-template-columns:340px 1fr; gap:16px; margin-bottom:18px; align-items:start; }
+  .panel { background:var(--paper); border:1px solid var(--rule); border-radius:12px; overflow:hidden; }
+  .panel-head { padding:13px 18px; border-bottom:1px solid var(--rule); display:flex; align-items:center; justify-content:space-between; }
+  .panel-head h3 { font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:17px; margin:0; }
+  .panel-head .sub { font-size:11px; color:var(--muted); }
+  .panel-body { padding:18px; }
+
+  /* Donut (cost composition) */
+  .donut-wrap { display:flex; flex-direction:column; align-items:center; }
+  .donut { width:170px; height:170px; border-radius:50%; position:relative;
+    background:conic-gradient(var(--material) 0% 81.3%, var(--labour) 81.3% 94%, var(--other) 94% 100%); }
+  .donut::after { content:""; position:absolute; inset:30px; background:var(--paper); border-radius:50%; }
+  .donut-center { position:absolute; inset:0; display:grid; place-items:center; z-index:2; text-align:center; }
+  .donut-center .dc-val { font-family:"Instrument Serif",Georgia,serif; font-size:22px; color:var(--ink); line-height:1; }
+  .donut-center .dc-lbl { font-size:9px; letter-spacing:0.6px; text-transform:uppercase; color:var(--muted); margin-top:3px; }
+  .legend { width:100%; margin-top:18px; display:flex; flex-direction:column; gap:8px; }
+  .leg-row { display:flex; align-items:center; gap:8px; font-size:12px; }
+  .leg-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+  .leg-name { color:var(--ink-2); flex:1; }
+  .leg-val { font-family:"JetBrains Mono",ui-monospace,monospace; font-weight:600; color:var(--ink); }
+  .leg-pct { font-family:"JetBrains Mono",ui-monospace,monospace; color:var(--muted); font-size:11px; min-width:42px; text-align:right; }
+
+  /* Estimate vs actual bars */
+  .eva-bars { display:flex; flex-direction:column; gap:18px; }
+  .eb { }
+  .eb-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px; }
+  .eb-name { font-size:13px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:8px; }
+  .eb-name .dot { width:9px; height:9px; border-radius:3px; }
+  .eb-figures { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11.5px; color:var(--muted); }
+  .eb-figures strong { color:var(--ink); font-weight:600; }
+  .eb-track { height:24px; background:#f0f1f3; border-radius:6px; position:relative; overflow:hidden; }
+  .eb-est { position:absolute; top:0; bottom:0; left:0; border-right:2px dashed var(--muted-2); }
+  .eb-actual { height:100%; border-radius:6px 0 0 6px; display:flex; align-items:center; padding-left:10px; }
+  .eb-actual .pct { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; font-weight:700; color:#fff; }
+  .eb-foot { display:flex; justify-content:space-between; margin-top:5px; font-size:10.5px; }
+  .eb-foot .rem { color:var(--ok); font-weight:600; font-family:"JetBrains Mono",ui-monospace,monospace; }
+  .eb-foot .rem.neg { color:var(--danger); }
+  .eb-foot .est-lbl { color:var(--muted); }
+
+  /* phase table */
+  table.rep { width:100%; border-collapse:collapse; }
+  table.rep th { text-align:left; font-size:9.5px; letter-spacing:0.6px; text-transform:uppercase; color:var(--muted); font-weight:600; padding:9px 18px; background:#fafafb; border-bottom:1px solid var(--rule); }
+  table.rep th.right, table.rep td.right { text-align:right; }
+  table.rep td { padding:11px 18px; font-size:12.5px; border-bottom:1px solid var(--rule-soft); }
+  table.rep tbody tr:last-child td { border-bottom:none; }
+  table.rep .ph-name { font-weight:600; color:var(--ink); }
+  table.rep .mono { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12px; }
+  table.rep tfoot td { padding:12px 18px; border-top:2px solid var(--ink); font-weight:700; font-size:13px; }
+  table.rep tfoot .mono { font-family:"JetBrains Mono",ui-monospace,monospace; }
+  .mini-util { display:inline-flex; align-items:center; gap:7px; }
+  .mini-track { width:64px; height:6px; background:#eef0f2; border-radius:999px; overflow:hidden; }
+  .mini-fill { height:100%; border-radius:999px; }
+  .util-num { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; font-weight:600; min-width:34px; text-align:right; }
+  .pos { color:var(--ok); font-weight:600; }
+  .neg { color:var(--danger); font-weight:600; }
+
+  /* Spend trend bar chart */
+  .trend { display:flex; align-items:flex-end; gap:18px; height:200px; padding:10px 8px 0; }
+  .tbar-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end; }
+  .tbar-stack { width:100%; max-width:46px; display:flex; flex-direction:column; justify-content:flex-end; border-radius:5px 5px 0 0; overflow:hidden; }
+  .tseg { width:100%; }
+  .tseg.material { background:var(--material); }
+  .tseg.labour { background:var(--labour); }
+  .tseg.other { background:var(--other); }
+  .tbar-lbl { font-size:10.5px; color:var(--muted); font-weight:500; }
+  .tbar-val { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10px; color:var(--ink-2); font-weight:600; }
+
+  /* variance highlights */
+  .var-list { display:flex; flex-direction:column; gap:0; }
+  .var-row { display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid var(--rule-soft); }
+  .var-row:last-child { border-bottom:none; }
+  .var-icon { width:32px; height:32px; border-radius:8px; display:grid; place-items:center; flex-shrink:0; }
+  .var-icon svg { width:15px; height:15px; }
+  .var-icon.over { background:var(--danger-bg); color:var(--danger); }
+  .var-icon.under { background:var(--ok-bg); color:var(--ok); }
+  .var-info { flex:1; }
+  .var-info .vn { font-size:12.5px; font-weight:600; color:var(--ink); }
+  .var-info .vd { font-size:10.5px; color:var(--muted); margin-top:1px; }
+  .var-amt { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:13px; font-weight:700; }
+  .var-amt.over { color:var(--danger); }
+  .var-amt.under { color:var(--ok); }
+
+  .legend-inline { display:flex; gap:16px; align-items:center; }
+  .li { display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); }
+  .li .d { width:9px; height:9px; border-radius:3px; }
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="Project Reports">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-cover">
+      <div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><div>Cover image</div></div>
+      <span class="cover-tag">Bashundhara R/A, Dhaka</span>
+    </div>
+    <div class="hero-body">
+      <div class="hero-top">
+        <div>
+          <span class="hero-code">PRJ-2024-0007</span>
+          <h1>Star Unity Heights</h1>
+          <div class="types"><span class="type-chip">Residential</span><span class="type-chip">Mixed Use</span></div>
+        </div>
+        <span class="status-badge running"><span class="dot"></span>Running</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nav tabs -->
+  <nav class="nav-tabs" role="tablist">
+    <a class="nav-tab" href="Project Details.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13"/><path d="M10 21V14h4v7"/></svg>Details</a>
+    <a class="nav-tab" href="Project Estimates.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7h6M9 11h6M9 15h4"/><rect x="4" y="3" width="16" height="18" rx="2"/></svg>Estimates <span class="pill">3</span></a>
+    <a class="nav-tab" href="Project Consumption.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7L9 18l-5-5"/><path d="M3 3h18v4H3z"/></svg>Consumption <span class="pill">9</span></a>
+    <a class="nav-tab" href="Project Expenses.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Expenses <span class="pill">63</span></a>
+    <a class="nav-tab active" href="Project Reports.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Reports</a>
+  </nav>
+
+  <!-- Toolbar -->
+  <div class="c-toolbar">
+    <div class="c-title-wrap">
+      <h2>Cost Report</h2>
+      <span class="note">Consolidated project cost analysis · as of 05 Jun 2026</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <select class="select"><option>All time</option><option>This quarter</option><option>This month</option><option>Custom range…</option></select>
+      <button class="btn" onclick="window.print()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Export PDF</button>
+      <button class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export Excel</button>
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  <div class="kpis">
+    <div class="kpi hero-kpi">
+      <div class="label">Approved Budget</div>
+      <div class="value"><span class="cur">BDT</span>42,18,00,000</div>
+      <div class="meta">Estimate v2 · approved 20 Mar 2026</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Total Spent</div>
+      <div class="value"><span class="cur">BDT</span>26,84,50,000</div>
+      <div class="bar"><div class="fill" style="width:63.6%"></div></div>
+      <div class="meta">63.6% of budget</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Remaining Budget</div>
+      <div class="value"><span class="cur">BDT</span>15,33,50,000</div>
+      <div class="meta">36.4% available</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Budget Difference</div>
+      <div class="value" style="color:var(--ok)">+ <span class="cur">BDT</span>15,33,50,000</div>
+      <div class="meta">Within budget · on track</div>
+    </div>
+  </div>
+
+  <!-- Cost composition + Estimate vs Actual -->
+  <div class="grid-2">
+    <!-- Donut -->
+    <div class="panel">
+      <div class="panel-head"><h3>Cost Composition</h3></div>
+      <div class="panel-body">
+        <div class="donut-wrap">
+          <div class="donut">
+            <div class="donut-center">
+              <div class="dc-val">BDT 26.8cr</div>
+              <div class="dc-lbl">Total Spent</div>
+            </div>
+          </div>
+          <div class="legend">
+            <div class="leg-row">
+              <span class="leg-dot" style="background:var(--material)"></span>
+              <span class="leg-name">Material</span>
+              <span class="leg-val">21,82,20,000</span>
+              <span class="leg-pct">81.3%</span>
+            </div>
+            <div class="leg-row">
+              <span class="leg-dot" style="background:var(--labour)"></span>
+              <span class="leg-name">Labour</span>
+              <span class="leg-val">3,41,50,000</span>
+              <span class="leg-pct">12.7%</span>
+            </div>
+            <div class="leg-row">
+              <span class="leg-dot" style="background:var(--other)"></span>
+              <span class="leg-name">Other</span>
+              <span class="leg-val">1,60,80,000</span>
+              <span class="leg-pct">6.0%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estimate vs Actual bars -->
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Estimate vs Actual</h3>
+        <div class="legend-inline">
+          <span class="li"><span class="d" style="background:var(--accent)"></span>Actual spent</span>
+          <span class="li"><span style="border-left:2px dashed var(--muted-2); height:11px; display:inline-block;"></span>Estimate</span>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="eva-bars">
+          <div class="eb">
+            <div class="eb-top">
+              <span class="eb-name"><span class="dot" style="background:var(--material)"></span>Material</span>
+              <span class="eb-figures"><strong>21,82,20,000</strong> / 31,20,00,000</span>
+            </div>
+            <div class="eb-track">
+              <div class="eb-actual" style="width:69.9%; background:var(--material)"><span class="pct">70%</span></div>
+              <div class="eb-est" style="left:100%"></div>
+            </div>
+            <div class="eb-foot"><span class="est-lbl">Estimate: BDT 31,20,00,000</span><span class="rem">Remaining 9,37,80,000</span></div>
+          </div>
+
+          <div class="eb">
+            <div class="eb-top">
+              <span class="eb-name"><span class="dot" style="background:var(--labour)"></span>Labour</span>
+              <span class="eb-figures"><strong>3,41,50,000</strong> / 7,48,00,000</span>
+            </div>
+            <div class="eb-track">
+              <div class="eb-actual" style="width:45.7%; background:var(--labour)"><span class="pct">46%</span></div>
+              <div class="eb-est" style="left:100%"></div>
+            </div>
+            <div class="eb-foot"><span class="est-lbl">Estimate: BDT 7,48,00,000</span><span class="rem">Remaining 4,06,50,000</span></div>
+          </div>
+
+          <div class="eb">
+            <div class="eb-top">
+              <span class="eb-name"><span class="dot" style="background:var(--other)"></span>Other / Overhead</span>
+              <span class="eb-figures"><strong>1,60,80,000</strong> / 3,50,00,000</span>
+            </div>
+            <div class="eb-track">
+              <div class="eb-actual" style="width:45.9%; background:var(--other)"><span class="pct">46%</span></div>
+              <div class="eb-est" style="left:100%"></div>
+            </div>
+            <div class="eb-foot"><span class="est-lbl">Estimate: BDT 3,50,00,000</span><span class="rem">Remaining 1,89,20,000</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase-wise cost -->
+  <div class="panel" style="margin-bottom:18px;">
+    <div class="panel-head"><h3>Phase-wise Cost Summary</h3><span class="sub">Estimate vs actual by construction phase</span></div>
+    <table class="rep">
+      <thead>
+        <tr>
+          <th style="width:24%">Phase</th>
+          <th class="right">Estimate</th>
+          <th class="right">Material</th>
+          <th class="right">Labour</th>
+          <th class="right">Other</th>
+          <th class="right">Actual Total</th>
+          <th class="right" style="width:14%">Utilisation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="ph-name">Foundation</td>
+          <td class="right mono">8,42,00,000</td>
+          <td class="right mono">7,10,00,000</td>
+          <td class="right mono">68,00,000</td>
+          <td class="right mono">32,00,000</td>
+          <td class="right mono">8,10,00,000</td>
+          <td class="right"><span class="mini-util"><span class="mini-track"><span class="mini-fill" style="width:96%;background:var(--ok)"></span></span><span class="util-num">96%</span></span></td>
+        </tr>
+        <tr>
+          <td class="ph-name">Structure</td>
+          <td class="right mono">26,76,00,000</td>
+          <td class="right mono">13,90,00,000</td>
+          <td class="right mono">2,38,50,000</td>
+          <td class="right mono">91,50,000</td>
+          <td class="right mono">17,20,00,000</td>
+          <td class="right"><span class="mini-util"><span class="mini-track"><span class="mini-fill" style="width:64%;background:var(--labour)"></span></span><span class="util-num">64%</span></span></td>
+        </tr>
+        <tr>
+          <td class="ph-name">Finishing</td>
+          <td class="right mono">4,00,00,000</td>
+          <td class="right mono">82,20,000</td>
+          <td class="right mono">35,00,000</td>
+          <td class="right mono">37,30,000</td>
+          <td class="right mono">1,54,50,000</td>
+          <td class="right"><span class="mini-util"><span class="mini-track"><span class="mini-fill" style="width:39%;background:var(--muted-2)"></span></span><span class="util-num">39%</span></span></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>Total</td>
+          <td class="right mono">42,18,00,000</td>
+          <td class="right mono">21,82,20,000</td>
+          <td class="right mono">3,41,50,000</td>
+          <td class="right mono">1,60,80,000</td>
+          <td class="right mono">26,84,50,000</td>
+          <td class="right"><span class="util-num" style="min-width:auto">63.6%</span></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Spend trend + Variance -->
+  <div class="grid-2" style="grid-template-columns:1fr 420px;">
+    <!-- Spend trend -->
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Monthly Spend Trend</h3>
+        <div class="legend-inline">
+          <span class="li"><span class="d" style="background:var(--material)"></span>Material</span>
+          <span class="li"><span class="d" style="background:var(--labour)"></span>Labour</span>
+          <span class="li"><span class="d" style="background:var(--other)"></span>Other</span>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="trend">
+          <div class="tbar-wrap">
+            <span class="tbar-val">2.1cr</span>
+            <div class="tbar-stack" style="height:55%"><div class="tseg material" style="height:78%"></div><div class="tseg labour" style="height:14%"></div><div class="tseg other" style="height:8%"></div></div>
+            <span class="tbar-lbl">Jan</span>
+          </div>
+          <div class="tbar-wrap">
+            <span class="tbar-val">3.4cr</span>
+            <div class="tbar-stack" style="height:82%"><div class="tseg material" style="height:80%"></div><div class="tseg labour" style="height:13%"></div><div class="tseg other" style="height:7%"></div></div>
+            <span class="tbar-lbl">Feb</span>
+          </div>
+          <div class="tbar-wrap">
+            <span class="tbar-val">4.1cr</span>
+            <div class="tbar-stack" style="height:100%"><div class="tseg material" style="height:82%"></div><div class="tseg labour" style="height:12%"></div><div class="tseg other" style="height:6%"></div></div>
+            <span class="tbar-lbl">Mar</span>
+          </div>
+          <div class="tbar-wrap">
+            <span class="tbar-val">3.8cr</span>
+            <div class="tbar-stack" style="height:92%"><div class="tseg material" style="height:80%"></div><div class="tseg labour" style="height:13%"></div><div class="tseg other" style="height:7%"></div></div>
+            <span class="tbar-lbl">Apr</span>
+          </div>
+          <div class="tbar-wrap">
+            <span class="tbar-val">3.6cr</span>
+            <div class="tbar-stack" style="height:87%"><div class="tseg material" style="height:79%"></div><div class="tseg labour" style="height:14%"></div><div class="tseg other" style="height:7%"></div></div>
+            <span class="tbar-lbl">May</span>
+          </div>
+          <div class="tbar-wrap">
+            <span class="tbar-val">1.2cr</span>
+            <div class="tbar-stack" style="height:30%"><div class="tseg material" style="height:72%"></div><div class="tseg labour" style="height:18%"></div><div class="tseg other" style="height:10%"></div></div>
+            <span class="tbar-lbl">Jun</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Variance highlights -->
+    <div class="panel">
+      <div class="panel-head"><h3>Budget Difference</h3></div>
+      <div class="var-list">
+        <div class="var-row">
+          <div class="var-icon over"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+          <div class="var-info"><div class="vn">MS Rod — Structure</div><div class="vd">Consumed 1,480 of 1,420 Ton · over by 60</div></div>
+          <span class="var-amt over">+4,20,000</span>
+        </div>
+        <div class="var-row">
+          <div class="var-icon over"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+          <div class="var-info"><div class="vn">Electrician Labour</div><div class="vd">Actual 8,90,000 vs estimate 8,00,000 · 111%</div></div>
+          <span class="var-amt over">+90,000</span>
+        </div>
+        <div class="var-row">
+          <div class="var-icon under"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg></div>
+          <div class="var-info"><div class="vn">Sand — Foundation</div><div class="vd">Consumed 22,000 of 50,000 CFT · 44%</div></div>
+          <span class="var-amt under">−28,000 CFT</span>
+        </div>
+        <div class="var-row">
+          <div class="var-icon under"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg></div>
+          <div class="var-info"><div class="vn">Transport — Other</div><div class="vd">Actual 3,20,000 vs estimate 5,00,000 · 64%</div></div>
+          <span class="var-amt under">−1,80,000</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

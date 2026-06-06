@@ -33,7 +33,7 @@ class ProjectList extends Component
             ->when($this->search, function ($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
                     ->orWhere('code', 'like', '%' . $this->search . '%')
-                    ->orWhere('project_type', 'like', '%' . $this->search . '%')
+                    ->orWhere('project_type', 'like', '%' . $this->search . '%')  // JSON search
                     ->orWhere('location', 'like', '%' . $this->search . '%');
             })
             ->with('user')

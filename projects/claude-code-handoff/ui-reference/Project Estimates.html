@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Project Estimates — Star Unity Heights</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink:#14181f; --ink-2:#2a2f3a; --ink-3:#4a5160; --muted:#6b7280; --muted-2:#9aa0a6;
+    --rule:#e4e4e7; --rule-soft:#ececec; --paper:#ffffff; --canvas:#f6f6f7;
+    --accent:#0d2a4a; --accent-soft:#eaf0f8;
+    --warn:#a16207; --warn-bg:#fef9e7; --warn-bd:#f3e3a8;
+    --ok:#1f6f43; --ok-bg:#e9f4ee; --ok-bd:#bfddc8;
+    --info:#0e63a8; --info-bg:#e9f2fb; --info-bd:#c2dcf3;
+    --danger:#8a1212; --danger-bg:#fbeaea; --danger-bd:#f1c2c2;
+    /* cost types */
+    --material:#0d2a4a; --material-bg:#eaf0f8;
+    --labour:#0e7490;   --labour-bg:#e6f5f8;
+    --overhead:#a16207; --overhead-bg:#fef9e7;
+    --indirect:#6d28d9; --indirect-bg:#f3edfb;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background:var(--canvas); color:var(--ink); font-family:"Inter",system-ui,-apple-system,sans-serif; font-size:13px; line-height:1.45; -webkit-font-smoothing:antialiased; }
+
+  .page { padding: 22px 24px 80px; max-width: 1320px; margin: 0 auto; }
+
+  /* ============ Hero ============ */
+  .hero { display:grid; grid-template-columns:300px 1fr; background:var(--paper); border:1px solid var(--rule); border-radius:12px; overflow:hidden; margin-bottom:18px; }
+  .hero-cover { position:relative; background:linear-gradient(135deg,#1a3a5c 0%,#0d2a4a 100%); min-height:170px; display:grid; place-items:center; }
+  .hero-cover .ph { text-align:center; color:rgba(255,255,255,0.5); }
+  .hero-cover .ph svg { width:38px; height:38px; }
+  .hero-cover .ph div { font-size:11px; margin-top:8px; letter-spacing:0.5px; }
+  .hero-cover .cover-tag { position:absolute; bottom:10px; left:12px; background:rgba(0,0,0,0.35); color:#fff; font-size:10px; padding:3px 9px; border-radius:999px; backdrop-filter:blur(4px); }
+  .hero-body { padding:20px 26px; display:flex; flex-direction:column; }
+  .hero-top { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+  .hero-code { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; font-weight:600; color:var(--accent); background:var(--accent-soft); padding:3px 9px; border-radius:5px; display:inline-block; letter-spacing:0.5px; }
+  .hero h1 { font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:30px; margin:10px 0 6px; line-height:1.1; }
+  .hero .types { display:flex; gap:6px; flex-wrap:wrap; }
+  .type-chip { font-size:10.5px; padding:3px 10px; border-radius:999px; background:#f0f1f3; color:var(--ink-2); font-weight:500; border:1px solid var(--rule); }
+  .status-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 11px; border-radius:999px; font-size:11px; font-weight:600; border:1px solid; }
+  .status-badge .dot { width:7px; height:7px; border-radius:50%; }
+  .status-badge.running { background:var(--info-bg); border-color:var(--info-bd); color:var(--info); }
+  .status-badge.running .dot { background:var(--info); }
+
+  /* ============ Nav tabs ============ */
+  .nav-tabs { display:flex; gap:4px; margin-bottom:18px; border-bottom:1px solid var(--rule); padding:0 2px; }
+  .nav-tab { background:transparent; border:0; font-family:inherit; font-size:13px; font-weight:500; color:var(--muted); padding:10px 16px 12px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; border-bottom:2px solid transparent; margin-bottom:-1px; text-decoration:none; }
+  .nav-tab:hover { color:var(--ink-2); }
+  .nav-tab.active { color:var(--ink); border-bottom-color:var(--ink); font-weight:600; }
+  .nav-tab .ic { width:15px; height:15px; }
+  .nav-tab .pill { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:10.5px; padding:1px 7px; border-radius:999px; background:#f0f0f1; color:var(--ink-2); font-weight:600; }
+  .nav-tab.active .pill { background:var(--accent); color:#fff; }
+
+  /* ============ buttons ============ */
+  .btn { font-family:inherit; font-size:12.5px; font-weight:500; padding:8px 14px; border-radius:6px; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2); cursor:pointer; display:inline-flex; align-items:center; gap:6px; line-height:1; text-decoration:none; }
+  .btn:hover { background:#fafafb; }
+  .btn.primary { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .btn.primary:hover { background:#000; }
+  .btn.ok { background:var(--ok); color:#fff; border-color:var(--ok); }
+  .btn.ok:hover { background:#185933; }
+  .btn .ic { width:13px; height:13px; }
+
+  /* ============ Estimates toolbar ============ */
+  .est-toolbar { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:16px; }
+  .est-title-wrap { display:flex; align-items:baseline; gap:12px; }
+  .est-title-wrap h2 { font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:24px; margin:0; }
+  .est-actions { display:flex; gap:8px; }
+
+  /* ============ Version selector ============ */
+  .versions { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+  .ver-card { flex:0 0 auto; min-width:200px; background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:12px 14px; cursor:pointer; transition:box-shadow .15s,border-color .15s; position:relative; }
+  .ver-card:hover { box-shadow:0 3px 12px rgba(0,0,0,0.06); }
+  .ver-card.active { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft); }
+  .ver-card .vc-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .ver-card .vc-no { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; font-weight:600; color:var(--ink); }
+  .ver-card .vc-title { font-size:12.5px; color:var(--ink); font-weight:600; margin-top:6px; }
+  .ver-card .vc-meta { font-size:10.5px; color:var(--muted); margin-top:3px; font-family:"JetBrains Mono",ui-monospace,monospace; }
+  .ver-card .vc-amt { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:13px; font-weight:600; color:var(--ink); margin-top:8px; }
+  .ver-chip { font-size:8.5px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; padding:2px 7px; border-radius:999px; border:1px solid; }
+  .ver-chip.draft { background:#f0f0f1; border-color:var(--rule); color:var(--muted); }
+  .ver-chip.submitted { background:var(--warn-bg); border-color:var(--warn-bd); color:var(--warn); }
+  .ver-chip.approved { background:var(--ok-bg); border-color:var(--ok-bd); color:var(--ok); }
+  .ver-chip.rejected { background:var(--danger-bg); border-color:var(--danger-bd); color:var(--danger); }
+
+  /* ============ Summary cards ============ */
+  .summary { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+  .sum-card { background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:14px 16px; border-left:4px solid var(--rule); }
+  .sum-card.material { border-left-color:var(--material); }
+  .sum-card.labour { border-left-color:var(--labour); }
+  .sum-card.other { border-left-color:var(--overhead); }
+  .sum-card.grand { border-left:none; background:var(--accent); color:#fff; }
+  .sum-card .s-label { font-size:10.5px; letter-spacing:0.7px; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .sum-card.grand .s-label { color:rgba(255,255,255,0.7); }
+  .sum-card .s-val { font-family:"Instrument Serif",Georgia,serif; font-size:24px; line-height:1; margin-top:8px; }
+  .sum-card .s-val .cur { font-family:"Inter",sans-serif; font-size:11px; color:var(--muted); vertical-align:5px; margin-right:3px; }
+  .sum-card.grand .s-val .cur { color:rgba(255,255,255,0.7); }
+  .sum-card .s-meta { font-size:10.5px; color:var(--muted); margin-top:7px; }
+  .sum-card.grand .s-meta { color:rgba(255,255,255,0.7); }
+
+  /* ============ BOQ table ============ */
+  .boq-wrap { background:var(--paper); border:1px solid var(--rule); border-radius:12px; overflow:hidden; }
+  .boq-head { display:flex; align-items:center; justify-content:space-between; padding:13px 18px; border-bottom:1px solid var(--rule); }
+  .boq-head h3 { font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:18px; margin:0; }
+  .boq-head .filters { display:flex; gap:8px; align-items:center; }
+  .select { font-family:inherit; font-size:12px; padding:6px 24px 6px 10px; border:1px solid var(--rule); border-radius:6px; background:var(--paper) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right 9px center; appearance:none; color:var(--ink-2); cursor:pointer; }
+
+  table.boq { width:100%; border-collapse:collapse; }
+  table.boq thead th { text-align:left; font-size:9.5px; letter-spacing:0.7px; text-transform:uppercase; color:var(--muted); font-weight:600; padding:9px 14px; background:#fafafb; border-bottom:1px solid var(--rule); }
+  table.boq th.right, table.boq td.right { text-align:right; }
+  table.boq th.center, table.boq td.center { text-align:center; }
+  table.boq tbody td { padding:10px 14px; font-size:12.5px; color:var(--ink); border-bottom:1px solid var(--rule-soft); vertical-align:middle; }
+
+  /* phase group header */
+  tr.phase-row td { background:#f4f6f8; padding:7px 14px; font-size:9.5px; letter-spacing:0.8px; text-transform:uppercase; color:var(--ink-3); font-weight:700; border-bottom:1px solid var(--rule); }
+  tr.phase-row .ph-sub { float:right; font-family:"JetBrains Mono",ui-monospace,monospace; color:var(--muted); font-weight:600; letter-spacing:0.3px; }
+
+  .item-name { font-weight:500; color:var(--ink); }
+  .item-name .opt { font-size:9px; font-weight:600; letter-spacing:0.3px; text-transform:uppercase; color:var(--muted); background:#f0f0f1; border:1px solid var(--rule); padding:1px 5px; border-radius:3px; margin-left:6px; }
+  .item-remark { font-size:10.5px; color:var(--muted); margin-top:2px; }
+  .ct-badge { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:600; letter-spacing:0.3px; }
+  .ct-badge .d { width:5px; height:5px; border-radius:50%; }
+  .ct-badge.material { background:var(--material-bg); color:var(--material); }
+  .ct-badge.labour   { background:var(--labour-bg); color:var(--labour); }
+  .ct-badge.overhead { background:var(--overhead-bg); color:var(--overhead); }
+  .ct-badge.indirect { background:var(--indirect-bg); color:var(--indirect); }
+  .ct-badge.material .d { background:var(--material); }
+  .ct-badge.labour .d { background:var(--labour); }
+  .ct-badge.overhead .d { background:var(--overhead); }
+  .ct-badge.indirect .d { background:var(--indirect); }
+  .mono { font-family:"JetBrains Mono",ui-monospace,monospace; }
+  td.qty, td.rate, td.amount { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12px; }
+  td.amount { font-weight:600; }
+  td.unit { color:var(--muted); font-size:11.5px; }
+
+  tfoot td { padding:12px 14px; font-size:13px; border-top:2px solid var(--ink); }
+  tfoot .grand-lbl { text-align:right; font-weight:600; color:var(--muted); letter-spacing:0.5px; text-transform:uppercase; font-size:11px; }
+  tfoot .grand-val { text-align:right; font-family:"JetBrains Mono",ui-monospace,monospace; font-size:16px; font-weight:700; color:var(--ink); }
+
+  .est-meta-bar { display:flex; gap:24px; padding:14px 18px; background:#fafafb; border-bottom:1px solid var(--rule); flex-wrap:wrap; }
+  .emb { }
+  .emb .k { font-size:9.5px; letter-spacing:0.6px; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .emb .v { font-size:12.5px; color:var(--ink); font-weight:500; margin-top:2px; }
+  .emb .v.mono { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12px; }
+
+  /* ============ Current approved badge on version card ============ */
+  .ver-card .vc-current { display:inline-flex; align-items:center; gap:4px; margin-top:9px; font-size:9px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; color:var(--ok); background:var(--ok-bg); border:1px solid var(--ok-bd); padding:2px 8px; border-radius:999px; }
+  .ver-card .vc-current svg { width:9px; height:9px; }
+
+  /* ============ Budget monitoring KPIs ============ */
+  .section-label { font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:20px; margin:24px 0 12px; color:var(--ink); }
+  .budget-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px; }
+  .bk { background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:14px 16px; position:relative; }
+  .bk .bk-label { font-size:10.5px; letter-spacing:0.7px; text-transform:uppercase; color:var(--muted); font-weight:600; display:flex; align-items:center; gap:6px; }
+  .bk .bk-val { font-family:"Instrument Serif",Georgia,serif; font-size:25px; line-height:1; margin-top:8px; color:var(--ink); }
+  .bk .bk-val .cur { font-family:"Inter",sans-serif; font-size:11px; color:var(--muted); vertical-align:5px; margin-right:3px; }
+  .bk .bk-meta { font-size:10.5px; color:var(--muted); margin-top:7px; }
+  .bk.estimated { border-left:4px solid var(--accent); }
+  .bk.consumed  { border-left:4px solid var(--labour); }
+  .bk.remaining { border-left:4px solid var(--ok); }
+  .bk.variance  { border-left:4px solid var(--ok); }
+  .bk.variance.over { border-left-color:var(--danger); background:var(--danger-bg); }
+  .bk.variance.over .bk-val { color:var(--danger); }
+  .bk.variance.over .bk-label { color:var(--danger); }
+  .bk .bk-bar { height:5px; background:#eef0f2; border-radius:999px; overflow:hidden; margin-top:10px; }
+  .bk .bk-bar .fill { height:100%; border-radius:999px; background:var(--labour); }
+  .warn-flag { display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:700; letter-spacing:0.3px; color:var(--danger); margin-top:6px; }
+  .warn-flag svg { width:12px; height:12px; }
+
+  /* ============ Version comparison + attachments row ============ */
+  .info-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px; align-items:start; }
+  .panel { background:var(--paper); border:1px solid var(--rule); border-radius:12px; overflow:hidden; }
+  .panel-head { padding:12px 18px; border-bottom:1px solid var(--rule); display:flex; align-items:center; justify-content:space-between; }
+  .panel-head h3 { font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:17px; margin:0; }
+  .panel-head .vs { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; color:var(--muted); background:#f0f1f3; padding:2px 8px; border-radius:5px; }
+  .panel-body { padding:8px 18px 14px; }
+
+  .cmp-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--rule-soft); }
+  .cmp-row:last-child { border-bottom:none; }
+  .cmp-row .cmp-k { font-size:12.5px; color:var(--ink-2); }
+  .cmp-row .cmp-vals { display:flex; align-items:center; gap:12px; }
+  .cmp-row .cmp-old { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11.5px; color:var(--muted-2); text-decoration:line-through; }
+  .cmp-row .cmp-new { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12.5px; color:var(--ink); font-weight:600; }
+  .cmp-delta { font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; display:inline-flex; align-items:center; gap:3px; min-width:58px; justify-content:center; }
+  .cmp-delta.up { background:var(--danger-bg); color:var(--danger); }
+  .cmp-delta.down { background:var(--ok-bg); color:var(--ok); }
+  .cmp-delta svg { width:10px; height:10px; }
+  .cmp-row.grand { border-top:2px solid var(--ink); border-bottom:none; margin-top:4px; padding-top:12px; }
+  .cmp-row.grand .cmp-k { font-weight:700; }
+  .cmp-row.grand .cmp-new { font-size:14px; }
+
+  /* attachments */
+  .att-list { display:flex; flex-direction:column; gap:2px; }
+  .att-row { display:flex; align-items:center; gap:11px; padding:8px 8px; border-radius:8px; cursor:pointer; }
+  .att-row:hover { background:#fafafb; }
+  .att-ic { width:32px; height:32px; border-radius:7px; display:grid; place-items:center; flex-shrink:0; }
+  .att-ic svg { width:14px; height:14px; }
+  .att-ic.xls { background:var(--ok-bg); color:var(--ok); }
+  .att-ic.pdf { background:var(--danger-bg); color:var(--danger); }
+  .att-ic.dwg { background:#f3edfb; color:#6d28d9; }
+  .att-info { flex:1; min-width:0; }
+  .att-info .nm { font-size:12.5px; font-weight:500; color:var(--ink); }
+  .att-info .mt { font-size:10.5px; color:var(--muted); margin-top:1px; }
+  .att-dl { color:var(--muted-2); padding:4px; }
+  .att-row:hover .att-dl { color:var(--accent); }
+  .att-dl svg { width:15px; height:15px; display:block; }
+
+  /* locked badge */
+  .lock-flag { display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; color:var(--ok); background:var(--ok-bg); border:1px solid var(--ok-bd); padding:3px 9px; border-radius:999px; }
+  .lock-flag svg { width:12px; height:12px; }
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="Project Estimates">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-cover">
+      <div class="ph">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <div>Cover image</div>
+      </div>
+      <span class="cover-tag">Bashundhara R/A, Dhaka</span>
+    </div>
+    <div class="hero-body">
+      <div class="hero-top">
+        <div>
+          <span class="hero-code">PRJ-2024-0007</span>
+          <h1>Star Unity Heights</h1>
+          <div class="types"><span class="type-chip">Residential</span><span class="type-chip">Mixed Use</span></div>
+        </div>
+        <span class="status-badge running"><span class="dot"></span>Running</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nav tabs -->
+  <nav class="nav-tabs" role="tablist">
+    <a class="nav-tab" href="Project Details.html" role="tab">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13"/><path d="M10 21V14h4v7"/></svg>
+      Details
+    </a>
+    <a class="nav-tab active" href="Project Estimates.html" role="tab">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7h6M9 11h6M9 15h4"/><rect x="4" y="3" width="16" height="18" rx="2"/></svg>
+      Estimates
+      <span class="pill">3</span>
+    </a>
+    <a class="nav-tab" href="Project Consumption.html" role="tab">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7L9 18l-5-5"/><path d="M3 3h18v4H3z"/></svg>
+      Consumption
+      <span class="pill">9</span>
+    </a>
+    <a class="nav-tab" href="Project Expenses.html" role="tab">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      Expenses
+      <span class="pill">63</span>
+    </a>
+    <a class="nav-tab" href="Project Reports.html" role="tab">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Reports
+    </a>
+  </nav>
+
+  <!-- Toolbar -->
+  <div class="est-toolbar">
+    <div class="est-title-wrap">
+      <h2>Estimates</h2>
+      <span style="font-size:12px; color:var(--muted);">3 versions · BOQ-style breakdown</span>
+    </div>
+    <div class="est-actions">
+      <button class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Duplicate as new version</button>
+      <button class="btn primary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Estimate</button>
+    </div>
+  </div>
+
+  <!-- Version selector -->
+  <div class="versions">
+    <div class="ver-card">
+      <div class="vc-top"><span class="vc-no">EST-2024-0007-V1</span><span class="ver-chip approved">Approved</span></div>
+      <div class="vc-title">Initial Estimate</div>
+      <div class="vc-meta">v1 · 15 Feb 2024</div>
+      <div class="vc-amt">BDT 38,50,00,000</div>
+    </div>
+    <div class="ver-card active">
+      <div class="vc-top"><span class="vc-no">EST-2024-0007-V2</span><span class="ver-chip approved">Approved</span></div>
+      <div class="vc-title">Revised Estimate</div>
+      <div class="vc-meta">v2 · 18 Mar 2026</div>
+      <div class="vc-amt">BDT 42,18,00,000</div>
+      <span class="vc-current"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Current Approved Version</span>
+    </div>
+    <div class="ver-card">
+      <div class="vc-top"><span class="vc-no">EST-2024-0007-V3</span><span class="ver-chip draft">Draft</span></div>
+      <div class="vc-title">Cost Revision — Q2</div>
+      <div class="vc-meta">v3 · 28 May 2026</div>
+      <div class="vc-amt">BDT 43,75,00,000</div>
+    </div>
+  </div>
+
+  <!-- Summary cards (for selected version) -->
+  <div class="summary">
+    <div class="sum-card material">
+      <div class="s-label">Material</div>
+      <div class="s-val"><span class="cur">BDT</span>31,20,00,000</div>
+      <div class="s-meta">73.9% of estimate · 5 items</div>
+    </div>
+    <div class="sum-card labour">
+      <div class="s-label">Labour</div>
+      <div class="s-val"><span class="cur">BDT</span>7,48,00,000</div>
+      <div class="s-meta">17.7% of estimate · 2 items</div>
+    </div>
+    <div class="sum-card other">
+      <div class="s-label">Other / Overhead</div>
+      <div class="s-val"><span class="cur">BDT</span>3,50,00,000</div>
+      <div class="s-meta">8.3% of estimate · 1 item</div>
+    </div>
+    <div class="sum-card grand">
+      <div class="s-label">Grand Total</div>
+      <div class="s-val"><span class="cur">BDT</span>42,18,00,000</div>
+      <div class="s-meta">8 line items · updated 18 Mar 2026</div>
+    </div>
+  </div>
+
+  <!-- Budget Monitoring KPIs -->
+  <div class="section-label">Budget Monitoring</div>
+  <div class="budget-kpis">
+    <div class="bk estimated">
+      <div class="bk-label">Estimated Amount</div>
+      <div class="bk-val"><span class="cur">BDT</span>42,18,00,000</div>
+      <div class="bk-meta">Approved estimate · v2</div>
+    </div>
+    <div class="bk consumed">
+      <div class="bk-label">Actual Consumed</div>
+      <div class="bk-val"><span class="cur">BDT</span>26,84,50,000</div>
+      <div class="bk-bar"><div class="fill" style="width:63.6%"></div></div>
+      <div class="bk-meta">63.6% of estimate consumed</div>
+    </div>
+    <div class="bk remaining">
+      <div class="bk-label">Remaining Budget</div>
+      <div class="bk-val"><span class="cur">BDT</span>15,33,50,000</div>
+      <div class="bk-meta">36.4% available</div>
+    </div>
+    <div class="bk variance">
+      <div class="bk-label">Budget Difference</div>
+      <div class="bk-val">+ <span class="cur">BDT</span>15,33,50,000</div>
+      <div class="bk-meta">Within budget · on track</div>
+    </div>
+  </div>
+
+  <!-- Version comparison + Attachments -->
+  <div class="info-row">
+    <!-- Version comparison -->
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Version Comparison</h3>
+        <span class="vs">V2 vs V1</span>
+      </div>
+      <div class="panel-body">
+        <div class="cmp-row">
+          <span class="cmp-k">Material Cost</span>
+          <span class="cmp-vals">
+            <span class="cmp-old">28,90,00,000</span>
+            <span class="cmp-new">31,20,00,000</span>
+            <span class="cmp-delta up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>+8.0%</span>
+          </span>
+        </div>
+        <div class="cmp-row">
+          <span class="cmp-k">Labour Cost</span>
+          <span class="cmp-vals">
+            <span class="cmp-old">7,19,00,000</span>
+            <span class="cmp-new">7,48,00,000</span>
+            <span class="cmp-delta up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>+4.0%</span>
+          </span>
+        </div>
+        <div class="cmp-row">
+          <span class="cmp-k">Overhead</span>
+          <span class="cmp-vals">
+            <span class="cmp-old">3,43,00,000</span>
+            <span class="cmp-new">3,50,00,000</span>
+            <span class="cmp-delta up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>+2.0%</span>
+          </span>
+        </div>
+        <div class="cmp-row grand">
+          <span class="cmp-k">Grand Total</span>
+          <span class="cmp-vals">
+            <span class="cmp-old">38,50,00,000</span>
+            <span class="cmp-new">42,18,00,000</span>
+            <span class="cmp-delta up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>+9.6%</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attachments -->
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Attachments <span style="font-family:'JetBrains Mono',monospace;background:#f0f1f3;color:var(--ink-2);padding:1px 7px;border-radius:999px;font-size:10px;font-weight:600;margin-left:4px;">4</span></h3>
+        <button class="btn" style="padding:5px 10px;font-size:11.5px;"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Upload</button>
+      </div>
+      <div class="panel-body" style="padding:8px 12px 12px;">
+        <div class="att-list">
+          <div class="att-row">
+            <div class="att-ic xls"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 13l2 3 2-3"/></svg></div>
+            <div class="att-info"><div class="nm">BOQ Detailed Breakdown.xlsx</div><div class="mt">Excel · 248 KB · 18 Mar 2026</div></div>
+            <span class="att-dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+          </div>
+          <div class="att-row">
+            <div class="att-ic dwg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"/><path d="M3 9h18M9 21V9"/></svg></div>
+            <div class="att-info"><div class="nm">Structural Design — Rev C.dwg</div><div class="mt">CAD · 5.1 MB · 16 Mar 2026</div></div>
+            <span class="att-dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+          </div>
+          <div class="att-row">
+            <div class="att-ic pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="att-info"><div class="nm">Estimate Approval Note.pdf</div><div class="mt">PDF · 320 KB · 20 Mar 2026</div></div>
+            <span class="att-dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+          </div>
+          <div class="att-row">
+            <div class="att-ic dwg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"/><path d="M3 9h18M9 21V9"/></svg></div>
+            <div class="att-info"><div class="nm">Architectural Drawings.pdf</div><div class="mt">PDF · 8.4 MB · 12 Feb 2024</div></div>
+            <span class="att-dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOQ table -->
+  <div class="boq-wrap">
+    <!-- Estimate meta bar -->
+    <div class="est-meta-bar">
+      <div class="emb"><div class="k">Estimate No.</div><div class="v mono">EST-2024-0007-V2</div></div>
+      <div class="emb"><div class="k">Title</div><div class="v">Revised Estimate</div></div>
+      <div class="emb"><div class="k">Version</div><div class="v">v2</div></div>
+      <div class="emb"><div class="k">Date</div><div class="v mono">18 Mar 2026</div></div>
+      <div class="emb"><div class="k">Status</div><div class="v"><span class="ver-chip approved">Approved</span></div></div>
+      <div class="emb"><div class="k">Created by</div><div class="v">Mohsin Ali · 18 Mar 2026</div></div>
+      <div class="emb"><div class="k">Approved by</div><div class="v">Rahim Khan · 20 Mar 2026</div></div>
+      <div class="emb" style="margin-left:auto; align-self:center;"><span class="lock-flag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Approved &amp; Locked</span></div>
+    </div>
+
+    <div class="boq-head">
+      <h3>Bill of Quantities</h3>
+      <div class="filters">
+        <select class="select">
+          <option>All cost types</option>
+          <option>Material</option>
+          <option>Labour</option>
+          <option>Overhead</option>
+          <option>Indirect</option>
+        </select>
+        <select class="select">
+          <option>All phases</option>
+          <option>Foundation</option>
+          <option>Structure</option>
+          <option>Brick Work</option>
+          <option>Finishing</option>
+        </select>
+        <button class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add item</button>
+        <span style="width:1px; height:22px; background:var(--rule); margin:0 2px;"></span>
+        <button class="btn" onclick="window.print()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Export PDF</button>
+        <button class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export Excel</button>
+      </div>
+    </div>
+
+    <table class="boq">
+      <thead>
+        <tr>
+          <th style="width:28%">Item</th>
+          <th style="width:13%">Cost Type</th>
+          <th style="width:9%">Unit</th>
+          <th class="right" style="width:11%">Qty</th>
+          <th class="right" style="width:14%">Rate</th>
+          <th class="right" style="width:16%">Amount</th>
+          <th class="center" style="width:9%">Phase</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Foundation -->
+        <tr class="phase-row"><td colspan="7">Foundation <span class="ph-sub">BDT 8,42,00,000</span></td></tr>
+        <tr>
+          <td><div class="item-name">Cement (OPC 53 grade)</div><div class="item-remark">Bashundhara / Crown</div></td>
+          <td><span class="ct-badge material"><span class="d"></span>Material</span></td>
+          <td class="unit">Bag</td>
+          <td class="right qty">5,000.00</td>
+          <td class="right rate">520.00</td>
+          <td class="right amount">26,00,000</td>
+          <td class="center"><span class="type-chip" style="font-size:9.5px;padding:2px 8px;">Foundation</span></td>
+        </tr>
+        <tr>
+          <td><div class="item-name">MS Rod (60 grade)</div><div class="item-remark">BSRM / AKS</div></td>
+          <td><span class="ct-badge material"><span class="d"></span>Material</span></td>
+          <td class="unit">Ton</td>
+          <td class="right qty">200.00</td>
+          <td class="right rate">98,000.00</td>
+          <td class="right amount">1,96,00,000</td>
+          <td class="center"><span class="type-chip" style="font-size:9.5px;padding:2px 8px;">Foundation</span></td>
+        </tr>
+        <tr>
+          <td><div class="item-name">Piling &amp; Excavation Labour</div></td>
+          <td><span class="ct-badge labour"><span class="d"></span>Labour</span></td>
+          <td class="unit">Day</td>
+          <td class="right qty">1,800.00</td>
+          <td class="right rate">1,200.00</td>
+          <td class="right amount">21,60,000</td>
+          <td class="center"><span class="type-chip" style="font-size:9.5px;padding:2px 8px;">Foundation</span></td>
+        </tr>
+
+        <!-- Structure -->
+        <tr class="phase-row"><td colspan="7">Structure <span class="ph-sub">BDT 26,76,00,000</span></td></tr>
+        <tr>
+          <td><div class="item-name">Cement (OPC 53 grade)</div><div class="item-remark">Superstructure RCC</div></td>
+          <td><span class="ct-badge material"><span class="d"></span>Material</span></td>
+          <td class="unit">Bag</td>
+          <td class="right qty">18,000.00</td>
+          <td class="right rate">520.00</td>
+          <td class="right amount">93,60,000</td>
+          <td class="center"><span class="type-chip" style="font-size:9.5px;padding:2px 8px;">Structure</span></td>
+        </tr>
+        <tr>
+          <td><div class="item-name">MS Rod (60 grade)</div></td>
+          <td><span class="ct-badge material"><span class="d"></span>Material</span></td>
+          <td class="unit">Ton</td>
+          <td class="right qty">1,420.00</td>
+          <td class="right rate">98,000.00</td>
+          <td class="right amount">13,91,60,000</td>
+          <td class="center"><span class="type-chip" style="font-size:9.5px;padding:2px 8px;">Structure</span></td>
+        </tr>
+        <tr>
+          <td><div class="item-name">Mason Labour</div><div class="item-remark">RCC casting &amp; shuttering</div></td>
+          <td><span class="ct-badge labour"><span class="d"></span>Labour</span></td>
+          <td class="unit">Day</td>
+          <td class="right qty">5,400.00</td>
+          <td class="right rate">1,200.00</td>
+          <td class="right amount">64,80,000</td>
+          <td class="center"><span class="type-chip" style="font-size:9.5px;padding:2px 8px;">Structure</span></td>
+        </tr>
+
+        <!-- Finishing -->
+        <tr class="phase-row"><td colspan="7">Finishing <span class="ph-sub">BDT 4,00,00,000</span></td></tr>
+        <tr>
+          <td><div class="item-name">Floor Tiles (Premium)</div><div class="item-remark">Bashundhara · 1800 sft <span class="opt">Optional</span></div></td>
+          <td><span class="ct-badge material"><span class="d"></span>Material</span></td>
+          <td class="unit">CFT</td>
+          <td class="right qty">9,200.00</td>
+          <td class="right rate">380.00</td>
+          <td class="right amount">34,96,000</td>
+          <td class="center"><span class="type-chip" style="font-size:9.5px;padding:2px 8px;">Finishing</span></td>
+        </tr>
+        <tr>
+          <td><div class="item-name">Transport &amp; Logistics</div><div class="item-remark">Site-wide material haulage</div></td>
+          <td><span class="ct-badge overhead"><span class="d"></span>Overhead</span></td>
+          <td class="unit">LS</td>
+          <td class="right qty">1.00</td>
+          <td class="right rate">3,15,04,000.00</td>
+          <td class="right amount">3,15,04,000</td>
+          <td class="center"><span class="type-chip" style="font-size:9.5px;padding:2px 8px;">—</span></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="5" class="grand-lbl">Grand Total Estimated Amount</td>
+          <td class="grand-val" colspan="2">BDT 42,18,00,000.00</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Footer actions -->
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:16px;">
+    <span style="font-size:11.5px; color:var(--muted); display:inline-flex; align-items:center; gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>This version is approved &amp; locked — duplicate as a new version to make changes.</span>
+    <div style="display:flex; gap:8px;">
+      <button class="btn" disabled style="opacity:0.5; cursor:not-allowed;">Save Draft</button>
+      <button class="btn" disabled style="opacity:0.5; cursor:not-allowed;"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Submit for approval</button>
+      <button class="btn primary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Duplicate as new version</button>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

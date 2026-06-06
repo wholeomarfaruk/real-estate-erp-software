@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -62,14 +61,9 @@ class Supplier extends Model
         return $this->hasMany(StockMovement::class);
     }
 
-    public function purchaseOrders(): BelongsToMany
+    public function purchaseOrders(): HasMany
     {
-        return $this->belongsToMany(
-            PurchaseOrder::class,
-            'purchase_order_items',
-            'supplier_id',
-            'purchase_order_id'
-        );
+        return $this->hasMany(PurchaseOrder::class);
     }
 
     public function purchaseReturns(): HasMany

@@ -6,6 +6,8 @@ use App\Models\Product;
 use App\Models\ProductBrand;
 use App\Models\ProductCategory;
 use App\Models\ProductUnit;
+use App\Models\StockBalance;
+use App\Models\Store;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -37,7 +39,7 @@ class Products extends Component
     public function render()
     {
         $products = Product::query()
-            ->with(['category', 'brand'])
+            ->with(['category', 'brand', 'stockBalances.store'])
             ->when($this->search, function ($query) {
                 $query->where('name', 'like', '%' . $this->search . '%');
             })

@@ -202,8 +202,7 @@ class BankingManagement extends Component
         // Expense banking flow — create DR/CR transactions on completion
         if (
             $request->source_type === TransactionType::EXPENSE->value
-            && $request->sourceable_type === \App\Models\Expense::class
-            && $request->sourceable_id
+
         ) {
             try {
                 app(\App\Services\Accounts\ExpenseService::class)->completeExpense($request, (int) Auth::id());

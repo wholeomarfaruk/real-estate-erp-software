@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Project extends Model
 {
@@ -13,27 +14,65 @@ class Project extends Model
         'code',
         'project_type',
         'location',
+        'land_area',
+        'building_area',
         'start_date',
         'end_date',
+        'handover_date',
         'budget',
         'status',
+        'progress_pct',
         'description',
         'documents',
         'image',
+        'chief_engineer_id',
+        'site_engineer_id',
+        'created_by',
     ];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'budget' => 'decimal:2',
-        'documents' => 'array',
-        'status' => \App\Enums\Project\Status::class,
-        'project_type'=> \App\Enums\Project\Type::class,
+        'start_date'    => 'date',
+        'end_date'      => 'date',
+        'handover_date' => 'date',
+        'budget'        => 'decimal:2',
+        'land_area'     => 'decimal:2',
+        'building_area' => 'decimal:2',
+        'progress_pct'  => 'integer',
+        'documents'    => 'array',
+        'project_type' => 'array',
+        'status'       => \App\Enums\Project\Status::class,
     ];
+
+    /** Returns display labels for all project types */
+    public function typeLabels(): array
+    {
+        if (empty($this->project_type)) {
+            return [];
+        }
+        return array_map(
+            fn($v) => \App\Enums\Project\Type::tryFrom($v)?->label() ?? ucfirst($v),
+            (array) $this->project_type
+        );
+    }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function siteEngineer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'site_engineer_id');
+    }
+
+    public function chiefEngineer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'chief_engineer_id');
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function floors(): HasMany
@@ -75,9 +114,50 @@ class Project extends Model
     {
         return $this->hasMany(StockMovement::class);
     }
- 
+
     public function engineers()
     {
         return $this->belongsToMany(User::class, 'engineer_projects', 'project_id', 'user_id');
+    }
+
+    /** Expense banking requests linked via the sourceable morph (request holders). */
+    public function expenseRequests(): MorphMany
+    {
+        return $this->morphMany(BankingPaymentRequest::class, 'sourceable')
+            ->where('source_type', 'expense');
+    }
+
+    /**
+     * Actual posted project expenses live in the transactions ledger
+     * (type=expense, DR side), linked back through the expense request holder.
+     */
+    public function expenseTransactions()
+    {
+        $requestIds = $this->expenseRequests()->pluck('id');
+
+        return Transaction::query()
+            ->where('type', 'expense')
+            ->where('debit', '>', 0)
+            ->where('reference_type', 'banking_payment_request')
+            ->whereIn('reference_id', $requestIds);
+    }
+
+    public function daysToHandover(): ?int
+    {
+        if (!$this->handover_date) {
+            return null;
+        }
+        return max(0, now()->startOfDay()->diffInDays($this->handover_date->startOfDay(), false));
+    }
+
+    /** Actual money spent = posted expense transactions (not pending requests). */
+    public function totalSpent(): float
+    {
+        return (float) $this->expenseTransactions()->sum('debit');
+    }
+
+    public function approvedEstimate(): ?ProjectEstimate
+    {
+        return $this->estimates()->where('status', 'approved')->latest('version')->first();
     }
 }

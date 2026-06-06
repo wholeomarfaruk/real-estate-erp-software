@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\Accounts\AccountReportExportController;
+use App\Http\Controllers\Admin\Projects\ProjectPdfController;
 use App\Http\Controllers\Admin\Accounts\DailyStatementReportController;
 use App\Http\Controllers\Admin\Accounts\StatementReportController;
 use App\Http\Controllers\Admin\Accounts\TransactionAttachmentController;
@@ -33,6 +34,11 @@ Route::get('/permissions/role/edit/{id}', App\Livewire\Admin\Permissions\RoleEdi
 Route::get('/projects', App\Livewire\Admin\Projects\ProjectList::class)->name('projects.list');
 Route::get('/projects/create', App\Livewire\Admin\Projects\ProjectCreate::class)->name('projects.create');
 Route::get('/projects/{project}/details', App\Livewire\Admin\Projects\ProjectDetails::class)->name('projects.details');
+Route::get('/projects/{project}/estimates', App\Livewire\Admin\Projects\ProjectEstimates::class)->name('projects.estimates');
+Route::get('/projects/{project}/consumption', App\Livewire\Admin\Projects\ProjectConsumption::class)->name('projects.consumption');
+Route::get('/projects/{project}/expenses', App\Livewire\Admin\Projects\ProjectExpenses::class)->name('projects.expenses');
+Route::get('/projects/{project}/reports', App\Livewire\Admin\Projects\ProjectReports::class)->name('projects.reports');
+Route::get('/projects/{project}/pdf/details', [ProjectPdfController::class, 'details'])->name('projects.pdf.details');
 
 // properties (linked to projects) - Property Management module
 Route::get('/projects/properties', App\Livewire\Admin\Properties\PropertyList::class)->name('projects.properties');
