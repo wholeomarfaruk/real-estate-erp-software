@@ -18,6 +18,7 @@ class BankingPaymentRequest extends Model
         'transaction_category_id',
         'transaction_id',
         'amount',
+        'payment_date',
         'description',
         'bank_account_id',
         'status',
@@ -37,6 +38,7 @@ class BankingPaymentRequest extends Model
 
     protected $casts = [
         'amount'       => 'decimal:3',
+        'payment_date' => 'date',
         'approved_at'  => 'datetime',
         'released_at'  => 'datetime',
         'completed_at' => 'datetime',

@@ -99,6 +99,12 @@ Route::prefix('supplier')->name('supplier.')->group(function (): void {
         ->middleware('can:supplier.view')
         ->name('suppliers.view');
 
+    // Supplier Detail — four tab modules (Details · Invoices · Purchase Orders · Advance Payments)
+    Route::get('/suppliers/{supplier}/show',          App\Livewire\Suppliers\Show\Details::class)->name('suppliers.show.details');
+    Route::get('/suppliers/{supplier}/show/invoices', App\Livewire\Suppliers\Show\Invoices::class)->name('suppliers.show.invoices');
+    Route::get('/suppliers/{supplier}/show/orders',   App\Livewire\Suppliers\Show\Orders::class)->name('suppliers.show.orders');
+    Route::get('/suppliers/{supplier}/show/advances', App\Livewire\Suppliers\Show\Advances::class)->name('suppliers.show.advances');
+
     Route::get('/suppliers/{supplier}/edit', App\Livewire\Admin\Supplier\Supplier\SupplierForm::class)
         ->middleware('can:supplier.edit')
         ->name('suppliers.edit');
@@ -311,6 +317,7 @@ Route::get('/inventory/stock-receives/{stockReceive}/edit', App\Livewire\Admin\I
 Route::get('/inventory/purchase-invoices', App\Livewire\Admin\Inventory\PurchaseInvoice\PurchaseInvoiceList::class)->name('inventory.purchase-invoices.index');
 Route::get('/inventory/purchase-invoices/{purchaseInvoice}/view', App\Livewire\Admin\Inventory\PurchaseInvoice\PurchaseInvoiceApprovalForm::class)->name('inventory.purchase-invoices.view');
 Route::get('/inventory/purchase-invoices/{purchaseInvoice}/approve', App\Livewire\Admin\Inventory\PurchaseInvoice\PurchaseInvoiceApprovalForm::class)->name('inventory.purchase-invoices.approve');
+Route::get('/inventory/purchase-invoices/{purchaseInvoice}/pdf', [App\Http\Controllers\Admin\Inventory\PurchaseInvoicePdfController::class, 'download'])->name('inventory.purchase-invoices.pdf');
 
 // inventory purchase returns
 Route::get('/inventory/purchase-returns', App\Livewire\Admin\Inventory\PurchaseReturn\PurchaseReturnList::class)->name('inventory.purchase-returns.index');

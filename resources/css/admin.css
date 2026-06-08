@@ -1,6 +1,7 @@
 @import "boxicons/css/boxicons.min.css";
 @import "tailwindcss";
 @import "./suppliers.css";
+@import "./supplier-detail.css";
 
 @plugin 'tailwind-scrollbar';
 

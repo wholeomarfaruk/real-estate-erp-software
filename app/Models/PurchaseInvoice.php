@@ -6,6 +6,7 @@ use App\Enums\Inventory\PurchaseInvoiceStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class PurchaseInvoice extends Model
 {
@@ -106,6 +107,11 @@ class PurchaseInvoice extends Model
     public function paymentAccount(): BelongsTo
     {
         return $this->belongsTo(Account::class, 'payment_account_id');
+    }
+
+    public function bankingPaymentRequests(): MorphMany
+    {
+        return $this->morphMany(BankingPaymentRequest::class, 'sourceable');
     }
 
     public function creator(): BelongsTo

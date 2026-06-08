@@ -59,6 +59,13 @@ class TransactionCategorySeeder extends Seeder
             'Legal Fees',
         ],
 
+        'Supplier Bill' => [
+            'Material Supply',
+            'Service Charge',
+            'Equipment Supply',
+            'Raw Material',
+        ],
+
         'Others' => [],
     ],
 

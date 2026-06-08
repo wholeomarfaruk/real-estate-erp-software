@@ -11,6 +11,7 @@ use App\Models\PurchaseFund;
 use App\Models\TransactionCategory;
 use App\Services\Hrm\PayrollService;
 use App\Services\Inventory\FundReleaseService;
+use App\Services\Inventory\PurchaseInvoicePaymentService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -193,6 +194,21 @@ class BankingManagement extends Component
             try {
                 app(FundReleaseService::class)->completeRelease($request, (int) Auth::id());
                 $this->dispatch('toast', ['type' => 'success', 'message' => 'Fund release completed. Transaction recorded.']);
+            } catch (\Throwable $e) {
+                $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
+            }
+            return;
+        }
+
+        // Supplier invoice payment flow
+        if (
+            $request->source_type === PaymentRequestSourceType::SUPPLIER->value
+            && $request->sourceable_type === \App\Models\PurchaseInvoice::class
+            && $request->sourceable_id
+        ) {
+            try {
+                app(PurchaseInvoicePaymentService::class)->completePayment($request, (int) Auth::id());
+                $this->dispatch('toast', ['type' => 'success', 'message' => 'Supplier payment completed. Invoice updated.']);
             } catch (\Throwable $e) {
                 $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
             }

@@ -269,6 +269,6 @@ class SupplierList extends Component
 
     public function view(int $id): void
     {
-        $this->redirect(route('admin.supplier.suppliers.view', $id));
+        $this->redirect(route('admin.supplier.suppliers.show.details', $id));
     }
 }

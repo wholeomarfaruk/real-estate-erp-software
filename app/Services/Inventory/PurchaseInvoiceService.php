@@ -472,11 +472,13 @@ class PurchaseInvoiceService
             return;
         }
 
-        // Sum all CR transactions linked to this invoice's purchase transaction
+        // Sum only payment CRs — exclude the payable/AP pair entry created at invoice approval.
+        // The approval pair hits accounts_payable_account_id; actual payments hit a bank account.
         $paid = (float) Transaction::query()
             ->where('reference_type', 'purchase_invoice')
             ->where('reference_id', $locked->id)
             ->where('credit', '>', 0)
+            ->where('account_id', '!=', $locked->accounts_payable_account_id)
             ->sum('credit');
 
         $locked->paid_amount = round($paid, 3);
