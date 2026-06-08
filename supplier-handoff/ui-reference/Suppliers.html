@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Suppliers · Star Unity ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FCFBF7; --canvas:#F2EFE7;
+    --ink-1:#1A1814; --ink-2:#5C5648; --ink-3:#9B9686;
+    --rule:#EAE5D9; --accent:#1F3A68;
+    --mono:"IBM Plex Mono", ui-monospace, monospace;
+
+    --av-bg:#D2E7D5; --av-fg:#1F5A2C;   /* active / advance / credit */
+    --bk-bg:#F7E6C4; --bk-fg:#7A5418;   /* inactive / due */
+    --rj-bg:#F1D3CE; --rj-fg:#7A2A1E;   /* blocked / overdue */
+    --sd-bg:#D8E4F5; --sd-fg:#1F3D72;   /* info */
+    --in-bg:#EFEAE0; --in-fg:#5C5648;   /* neutral */
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:"Inter", system-ui, sans-serif;
+    color:var(--ink-1); background:var(--canvas);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .btn{
+    appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1);
+    padding:7px 14px; font:500 12px "Inter", sans-serif; border-radius:6px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .btn:hover{ background:rgba(0,0,0,.03); }
+  .btn svg{ width:14px; height:14px; }
+  .btn-primary{ background:var(--ink-1); color:var(--paper); border-color:var(--ink-1); }
+  .btn-primary:hover{ background:#000; }
+  .btn-ghost{ background:transparent; border-color:transparent; color:var(--ink-2); }
+  .btn-sm{ padding:5px 10px; font-size:11.5px; }
+
+  /* ─── PAGE ──────────────────────────────────────────────────────────── */
+  .page{ max-width:1320px; margin:0 auto; padding:28px 24px 80px; }
+
+  .crumb{
+    font-size:11.5px; color:var(--ink-3); font-family:var(--mono);
+    display:flex; gap:6px; align-items:center; margin-bottom:14px;
+  }
+  .crumb .sep{ opacity:.5; }
+  .crumb a{ color:var(--ink-3); text-decoration:none; }
+  .crumb a:hover{ color:var(--ink-1); }
+  .crumb-now{ color:var(--ink-1); }
+
+  .page-head{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    gap:24px; margin-bottom:22px;
+  }
+  .page-title{ font-size:24px; font-weight:600; letter-spacing:-.01em; }
+  .page-sub{ margin-top:4px; font-size:13px; color:var(--ink-2); }
+  .page-head .right{ display:flex; gap:8px; align-items:center; }
+
+  /* ─── KPI STRIP ─────────────────────────────────────────────────────── */
+  .kpi-strip{
+    display:grid; grid-template-columns:repeat(5,1fr); gap:1px;
+    background:var(--rule); border:1px solid var(--rule); border-radius:10px;
+    overflow:hidden; margin-bottom:24px;
+  }
+  .kpi{ background:var(--paper); padding:14px 18px; }
+  .kpi-lbl{ font:600 10px "Inter", sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); }
+  .kpi-val{ margin-top:5px; font:600 22px var(--mono); font-variant-numeric:tabular-nums; line-height:1.1; }
+  .kpi-foot{ margin-top:4px; font:11px var(--mono); color:var(--ink-2); }
+  .kpi .stack{ display:flex; height:5px; border-radius:3px; overflow:hidden; background:var(--canvas); margin-top:8px; }
+  .kpi .stack span{ display:block; height:100%; }
+
+  @media (max-width: 980px){ .kpi-strip{ grid-template-columns: repeat(2,1fr); } }
+
+  /* ─── FILTERS ───────────────────────────────────────────────────────── */
+  .filters{
+    background:var(--paper); border:1px solid var(--rule); border-radius:10px;
+    padding:10px; display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;
+  }
+  .search{
+    flex:1; min-width:240px; display:flex; align-items:center; gap:8px;
+    padding:0 12px; height:34px; background:var(--canvas);
+    border-radius:6px; border:1px solid transparent;
+  }
+  .search:focus-within{ border-color:var(--ink-3); background:var(--paper); }
+  .search input{
+    border:0; background:transparent; outline:none; width:100%;
+    font:13px "Inter", sans-serif; color:var(--ink-1);
+  }
+  .search svg{ width:14px; height:14px; color:var(--ink-3); flex-shrink:0; }
+
+  .pill-group{ display:flex; gap:4px; background:var(--canvas); border-radius:6px; padding:3px; }
+  .pill-group button{
+    appearance:none; border:0; background:transparent;
+    padding:6px 12px; font:500 12px "Inter", sans-serif;
+    color:var(--ink-2); cursor:pointer; border-radius:4px;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .pill-group button.active{ background:var(--paper); color:var(--ink-1); box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .pill-group button .cnt{ font:600 10px var(--mono); color:var(--ink-3); }
+  .pill-group button.active .cnt{ color:var(--ink-2); }
+
+  .select-inline{
+    appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1);
+    padding:7px 28px 7px 12px; font:500 12px "Inter", sans-serif; border-radius:6px; cursor:pointer;
+    background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%),
+                      linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
+    background-position: calc(100% - 14px) 50%, calc(100% - 10px) 50%;
+    background-size: 4px 4px, 4px 4px; background-repeat: no-repeat;
+  }
+
+  /* ─── SUPPLIER LIST ─────────────────────────────────────────────────── */
+  .list-block{
+    background:var(--paper); border:1px solid var(--rule); border-radius:10px;
+    overflow:hidden;
+  }
+  .grid-cols{
+    grid-template-columns: 54px 1.9fr 1.25fr 0.78fr 0.92fr 72px;
+  }
+  .list-head{
+    display:grid; padding:12px 18px; background:rgba(0,0,0,.012); border-bottom:1px solid var(--rule);
+    font:600 10.5px "Inter", sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2);
+  }
+  .list-head .num{ text-align:right; }
+  .list-row{
+    display:grid; padding:13px 18px; border-bottom:1px solid var(--rule); align-items:center;
+    cursor:pointer; transition: background .12s;
+  }
+  .list-row:last-child{ border-bottom:0; }
+  .list-row:hover{ background:rgba(0,0,0,.018); }
+
+  .sup-avatar{
+    width:38px; height:38px; border-radius:9px;
+    background: var(--accent); color: var(--paper);
+    display:flex; align-items:center; justify-content:center;
+    font:600 13px var(--mono); letter-spacing:.02em;
+  }
+  .sup-avatar.alt-1{ background:#8a5a3a; }
+  .sup-avatar.alt-2{ background:#3a6a4f; }
+  .sup-avatar.alt-3{ background:#6a3a5f; }
+  .sup-avatar.alt-4{ background:#5a4a3a; }
+  .sup-avatar.alt-5{ background:#3d3d6e; }
+  .sup-avatar.blocked{ background:var(--ink-3); }
+
+  .sup-name{ font-size:13.5px; font-weight:600; display:flex; align-items:center; gap:7px; }
+  .sup-code{
+    margin-top:2px; font:500 11px var(--mono); color:var(--ink-3);
+    letter-spacing:.04em; text-transform:uppercase;
+  }
+  .sup-addr{ margin-top:4px; font-size:11.5px; color:var(--ink-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sup-contact{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .sup-contact .person{ font-size:12.5px; color:var(--ink-1); font-weight:500; }
+  .sup-contact .mono{ font-family:var(--mono); font-size:11px; color:var(--ink-2); }
+  .sup-contact .alt{ color:var(--ink-3); }
+
+  .sup-reach{ display:flex; flex-direction:column; gap:2px; min-width:0; font-size:12px; color:var(--ink-2); }
+  .sup-reach .email{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sup-reach .addr{ color:var(--ink-3); font-size:11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* balance cell */
+  .bal{ text-align:right; }
+  .bal .amt{ font:600 13.5px var(--mono); font-variant-numeric:tabular-nums; }
+  .bal .tag{ font:600 9px "Inter", sans-serif; letter-spacing:.07em; text-transform:uppercase; margin-top:2px; }
+  .bal.due .amt{ color:var(--bk-fg); }
+  .bal.due .tag{ color:var(--bk-fg); }
+  .bal.over .amt{ color:var(--rj-fg); }
+  .bal.over .tag{ color:var(--rj-fg); }
+  .bal.adv .amt{ color:var(--av-fg); }
+  .bal.adv .tag{ color:var(--av-fg); }
+  .bal.flat .amt{ color:var(--ink-3); }
+  .bal.flat .tag{ color:var(--ink-3); }
+
+  /* invoices cell */
+  .inv{ text-align:right; }
+  .inv .num{ font:600 14px var(--mono); font-variant-numeric:tabular-nums; }
+  .inv .sub{ font:500 10.5px var(--mono); color:var(--ink-3); margin-top:2px; }
+  .inv .sub b{ color:var(--bk-fg); font-weight:600; }
+
+  .pill{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:3px 9px; border-radius:999px;
+    font:600 10px "Inter", sans-serif; letter-spacing:.04em; text-transform:uppercase;
+  }
+  .pill .dot{ width:5px; height:5px; border-radius:50%; }
+  .pill.active{ background:var(--av-bg); color:var(--av-fg); }
+  .pill.active .dot{ background:var(--av-fg); }
+  .pill.inactive{ background:var(--bk-bg); color:var(--bk-fg); }
+  .pill.inactive .dot{ background:var(--bk-fg); }
+  .pill.blocked{ background:var(--rj-bg); color:var(--rj-fg); }
+  .pill.blocked .dot{ background:var(--rj-fg); }
+
+  .row-act{
+    display:flex; gap:2px; justify-content:flex-end; color:var(--ink-3); position:relative;
+  }
+  .row-act .icon{
+    width:28px; height:28px; border-radius:5px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition: background .12s, color .12s;
+  }
+  .row-act .icon svg{ width:15px; height:15px; }
+  .row-act .icon:hover{ background:rgba(0,0,0,.06); color:var(--ink-1); }
+
+  /* row dropdown menu */
+  .menu{
+    position:absolute; top:32px; right:0; z-index:20;
+    background:var(--paper); border:1px solid var(--rule); border-radius:8px;
+    box-shadow:0 12px 28px -10px rgba(0,0,0,.28); padding:5px; min-width:178px;
+    display:none;
+  }
+  .menu.open{ display:block; }
+  .menu button{
+    appearance:none; border:0; background:transparent; width:100%; text-align:left;
+    padding:8px 10px; border-radius:5px; cursor:pointer;
+    font:500 12.5px "Inter", sans-serif; color:var(--ink-1);
+    display:flex; align-items:center; gap:9px;
+  }
+  .menu button svg{ width:14px; height:14px; color:var(--ink-3); }
+  .menu button:hover{ background:rgba(0,0,0,.04); }
+  .menu button.danger{ color:var(--rj-fg); }
+  .menu button.danger svg{ color:var(--rj-fg); }
+  .menu .div{ height:1px; background:var(--rule); margin:5px 2px; }
+
+  /* ─── PAGINATION FOOTER ─────────────────────────────────────────────── */
+  .list-foot{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 18px; border-top:1px solid var(--rule);
+    background:rgba(0,0,0,.012);
+    font:11.5px var(--mono); color:var(--ink-3);
+  }
+  .list-foot .pager{ display:flex; gap:4px; align-items:center; }
+  .list-foot .pager button{
+    appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2);
+    padding:4px 9px; font:500 11px "Inter", sans-serif; border-radius:5px; cursor:pointer;
+  }
+  .list-foot .pager button.active{ background:var(--ink-1); color:var(--paper); border-color:var(--ink-1); }
+  .list-foot .pager button:not(.active):hover{ background:rgba(0,0,0,.03); }
+
+  .empty{ padding:54px 18px; text-align:center; color:var(--ink-3); }
+  .empty svg{ width:30px; height:30px; opacity:.5; margin-bottom:10px; }
+  .empty .t{ font:600 13px "Inter", sans-serif; color:var(--ink-2); }
+  .empty .s{ font-size:12px; margin-top:3px; }
+
+  /* ─── MODAL ─────────────────────────────────────────────────────────── */
+  .scrim{
+    position:fixed; inset:0; background:rgba(20,18,16,.45); backdrop-filter:blur(4px);
+    opacity:0; pointer-events:none; transition:opacity .2s; z-index:50;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .scrim.open{ opacity:1; pointer-events:auto; }
+  .modal{
+    width:760px; max-width:100%; max-height:90vh; background:var(--canvas);
+    border-radius:14px; overflow:hidden; display:flex; flex-direction:column;
+    box-shadow:0 30px 70px -20px rgba(0,0,0,.5);
+    transform:translateY(12px) scale(.99); opacity:0; transition:transform .22s, opacity .22s;
+  }
+  .scrim.open .modal{ transform:none; opacity:1; }
+
+  .modal-head{
+    padding:18px 22px; border-bottom:1px solid var(--rule); background:var(--paper);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .modal-head h3{ margin:0; font-size:16px; font-weight:600; }
+  .modal-head .sub{ margin-top:2px; font:500 11px var(--mono); color:var(--ink-3); letter-spacing:.04em; text-transform:uppercase; }
+  .modal-head .close{
+    appearance:none; border:0; background:transparent; color:var(--ink-2);
+    width:32px; height:32px; border-radius:6px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .modal-head .close:hover{ background:rgba(0,0,0,.05); color:var(--ink-1); }
+
+  .modal-body{ flex:1; overflow-y:auto; padding:20px 22px; display:flex; flex-direction:column; gap:16px; }
+
+  .section{
+    background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:16px 18px;
+  }
+  .section-title{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:13px; }
+  .section-title h4{ margin:0; font-size:13px; font-weight:600; display:flex; align-items:center; gap:7px; }
+  .section-title h4 .ic{ color:var(--ink-3); display:flex; }
+  .section-title h4 .ic svg{ width:14px; height:14px; }
+  .section-title .hint{ font:11px var(--mono); color:var(--ink-3); }
+
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px 14px; }
+  .grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px 14px; }
+  .span-2{ grid-column: span 2; }
+  .span-3{ grid-column: span 3; }
+
+  .field-label{
+    display:block; font:600 10px "Inter", sans-serif; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;
+  }
+  .field-label .req{ color:var(--rj-fg); }
+  .input, .select, .textarea{
+    width:100%; appearance:none; outline:none;
+    border:1px solid var(--rule); background:var(--paper); color:var(--ink-1);
+    padding:9px 12px; border-radius:7px; font:13px "Inter", sans-serif;
+  }
+  .input.mono{ font-family:var(--mono); }
+  .input:focus, .select:focus, .textarea:focus{ border-color:var(--ink-1); }
+  .input[readonly]{ background:rgba(0,0,0,.025); color:var(--ink-2); cursor:not-allowed; }
+  .textarea{ resize:vertical; min-height:58px; line-height:1.5; }
+  .select{
+    cursor:pointer;
+    background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%),
+                      linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
+    background-position: calc(100% - 16px) 55%, calc(100% - 12px) 55%;
+    background-size: 4px 4px, 4px 4px; background-repeat: no-repeat;
+  }
+
+  /* status segmented */
+  .seg-status{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .seg-status label{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:9px; border:1px solid var(--rule); border-radius:7px;
+    cursor:pointer; font:600 11px "Inter", sans-serif;
+    text-transform:uppercase; letter-spacing:.04em; color:var(--ink-2);
+    background:var(--paper); transition: background .12s, border-color .12s;
+  }
+  .seg-status label .dot{ width:7px; height:7px; border-radius:50%; background:var(--ink-3); }
+  .seg-status input{ display:none; }
+  .seg-status input:checked + label.active{ background:var(--av-bg); border-color:var(--av-fg); color:var(--av-fg); }
+  .seg-status input:checked + label.active .dot{ background:var(--av-fg); }
+  .seg-status input:checked + label.inactive{ background:var(--bk-bg); border-color:var(--bk-fg); color:var(--bk-fg); }
+  .seg-status input:checked + label.inactive .dot{ background:var(--bk-fg); }
+  .seg-status input:checked + label.blocked{ background:var(--rj-bg); border-color:var(--rj-fg); color:var(--rj-fg); }
+  .seg-status input:checked + label.blocked .dot{ background:var(--rj-fg); }
+
+  /* media uploaders */
+  .media-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .uploader{
+    border:1.5px dashed var(--rule); border-radius:9px; padding:14px;
+    display:flex; flex-direction:column; align-items:center; gap:7px; text-align:center;
+    cursor:pointer; transition:border-color .12s, background .12s; background:rgba(0,0,0,.012);
+  }
+  .uploader:hover{ border-color:var(--ink-3); background:rgba(0,0,0,.02); }
+  .uploader .ic{
+    width:40px; height:40px; border-radius:50%; background:var(--in-bg); color:var(--in-fg);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .uploader.cover .ic{ border-radius:9px; }
+  .uploader .ic svg{ width:18px; height:18px; }
+  .uploader .t{ font:600 11.5px "Inter", sans-serif; color:var(--ink-1); }
+  .uploader .s{ font:10.5px var(--mono); color:var(--ink-3); }
+
+  /* documents (file ids) */
+  .doc-list{ display:flex; flex-direction:column; gap:8px; }
+  .doc-row{
+    display:flex; align-items:center; gap:11px;
+    padding:9px 11px; border:1px solid var(--rule); border-radius:8px; background:var(--paper);
+  }
+  .doc-row .fic{
+    width:34px; height:34px; border-radius:6px; flex-shrink:0;
+    background:var(--sd-bg); color:var(--sd-fg);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .doc-row .fic svg{ width:16px; height:16px; }
+  .doc-row .meta{ flex:1; min-width:0; }
+  .doc-row .nm{ font:500 12.5px "Inter", sans-serif; }
+  .doc-row .id{ font:11px var(--mono); color:var(--ink-3); margin-top:1px; }
+  .doc-row .rm{
+    appearance:none; border:0; background:transparent; color:var(--ink-3); cursor:pointer;
+    width:26px; height:26px; border-radius:5px; display:flex; align-items:center; justify-content:center;
+  }
+  .doc-row .rm svg{ width:14px; height:14px; }
+  .doc-row .rm:hover{ background:var(--rj-bg); color:var(--rj-fg); }
+  .doc-add{
+    display:flex; align-items:center; justify-content:center; gap:7px;
+    padding:10px; border:1.5px dashed var(--rule); border-radius:8px; cursor:pointer;
+    font:600 11.5px "Inter", sans-serif; color:var(--ink-2); background:transparent;
+  }
+  .doc-add:hover{ border-color:var(--ink-3); color:var(--ink-1); }
+  .doc-add svg{ width:14px; height:14px; }
+
+  .modal-foot{
+    padding:14px 22px; border-top:1px solid var(--rule); background:var(--paper);
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+  }
+  .modal-foot .note{ font:11px var(--mono); color:var(--ink-3); }
+  .modal-foot .right{ display:flex; gap:8px; }
+
+  @media (max-width: 860px){
+    .grid-cols{ grid-template-columns: 50px 1.7fr 0.9fr 90px; }
+    .list-head > .col-inv, .list-row > .c-inv{ display:none; }
+    .media-row{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<main class="page">
+
+  <div class="crumb">
+    <a href="#">Purchases</a>
+    <span class="sep">/</span>
+    <span class="crumb-now">Suppliers</span>
+  </div>
+
+  <div class="page-head">
+    <div>
+      <div class="page-title">Suppliers</div>
+      <div class="page-sub">Vendors and material suppliers — payables, invoices and compliance in one place.</div>
+    </div>
+    <div class="right">
+      <button class="btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </button>
+      <button class="btn btn-primary" id="newSupBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New supplier
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── KPI STRIP ─────────────────────────────────────────────────── -->
+  <section class="kpi-strip">
+    <div class="kpi">
+      <div class="kpi-lbl">Total suppliers</div>
+      <div class="kpi-val">312</div>
+      <div class="kpi-foot">+6 this month</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">Active / Inactive / Blocked</div>
+      <div class="kpi-val" style="font-size:18px;">
+        <span style="color:var(--av-fg)">281</span>
+        <span style="color:var(--ink-3); font-size:13px;">/</span>
+        <span style="color:var(--bk-fg)">24</span>
+        <span style="color:var(--ink-3); font-size:13px;">/</span>
+        <span style="color:var(--rj-fg)">7</span>
+      </div>
+      <div class="stack">
+        <span style="width:90%; background:var(--av-fg);"></span>
+        <span style="width:7.5%; background:var(--bk-fg);"></span>
+        <span style="width:2.5%; background:var(--rj-fg);"></span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">Total payable (due)</div>
+      <div class="kpi-val" style="color:var(--bk-fg)">৳ 4.82M</div>
+      <div class="kpi-foot">across 41 suppliers</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">Advance paid</div>
+      <div class="kpi-val" style="color:var(--av-fg)">৳ 1.16M</div>
+      <div class="kpi-foot">held by 18 suppliers</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">Purchase invoices</div>
+      <div class="kpi-val">1,947</div>
+      <div class="kpi-foot">63 unpaid · 12 overdue</div>
+    </div>
+  </section>
+
+  <!-- ─── FILTERS ───────────────────────────────────────────────────── -->
+  <section class="filters">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="q" placeholder="Search by code, name, contact, phone, email or address…" />
+    </div>
+    <div class="pill-group" id="statusFilter">
+      <button data-v="all" class="active">All <span class="cnt">312</span></button>
+      <button data-v="active">Active <span class="cnt">281</span></button>
+      <button data-v="inactive">Inactive <span class="cnt">24</span></button>
+      <button data-v="blocked">Blocked <span class="cnt">7</span></button>
+    </div>
+    <select class="select-inline" id="balanceFilter">
+      <option value="all">All balances</option>
+      <option value="due">Has due</option>
+      <option value="advance">Has advance</option>
+      <option value="settled">Settled</option>
+    </select>
+    <select class="select-inline" id="sortBy">
+      <option value="recent">Newest first</option>
+      <option value="due">Highest due</option>
+      <option value="invoices">Most invoices</option>
+      <option value="name">Name A–Z</option>
+    </select>
+  </section>
+
+  <!-- ─── LIST ──────────────────────────────────────────────────────── -->
+  <section class="list-block">
+    <div class="list-head grid-cols">
+      <div></div>
+      <div>Supplier</div>
+      <div>Contact</div>
+      <div class="num">Invoices</div>
+      <div class="num">Balance</div>
+      <div style="text-align:right;">Actions</div>
+    </div>
+    <div id="listBody"></div>
+    <div class="list-foot">
+      <span>Showing <b id="shown">9</b> of <b>312</b> suppliers</span>
+      <div class="pager">
+        <button>‹</button>
+        <button class="active">1</button>
+        <button>2</button>
+        <button>3</button>
+        <button>…</button>
+        <button>35</button>
+        <button>›</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ─── NEW SUPPLIER MODAL ────────────────────────────────────────── -->
+<div class="scrim" id="scrim">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <div>
+        <h3 id="modalTitle">New supplier</h3>
+        <div class="sub" id="modalSub">Code auto-generated · SUP-000313</div>
+      </div>
+      <button class="close" id="modalClose" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- Basic -->
+      <section class="section">
+        <div class="section-title">
+          <h4><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V12h6v9"/></svg></span>Basic information</h4>
+          <span class="hint">required *</span>
+        </div>
+        <div class="grid-2">
+          <div class="span-2">
+            <label class="field-label">Supplier name <span class="req">*</span></label>
+            <input class="input" placeholder="e.g. Meghna Cement & Aggregates Ltd." />
+          </div>
+          <div>
+            <label class="field-label">Code</label>
+            <input class="input mono" value="SUP-000313" readonly />
+          </div>
+          <div>
+            <label class="field-label">Status</label>
+            <div class="seg-status">
+              <input type="radio" name="sup_status" id="ss_active" value="active" checked />
+              <label for="ss_active" class="active"><span class="dot"></span>Active</label>
+              <input type="radio" name="sup_status" id="ss_inactive" value="inactive" />
+              <label for="ss_inactive" class="inactive"><span class="dot"></span>Inactive</label>
+              <input type="radio" name="sup_status" id="ss_blocked" value="blocked" />
+              <label for="ss_blocked" class="blocked"><span class="dot"></span>Blocked</label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Contact -->
+      <section class="section">
+        <div class="section-title">
+          <h4><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>Contact</h4>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label class="field-label">Contact person</label>
+            <input class="input" placeholder="Full name" />
+          </div>
+          <div>
+            <label class="field-label">Email</label>
+            <input class="input" type="email" placeholder="accounts@supplier.com" />
+          </div>
+          <div>
+            <label class="field-label">Phone <span class="req">*</span></label>
+            <input class="input mono" placeholder="+880 1XXX XXXXXX" />
+          </div>
+          <div>
+            <label class="field-label">Alternate phone</label>
+            <input class="input mono" placeholder="optional" />
+          </div>
+          <div class="span-2">
+            <label class="field-label">Address</label>
+            <textarea class="textarea" placeholder="House / Road / Area, City"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- Compliance -->
+      <section class="section">
+        <div class="section-title">
+          <h4><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"/></svg></span>Compliance</h4>
+          <span class="hint">tax & licence</span>
+        </div>
+        <div class="grid-3">
+          <div>
+            <label class="field-label">Trade licence no.</label>
+            <input class="input mono" placeholder="TRAD/2024/…" />
+          </div>
+          <div>
+            <label class="field-label">TIN no.</label>
+            <input class="input mono" placeholder="" />
+          </div>
+          <div>
+            <label class="field-label">BIN no.</label>
+            <input class="input mono" placeholder="" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Media -->
+      <section class="section">
+        <div class="section-title">
+          <h4><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L9 18"/></svg></span>Profile &amp; cover</h4>
+          <span class="hint">stored as attachment IDs</span>
+        </div>
+        <div class="media-row">
+          <div class="uploader">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></div>
+            <div class="t">Profile image</div>
+            <div class="s">→ image_id · sq, max 2MB</div>
+          </div>
+          <div class="uploader cover">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L9 18"/></svg></div>
+            <div class="t">Cover image</div>
+            <div class="s">→ cover_image_id · wide</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Documents -->
+      <section class="section">
+        <div class="section-title">
+          <h4><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>Documents</h4>
+          <span class="hint">json: [ file ids ]</span>
+        </div>
+        <div class="doc-list">
+          <div class="doc-row">
+            <div class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="meta">
+              <div class="nm">Trade Licence.pdf</div>
+              <div class="id">file_id: 40192</div>
+            </div>
+            <button class="rm" title="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+          </div>
+          <div class="doc-row">
+            <div class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="meta">
+              <div class="nm">TIN Certificate.pdf</div>
+              <div class="id">file_id: 40193</div>
+            </div>
+            <button class="rm" title="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+          </div>
+        </div>
+        <button class="doc-add" style="margin-top:8px; width:100%;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Attach document
+        </button>
+      </section>
+
+      <!-- Notes -->
+      <section class="section">
+        <div class="section-title"><h4>Notes</h4></div>
+        <textarea class="textarea" placeholder="Internal notes about this supplier…" style="min-height:64px;"></textarea>
+      </section>
+
+    </div>
+
+    <footer class="modal-foot">
+      <span class="note">Fields marked * are required</span>
+      <div class="right">
+        <button class="btn" id="modalCancel">Cancel</button>
+        <button class="btn btn-primary">Save supplier</button>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<!-- ─── DATA ──────────────────────────────────────────────────────── -->
+<script id="data" type="application/json">
+{
+  "suppliers": [
+    { "code":"SUP-000312", "name":"Meghna Cement & Aggregates Ltd.", "person":"Rafiqul Islam",  "phone":"+880 1711 904 220", "alt":"+880 2 9551 7720", "email":"accounts@meghnacement.com.bd", "addr":"Plot 14, Tongi I/A, Gazipur", "balance":-842000, "overdue":true,  "invoices":118, "unpaid":4, "status":"active",   "avatar":"alt-1", "since":"2026-05-28" },
+    { "code":"SUP-000311", "name":"BSRM Steel Distribution",          "person":"Nasir Uddin",    "phone":"+880 1819 332 014", "alt":"",                "email":"sales.dhaka@bsrm.com",        "addr":"Motijheel C/A, Dhaka 1000",   "balance":-1260000,"overdue":false, "invoices":204, "unpaid":6, "status":"active",   "avatar":"alt-2", "since":"2026-05-24" },
+    { "code":"SUP-000310", "name":"Shah Cement Hardware",             "person":"Kamrul Hasan",   "phone":"+880 1715 661 909", "alt":"+880 1911 220 884","email":"shahcement.hw@gmail.com",     "addr":"Pagla, Narayanganj",          "balance":0,       "overdue":false, "invoices":52,  "unpaid":0, "status":"active",   "avatar":"alt-3", "since":"2026-05-19" },
+    { "code":"SUP-000309", "name":"Akij Ceramics & Tiles",           "person":"Sultana Razia",  "phone":"+880 1670 118 552", "alt":"",                "email":"b2b@akijceramics.com",        "addr":"Tejgaon I/A, Dhaka",          "balance":315000,  "overdue":false, "invoices":74,  "unpaid":0, "status":"active",   "avatar":"alt-4", "since":"2026-05-15" },
+    { "code":"SUP-000308", "name":"Rangs Electric Supplies",         "person":"Tanvir Ahmed",   "phone":"+880 1842 700 311", "alt":"",                "email":"trade@rangsgroup.com",        "addr":"Gulshan 1, Dhaka 1212",       "balance":-96000,  "overdue":true,  "invoices":41,  "unpaid":2, "status":"active",   "avatar":"alt-5", "since":"2026-05-11" },
+    { "code":"SUP-000307", "name":"National Paints Trading",         "person":"Habibur Rahman", "phone":"+880 1556 220 047", "alt":"+880 31 651 220", "email":"info@nationalpaints.bd",      "addr":"Agrabad C/A, Chattogram",     "balance":-58000,  "overdue":false, "invoices":29,  "unpaid":1, "status":"inactive", "avatar":"alt-1", "since":"2026-05-06" },
+    { "code":"SUP-000306", "name":"Partex Plywood & Boards",         "person":"Mizanur Rahman", "phone":"+880 1733 880 145", "alt":"",                "email":"sales@partexbd.com",          "addr":"Rupganj, Narayanganj",        "balance":124000,  "overdue":false, "invoices":63,  "unpaid":0, "status":"active",   "avatar":"alt-2", "since":"2026-04-30" },
+    { "code":"SUP-000305", "name":"Crown Cement Depot",              "person":"Abdul Mannan",   "phone":"+880 1611 540 778", "alt":"",                "email":"—",                          "addr":"Keraniganj, Dhaka",           "balance":-410000, "overdue":true,  "invoices":88,  "unpaid":5, "status":"blocked",  "avatar":"blocked","since":"2026-04-22" },
+    { "code":"SUP-000304", "name":"Aftab Sanitary Wares",            "person":"Jahanara Begum", "phone":"+880 1990 117 663", "alt":"+880 2 8831 009", "email":"order@aftabsanitary.com",     "addr":"Mirpur 1, Dhaka 1216",        "balance":0,       "overdue":false, "invoices":36,  "unpaid":0, "status":"active",   "avatar":"alt-3", "since":"2026-04-18" }
+  ]
+}
+</script>
+
+<script>
+const DATA = JSON.parse(document.getElementById('data').textContent);
+
+function initials(name){
+  const clean = name.replace(/&amp;/g,'&').replace(/&/g,' ').replace(/[.,]/g,'');
+  return clean.split(/\s+/).map(s=>s[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
+}
+function fmt(n){
+  const a = Math.abs(n);
+  if (a >= 1000000) return '৳ ' + (a/1000000).toFixed(2).replace(/\.00$/,'') + 'M';
+  if (a >= 1000)    return '৳ ' + Math.round(a/1000) + 'K';
+  return '৳ ' + a.toLocaleString();
+}
+function balCell(c){
+  // balance < 0  => we owe supplier (DUE / payable). overdue => rose.
+  // balance > 0  => advance paid, supplier holds our money (credit).
+  // balance == 0 => settled.
+  if (c.balance < 0){
+    const cls = c.overdue ? 'over' : 'due';
+    const tag = c.overdue ? 'overdue' : 'payable';
+    return `<div class="bal ${cls}"><div class="amt">${fmt(c.balance)}</div><div class="tag">${tag}</div></div>`;
+  }
+  if (c.balance > 0){
+    return `<div class="bal adv"><div class="amt">${fmt(c.balance)}</div><div class="tag">advance</div></div>`;
+  }
+  return `<div class="bal flat"><div class="amt">৳ 0</div><div class="tag">settled</div></div>`;
+}
+
+const state = { q:'', status:'all', balance:'all', sort:'recent' };
+
+function renderList(){
+  let rows = DATA.suppliers.filter(c => {
+    if (state.q){
+      const q = state.q.toLowerCase();
+      const hay = (c.name+c.code+c.person+c.phone+c.alt+c.email+c.addr).replace(/&amp;/g,'&').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (state.status !== 'all' && c.status !== state.status) return false;
+    if (state.balance === 'due'      && !(c.balance < 0)) return false;
+    if (state.balance === 'advance'  && !(c.balance > 0)) return false;
+    if (state.balance === 'settled'  && c.balance !== 0)  return false;
+    return true;
+  });
+
+  rows.sort((a,b) => {
+    if (state.sort === 'due')      return a.balance - b.balance;        // most negative (highest due) first
+    if (state.sort === 'invoices') return b.invoices - a.invoices;
+    if (state.sort === 'name')     return a.name.localeCompare(b.name);
+    return b.since.localeCompare(a.since);                              // recent
+  });
+
+  document.getElementById('shown').textContent = rows.length;
+  const body = document.getElementById('listBody');
+
+  if (!rows.length){
+    body.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <div class="t">No suppliers match</div>
+      <div class="s">Try a different search or clear the filters.</div>
+    </div>`;
+    return;
+  }
+
+  body.innerHTML = rows.map((c,i) => `
+    <div class="list-row grid-cols" data-id="${c.code}">
+      <div><div class="sup-avatar ${c.avatar}">${initials(c.name)}</div></div>
+      <div>
+        <div class="sup-name">${c.name}</div>
+        <div class="sup-code">${c.code} · since ${c.since}</div>
+        <div class="sup-addr">${c.addr}</div>
+      </div>
+      <div class="sup-contact">
+        <span class="person">${c.person || '—'}</span>
+        <span class="mono">${c.phone}</span>
+        ${c.alt ? `<span class="mono alt">${c.alt}</span>` : ''}
+      </div>
+      <div class="inv c-inv">
+        <div class="num">${c.invoices}</div>
+        <div class="sub">${c.unpaid ? `<b>${c.unpaid} unpaid</b>` : 'all paid'}</div>
+      </div>
+      <div>
+        ${balCell(c)}
+        <div style="text-align:right; margin-top:6px;"><span class="pill ${c.status}"><span class="dot"></span>${c.status}</span></div>
+      </div>
+      <div class="row-act" data-act="${c.code}">
+        <span class="icon act-view" title="View"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
+        <span class="icon act-more" title="More"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></span>
+        <div class="menu">
+          <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>View detail</button>
+          <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit supplier</button>
+          <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download POs</button>
+          <div class="div"></div>
+          ${c.status === 'active'
+            ? `<button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Deactivate</button>`
+            : `<button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg>Activate</button>`}
+          ${c.status === 'blocked'
+            ? `<button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>Unblock</button>`
+            : `<button class="danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Block supplier</button>`}
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  // row interactions
+  body.querySelectorAll('.act-more').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const menu = btn.parentElement.querySelector('.menu');
+      const wasOpen = menu.classList.contains('open');
+      closeMenus();
+      if (!wasOpen) menu.classList.add('open');
+    });
+  });
+  body.querySelectorAll('.menu').forEach(m => m.addEventListener('click', e => e.stopPropagation()));
+}
+
+function closeMenus(){ document.querySelectorAll('.menu.open').forEach(m => m.classList.remove('open')); }
+document.addEventListener('click', closeMenus);
+
+// ─── Filters ─────────────────────────────────────────────────────
+document.getElementById('q').addEventListener('input', e => { state.q = e.target.value; renderList(); });
+document.querySelectorAll('#statusFilter button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#statusFilter button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active'); state.status = b.dataset.v; renderList();
+  });
+});
+document.getElementById('balanceFilter').addEventListener('change', e => { state.balance = e.target.value; renderList(); });
+document.getElementById('sortBy').addEventListener('change', e => { state.sort = e.target.value; renderList(); });
+
+// ─── Modal ───────────────────────────────────────────────────────
+const scrim = document.getElementById('scrim');
+function openModal(){ scrim.classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModal(){ scrim.classList.remove('open'); document.body.style.overflow=''; }
+document.getElementById('newSupBtn').addEventListener('click', openModal);
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalCancel').addEventListener('click', closeModal);
+scrim.addEventListener('click', e => { if (e.target === scrim) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// remove-doc demo
+document.querySelectorAll('.doc-row .rm').forEach(b => {
+  b.addEventListener('click', () => b.closest('.doc-row').remove());
+});
+
+renderList();
+</script>
+</body>
+</html>

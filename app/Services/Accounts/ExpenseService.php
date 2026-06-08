@@ -62,7 +62,7 @@ class ExpenseService
                 'notes'                   => $notes,
                 'created_by'              => $userId,
                 'external_data'           => $bankingRequest->external_data,
-                'attachments'             => $attachmentPaths ? json_encode($attachmentPaths) : null,
+                'attachments'             => $attachmentPaths,
             ]);
 
             // ------------------------------------------------------------------

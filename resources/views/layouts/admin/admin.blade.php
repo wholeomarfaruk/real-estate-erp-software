@@ -8,6 +8,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>ERP Software - Star Unity Development</title>
     <link rel="shortcut icon" href="{{ asset('assets/logo/sud-logo.png') }}" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     @vite(['resources/sass/admin.scss', 'resources/css/admin.css', 'resources/js/admin.js'])
     @livewireStyles
 </head>

@@ -158,34 +158,15 @@
 
         {{-- Attachments --}}
         <div class="full">
-          <label class="lbl">Attachments (Invoice, Receipt, etc.)</label>
-          <div style="display:flex;flex-direction:column;gap:10px;">
-            <div style="position:relative;display:inline-block;width:100%;">
-              <input type="file" wire:model="attachments" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
-                style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;" />
-              <div style="padding:12px;border:2px dashed var(--rule);border-radius:8px;text-align:center;background:#fafafb;cursor:pointer;color:var(--muted);">
-                <svg class="ic" style="width:18px;height:18px;display:inline;margin-bottom:4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <div style="font-size:12px;margin-top:4px;">Click to upload or drag & drop<br/><span style="font-size:11px;color:var(--muted-2);">PDF, Images, or Documents (max 5MB each)</span></div>
-              </div>
-            </div>
-
-            {{-- Display uploaded files --}}
-            @if(!empty($attachments))
-              <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">
-                @foreach($attachments as $index => $file)
-                  @if($file)
-                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#f0f0f1;border-radius:6px;font-size:12px;">
-                      <div style="display:flex;align-items:center;gap:6px;flex:1;">
-                        <svg style="width:14px;height:14px;color:var(--muted);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-                        <span style="color:var(--ink);font-weight:500;">{{ $file->getClientOriginalName() }}</span>
-                        <span style="color:var(--muted-2);">({{ round($file->getSize() / 1024, 1) }}KB)</span>
-                      </div>
-                      <button type="button" wire:click="removeAttachment({{ $index }})" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:2px 6px;font-size:18px;line-height:1;">×</button>
-                    </div>
-                  @endif
-                @endforeach
-              </div>
-            @endif
+          <x-media-picker-field
+            field="attachments"
+            :value="$attachments"
+            label="Attachments (Invoice, Receipt, etc.)"
+            placeholder="Select receipts or documents"
+            :multiple="true"
+            type="all"
+            :required="false"
+          />
 
             @error('attachments.*') <div class="err-msg">{{ $message }}</div> @enderror
           </div>

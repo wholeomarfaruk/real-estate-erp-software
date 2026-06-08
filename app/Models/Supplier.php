@@ -102,6 +102,28 @@ class Supplier extends Model
         return $query->where('is_blocked', true);
     }
 
+    public function scopeStatusKey(Builder $query, string $key): Builder
+    {
+        return match ($key) {
+            'active'   => $query->where('status', true)->where('is_blocked', false),
+            'inactive' => $query->where('status', false)->where('is_blocked', false),
+            'blocked'  => $query->where('is_blocked', true),
+            default    => $query,
+        };
+    }
+
+    public function scopeSearch(Builder $query, ?string $term): Builder
+    {
+        if (blank($term)) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $q) use ($term): void {
+            foreach (['code', 'name', 'phone', 'alternate_phone', 'email', 'address', 'contact_person'] as $col) {
+                $q->orWhere($col, 'like', "%{$term}%");
+            }
+        });
+    }
 
     public function getStatusLabelAttribute(): string
     {
@@ -110,6 +132,11 @@ class Supplier extends Model
         }
 
         return (bool) $this->status ? 'Active' : 'Inactive';
+    }
+
+    public function getStatusKeyAttribute(): string
+    {
+        return strtolower($this->status_label);
     }
 
     public function getStatusBadgeClassAttribute(): string

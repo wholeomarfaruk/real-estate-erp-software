@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             PropertySeeder::class,
             TransactionCategorySeeder::class,
             NumberSequenceSeeder::class,
+            ExpenseTypesSeeder::class,
             //last one
             UserSeeder::class,
             EmployeeSeeder::class,

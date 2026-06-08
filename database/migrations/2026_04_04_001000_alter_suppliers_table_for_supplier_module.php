@@ -76,7 +76,7 @@ return new class extends Migration
             }
 
             if (! $hasOpeningBalanceType) {
-                $table->string('opening_balance_type', 20)->default(Supplier::OPENING_BALANCE_TYPE_PAYABLE)->after('opening_balance');
+                $table->string('opening_balance_type', 20)->default('advance')->after('opening_balance');
             }
 
             if (! $hasPaymentTermsDays) {
@@ -158,7 +158,7 @@ return new class extends Migration
                     $query->whereNull('opening_balance_type')
                         ->orWhere('opening_balance_type', '');
                 })
-                ->update(['opening_balance_type' => Supplier::OPENING_BALANCE_TYPE_PAYABLE]);
+                ->update(['opening_balance_type' => 'advance']);
         }
 
         if (Schema::hasColumn('suppliers', 'payment_terms_days')) {

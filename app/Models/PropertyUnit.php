@@ -40,6 +40,7 @@ class PropertyUnit extends Model
         'price',
         'service_charge',
         'sort_order',
+        'extra_data',
     ];
 
     protected $casts = [
@@ -52,6 +53,7 @@ class PropertyUnit extends Model
         'price'          => 'decimal:3',
         'service_charge' => 'decimal:3',
         'sort_order'     => 'integer',
+        'extra_data'     => 'array',
     ];
 
     // ── convenient getters that bridge old/new column names ─────────────────
