@@ -204,12 +204,15 @@ class ProjectDetails extends Component
         $this->edit_site_engineer_id  = $p->site_engineer_id;
 
         $this->editModal = true;
+        // Alpine already opened the modal; signal it to hide the skeleton
+        $this->dispatch('edit-data-ready');
     }
 
     public function closeEditModal(): void
     {
         $this->editModal = false;
         $this->resetValidation();
+        $this->dispatch('close-edit-modal');
     }
 
     public function saveEdit(): void
@@ -259,6 +262,7 @@ class ProjectDetails extends Component
         ]);
 
         $this->editModal = false;
+        $this->dispatch('close-edit-modal');
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Project updated successfully.']);
     }
 
