@@ -235,7 +235,7 @@
                             {{ number_format($po->approved_amount ?? $po->fund_request_amount ?? 0, 2) }}
                         </span>
                         <span class="inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium {{ $poBadge }}">
-                            {{ ucwords(str_replace('_', ' ', $po->status)) }}
+                            {{ ucwords(str_replace('_', ' ', $po->status->label())) }}
                         </span>
                     </div>
                 </div>
