@@ -55,6 +55,8 @@
             str_starts_with($currentRoute, 'admin.projects')   => 'projects',
             str_starts_with($currentRoute, 'admin.properties') => 'realestate',
             str_starts_with($currentRoute, 'admin.crm')        => 'crm',
+            str_starts_with($currentRoute, 'admin.crm.leads')  => 'crm',
+            str_starts_with($currentRoute, 'admin.crm.tasks')  => 'crm',
             str_starts_with($currentRoute, 'admin.users')      => 'users',
             str_starts_with($currentRoute, 'admin.ui')         => 'uicomponents',
             default                                            => 'dashboard',

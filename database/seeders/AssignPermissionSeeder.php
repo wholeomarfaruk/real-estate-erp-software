@@ -131,6 +131,21 @@ class AssignPermissionSeeder extends Seeder
                 'property_sale.create',
                 'property_sale.edit',
                 'property_sale.delete',
+                // CRM
+                'module.crm.access',
+                'crm.lead.view',
+                'crm.lead.create',
+                'crm.lead.edit',
+                'crm.lead.delete',
+                'crm.lead.convert',
+                'crm.lead_source.view',
+                'crm.lead_source.create',
+                'crm.lead_source.edit',
+                'crm.lead_source.delete',
+                'crm.task.view',
+                'crm.task.create',
+                'crm.task.edit',
+                'crm.task.delete',
             ])
             ->get();
 
@@ -242,6 +257,11 @@ class AssignPermissionSeeder extends Seeder
                 'property_sale.create',
                 'property_sale.edit',
                 'property_sale.delete',
+                // CRM — accounts view only
+                'module.crm.access',
+                'crm.lead.view',
+                'crm.lead_source.view',
+                'crm.task.view',
             ])
             ->get();
 
@@ -347,6 +367,11 @@ class AssignPermissionSeeder extends Seeder
                 'hrm.payrolls.view',
                 'module.accounts.access',
                 'inventory.dashboard.view',
+                // CRM — chairman view only
+                'module.crm.access',
+                'crm.lead.view',
+                'crm.lead_source.view',
+                'crm.task.view',
             ])
             ->get();
 
@@ -413,6 +438,19 @@ class AssignPermissionSeeder extends Seeder
                 'property.view',
                 'property.floor.view',
                 'property.unit.view',
+                // CRM — sales team gets full lead & task access
+                'module.crm.access',
+                'crm.lead.view',
+                'crm.lead.create',
+                'crm.lead.edit',
+                'crm.lead.delete',
+                'crm.lead.convert',
+                'crm.lead_source.view',
+                'crm.lead_source.create',
+                'crm.lead_source.edit',
+                'crm.task.view',
+                'crm.task.create',
+                'crm.task.edit',
             ])
             ->get();
 
@@ -460,6 +498,11 @@ class AssignPermissionSeeder extends Seeder
                 'hrm.payroll-payments.view',
                 'customer.view',
                 'property_sale.view',
+                // CRM — MD gets read-only overview
+                'module.crm.access',
+                'crm.lead.view',
+                'crm.lead_source.view',
+                'crm.task.view',
             ])
             ->get();
 

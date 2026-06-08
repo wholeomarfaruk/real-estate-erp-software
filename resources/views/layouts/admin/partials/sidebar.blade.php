@@ -69,7 +69,7 @@
                         Dashboard</p>
                 </a>
                 @endcan
-                @can('customer.view')
+                @if(auth()->user()?->canAny(['customer.view','crm.lead.view','crm.task.view','module.crm.access']))
                     <!-- CRM -->
                     <div class="mt-2 mb-1">
                         <h2 class="text-gray-500 text-md font-semibold" :class="{ 'hidden': !$store.sidebar.full }"
@@ -108,13 +108,31 @@
                             :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
                             @can('customer.view')
                                 <a href="{{ route('admin.crm.customers.index') }}"
-                                    class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.crm.*') ? 'text-gray-200' : '' }}">
+                                    class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.crm.customers.*') ? 'text-gray-200' : '' }}">
                                     Customers
+                                </a>
+                            @endcan
+                            @can('crm.lead.view')
+                                <a href="{{ route('admin.crm.leads.index') }}"
+                                    class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.crm.leads.*') ? 'text-gray-200' : '' }}">
+                                    Leads
+                                </a>
+                            @endcan
+                            @can('crm.lead_source.view')
+                                <a href="{{ route('admin.crm.lead-sources.index') }}"
+                                    class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.crm.lead-sources.*') ? 'text-gray-200' : '' }}">
+                                    Lead Sources
+                                </a>
+                            @endcan
+                            @can('crm.task.view')
+                                <a href="{{ route('admin.crm.tasks.index') }}"
+                                    class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.crm.tasks.*') ? 'text-gray-200' : '' }}">
+                                    Tasks
                                 </a>
                             @endcan
                         </div>
                     </div>
-                @endcan
+                @endif
 
                 @can('property.view')
                     <!-- Real Estate -->

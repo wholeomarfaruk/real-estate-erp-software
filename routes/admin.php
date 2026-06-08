@@ -18,6 +18,16 @@ Route::get('/dashboard', \App\Livewire\Admin\Dashboard\Dashboard::class)->name('
 Route::get('/crm/customers', App\Livewire\Admin\Customers\CustomerList::class)->name('crm.customers.index');
 Route::get('/crm/customers/{customer}', App\Livewire\Admin\Customers\CustomerShow::class)->name('crm.customers.show');
 
+// CRM - Leads
+Route::get('/crm/leads', App\Livewire\Admin\Crm\Lead\LeadList::class)->name('crm.leads.index');
+Route::get('/crm/leads/{lead}', App\Livewire\Admin\Crm\Lead\LeadShow::class)->name('crm.leads.show');
+
+// CRM - Lead Sources
+Route::get('/crm/lead-sources', App\Livewire\Admin\Crm\LeadSource\LeadSourceList::class)->name('crm.lead-sources.index');
+
+// CRM - Tasks
+Route::get('/crm/tasks', App\Livewire\Admin\Crm\Task\CrmTaskList::class)->name('crm.tasks.index');
+
 // user managements
 Route::get('/users', App\Livewire\Admin\Users\Users::class)->name('users');
 

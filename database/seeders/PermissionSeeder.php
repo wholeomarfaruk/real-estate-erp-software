@@ -271,6 +271,29 @@ class PermissionSeeder extends Seeder
 
             // Advance Refund
             ['id' => 229, 'name' => 'accounts.advance.refund'],
+
+            // ── CRM Module ───────────────────────────────────────────────────
+            // Leads
+            ['id' => 230, 'name' => 'crm.lead.view'],
+            ['id' => 231, 'name' => 'crm.lead.create'],
+            ['id' => 232, 'name' => 'crm.lead.edit'],
+            ['id' => 233, 'name' => 'crm.lead.delete'],
+            ['id' => 234, 'name' => 'crm.lead.convert'],   // convert lead → customer
+
+            // Lead Sources
+            ['id' => 235, 'name' => 'crm.lead_source.view'],
+            ['id' => 236, 'name' => 'crm.lead_source.create'],
+            ['id' => 237, 'name' => 'crm.lead_source.edit'],
+            ['id' => 238, 'name' => 'crm.lead_source.delete'],
+
+            // CRM Tasks
+            ['id' => 239, 'name' => 'crm.task.view'],
+            ['id' => 240, 'name' => 'crm.task.create'],
+            ['id' => 241, 'name' => 'crm.task.edit'],
+            ['id' => 242, 'name' => 'crm.task.delete'],
+
+            // Module-level access gate
+            ['id' => 243, 'name' => 'module.crm.access'],
         ];
 
         foreach ($permissions as $permission) {
