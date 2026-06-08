@@ -23,11 +23,6 @@ class ProductUnit extends Model
         return $this->hasMany(Product::class, 'product_unit_id');
     }
 
-    public function supplierBillItems(): HasMany
-    {
-        return $this->hasMany(SupplierBillItem::class, 'unit_id');
-    }
-
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', true);

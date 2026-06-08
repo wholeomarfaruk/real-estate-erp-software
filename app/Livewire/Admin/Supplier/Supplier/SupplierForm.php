@@ -4,7 +4,6 @@ namespace App\Livewire\Admin\Supplier\Supplier;
 
 use App\Livewire\Admin\Supplier\Concerns\InteractsWithSupplierAccess;
 use App\Models\Supplier;
-use App\Services\Supplier\SupplierLedgerService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -24,8 +23,6 @@ class SupplierForm extends Component
 
     public string $code = '';
 
-    public ?string $company_name = null;
-
     public ?string $contact_person = null;
 
     public ?string $phone = null;
@@ -42,13 +39,11 @@ class SupplierForm extends Component
 
     public ?string $bin_no = null;
 
-    public float|int|string $opening_balance = 0;
+    public ?int $image_id = null;
 
-    public string $opening_balance_type = Supplier::OPENING_BALANCE_TYPE_PAYABLE;
+    public ?int $cover_image_id = null;
 
-    public int|string $payment_terms_days = 0;
-
-    public float|int|string $credit_limit = 0;
+    public ?array $documents = null;
 
     public ?string $notes = null;
 
@@ -64,7 +59,6 @@ class SupplierForm extends Component
             $this->supplierId = $supplier->id;
             $this->name = $supplier->name;
             $this->code = $supplier->code ?: $this->generateSupplierCode();
-            $this->company_name = $supplier->company_name;
             $this->contact_person = $supplier->contact_person;
             $this->phone = $supplier->phone;
             $this->alternate_phone = $supplier->alternate_phone;
@@ -73,10 +67,9 @@ class SupplierForm extends Component
             $this->trade_license_no = $supplier->trade_license_no;
             $this->tin_no = $supplier->tin_no;
             $this->bin_no = $supplier->bin_no;
-            $this->opening_balance = (float) $supplier->opening_balance;
-            $this->opening_balance_type = $supplier->opening_balance_type ?: Supplier::OPENING_BALANCE_TYPE_PAYABLE;
-            $this->payment_terms_days = (int) ($supplier->payment_terms_days ?? 0);
-            $this->credit_limit = (float) ($supplier->credit_limit ?? 0);
+            $this->image_id = $supplier->image_id;
+            $this->cover_image_id = $supplier->cover_image_id;
+            $this->documents = $supplier->documents;
             $this->notes = $supplier->notes;
             $this->status = $supplier->status ? '1' : '0';
 
@@ -112,10 +105,6 @@ class SupplierForm extends Component
                     'created_by' => auth()->id(),
                 ]);
             }
-
-            if ($savedSupplier) {
-                app(SupplierLedgerService::class)->postOpeningBalance($savedSupplier, (int) auth()->id(), false);
-            }
         });
 
         $this->dispatch('toast', [
@@ -134,12 +123,7 @@ class SupplierForm extends Component
             $this->authorizePermission('supplier.create');
         }
 
-        return view('livewire.admin.supplier.supplier.supplier-form', [
-            'openingBalanceTypes' => [
-                Supplier::OPENING_BALANCE_TYPE_PAYABLE => 'Payable',
-                Supplier::OPENING_BALANCE_TYPE_ADVANCE => 'Advance',
-            ],
-        ])->layout('layouts.admin.admin');
+        return view('livewire.admin.supplier.supplier.supplier-form')->layout('layouts.admin.admin');
     }
 
     protected function rules(): array
@@ -147,7 +131,6 @@ class SupplierForm extends Component
         return [
             'name' => ['required', 'string', 'max:255'],
             'code' => ['required', 'string', 'max:100', Rule::unique('suppliers', 'code')->ignore($this->supplierId)],
-            'company_name' => ['nullable', 'string', 'max:255'],
             'contact_person' => ['nullable', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:50'],
             'alternate_phone' => ['nullable', 'string', 'max:50'],
@@ -156,10 +139,9 @@ class SupplierForm extends Component
             'trade_license_no' => ['nullable', 'string', 'max:100'],
             'tin_no' => ['nullable', 'string', 'max:100'],
             'bin_no' => ['nullable', 'string', 'max:100'],
-            'opening_balance' => ['required', 'numeric', 'min:0'],
-            'opening_balance_type' => ['required', Rule::in([Supplier::OPENING_BALANCE_TYPE_PAYABLE, Supplier::OPENING_BALANCE_TYPE_ADVANCE])],
-            'payment_terms_days' => ['required', 'integer', 'min:0'],
-            'credit_limit' => ['required', 'numeric', 'min:0'],
+            'image_id' => ['nullable', 'integer', 'min:1'],
+            'cover_image_id' => ['nullable', 'integer', 'min:1'],
+            'documents' => ['nullable', 'array'],
             'notes' => ['nullable', 'string'],
             'status' => ['required', 'boolean'],
         ];

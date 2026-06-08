@@ -15,7 +15,9 @@
       "Bash(php -l app/Helpers/TransactionReferenceFormatter.php)",
       "Bash(php -l app/Livewire/Admin/Accounts/Transaction/TransactionList.php)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(cat)",
+      "Read(//tmp/**)"
     ]
   }
 }

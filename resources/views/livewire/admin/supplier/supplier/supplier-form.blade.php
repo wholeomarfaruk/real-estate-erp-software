@@ -44,12 +44,6 @@
                 </div>
 
                 <div class="col-span-6 sm:col-span-3">
-                    <x-label for="company_name" value="Company Name" />
-                    <x-input wire:model="company_name" id="company_name" type="text" class="mt-1 block w-full" placeholder="ABC Holdings" />
-                    <x-input-error for="company_name" class="mt-2" />
-                </div>
-
-                <div class="col-span-6 sm:col-span-3">
                     <x-label for="contact_person" value="Contact Person" />
                     <x-input wire:model="contact_person" id="contact_person" type="text" class="mt-1 block w-full" placeholder="Mr. Rahman" />
                     <x-input-error for="contact_person" class="mt-2" />
@@ -106,38 +100,23 @@
                     <x-input-error for="bin_no" class="mt-2" />
                 </div>
 
-                <div class="col-span-6 sm:col-span-2">
-                    <x-label for="opening_balance" value="Opening Balance" />
-                    <x-input wire:model="opening_balance" id="opening_balance" type="number" step="0.01" min="0" class="mt-1 block w-full" />
-                    <x-input-error for="opening_balance" class="mt-2" />
-                </div>
-
-                <div class="col-span-6 sm:col-span-2">
-                    <x-label for="opening_balance_type" value="Opening Balance Type" />
-                    <select wire:model="opening_balance_type" id="opening_balance_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        @foreach ($openingBalanceTypes as $value => $label)
-                            <option value="{{ $value }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
-                    <x-input-error for="opening_balance_type" class="mt-2" />
-                </div>
-
-                <div class="col-span-6 sm:col-span-2">
-                    <x-label for="payment_terms_days" value="Payment Terms (Days)" />
-                    <x-input wire:model="payment_terms_days" id="payment_terms_days" type="number" min="0" class="mt-1 block w-full" />
-                    <x-input-error for="payment_terms_days" class="mt-2" />
+                <div class="col-span-6 sm:col-span-3">
+                    <x-label for="image_id" value="Profile Image" />
+                    <x-input wire:model="image_id" id="image_id" type="number" class="mt-1 block w-full" placeholder="Image attachment ID" />
+                    <x-input-error for="image_id" class="mt-2" />
                 </div>
 
                 <div class="col-span-6 sm:col-span-3">
-                    <x-label for="credit_limit" value="Credit Limit" />
-                    <x-input wire:model="credit_limit" id="credit_limit" type="number" step="0.01" min="0" class="mt-1 block w-full" />
-                    <x-input-error for="credit_limit" class="mt-2" />
+                    <x-label for="cover_image_id" value="Cover Image" />
+                    <x-input wire:model="cover_image_id" id="cover_image_id" type="number" class="mt-1 block w-full" placeholder="Cover image attachment ID" />
+                    <x-input-error for="cover_image_id" class="mt-2" />
                 </div>
 
-                <div class="col-span-6 sm:col-span-3">
-                    <x-label for="notes" value="Notes" />
-                    <textarea wire:model="notes" id="notes" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                <div class="col-span-6">
+                    <x-label for="notes" value="Notes & Documents" />
+                    <textarea wire:model="notes" id="notes" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Additional notes and information about the supplier (documents JSON stored separately)"></textarea>
                     <x-input-error for="notes" class="mt-2" />
+                    <p class="mt-1 text-xs text-gray-500">Documents are stored as JSON with attachment IDs and metadata</p>
                 </div>
             </x-slot>
 

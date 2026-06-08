@@ -19,8 +19,6 @@ class SupplierList extends Component
 
     public string $statusFilter = '';
 
-    public string $hasDueFilter = '';
-
     protected string $paginationTheme = 'tailwind';
 
     public function mount(): void
@@ -34,11 +32,6 @@ class SupplierList extends Component
     }
 
     public function updatedStatusFilter(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatedHasDueFilter(): void
     {
         $this->resetPage();
     }
@@ -92,14 +85,12 @@ class SupplierList extends Component
         $this->authorizePermission('supplier.list.view');
 
         $query = Supplier::query()
-            ->withCurrentDue()
             ->when($this->search !== '', function (Builder $builder): void {
                 $searchTerm = '%'.$this->search.'%';
 
                 $builder->where(function (Builder $query) use ($searchTerm): void {
                     $query->where('code', 'like', $searchTerm)
                         ->orWhere('name', 'like', $searchTerm)
-                        ->orWhere('company_name', 'like', $searchTerm)
                         ->orWhere('contact_person', 'like', $searchTerm)
                         ->orWhere('phone', 'like', $searchTerm)
                         ->orWhere('alternate_phone', 'like', $searchTerm)
@@ -123,17 +114,6 @@ class SupplierList extends Component
 
                 if ($this->statusFilter === 'blocked') {
                     $builder->blocked();
-                }
-            })
-            ->when($this->hasDueFilter !== '', function (Builder $builder): void {
-                if ($this->hasDueFilter === 'due') {
-                    $builder->hasDue();
-
-                    return;
-                }
-
-                if ($this->hasDueFilter === 'no_due') {
-                    $builder->withoutDue();
                 }
             });
 

@@ -25,12 +25,6 @@ return [
         'multiple' => false,
     ],
 
-    'supplier_return' => [
-        'label' => 'Supplier Return',
-        'model' => App\Models\SupplierReturn::class,
-        'multiple' => false,
-    ],
-
     /*
     |--------------------------------------------------------------------------
     | Accounts / Expense / Payment

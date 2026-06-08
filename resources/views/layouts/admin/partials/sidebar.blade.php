@@ -361,88 +361,10 @@
                             @php
                                 $supplierMenuRoutes = [
                                     [
-                                        'label' => 'Supplier Dashboard',
-                                        'route' => 'admin.supplier.dashboard',
-                                        'permission' => 'supplier.dashboard.view',
-                                    ],
-                                    [
                                         'label' => 'Supplier Management',
                                         'route' => 'admin.supplier.suppliers.index',
                                         'permission' => 'supplier.list.view',
                                     ],
-                                    [
-                                        'label' => 'Supplier Bills',
-                                        'route' => 'admin.supplier.bills.index',
-                                        'permission' => 'supplier.bill.list',
-                                    ],
-                                    [
-                                        'label' => 'Pending Bills',
-                                        'route' => 'admin.supplier.bills.pending',
-                                        'permission' => 'supplier.bill.pending.view',
-                                    ],
-                                    [
-                                        'label' => 'Supplier Payments',
-                                        'route' => 'admin.supplier.payments.index',
-                                        'permission' => 'supplier.payment.list',
-                                    ],
-                                    [
-                                        'label' => 'Supplier Returns',
-                                        'route' => 'admin.supplier.returns.index',
-                                        'permission' => 'supplier.return.list',
-                                    ],
-                                    [
-                                        'label' => 'Supplier Ledger',
-                                        'route' => 'admin.supplier.ledger.index',
-                                        'permission' => 'supplier.ledger.view',
-                                    ],
-                                    [
-                                        'label' => 'Supplier Statement',
-                                        'route' => 'admin.supplier.statement.index',
-                                        'permission' => 'supplier.statement.view',
-                                    ],
-                                    [
-                                        'label' => 'Supplier Wise Report',
-                                        'route' => 'admin.supplier.reports.supplier-wise',
-                                        'permission' => 'supplier.reports.supplier-wise',
-                                    ],
-                                    [
-                                        'label' => 'Product Wise Report',
-                                        'route' => 'admin.supplier.reports.product-wise',
-                                        'permission' => 'supplier.reports.product-wise',
-                                    ],
-                                    [
-                                        'label' => 'Supplier Due Report',
-                                        'route' => 'admin.supplier.reports.due',
-                                        'permission' => 'supplier.reports.due',
-                                    ],
-                                    [
-                                        'label' => 'Supplier Aging Report',
-                                        'route' => 'admin.supplier.reports.aging',
-                                        'permission' => 'supplier.reports.aging',
-                                    ],
-                                    [
-                                        'label' => 'Suppliers',
-                                        'route' => 'admin.inventory.suppliers.index',
-                                        'permission' => 'inventory.supplier.view',
-                                    ],
-                                ];
-
-                                $ledgerReportRoutes = [
-                                    'Product Ledger' => 'admin.inventory.reports.product-ledger',
-                                    'Store Ledger' => 'admin.inventory.reports.store-ledger',
-                                    'Project Ledger' => 'admin.inventory.reports.project-ledger',
-                                    'Supplier Purchase History' => 'admin.inventory.reports.supplier-purchase-history',
-                                    'Stock Movement Report' => 'admin.inventory.reports.stock-movement',
-                                ];
-
-                                $summaryReportRoutes = [
-                                    'Total Stock Summary' => 'admin.inventory.reports.total-stock-summary',
-                                    'Office Store Summary' => 'admin.inventory.reports.office-store-summary',
-                                    'Project Store Summary' => 'admin.inventory.reports.project-store-summary',
-                                    'Product Stock Summary' => 'admin.inventory.reports.product-stock-summary',
-                                    'Low Stock Report' => 'admin.inventory.reports.low-stock',
-                                    'Out Of Stock Report' => 'admin.inventory.reports.out-of-stock',
-                                    'Store Stock Value Summary' => 'admin.inventory.reports.store-stock-value',
                                 ];
                             @endphp
 
@@ -456,35 +378,6 @@
                                         </a>
                                     @endif
                                 @endforeach
-
-                                @if (auth()->user()?->can('supplier.view') || auth()->user()?->can('supplier.view'))
-                                    <div class="pt-1">
-                                        <p class="text-[11px] uppercase tracking-wide text-gray-500">Reports</p>
-                                        <div class="mt-2 space-y-2">
-                                            @can('supplier.view')
-                                                @foreach ($ledgerReportRoutes as $label => $routeName)
-                                                    @if (Route::has($routeName))
-                                                        <a href="{{ route($routeName) }}"
-                                                            class="hover:text-gray-200 cursor-pointer block text-xs pl-2">
-                                                            {{ $label }}
-                                                        </a>
-                                                    @endif
-                                                @endforeach
-                                            @endcan
-
-                                            @can('supplier.view')
-                                                @foreach ($summaryReportRoutes as $label => $routeName)
-                                                    @if (Route::has($routeName))
-                                                        <a href="{{ route($routeName) }}"
-                                                            class="hover:text-gray-200 cursor-pointer block text-xs pl-2">
-                                                            {{ $label }}
-                                                        </a>
-                                                    @endif
-                                                @endforeach
-                                            @endcan
-                                        </div>
-                                    </div>
-                                @endif
                             </div>
                         </div>
                     @endcan
@@ -37533,6 +37426,7 @@
                                     'Store Ledger' => 'admin.inventory.reports.store-ledger',
                                     'Project Ledger' => 'admin.inventory.reports.project-ledger',
                                     'Stock Movement Report' => 'admin.inventory.reports.stock-movement',
+                                    'Supplier Purchase History' => 'admin.inventory.reports.supplier-purchase-history',
                                 ];
 
                                 $summaryReportRoutes = [

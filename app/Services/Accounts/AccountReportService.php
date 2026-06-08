@@ -9,7 +9,6 @@ use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Supplier;
-use App\Models\SupplierLedger;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -60,10 +59,6 @@ class AccountReportService
             'bank-book' => [
                 'title' => 'Bank Book',
                 'filters' => ['account' => true, 'project' => false, 'supplier' => false, 'customer_name' => false],
-            ],
-            'supplier-ledger' => [
-                'title' => 'Supplier Ledger',
-                'filters' => ['account' => false, 'project' => false, 'supplier' => true, 'customer_name' => false],
             ],
             'customer-ledger' => [
                 'title' => 'Customer Ledger',
@@ -208,7 +203,6 @@ class AccountReportService
             'expense' => $this->buildExpenseReport($definition['title'], $normalized),
             'cash-book' => $this->buildCashBookReport($definition['title'], $normalized),
             'bank-book' => $this->buildBankBookReport($definition['title'], $normalized),
-            'supplier-ledger' => $this->buildSupplierLedgerReport($definition['title'], $normalized),
             'customer-ledger' => $this->buildCustomerLedgerReport($definition['title'], $normalized),
             'trial-balance' => $this->buildTrialBalanceReport($definition['title'], $normalized),
             'profit-loss' => $this->buildProfitLossReport($definition['title'], $normalized),
@@ -599,55 +593,6 @@ class AccountReportService
      * @param  array{from:\Carbon\Carbon,to:\Carbon\Carbon,account_id:?int,project_id:?int,supplier_id:?int,customer_name:?string}  $filters
      * @return array<string, mixed>
      */
-    protected function buildSupplierLedgerReport(string $title, array $filters): array
-    {
-        $ledgerEntries = SupplierLedger::query()
-            ->with('supplier:id,name')
-            ->when($filters['supplier_id'], fn (Builder $query): Builder => $query->where('supplier_id', $filters['supplier_id']))
-            ->when($filters['from'], fn (Builder $query): Builder => $query->whereDate('transaction_date', '>=', $filters['from']->toDateString()))
-            ->when($filters['to'], fn (Builder $query): Builder => $query->whereDate('transaction_date', '<=', $filters['to']->toDateString()))
-            ->orderBy('supplier_id')
-            ->orderBy('transaction_date')
-            ->orderBy('id')
-            ->get();
-
-        $rows = $ledgerEntries->map(function (SupplierLedger $entry): array {
-            return [
-                'date' => optional($entry->transaction_date)->format('d M Y') ?: '-',
-                'supplier' => $entry->supplier?->name ?? '-',
-                'reference' => $entry->reference_no ?: $this->referenceLabel($entry->reference_type, $entry->reference_id),
-                'description' => $entry->description ?: '-',
-                'debit' => $this->money((float) $entry->debit),
-                'credit' => $this->money((float) $entry->credit),
-                'balance' => $this->money((float) $entry->balance),
-            ];
-        })->all();
-
-        return $this->reportPayload(
-            title: $title,
-            filters: $filters,
-            columns: [
-                ['key' => 'date', 'label' => 'Date'],
-                ['key' => 'supplier', 'label' => 'Supplier'],
-                ['key' => 'reference', 'label' => 'Reference'],
-                ['key' => 'description', 'label' => 'Description'],
-                ['key' => 'debit', 'label' => 'Debit', 'align' => 'right'],
-                ['key' => 'credit', 'label' => 'Credit', 'align' => 'right'],
-                ['key' => 'balance', 'label' => 'Balance', 'align' => 'right'],
-            ],
-            rows: $rows,
-            footer: [
-                'date' => '',
-                'supplier' => '',
-                'reference' => '',
-                'description' => 'Total',
-                'debit' => $this->money((float) $ledgerEntries->sum('debit')),
-                'credit' => $this->money((float) $ledgerEntries->sum('credit')),
-                'balance' => $this->money((float) ($ledgerEntries->last()?->balance ?? 0)),
-            ]
-        );
-    }
-
     /**
      * @param  array{from:\Carbon\Carbon,to:\Carbon\Carbon,account_id:?int,project_id:?int,supplier_id:?int,customer_name:?string}  $filters
      * @return array<string, mixed>

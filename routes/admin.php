@@ -85,96 +85,8 @@ Route::get('/inventory/stock-consumptions/create', App\Livewire\Admin\Inventory\
 Route::get('/inventory/stock-consumptions/{stockConsumption}/edit', App\Livewire\Admin\Inventory\StockConsumption\StockConsumptionForm::class)->name('inventory.stock-consumptions.edit');
 Route::get('/inventory/stock-consumptions/{stockConsumption}', App\Livewire\Admin\Inventory\StockConsumption\StockConsumptionView::class)->name('inventory.stock-consumptions.show');
 
-// inventory suppliers
-Route::get('/inventory/suppliers', App\Livewire\Admin\Inventory\Supplier\SupplierList::class)->name('inventory.suppliers.index');
-Route::get('/inventory/suppliers/create', App\Livewire\Admin\Inventory\Supplier\SupplierForm::class)->name('inventory.suppliers.create');
-Route::get('/inventory/suppliers/{supplier}/edit', App\Livewire\Admin\Inventory\Supplier\SupplierForm::class)->name('inventory.suppliers.edit');
-Route::get('/inventory/suppliers/{supplier}/purchase-orders/download', [SupplierPurchaseOrderDownloadController::class, 'download'])
-    ->middleware('can:supplier.view')
-    ->name('inventory.suppliers.purchase-orders.download');
-
-// standalone supplier module
+// supplier module
 Route::prefix('supplier')->name('supplier.')->group(function (): void {
-    Route::get('/dashboard', App\Livewire\Admin\Supplier\Dashboard\SupplierDashboard::class)
-        ->middleware('can:supplier.dashboard.view')
-        ->name('dashboard');
-
-    Route::get('/bills', App\Livewire\Admin\Supplier\Bill\BillList::class)
-        ->middleware('can:supplier.bill.list')
-        ->name('bills.index');
-
-    Route::get('/bills/pending', App\Livewire\Admin\Supplier\Bill\PendingBillList::class)
-        ->middleware('can:supplier.bill.pending.view')
-        ->name('bills.pending');
-
-    Route::get('/bills/create', App\Livewire\Admin\Supplier\Bill\BillForm::class)
-        ->middleware('can:supplier.bill.create')
-        ->name('bills.create');
-
-    Route::get('/bills/{bill}', App\Livewire\Admin\Supplier\Bill\BillView::class)
-        ->middleware('can:supplier.bill.view')
-        ->name('bills.view');
-
-    Route::get('/bills/{bill}/edit', App\Livewire\Admin\Supplier\Bill\BillForm::class)
-        ->middleware('can:supplier.bill.edit')
-        ->name('bills.edit');
-
-    Route::get('/payments', App\Livewire\Admin\Supplier\Payment\PaymentList::class)
-        ->middleware('can:supplier.payment.list')
-        ->name('payments.index');
-
-    Route::get('/payments/create', App\Livewire\Admin\Supplier\Payment\PaymentForm::class)
-        ->middleware('can:supplier.payment.create')
-        ->name('payments.create');
-
-    Route::get('/payments/{payment}', App\Livewire\Admin\Supplier\Payment\PaymentView::class)
-        ->middleware('can:supplier.payment.view')
-        ->name('payments.view');
-
-    Route::get('/payments/{payment}/edit', App\Livewire\Admin\Supplier\Payment\PaymentForm::class)
-        ->middleware('can:supplier.payment.edit')
-        ->name('payments.edit');
-
-    Route::get('/returns', App\Livewire\Admin\Supplier\Return\SupplierReturnList::class)
-        ->middleware('can:supplier.return.list')
-        ->name('returns.index');
-
-    Route::get('/returns/create', App\Livewire\Admin\Supplier\Return\SupplierReturnForm::class)
-        ->middleware('can:supplier.return.create')
-        ->name('returns.create');
-
-    Route::get('/returns/{return}', App\Livewire\Admin\Supplier\Return\SupplierReturnView::class)
-        ->middleware('can:supplier.return.view')
-        ->name('returns.view');
-
-    Route::get('/returns/{return}/edit', App\Livewire\Admin\Supplier\Return\SupplierReturnForm::class)
-        ->middleware('can:supplier.return.edit')
-        ->name('returns.edit');
-
-    Route::get('/ledger', App\Livewire\Admin\Supplier\Ledger\SupplierLedger::class)
-        ->middleware('can:supplier.ledger.view')
-        ->name('ledger.index');
-
-    Route::get('/statement', App\Livewire\Admin\Supplier\Ledger\SupplierStatement::class)
-        ->middleware('can:supplier.statement.view')
-        ->name('statement.index');
-
-    Route::get('/reports/supplier-wise', App\Livewire\Admin\Supplier\Reports\SupplierWiseReport::class)
-        ->middleware('can:supplier.reports.supplier-wise')
-        ->name('reports.supplier-wise');
-
-    Route::get('/reports/product-wise', App\Livewire\Admin\Supplier\Reports\ProductWiseSupplierReport::class)
-        ->middleware('can:supplier.reports.product-wise')
-        ->name('reports.product-wise');
-
-    Route::get('/reports/due', App\Livewire\Admin\Supplier\Reports\SupplierDueReport::class)
-        ->middleware('can:supplier.reports.due')
-        ->name('reports.due');
-
-    Route::get('/reports/aging', App\Livewire\Admin\Supplier\Reports\SupplierAgingReport::class)
-        ->middleware('can:supplier.reports.aging')
-        ->name('reports.aging');
-
     Route::get('/suppliers', App\Livewire\Admin\Supplier\Supplier\SupplierList::class)
         ->middleware('can:supplier.list.view')
         ->name('suppliers.index');
@@ -190,7 +102,19 @@ Route::prefix('supplier')->name('supplier.')->group(function (): void {
     Route::get('/suppliers/{supplier}/edit', App\Livewire\Admin\Supplier\Supplier\SupplierForm::class)
         ->middleware('can:supplier.edit')
         ->name('suppliers.edit');
+
+    Route::get('/suppliers/{supplier}/purchase-orders/download', [SupplierPurchaseOrderDownloadController::class, 'download'])
+        ->middleware('can:supplier.view')
+        ->name('suppliers.purchase-orders.download');
 });
+
+// inventory suppliers alias (redirects to supplier module)
+Route::get('/suppliers/list', App\Livewire\Admin\Supplier\Supplier\SupplierList::class)->name('inventory.suppliers.index');
+Route::get('/suppliers/list/create', App\Livewire\Admin\Supplier\Supplier\SupplierForm::class)->name('inventory.suppliers.create');
+Route::get('/suppliers/list/{supplier}/edit', App\Livewire\Admin\Supplier\Supplier\SupplierForm::class)->name('inventory.suppliers.edit');
+Route::get('/suppliers/list/{supplier}/purchase-orders/download', [SupplierPurchaseOrderDownloadController::class, 'download'])
+    ->middleware('can:supplier.view')
+    ->name('inventory.suppliers.purchase-orders.download');
 
 // accounts module
 Route::prefix('accounts')->name('accounts.')->group(function (): void {
@@ -252,10 +176,6 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
         ->middleware('can:accounts.reports.statement.export')
         ->name('reports.statement.export');
 
-    Route::get('/reports/product-cost', App\Livewire\Admin\Accounts\Reports\ProductWiseCostReport::class)
-        ->middleware('can:accounts.report.view')
-        ->name('reports.product-cost');
-
     Route::get('/reports/assets', App\Livewire\Admin\Accounts\Reports\AssetReport::class)
         ->middleware('can:accounts.report.view')
         ->name('reports.assets');
@@ -271,10 +191,6 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
     Route::get('/reports/bank-book', App\Livewire\Admin\Accounts\Reports\BankBookReport::class)
         ->middleware('can:accounts.report.view')
         ->name('reports.bank-book');
-
-    Route::get('/reports/supplier-ledger', App\Livewire\Admin\Accounts\Reports\SupplierLedgerReport::class)
-        ->middleware('can:accounts.report.view')
-        ->name('reports.supplier-ledger');
 
     Route::get('/reports/customer-ledger', App\Livewire\Admin\Accounts\Reports\CustomerLedgerReport::class)
         ->middleware('can:accounts.report.view')

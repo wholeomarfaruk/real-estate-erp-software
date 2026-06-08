@@ -28,7 +28,7 @@ class SupplierView extends Component
                 'purchaseOrders',
                 'stockReceives',
                 'purchaseReturns',
-                'supplierBills',
+                'purchaseInvoices',
             ])
             ->findOrFail($this->supplier->id);
 
@@ -38,12 +38,12 @@ class SupplierView extends Component
             ->limit(5)
             ->get(['id', 'po_no', 'order_date', 'status', 'actual_purchase_amount', 'due_amount']);
 
-        $pendingBills = $supplier->supplierBills()
-            ->pending()
+        $pendingBills = $supplier->purchaseInvoices()
+            ->where('status', '!=', 'paid')
             ->latest('due_date')
             ->latest('id')
             ->limit(5)
-            ->get(['id', 'bill_no', 'bill_date', 'due_amount']);
+            ->get(['id', 'invoice_no', 'invoice_date', 'due_amount']);
 
         return view('livewire.admin.supplier.supplier.supplier-view', [
             'supplier' => $supplier,

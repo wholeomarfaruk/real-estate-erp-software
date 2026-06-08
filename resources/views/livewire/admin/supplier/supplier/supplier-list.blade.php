@@ -72,8 +72,6 @@
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Phone</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Email</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Address</th>
-                                <th class="px-5 py-3 text-right text-xs font-medium text-gray-500">Opening Balance</th>
-                                <th class="px-5 py-3 text-right text-xs font-medium text-gray-500">Current Due</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Status</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Created</th>
                                 <th class="px-5 py-3 text-right text-xs font-medium text-gray-500">Actions</th>
@@ -89,9 +87,6 @@
 
                                     <td class="px-5 py-4">
                                         <p class="text-sm font-medium text-gray-800">{{ $supplier->name }}</p>
-                                        @if ($supplier->company_name)
-                                            <p class="text-xs text-gray-500">{{ $supplier->company_name }}</p>
-                                        @endif
                                     </td>
 
                                     <td class="px-5 py-4 text-sm text-gray-700">
@@ -111,14 +106,6 @@
                                         {{ $supplier->address ? \Illuminate\Support\Str::limit($supplier->address, 36) : 'N/A' }}
                                     </td>
 
-                                    <td class="px-5 py-4 text-right text-sm text-gray-700">
-                                        {{ number_format((float) ($supplier->opening_balance ?? 0), 2) }}
-                                        <p class="text-xs text-gray-500">{{ ucfirst($supplier->opening_balance_type ?: 'payable') }}</p>
-                                    </td>
-
-                                    <td class="px-5 py-4 text-right text-sm font-medium text-gray-700">
-                                        {{ number_format((float) ($supplier->current_due ?? 0), 2) }}
-                                    </td>
 
                                     <td class="px-5 py-4">
                                         <x-supplier-status-badge :status="$supplier->status_label" />

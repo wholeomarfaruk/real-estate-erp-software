@@ -105,7 +105,6 @@ class TransactionReferenceFormatter
             'purchase_order' => self::formatPurchaseOrder($model, $label),
             'stock_receive' => self::formatStockReceive($model, $label),
             'supplier' => self::formatSupplier($model, $label),
-            'supplier_return' => self::formatSupplierReturn($model, $label),
             'transaction' => self::formatTransaction($model, $label),
             'payroll' => self::formatPayroll($model, $label),
             'advance_salary' => self::formatAdvanceSalary($model, $label),
@@ -174,18 +173,6 @@ class TransactionReferenceFormatter
                 'code' => $model->code ?? null,
             ],
             'icon' => '🏢',
-        ];
-    }
-
-    private static function formatSupplierReturn($model, string $label): array
-    {
-        return [
-            'label' => "{$label}",
-            'details' => [
-                'return_no' => $model->return_no ?? "SR#{$model->id}",
-                'supplier' => $model->supplier?->name ?? '—',
-            ],
-            'icon' => '↩️',
         ];
     }
 

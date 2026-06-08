@@ -29,7 +29,6 @@
             <div class="mt-3 space-y-2 text-sm text-gray-700">
                 <p><span class="text-gray-500">Name:</span> {{ $supplier->name }}</p>
                 <p><span class="text-gray-500">Code:</span> {{ $supplier->code ?: 'N/A' }}</p>
-                <p><span class="text-gray-500">Company:</span> {{ $supplier->company_name ?: 'N/A' }}</p>
                 <p><span class="text-gray-500">Contact Person:</span> {{ $supplier->contact_person ?: 'N/A' }}</p>
                 <p class="flex items-center gap-2">
                     <span class="text-gray-500">Status:</span>
@@ -49,22 +48,17 @@
         </div>
 
         <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 class="text-sm font-semibold text-gray-700">Financial Info</h2>
+            <h2 class="text-sm font-semibold text-gray-700">Compliance Info</h2>
             <div class="mt-3 space-y-2 text-sm text-gray-700">
-                <p><span class="text-gray-500">Opening Balance:</span> {{ number_format((float) ($supplier->opening_balance ?? 0), 2) }}</p>
-                <p><span class="text-gray-500">Balance Type:</span> {{ ucfirst($supplier->opening_balance_type ?: 'payable') }}</p>
-                <p><span class="text-gray-500">Current Due:</span> {{ number_format((float) ($supplier->current_due ?? 0), 2) }}</p>
-                <p><span class="text-gray-500">Payment Terms:</span> {{ (int) ($supplier->payment_terms_days ?? 0) }} days</p>
-                <p><span class="text-gray-500">Credit Limit:</span> {{ number_format((float) ($supplier->credit_limit ?? 0), 2) }}</p>
+                <p><span class="text-gray-500">Trade License:</span> {{ $supplier->trade_license_no ?: 'N/A' }}</p>
+                <p><span class="text-gray-500">TIN:</span> {{ $supplier->tin_no ?: 'N/A' }}</p>
+                <p><span class="text-gray-500">BIN:</span> {{ $supplier->bin_no ?: 'N/A' }}</p>
+                <p><span class="text-gray-500">Blocked:</span> {{ $supplier->is_blocked ? 'Yes' : 'No' }}</p>
             </div>
         </div>
     </div>
 
     <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-            <p class="text-xs text-gray-500">Current Due</p>
-            <p class="mt-1 text-2xl font-semibold text-indigo-700">{{ number_format((float) ($supplier->current_due ?? 0), 2) }}</p>
-        </div>
         <div class="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
             <p class="text-xs text-gray-500">Purchase Orders</p>
             <p class="mt-1 text-2xl font-semibold text-gray-800">{{ number_format((int) ($supplier->purchase_orders_count ?? 0)) }}</p>
@@ -76,6 +70,10 @@
         <div class="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
             <p class="text-xs text-gray-500">Purchase Returns</p>
             <p class="mt-1 text-2xl font-semibold text-gray-800">{{ number_format((int) ($supplier->purchase_returns_count ?? 0)) }}</p>
+        </div>
+        <div class="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+            <p class="text-xs text-gray-500">Purchase Invoices</p>
+            <p class="mt-1 text-2xl font-semibold text-gray-800">{{ number_format((int) ($supplier->purchase_invoices_count ?? 0)) }}</p>
         </div>
     </div>
 
@@ -114,17 +112,18 @@
 
         <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div class="border-b border-gray-100 px-4 py-3">
-                <h2 class="text-sm font-semibold text-gray-700">Pending Bills</h2>
-                <p class="mt-1 text-xs text-gray-500">Placeholder section for bill aging workflow.</p>
+                <h2 class="text-sm font-semibold text-gray-700">Pending Invoices</h2>
+                <p class="mt-1 text-xs text-gray-500">Purchase invoices awaiting payment.</p>
             </div>
             <div class="p-4">
                 @if ($pendingBills->isEmpty())
-                    <p class="text-sm text-gray-500">No pending bill data available now.</p>
+                    <p class="text-sm text-gray-500">No pending invoices available.</p>
                 @else
                     <div class="space-y-3">
                         @foreach ($pendingBills as $bill)
                             <div class="rounded-lg border border-gray-100 px-3 py-2">
-                                <p class="text-sm font-medium text-gray-700">{{ $bill->bill_no }}</p>
+                                <p class="text-sm font-medium text-gray-700">{{ $bill->invoice_no }}</p>
+                                <p class="text-xs text-gray-500">{{ optional($bill->invoice_date)->format('d M, Y') }}</p>
                                 <p class="text-xs text-gray-500">Due: {{ number_format((float) ($bill->due_amount ?? 0), 2) }}</p>
                             </div>
                         @endforeach

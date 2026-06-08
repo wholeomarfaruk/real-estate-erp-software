@@ -15,14 +15,9 @@ class Supplier extends Model
     use HasFactory;
     use SoftDeletes;
 
-    public const OPENING_BALANCE_TYPE_PAYABLE = 'payable';
-
-    public const OPENING_BALANCE_TYPE_ADVANCE = 'advance';
-
     protected $fillable = [
         'name',
         'code',
-        'company_name',
         'contact_person',
         'phone',
         'alternate_phone',
@@ -32,12 +27,11 @@ class Supplier extends Model
         'trade_license_no',
         'tin_no',
         'bin_no',
-        'opening_balance',
-        'opening_balance_type',
-        'payment_terms_days',
-        'credit_limit',
         'is_blocked',
         'notes',
+        'image_id',
+        'cover_image_id',
+        'documents',
         'status',
         'created_by',
         'updated_by',
@@ -46,9 +40,7 @@ class Supplier extends Model
     protected $casts = [
         'status' => 'boolean',
         'is_blocked' => 'boolean',
-        'opening_balance' => 'decimal:2',
-        'payment_terms_days' => 'integer',
-        'credit_limit' => 'decimal:2',
+        'documents' => 'json',
     ];
 
     public function stockReceives(): HasMany
@@ -71,29 +63,14 @@ class Supplier extends Model
         return $this->hasMany(PurchaseReturn::class);
     }
 
-    public function supplierBills(): HasMany
-    {
-        return $this->hasMany(SupplierBill::class);
-    }
-
-    public function supplierPayments(): HasMany
-    {
-        return $this->hasMany(SupplierPayment::class);
-    }
-
-    public function supplierReturns(): HasMany
-    {
-        return $this->hasMany(SupplierReturn::class);
-    }
-
     public function purchasePayables(): HasMany
     {
         return $this->hasMany(PurchasePayable::class);
     }
 
-    public function supplierLedgers(): HasMany
+    public function purchaseInvoices(): HasMany
     {
-        return $this->hasMany(SupplierLedger::class);
+        return $this->hasMany(PurchaseInvoice::class);
     }
 
     public function creator(): BelongsTo
@@ -125,40 +102,6 @@ class Supplier extends Model
         return $query->where('is_blocked', true);
     }
 
-    public function scopeWithCurrentDue(Builder $query): Builder
-    {
-        return $query
-            ->select('suppliers.*')
-            ->selectRaw(self::currentDueExpression().' as current_due');
-    }
-
-    public function scopeHasDue(Builder $query): Builder
-    {
-        return $query->whereRaw(self::currentDueExpression().' > 0');
-    }
-
-    public function scopeWithoutDue(Builder $query): Builder
-    {
-        return $query->whereRaw(self::currentDueExpression().' <= 0');
-    }
-
-    public static function currentDueExpression(): string
-    {
-        return "CASE WHEN opening_balance_type = '".self::OPENING_BALANCE_TYPE_PAYABLE."' THEN COALESCE(opening_balance, 0) ELSE 0 END";
-    }
-
-    public function getCurrentDueAttribute(): float
-    {
-        if (array_key_exists('current_due', $this->attributes)) {
-            return round((float) $this->attributes['current_due'], 2);
-        }
-
-        if ($this->opening_balance_type !== self::OPENING_BALANCE_TYPE_PAYABLE) {
-            return 0;
-        }
-
-        return round(max(0, (float) $this->opening_balance), 2);
-    }
 
     public function getStatusLabelAttribute(): string
     {

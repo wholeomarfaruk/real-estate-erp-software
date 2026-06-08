@@ -124,16 +124,6 @@ class PurchaseOrder extends Model
         return $this->hasMany(PurchaseReturn::class, 'purchase_order_id');
     }
 
-    public function supplierBills(): HasMany
-    {
-        return $this->hasMany(SupplierBill::class, 'purchase_order_id');
-    }
-
-    public function supplierReturns(): HasMany
-    {
-        return $this->hasMany(SupplierReturn::class, 'purchase_order_id');
-    }
-
     public function purchasePayable(): HasOne
     {
         return $this->hasOne(PurchasePayable::class, 'purchase_order_id');
