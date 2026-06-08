@@ -4,6 +4,11 @@
         activeTab: $wire.entangle('activeTab'),
         dType: $wire.entangle('dType'),
         step: $wire.entangle('step'),
+        editLoading: false,
+        init() {
+            window.addEventListener('customer-edit-ready', () => { this.editLoading = false; });
+            window.addEventListener('customer-drawer-close', () => { this.editLoading = false; });
+        }
     }"
     x-init="$store.pageName = { name: 'Customers', slug: 'customers' }"
     style="
@@ -36,12 +41,23 @@
         <div class="flex gap-2">
             @can('customer.create')
                 <button wire:click="openCreate"
+                    wire:loading.attr="disabled"
+                    wire:loading.class="opacity-70 cursor-not-allowed"
+                    wire:target="openCreate"
                     style="appearance:none; border:1px solid var(--ink-1); background:var(--ink-1); color:var(--paper);
                            padding:7px 14px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
                            display:inline-flex; align-items:center; gap:6px;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                    <svg wire:loading.remove wire:target="openCreate"
+                         width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                    <svg wire:loading wire:target="openCreate"
+                         width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                         style="animation:spin .7s linear infinite;">
+                        <circle cx="12" cy="12" r="10" stroke-opacity=".25"/>
+                        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+                    </svg>
                     New customer
                 </button>
+                <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
             @endcan
         </div>
     </div>
@@ -81,9 +97,9 @@
 
         {{-- ─── FILTERS ─────────────────────────────────────────────────── --}}
         <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px;
-                    padding:10px; display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+                    padding:10px; display:flex; align-items:center; gap:10px; margin-bottom:14px;">
             {{-- Search --}}
-            <div style="flex:1; min-width:240px; display:flex; align-items:center; gap:8px;
+            <div style="flex:1; min-width:0; display:flex; align-items:center; gap:8px;
                         padding:0 12px; height:34px; background:var(--canvas);
                         border-radius:6px; border:1px solid transparent;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--ink-3); flex-shrink:0;"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -92,11 +108,11 @@
                     style="border:0; background:transparent; outline:none; width:100%; font:13px 'Inter', sans-serif; color:var(--ink-1);" />
             </div>
             {{-- Type pill group --}}
-            <div style="display:flex; gap:4px; background:var(--canvas); border-radius:6px; padding:3px;">
+            <div style="display:flex; gap:4px; background:var(--canvas); border-radius:6px; padding:3px; flex-shrink:0;">
                 @foreach(['all' => 'All', 'individual' => 'Individual', 'company' => 'Company'] as $val => $label)
                     <button wire:click="$set('filterType', '{{ $val }}')"
                         style="appearance:none; border:0; padding:6px 12px; font:500 12px 'Inter', sans-serif;
-                               border-radius:4px; cursor:pointer;
+                               border-radius:4px; cursor:pointer; white-space:nowrap;
                                background:{{ $filterType === $val ? 'var(--paper)' : 'transparent' }};
                                color:{{ $filterType === $val ? 'var(--ink-1)' : 'var(--ink-2)' }};
                                box-shadow:{{ $filterType === $val ? '0 1px 2px rgba(0,0,0,.05)' : 'none' }};">
@@ -108,9 +124,9 @@
             <select wire:model.live="filterKyc"
                 style="appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1);
                        padding:7px 28px 7px 12px; font:500 12px 'Inter', sans-serif; border-radius:6px;
-                       background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%), linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
-                       background-position: calc(100% - 14px) 50%, calc(100% - 10px) 50%;
-                       background-size: 4px 4px, 4px 4px; background-repeat: no-repeat;">
+                       flex-shrink:0; width:auto;
+                       background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E\");
+                       background-position:calc(100% - 10px) 50%; background-size:8px; background-repeat:no-repeat;">
                 <option value="all">All KYC</option>
                 <option value="verified">Verified</option>
                 <option value="pending">Pending</option>
@@ -120,9 +136,9 @@
             <select wire:model.live="filterStatus"
                 style="appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1);
                        padding:7px 28px 7px 12px; font:500 12px 'Inter', sans-serif; border-radius:6px;
-                       background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%), linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
-                       background-position: calc(100% - 14px) 50%, calc(100% - 10px) 50%;
-                       background-size: 4px 4px, 4px 4px; background-repeat: no-repeat;">
+                       flex-shrink:0; width:auto;
+                       background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E\");
+                       background-position:calc(100% - 10px) 50%; background-size:8px; background-repeat:no-repeat;">
                 <option value="all">All status</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
@@ -252,7 +268,7 @@
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                         </a>
                         @can('customer.edit')
-                            <button wire:click="openEdit({{ $customer->id }})"
+                            <button @click="drawerOpen = true; editLoading = true; $wire.openEdit({{ $customer->id }})"
                                 title="Edit"
                                 style="width:28px; height:28px; border-radius:5px; display:flex; align-items:center; justify-content:center;
                                        cursor:pointer; background:transparent; border:0; color:var(--ink-3);"
@@ -323,6 +339,7 @@
                box-shadow: -20px 0 40px -20px rgba(0,0,0,.25);"
         x-cloak
     >
+    <div style="display:flex; flex-direction:column; height:100%;">
         {{-- Head --}}
         <div style="padding:18px 24px; border-bottom:1px solid var(--rule); background:var(--paper);
                     display:flex; justify-content:space-between; align-items:center;">
@@ -344,103 +361,117 @@
         </div>
 
         {{-- Multi-step progress bar --}}
-        <div style="padding:20px 28px 16px; background:var(--paper); border-bottom:1px solid var(--rule);">
+        <div class="px-7 pt-5 pb-4 bg-white border-b border-gray-200">
             @php $stepLabels = ['Identity', 'Contact', 'Documents', 'Notes']; @endphp
-            <div style="display:flex; align-items:flex-start;">
+            <div class="flex items-start">
                 @foreach($stepLabels as $i => $label)
                     @php $n = $i + 1; @endphp
                     {{-- Step node --}}
-                    <div style="display:flex; flex-direction:column; align-items:center; gap:5px; flex:0 0 auto; width:60px;">
-                        <div style="width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; transition:background .2s, border-color .2s; font:700 12px 'Inter', sans-serif;"
-                            :style="step > {{ $n }}
-                                ? 'background:var(--av-fg); border:2px solid var(--av-fg); color:#fff;'
-                                : step === {{ $n }}
-                                    ? 'background:var(--accent); border:2px solid var(--accent); color:#fff;'
-                                    : 'background:var(--paper); border:2px solid var(--rule); color:var(--ink-3);'">
-                            <span x-show="step > {{ $n }}" style="display:none; line-height:1;">
+                    <div class="flex flex-col items-center gap-1.5 shrink-0 w-16">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-200"
+                             :class="step > {{ $n }}
+                                 ? 'bg-emerald-500 border-2 border-emerald-500 text-white'
+                                 : step === {{ $n }}
+                                     ? 'bg-[#0d2a4a] border-2 border-[#0d2a4a] text-white'
+                                     : 'bg-white border-2 border-gray-300 text-gray-400'">
+                            <span x-show="step > {{ $n }}" style="display:none;">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
                             </span>
                             <span x-show="step <= {{ $n }}">{{ $n }}</span>
                         </div>
-                        <span style="font:500 10px 'Inter', sans-serif; text-align:center; white-space:nowrap; transition:color .2s;"
-                            :style="step >= {{ $n }} ? 'color:var(--ink-1); font-weight:600;' : 'color:var(--ink-3);'">
+                        <span class="text-center text-[10px] whitespace-nowrap transition-colors duration-200"
+                              :class="step >= {{ $n }} ? 'text-gray-900 font-semibold' : 'text-gray-400 font-medium'">
                             {{ $label }}
                         </span>
                     </div>
                     {{-- Connector line --}}
                     @if($i < count($stepLabels) - 1)
-                        <div style="flex:1; height:2px; margin-top:14px; border-radius:2px; transition:background .3s;"
-                            :style="step > {{ $n }} ? 'background:var(--av-fg);' : 'background:var(--rule);'">
+                        <div class="flex-1 h-0.5 mt-4 rounded-full transition-all duration-300"
+                             :class="step > {{ $n }} ? 'bg-emerald-500' : 'bg-gray-200'">
                         </div>
                     @endif
                 @endforeach
             </div>
         </div>
 
+        {{-- Edit skeleton --}}
+        <div x-show="editLoading" x-cloak style="flex:1; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:14px;">
+            @foreach(range(1,4) as $block)
+            <div style="background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:18px 20px;">
+                <div style="height:12px; width:35%; background:#e9e9e9; border-radius:4px; margin-bottom:16px; animation:skeleton-pulse 1.4s ease-in-out infinite;"></div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    @foreach(range(1, $block === 1 ? 4 : 2) as $field)
+                    <div style="{{ $field === 1 && $block === 1 ? 'grid-column:span 2;' : '' }}">
+                        <div style="height:9px; width:40%; background:#efefef; border-radius:3px; margin-bottom:7px; animation:skeleton-pulse 1.4s ease-in-out infinite;"></div>
+                        <div style="height:36px; background:#f5f5f5; border-radius:7px; animation:skeleton-pulse 1.4s ease-in-out infinite;"></div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endforeach
+        </div>
+        <style>
+            @keyframes skeleton-pulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+        </style>
+
         {{-- Body --}}
-        <div style="flex:1; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:18px;">
+        <div x-show="!editLoading" style="flex:1; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:18px;">
 
             {{-- ─ STEP 1 : IDENTITY ─ --}}
             <div x-show="step === 1" style="display:flex; flex-direction:column; gap:18px;">
 
                 {{-- Customer type --}}
-                <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
-                    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
-                        <h4 style="margin:0; font-size:13px; font-weight:600;">Customer type</h4>
-                        <span style="font:11px var(--mono); color:var(--ink-3);">required</span>
+                <div class="bg-white border border-gray-200 rounded-xl p-5">
+                    <div class="flex items-baseline justify-between mb-3.5">
+                        <h4 class="text-sm font-semibold text-gray-900">Customer type</h4>
+                        <span class="text-[11px] font-mono text-gray-400">required</span>
                     </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                        <label style="display:flex; flex-direction:column; gap:4px; padding:14px; border-radius:8px; cursor:pointer; transition: border-color .12s, background .12s;"
-                            :style="dType === 'individual'
-                                ? 'border:1px solid var(--rt-fg); background:var(--rt-bg);'
-                                : 'border:1px solid var(--rule); background:var(--paper);'">
-                            <input type="radio" x-model="dType" value="individual" style="display:none;" />
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <span style="width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;"
-                                    :style="dType === 'individual' ? 'background:var(--rt-fg); color:var(--paper);' : 'background:var(--in-bg); color:var(--in-fg);'">
+                    <div class="grid grid-cols-2 gap-2">
+                        {{-- Individual --}}
+                        <label class="flex flex-col gap-1 p-3.5 rounded-lg cursor-pointer border transition-all duration-100"
+                               :class="dType === 'individual' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 bg-white hover:border-gray-300'">
+                            <input type="radio" x-model="dType" value="individual" class="hidden" />
+                            <div class="flex items-center gap-2">
+                                <span class="w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-100"
+                                      :class="dType === 'individual' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
                                 </span>
-                                <span style="font:600 13px 'Inter', sans-serif;">Individual</span>
+                                <span class="text-sm font-semibold text-gray-800">Individual</span>
                             </div>
-                            <span style="font-size:11px; color:var(--ink-3); padding-left:40px;">A single person with NID/Passport</span>
+                            <span class="text-[11px] text-gray-400 pl-10">A single person with NID/Passport</span>
                         </label>
-                        <label style="display:flex; flex-direction:column; gap:4px; padding:14px; border-radius:8px; cursor:pointer; transition: border-color .12s, background .12s;"
-                            :style="dType === 'company'
-                                ? 'border:1px solid var(--sd-fg); background:var(--sd-bg);'
-                                : 'border:1px solid var(--rule); background:var(--paper);'">
-                            <input type="radio" x-model="dType" value="company" style="display:none;" />
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <span style="width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;"
-                                    :style="dType === 'company' ? 'background:var(--sd-fg); color:var(--paper);' : 'background:var(--in-bg); color:var(--in-fg);'">
+                        {{-- Company --}}
+                        <label class="flex flex-col gap-1 p-3.5 rounded-lg cursor-pointer border transition-all duration-100"
+                               :class="dType === 'company' ? 'border-violet-500 bg-violet-50' : 'border-gray-200 bg-white hover:border-gray-300'">
+                            <input type="radio" x-model="dType" value="company" class="hidden" />
+                            <div class="flex items-center gap-2">
+                                <span class="w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-100"
+                                      :class="dType === 'company' ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-500'">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V12h6v9"/></svg>
                                 </span>
-                                <span style="font:600 13px 'Inter', sans-serif;">Company</span>
+                                <span class="text-sm font-semibold text-gray-800">Company</span>
                             </div>
-                            <span style="font-size:11px; color:var(--ink-3); padding-left:40px;">Registered business with TIN/TaxID</span>
+                            <span class="text-[11px] text-gray-400 pl-10">Registered business with TIN/TaxID</span>
                         </label>
                     </div>
-                    @error('dType') <p style="margin-top:6px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                    @error('dType') <p class="mt-1.5 text-[11px] text-red-500">{{ $message }}</p> @enderror
                 </div>
 
                 {{-- Profile placeholder --}}
-                <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
-                    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
-                        <h4 style="margin:0; font-size:13px; font-weight:600;">Profile</h4>
-                        <span style="font:11px var(--mono); color:var(--ink-3);">photo optional</span>
+                <div class="bg-white border border-gray-200 rounded-xl p-5">
+                    <div class="flex items-baseline justify-between mb-3.5">
+                        <h4 class="text-sm font-semibold text-gray-900">Profile</h4>
+                        <span class="text-[11px] font-mono text-gray-400">photo optional</span>
                     </div>
-                    <div style="display:flex; gap:18px; align-items:center;">
-                        <div style="width:88px; height:88px; border-radius:50%;
-                                    background:linear-gradient(135deg, #8a7a5a, #5c4f38);
-                                    border:3px solid var(--paper); box-shadow: 0 0 0 1px var(--rule);
-                                    display:flex; align-items:center; justify-content:center;
-                                    color:rgba(255,255,255,.7); flex-shrink:0;">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
-                        </div>
-                        <div style="font-size:12px; color:var(--ink-2); line-height:1.6;">
-                            <b style="color:var(--ink-1); font-weight:600;">Profile image</b><br/>
-                            JPG or PNG, max 2 MB. Saved as profile_image_id FK.
-                        </div>
-                    </div>
+                    <x-media-picker-field
+                        field="dProfileImage"
+                        :value="$dProfileImage ?? null"
+                        label="Profile Image"
+                        placeholder="Click to upload profile photo"
+                        type="image"
+                        :multiple="false"
+                        
+                    />
                 </div>
 
                 {{-- Personal information --}}
@@ -767,12 +798,12 @@
 
                 {{-- Left: Cancel (step 1) or Back (steps 2-4) --}}
                 <button
-                    @click="step === 1 ? $wire.closeDrawer() : step--"
+                    @click="step === 1 ? $wire.closeDrawer() : step--" 
                     style="appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2);
                            padding:7px 16px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
                            display:inline-flex; align-items:center; gap:6px; transition:background .15s;">
                     <span x-show="step === 1">Cancel</span>
-                    <span x-show="step > 1" style="display:none; align-items:center; gap:6px;">
+                    <span class="flex items-center gap-1" x-show="step > 1" style="display:none; align-items:center; gap:6px;">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
                         Back
                     </span>
@@ -793,7 +824,7 @@
                 {{-- Right: Next (steps 1-3) or Submit (step 4) --}}
                 <div style="display:flex; align-items:center;">
                     <button x-show="step < 4"
-                        @click="step++"
+                        @click="step++" class="flex items-center gap-1"
                         style="appearance:none; border:1px solid var(--ink-1); background:var(--ink-1); color:var(--paper);
                                padding:7px 16px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
                                display:inline-flex; align-items:center; gap:6px; transition:opacity .15s;">
@@ -816,6 +847,7 @@
 
             </div>
         </div>
+    </div>
     </aside>
 
 </div>

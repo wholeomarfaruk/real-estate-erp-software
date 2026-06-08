@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Customers;
 
+use App\Livewire\Traits\WithMediaPicker;
 use App\Models\Customer;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
@@ -9,7 +10,7 @@ use Livewire\WithPagination;
 
 class CustomerList extends Component
 {
-    use WithPagination;
+    use WithPagination, WithMediaPicker;
 
     public string $search       = '';
     public string $filterType   = 'all';
@@ -46,6 +47,7 @@ class CustomerList extends Component
     public string $dStatus        = 'active';
     public string $dSource        = '';
     public string $dNotes         = '';
+    public $dProfileImage         = null;
 
     public function mount(): void
     {
@@ -83,6 +85,7 @@ class CustomerList extends Component
         $this->dStatus        = 'active';
         $this->dSource        = '';
         $this->dNotes         = '';
+        $this->dProfileImage  = null;
         $this->step           = 1;
         $this->drawerOpen     = true;
     }
@@ -120,8 +123,10 @@ class CustomerList extends Component
         $this->dStatus        = $customer->status ?? 'active';
         $this->dSource        = $customer->source ?? '';
         $this->dNotes         = $customer->notes ?? '';
+        $this->dProfileImage  = $customer->profile_image_id ?? null;
         $this->step           = 1;
         $this->drawerOpen     = true;
+        $this->dispatch('customer-edit-ready');
     }
 
     public function saveCustomer(): void
@@ -185,6 +190,7 @@ class CustomerList extends Component
             'status'                 => $this->dStatus ?: 'active',
             'source'                 => $this->dSource ?: null,
             'notes'                  => $this->dNotes ?: null,
+            'profile_image_id'       => $this->dProfileImage ?: null,
         ];
 
         if ($this->editingId) {
@@ -223,10 +229,12 @@ class CustomerList extends Component
 
     public function closeDrawer(): void
     {
-        $this->drawerOpen = false;
-        $this->editingId  = null;
-        $this->step       = 1;
+        $this->drawerOpen    = false;
+        $this->editingId     = null;
+        $this->step          = 1;
+        $this->dProfileImage = null;
         $this->resetValidation();
+        $this->dispatch('customer-drawer-close');
     }
 
     public function render()
