@@ -32,14 +32,16 @@
                 <div class="flex items-center justify-between">
                     <div>
                         @can('project.create')
-                            <a href="{{ route('admin.projects.create') }}"
+                            {{-- Alpine dispatches open-create-modal instantly — no server round-trip --}}
+                            <button type="button"
+                                @click="$dispatch('open-create-modal')"
                                 class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-xs ring-1 ring-gray-300 transition hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03]">
                                 <svg class="stroke-current" width="20" height="20" xmlns="http://www.w3.org/2000/svg"
                                     fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                 </svg>
                                 Create New Project
-                            </a>
+                            </button>
                         @endcan
                     </div>
                     <div>
@@ -105,7 +107,7 @@
                             <!-- table header end -->
                             <!-- table body start -->
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                            
+
                                 @forelse ($projects as $project)
                                     <tr>
                                         <td class="px-5 py-4 sm:px-6">
@@ -131,7 +133,6 @@
                                         <td class="px-5 py-4 sm:px-6">
                                             <div>
                                                 <p class="text-sm text-gray-800 dark:text-white/90">
-
                                                     {{ implode(', ', $project->typeLabels()) ?: '—' }}
                                                 </p>
                                                 <p class="text-xs text-gray-500 dark:text-gray-400">
@@ -152,7 +153,6 @@
                                         <td class="px-5 py-4 sm:px-6">
                                             <span
                                                 class="inline-block px-2 py-1 text-xs font-medium rounded-full {{ $project->status?->badge() }} ">
-
                                                 {{ $project->status?->label() }}
                                             </span>
                                         </td>
@@ -196,13 +196,15 @@
                                                         class="absolute right-0 z-50 mt-1 w-40 origin-top-right rounded-md border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
                                                         style="display: none;">
                                                         @can('project.edit')
-                                                            <a href="{{ route('admin.projects.create', ['project_id' => $project->id]) }}"
-                                                                class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                                                            {{-- Open modal instantly via Alpine, load data via Livewire in background --}}
+                                                            <button type="button"
+                                                                @click="open = false; $dispatch('open-edit-modal', { id: {{ $project->id }} })"
+                                                                class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700">
                                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
                                                                 </svg>
                                                                 Edit
-                                                            </a>
+                                                            </button>
                                                         @endcan
                                                         @can('project.delete')
                                                             <button x-data
@@ -258,99 +260,415 @@
         </div>
     </div>
 
-    {{-- View Modal --}}
-    @if ($viewModal && $selectedProject)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
-            aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                <div
-                    class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <div class="sm:flex sm:items-start">
-                            <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
-                                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-                                    Project Details: {{ $selectedProject->name }}
-                                </h3>
+    {{-- ===== Create Project Modal (Alpine-driven, opens instantly) ===== --}}
+    <div
+        x-data="{ show: false }"
+        @open-create-modal.window="show = true; $wire.resetCreate()"
+        @close-create-modal.window="show = false"
+        @keydown.escape.window="show = false"
+        x-show="show"
+        x-cloak
+        class="fixed inset-0 z-50 overflow-y-auto px-4 py-6 sm:px-0"
+        style="display:none;">
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <h4 class="font-medium text-gray-900 mb-2">Basic Information</h4>
-                                        <div class="space-y-2 text-sm">
-                                            <p><strong>Name:</strong> {{ $selectedProject->name }}</p>
-                                            <p><strong>Code:</strong> {{ $selectedProject->code ?? 'N/A' }}</p>
-                                            <p><strong>Type:</strong> {{ implode(', ', $selectedProject->typeLabels()) ?: '—' }}
-                                            </p>
-                                            <p><strong>Status:</strong>
-                                                <span
-                                                    class="inline-block px-2 py-1 text-xs font-medium rounded-full
-                                                @if ($selectedProject->status === 'completed') bg-green-100 text-green-800
-                                                @elseif($selectedProject->status === 'ongoing') bg-blue-100 text-blue-800
-                                                @elseif($selectedProject->status === 'on_hold') bg-yellow-100 text-yellow-800
-                                                @else bg-gray-100 text-gray-800 @endif">
-                                                    {{ $selectedProject->status?->label() }}
-                                                </span>
-                                            </p>
-                                            <p><strong>Budget:</strong>
-                                                {{ $selectedProject->budget ? '$' . number_format($selectedProject->budget, 2) : 'N/A' }}
-                                            </p>
-                                        </div>
-                                    </div>
+        {{-- Backdrop --}}
+        <div x-show="show" @click="show = false"
+            x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+            x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+            class="fixed inset-0 bg-gray-500/75"></div>
 
-                                    <div>
-                                        <h4 class="font-medium text-gray-900 mb-2">Timeline & Location</h4>
-                                        <div class="space-y-2 text-sm">
-                                            <p><strong>Start Date:</strong>
-                                                {{ $selectedProject->start_date->format('M d, Y') }}</p>
-                                            <p><strong>End Date:</strong>
-                                                {{ $selectedProject->end_date->format('M d, Y') }}</p>
-                                            <p><strong>Location:</strong> {{ $selectedProject->location }}</p>
-                                            <p><strong>Description:</strong>
-                                                {{ $selectedProject->description ?? 'N/A' }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
+        {{-- Panel --}}
+        <div x-show="show"
+            x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2 scale-95" x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+            x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0 scale-100" x-transition:leave-end="opacity-0 translate-y-2 scale-95"
+            class="relative bg-white rounded-lg shadow-xl sm:max-w-2xl sm:mx-auto overflow-hidden mb-6">
 
-                                <div class="mt-6">
-                                    <h4 class="font-medium text-gray-900 mb-2">Project Statistics</h4>
-                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        <div class="bg-gray-50 p-3 rounded-lg">
-                                            <div class="text-2xl font-bold text-blue-600">
-                                                {{ $selectedProject->floors->count() }}</div>
-                                            <div class="text-sm text-gray-600">Floors</div>
-                                        </div>
-                                        <div class="bg-gray-50 p-3 rounded-lg">
-                                            <div class="text-2xl font-bold text-green-600">
-                                                {{ $selectedProject->units->count() }}</div>
-                                            <div class="text-sm text-gray-600">Units</div>
-                                        </div>
-                                        <div class="bg-gray-50 p-3 rounded-lg">
-                                            <div class="text-2xl font-bold text-purple-600">
-                                                {{ $selectedProject->units->where('availability_status', 'available')->count() }}
-                                            </div>
-                                            <div class="text-sm text-gray-600">Available Units</div>
-                                        </div>
-                                        <div class="bg-gray-50 p-3 rounded-lg">
-                                            <div class="text-2xl font-bold text-orange-600">
-                                                {{ $selectedProject->units->where('availability_status', 'sold')->count() }}
-                                            </div>
-                                            <div class="text-sm text-gray-600">Sold Units</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Create New Project</h3>
+                    <p class="text-sm text-gray-500 mt-0.5">Fill in the details to create a new project</p>
+                </div>
+                <button @click="show = false" type="button"
+                    class="rounded-md p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="px-6 py-5 overflow-y-auto max-h-[72vh]">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                    <div class="sm:col-span-2">
+                        <x-label for="create_name" value="Project Name *" />
+                        <x-input wire:model="create_name" id="create_name" type="text" class="mt-1 block w-full"
+                            placeholder="Enter project name" />
+                        <x-input-error for="create_name" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="create_code" value="Project Code" />
+                        <x-input wire:model="create_code" id="create_code" type="text" class="mt-1 block w-full"
+                            placeholder="e.g. SUDP001" />
+                        <x-input-error for="create_code" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="create_status" value="Status *" />
+                        <select wire:model="create_status" id="create_status"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                            <option value="">Select Status</option>
+                            @foreach(\App\Enums\Project\Status::cases() as $s)
+                                <option value="{{ $s->value }}">{{ $s->label() }}</option>
+                            @endforeach
+                        </select>
+                        <x-input-error for="create_status" class="mt-1" />
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <x-label value="Project Type * (select one or more)" />
+                        <div class="mt-2 flex flex-wrap gap-3">
+                            @foreach(\App\Enums\Project\Type::cases() as $type)
+                                <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                                    <input type="checkbox"
+                                        wire:model="create_project_type"
+                                        value="{{ $type->value }}"
+                                        class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" />
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ $type->label() }}</span>
+                                </label>
+                            @endforeach
                         </div>
+                        <x-input-error for="create_project_type" class="mt-1" />
                     </div>
-                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button wire:click="closeViewModal" type="button"
-                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                            Close
-                        </button>
+
+                    <div class="sm:col-span-2">
+                        <x-label for="create_location" value="Location *" />
+                        <x-input wire:model="create_location" id="create_location" type="text"
+                            class="mt-1 block w-full" placeholder="Full address" />
+                        <x-input-error for="create_location" class="mt-1" />
                     </div>
+
+                    <div>
+                        <x-label for="create_land_area" value="Land Area (sft)" />
+                        <x-input wire:model="create_land_area" id="create_land_area" type="number"
+                            step="0.01" class="mt-1 block w-full" placeholder="e.g. 12500" />
+                        <x-input-error for="create_land_area" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="create_building_area" value="Building Area (sft)" />
+                        <x-input wire:model="create_building_area" id="create_building_area" type="number"
+                            step="0.01" class="mt-1 block w-full" placeholder="e.g. 96400" />
+                        <x-input-error for="create_building_area" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="create_start_date" value="Start Date *" />
+                        <x-input wire:model="create_start_date" id="create_start_date" type="date"
+                            class="mt-1 block w-full flatpickr-only-date" />
+                        <x-input-error for="create_start_date" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="create_end_date" value="End Date *" />
+                        <x-input wire:model="create_end_date" id="create_end_date" type="date"
+                            class="mt-1 block w-full flatpickr-only-date" />
+                        <x-input-error for="create_end_date" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="create_handover_date" value="Handover Date" />
+                        <x-input wire:model="create_handover_date" id="create_handover_date" type="date"
+                            class="mt-1 block w-full flatpickr-only-date" />
+                        <x-input-error for="create_handover_date" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="create_budget" value="Budget (BDT)" />
+                        <x-input wire:model="create_budget" id="create_budget" type="number"
+                            step="0.01" class="mt-1 block w-full" placeholder="e.g. 42000000" />
+                        <x-input-error for="create_budget" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="create_chief_engineer_id" value="Chief Engineer" />
+                        <select wire:model="create_chief_engineer_id" id="create_chief_engineer_id"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                            <option value="">— None —</option>
+                            @foreach($engineers as $eng)
+                                <option value="{{ $eng->id }}">{{ $eng->name }}</option>
+                            @endforeach
+                        </select>
+                        <x-input-error for="create_chief_engineer_id" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="create_site_engineer_id" value="Site Engineer" />
+                        <select wire:model="create_site_engineer_id" id="create_site_engineer_id"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                            <option value="">— None —</option>
+                            @foreach($engineers as $eng)
+                                <option value="{{ $eng->id }}">{{ $eng->name }}</option>
+                            @endforeach
+                        </select>
+                        <x-input-error for="create_site_engineer_id" class="mt-1" />
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <x-label for="create_description" value="Description" />
+                        <textarea wire:model="create_description" id="create_description" rows="3"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                            placeholder="Project description (optional)"></textarea>
+                        <x-input-error for="create_description" class="mt-1" />
+                    </div>
+
                 </div>
             </div>
+
+            <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <button @click="show = false" type="button"
+                    class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition">
+                    Cancel
+                </button>
+                <button wire:click="saveCreate"
+                    type="button"
+                    wire:loading.attr="disabled" wire:loading.class="opacity-60 cursor-not-allowed"
+                    class="inline-flex items-center gap-2 rounded-lg bg-[#0d2a4a] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#0a2240] transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                    <span wire:loading.remove wire:target="saveCreate">Create Project</span>
+                    <span wire:loading wire:target="saveCreate">Creating…</span>
+                </button>
+            </div>
+
         </div>
-    @endif
+    </div>
+
+    {{-- ===== Edit Project Modal (Alpine-driven: opens instantly, data loads behind skeleton) ===== --}}
+    <div
+        x-data="{
+            show: false,
+            loading: true,
+            init() {
+                window.addEventListener('open-edit-modal', (e) => {
+                    this.show = true;
+                    this.loading = true;
+                    $wire.loadEditData(e.detail.id);
+                });
+                window.addEventListener('edit-data-ready', () => {
+                    this.loading = false;
+                });
+                window.addEventListener('close-edit-modal', () => {
+                    this.show = false;
+                });
+            }
+        }"
+        @keydown.escape.window="show = false"
+        x-show="show"
+        x-cloak
+        class="fixed inset-0 z-50 overflow-y-auto px-4 py-6 sm:px-0"
+        style="display:none;">
+
+        {{-- Backdrop --}}
+        <div x-show="show" @click="show = false"
+            x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+            x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+            class="fixed inset-0 bg-gray-500/75"></div>
+
+        {{-- Panel --}}
+        <div x-show="show"
+            x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2 scale-95" x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+            x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0 scale-100" x-transition:leave-end="opacity-0 translate-y-2 scale-95"
+            class="relative bg-white rounded-lg shadow-xl sm:max-w-2xl sm:mx-auto overflow-hidden mb-6">
+
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Edit Project</h3>
+                    <p class="text-sm text-gray-500 mt-0.5">Update project details</p>
+                </div>
+                <button @click="show = false" type="button"
+                    class="rounded-md p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Loading skeleton — shown until Livewire finishes loading data --}}
+            <div x-show="loading" class="px-6 py-8 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    @foreach(range(1,8) as $_)
+                        <div class="{{ $_ === 1 ? 'col-span-2' : '' }} space-y-2">
+                            <div class="h-3 w-24 bg-gray-200 rounded animate-pulse"></div>
+                            <div class="h-9 w-full bg-gray-100 rounded-md animate-pulse"></div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            {{-- Actual form — hidden until data is ready --}}
+            <div x-show="!loading" class="px-6 py-5 overflow-y-auto max-h-[72vh]">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                    <div class="sm:col-span-2">
+                        <x-label for="edit_name" value="Project Name *" />
+                        <x-input wire:model="edit_name" id="edit_name" type="text" class="mt-1 block w-full"
+                            placeholder="Enter project name" />
+                        <x-input-error for="edit_name" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="edit_code" value="Project Code" />
+                        <x-input wire:model="edit_code" id="edit_code" type="text" class="mt-1 block w-full"
+                            placeholder="e.g. SUDP001" />
+                        <x-input-error for="edit_code" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="edit_progress_pct" value="Construction Progress (%)" />
+                        <x-input wire:model="edit_progress_pct" id="edit_progress_pct" type="number"
+                            min="0" max="100" class="mt-1 block w-full" placeholder="0–100" />
+                        <x-input-error for="edit_progress_pct" class="mt-1" />
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <x-label value="Project Type * (select one or more)" />
+                        <div class="mt-2 flex flex-wrap gap-3">
+                            @foreach(\App\Enums\Project\Type::cases() as $type)
+                                <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                                    <input type="checkbox"
+                                        wire:model="edit_project_type"
+                                        value="{{ $type->value }}"
+                                        class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" />
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ $type->label() }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        <x-input-error for="edit_project_type" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="edit_status" value="Status *" />
+                        <select wire:model="edit_status" id="edit_status"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                            <option value="">Select Status</option>
+                            @foreach(\App\Enums\Project\Status::cases() as $s)
+                                <option value="{{ $s->value }}">{{ $s->label() }}</option>
+                            @endforeach
+                        </select>
+                        <x-input-error for="edit_status" class="mt-1" />
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <x-label for="edit_location" value="Location *" />
+                        <x-input wire:model="edit_location" id="edit_location" type="text"
+                            class="mt-1 block w-full" placeholder="Full address" />
+                        <x-input-error for="edit_location" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="edit_land_area" value="Land Area (sft)" />
+                        <x-input wire:model="edit_land_area" id="edit_land_area" type="number"
+                            step="0.01" class="mt-1 block w-full" placeholder="e.g. 12500" />
+                        <x-input-error for="edit_land_area" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="edit_building_area" value="Building Area (sft)" />
+                        <x-input wire:model="edit_building_area" id="edit_building_area" type="number"
+                            step="0.01" class="mt-1 block w-full" placeholder="e.g. 96400" />
+                        <x-input-error for="edit_building_area" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="edit_start_date" value="Start Date *" />
+                        <x-input wire:model="edit_start_date" id="edit_start_date" type="date"
+                            class="mt-1 block w-full flatpickr-only-date" />
+                        <x-input-error for="edit_start_date" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="edit_end_date" value="End Date *" />
+                        <x-input wire:model="edit_end_date" id="edit_end_date" type="date"
+                            class="mt-1 block w-full flatpickr-only-date" />
+                        <x-input-error for="edit_end_date" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="edit_handover_date" value="Handover Date" />
+                        <x-input wire:model="edit_handover_date" id="edit_handover_date" type="date"
+                            class="mt-1 block w-full flatpickr-only-date" />
+                        <x-input-error for="edit_handover_date" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="edit_budget" value="Budget (BDT)" />
+                        <x-input wire:model="edit_budget" id="edit_budget" type="number"
+                            step="0.01" class="mt-1 block w-full" placeholder="e.g. 42000000" />
+                        <x-input-error for="edit_budget" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="edit_chief_engineer_id" value="Chief Engineer" />
+                        <select wire:model="edit_chief_engineer_id" id="edit_chief_engineer_id"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                            <option value="">— None —</option>
+                            @foreach($engineers as $eng)
+                                <option value="{{ $eng->id }}">{{ $eng->name }}</option>
+                            @endforeach
+                        </select>
+                        <x-input-error for="edit_chief_engineer_id" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-label for="edit_site_engineer_id" value="Site Engineer" />
+                        <select wire:model="edit_site_engineer_id" id="edit_site_engineer_id"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                            <option value="">— None —</option>
+                            @foreach($engineers as $eng)
+                                <option value="{{ $eng->id }}">{{ $eng->name }}</option>
+                            @endforeach
+                        </select>
+                        <x-input-error for="edit_site_engineer_id" class="mt-1" />
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <x-label for="edit_description" value="Description" />
+                        <textarea wire:model="edit_description" id="edit_description" rows="3"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                            placeholder="Project description (optional)"></textarea>
+                        <x-input-error for="edit_description" class="mt-1" />
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <x-media-picker-field field="edit_image" :value="$edit_image"
+                            placeholder="Click to upload cover image" :multiple="false"
+                            type="image" label="Cover Image" required="false" />
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <button @click="show = false" type="button"
+                    class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition">
+                    Cancel
+                </button>
+                <button wire:click="saveEdit"
+                    type="button"
+                    :disabled="loading"
+                    wire:loading.attr="disabled" wire:loading.class="opacity-60 cursor-not-allowed"
+                    class="inline-flex items-center gap-2 rounded-lg bg-[#0d2a4a] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#0a2240] transition disabled:opacity-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                    <span wire:loading.remove wire:target="saveEdit">Save Changes</span>
+                    <span wire:loading wire:target="saveEdit">Saving…</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
 </div>

@@ -32,7 +32,6 @@ Route::get('/permissions/role/edit/{id}', App\Livewire\Admin\Permissions\RoleEdi
 
 // projects
 Route::get('/projects', App\Livewire\Admin\Projects\ProjectList::class)->name('projects.list');
-Route::get('/projects/create', App\Livewire\Admin\Projects\ProjectCreate::class)->name('projects.create');
 Route::get('/projects/{project}/details', App\Livewire\Admin\Projects\ProjectDetails::class)->name('projects.details');
 Route::get('/projects/{project}/estimates', App\Livewire\Admin\Projects\ProjectEstimates::class)->name('projects.estimates');
 Route::get('/projects/{project}/consumption', App\Livewire\Admin\Projects\ProjectConsumption::class)->name('projects.consumption');
