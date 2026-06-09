@@ -22,17 +22,28 @@ class BulkSmsDhakaProvider implements SmsProviderInterface
             if ($response->successful()) {
                 $data = $response->json();
 
-                // BulkSMS Dhaka returns success with message_id in response
-                return [
-                    'success' => true,
-                    'response' => array_merge($data, ['provider' => 'bulk_sms_dhaka']),
-                    'id' => $data['message_id'] ?? $data['msg_id'] ?? $data['id'] ?? null,
-                ];
+                if (isset($data['success']) && $data['success'] === true && isset($data['message_id'])) {
+                    return [
+                        'success' => true,
+                        'response' => array_merge($data, ['provider' => 'bulk_sms_dhaka']),
+                        'id' => $data['message_id'],
+                    ];
+                }
+
+                if (isset($data['message_id']) && !isset($data['success'])) {
+                    return [
+                        'success' => true,
+                        'response' => array_merge($data, ['provider' => 'bulk_sms_dhaka']),
+                        'id' => $data['message_id'],
+                    ];
+                }
+
+                $error = $data['message'] ?? $data['error'] ?? 'No message_id in response';
+                return ['success' => false, 'error' => "BulkSMS Dhaka: {$error}"];
             }
 
-            // Handle error responses
-            $error = $response->json()['message'] ?? $response->json()['error'] ?? 'BulkSMS Dhaka API error';
-            return ['success' => false, 'error' => 'BulkSMS Dhaka API error: ' . $error];
+            $error = $response->json()['message'] ?? $response->json()['error'] ?? 'API request failed';
+            return ['success' => false, 'error' => "BulkSMS Dhaka HTTP Error {$response->status()}: {$error}"];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => $e->getMessage()];
         }

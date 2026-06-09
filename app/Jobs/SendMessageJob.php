@@ -76,10 +76,12 @@ class SendMessageJob implements ShouldQueue
                 ]);
             }
         } catch (\Throwable $e) {
-            $message->update([
+            $updateData = [
                 'status'            => 'failed',
                 'provider_response' => ['error' => $e->getMessage()],
-            ]);
+            ];
+
+            $message->update($updateData);
             $message->addTimelineEvent('failed', ['error' => $e->getMessage()]);
         }
     }

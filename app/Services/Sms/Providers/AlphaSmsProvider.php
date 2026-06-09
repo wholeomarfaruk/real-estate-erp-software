@@ -2,7 +2,9 @@
 
 namespace App\Services\Sms\Providers;
 
+use App\Exceptions\SmsValidationException;
 use App\Services\Sms\SmsProviderInterface;
+use App\Services\Sms\Validation\Validators\AlphaSmsResponseValidator;
 use Illuminate\Support\Facades\Http;
 
 class AlphaSmsProvider implements SmsProviderInterface
@@ -38,20 +40,32 @@ class AlphaSmsProvider implements SmsProviderInterface
             if ($response->successful()) {
                 $data = $response->json();
 
-                if (isset($data['error']) && $data['error'] == 0) {
-                    return [
-                        'success' => true,
-                        'response' => array_merge($data, ['provider' => 'alpha_sms']),
-                        'id' => $data['data']['request_id'] ?? $data['request_id'] ?? null,
-                    ];
-                }
+                try {
+                    $validator = new AlphaSmsResponseValidator();
+                    $result = $validator->validate($data);
 
-                $error = $data['msg'] ?? $data['message'] ?? $data['error'] ?? 'Alpha SMS API error';
-                return ['success' => false, 'error' => $error];
+                    if ($result->isValid) {
+                        return [
+                            'success' => true,
+                            'response' => array_merge($data, ['provider' => 'alpha_sms']),
+                            'id' => $result->messageId,
+                        ];
+                    }
+
+                    throw new SmsValidationException(
+                        $result->errorCode,
+                        'alpha_sms',
+                        $result->errorMessage,
+                        $data
+                    );
+                } catch (SmsValidationException $e) {
+                    \Log::warning('Alpha SMS validation failed: ' . $e->getFullError());
+                    return ['success' => false, 'error' => $e->getFullError()];
+                }
             }
 
-            $error = $response->json()['msg'] ?? $response->json()['message'] ?? $response->json()['error'] ?? 'Alpha SMS API error: ' . $response->status();
-            return ['success' => false, 'error' => $error];
+            $error = $response->json()['msg'] ?? $response->json()['message'] ?? $response->json()['error'] ?? 'API request failed';
+            return ['success' => false, 'error' => "Alpha SMS HTTP Error {$response->status()}: {$error}"];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => $e->getMessage()];
         }
