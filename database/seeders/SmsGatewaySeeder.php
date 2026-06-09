@@ -90,7 +90,7 @@ class SmsGatewaySeeder extends Seeder
                     'api_key'   => env('ALPHA_SMS_API_KEY', 'demo_api_key'),
                     'type'      => env('ALPHA_SMS_TYPE', 'text'),
                     'website'   => 'https://sms.bd',
-                    'dashboard' => 'https://sms.bd/account/dashboard',
+                    'dashboard' => 'https://portal.sms.net.bd/login/',
                 ],
                 'is_active'   => false,
                 'created_by'  => 1,
