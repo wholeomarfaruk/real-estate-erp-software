@@ -325,7 +325,7 @@
                                 Uploads</p>
                         </a>
                     @endcan
-                 
+
                         <!-- uploads -->
                         <a href="{{ route('admin.engineers') }}" x-data="tooltip" x-on:mouseover="show = true"
                             x-on:mouseleave="show = false"
@@ -404,9 +404,9 @@
                             </div>
 
                         </div>
-                    @endcan       
-                    
-                    
+                    @endcan
+
+
                     @can('module.suppliers.access')
                         <!-- Supplier Management -->
                         <div x-data="dropdown" class="relative">
@@ -624,7 +624,7 @@
                                 ];
 
                                 $accountsReportRoutes = [
-    
+
                                     [
                                         'label' => 'Daily Statement',
                                         'route' => 'admin.accounts.reports.daily-statement',
@@ -635,7 +635,7 @@
                                         'route' => 'admin.accounts.reports.balance-sheet',
                                         'permission' => 'accounts.report.view',
                                     ]
-                                   
+
                                 ];
                             @endphp
 
@@ -926,6 +926,28 @@
                             Permissions</p>
 
                     </a>
+
+                    <!-- SMS Gateway -->
+                    @can('settings.sms_gateway.view')
+                    <a href="{{ route('admin.settings.sms-gateway') }}" x-data="tooltip" x-on:mouseover="show = true"
+                        x-on:mouseleave="show = false"
+                        class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400 text-xs
+                    {{ Route::is('admin.settings.sms-gateway') ? 'text-gray-200 bg-gray-800' : '' }}
+                    ">
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+                        </svg>
+
+                        <p x-cloak class="text-xs"
+                            x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full ?
+                                'sm:hidden' : ''">
+                            SMS Gateway</p>
+
+                    </a>
+                    @endcan
                 @endcan
                 @can('section.ui_components.access')
                     <!-- Ui elements -->
@@ -1031,14 +1053,6 @@
                                    {{ Route::is('admin.settings') ? 'bg-gray-700 text-white' : '' }}">
                             Account Settings
                         </a>
-
-                        @can('settings.sms_gateway.view')
-                        <a href="{{ route('admin.settings.sms-gateway') }}"
-                            class="block px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white
-                                   {{ Route::is('admin.settings.sms-gateway') ? 'bg-gray-700 text-white' : '' }}">
-                            SMS Gateway
-                        </a>
-                        @endcan
                     @endcan
 
                     <button type="button" @click="$refs.logoutForm.submit()"
