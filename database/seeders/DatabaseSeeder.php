@@ -27,6 +27,9 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             EmployeeSeeder::class,
             CustomerSeeder::class,
+            LeadSeeder::class,
+            MarketingSeeder::class,
+            DemoTestDataSeeder::class,
             AssignPermissionSeeder::class,
 
         ]);

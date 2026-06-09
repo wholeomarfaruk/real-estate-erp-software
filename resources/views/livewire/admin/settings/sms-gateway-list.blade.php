@@ -1,0 +1,237 @@
+<div class="p-6 space-y-4">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">SMS Gateway Settings</h1>
+            <p class="text-gray-600 text-sm mt-1">Configure SMS providers for sending messages</p>
+        </div>
+        <button type="button" @click="$wire.openCreate()"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+            + New Provider
+        </button>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        @if ($gateways->isEmpty())
+            <div class="p-8 text-center text-gray-500">
+                <p>No SMS gateways configured.</p>
+                <button type="button" @click="$wire.openCreate()"
+                    class="text-blue-600 hover:underline mt-2">
+                    Add one now
+                </button>
+            </div>
+        @else
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Provider</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+                        <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y">
+                    @foreach ($gateways as $gateway)
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $gateway->name }}</td>
+                            <td class="px-6 py-4 text-sm">
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold
+                                    @if ($gateway->provider === 'ssl_wireless')
+                                        bg-blue-100 text-blue-800
+                                    @elseif ($gateway->provider === 'twilio')
+                                        bg-red-100 text-red-800
+                                    @else
+                                        bg-green-100 text-green-800
+                                    @endif
+                                ">
+                                    {{ str_replace('_', ' ', ucfirst($gateway->provider)) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                @if ($gateway->is_active)
+                                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                        ✓ Active
+                                    </span>
+                                @else
+                                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
+                                        Inactive
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 text-sm text-right space-x-2">
+                                @if (!$gateway->is_active)
+                                    <button type="button" @click="$wire.setActive({{ $gateway->id }})"
+                                        class="text-green-600 hover:text-green-800 font-medium">
+                                        Set Active
+                                    </button>
+                                @endif
+                                <button type="button" @click="$wire.openEdit({{ $gateway->id }})"
+                                    class="text-blue-600 hover:text-blue-800 font-medium">
+                                    Edit
+                                </button>
+                                <button type="button" @click="if (confirm('Delete this gateway?')) $wire.delete({{ $gateway->id }})"
+                                    class="text-red-600 hover:text-red-800 font-medium">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+    </div>
+
+    <!-- Drawer -->
+    <div x-show="$wire.drawerOpen" x-transition
+        class="fixed inset-0 overflow-hidden z-50"
+        style="display: none;">
+
+        <!-- Overlay -->
+        <div class="absolute inset-0 bg-black opacity-50" @click="$wire.closeDrawer()"></div>
+
+        <!-- Drawer Panel -->
+        <div class="absolute right-0 top-0 h-full w-96 bg-white shadow-lg rounded-l-lg p-6 overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-900">
+                    @if ($editingId)
+                        Edit Provider
+                    @else
+                        New Provider
+                    @endif
+                </h2>
+                <button type="button" @click="$wire.closeDrawer()"
+                    class="text-gray-500 hover:text-gray-900">
+                    ✕
+                </button>
+            </div>
+
+            <form @submit.prevent="$wire.save()" class="space-y-4">
+                <!-- Name -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Gateway Name</label>
+                    <input type="text" wire:model="fName"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., SSL Wireless Live">
+                    @error('fName') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
+                </div>
+
+                <!-- Provider Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Provider</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="radio" wire:model="fProvider" value="ssl_wireless"
+                                class="w-4 h-4">
+                            <span class="ml-2 text-sm text-gray-700">SSL Wireless</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" wire:model="fProvider" value="twilio"
+                                class="w-4 h-4">
+                            <span class="ml-2 text-sm text-gray-700">Twilio</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" wire:model="fProvider" value="vonage"
+                                class="w-4 h-4">
+                            <span class="ml-2 text-sm text-gray-700">Vonage</span>
+                        </label>
+                    </div>
+                    @error('fProvider') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
+                </div>
+
+                <!-- SSL Wireless Credentials -->
+                <div x-show="$wire.fProvider === 'ssl_wireless'" x-transition class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">API URL</label>
+                        <input type="text" wire:model="fApiUrl"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="https://api.ssl.com.bd/send-sms">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">API User</label>
+                        <input type="text" wire:model="fApiUser"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="Your API username">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">API Password</label>
+                        <input type="password" wire:model="fApiPassword"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="Your API password">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Sender ID (SID)</label>
+                        <input type="text" wire:model="fSid"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="Your sender ID">
+                    </div>
+                </div>
+
+                <!-- Twilio Credentials -->
+                <div x-show="$wire.fProvider === 'twilio'" x-transition class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Account SID</label>
+                        <input type="text" wire:model="fAccountSid"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Auth Token</label>
+                        <input type="password" wire:model="fAuthToken"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="Your auth token">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">From Number</label>
+                        <input type="text" wire:model="fFromNumber"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="+1234567890">
+                    </div>
+                </div>
+
+                <!-- Vonage Credentials -->
+                <div x-show="$wire.fProvider === 'vonage'" x-transition class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                        <input type="text" wire:model="fApiKey"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="Your API key">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">API Secret</label>
+                        <input type="password" wire:model="fApiSecret"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="Your API secret">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">From</label>
+                        <input type="text" wire:model="fFrom"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="Sender ID or phone number">
+                    </div>
+                </div>
+
+                <!-- Active Toggle -->
+                <div class="flex items-center space-x-3 pt-4 border-t">
+                    <input type="checkbox" wire:model="fIsActive" id="fIsActive"
+                        class="w-4 h-4 text-blue-600 rounded">
+                    <label for="fIsActive" class="text-sm text-gray-700">
+                        Set as active provider
+                    </label>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-2 pt-6 border-t">
+                    <button type="submit"
+                        class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
+                        Save
+                    </button>
+                    <button type="button" @click="$wire.closeDrawer()"
+                        class="flex-1 px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition font-medium">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

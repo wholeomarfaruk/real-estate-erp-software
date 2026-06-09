@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Marketing\Audience;
 
+use App\Models\AudienceMember;
 use App\Models\Lead;
 use App\Models\LeadSource;
 use App\Models\MarketingAudience;
@@ -37,12 +38,74 @@ class AudienceList extends Component
     // Preview
     public int $previewCount = 0;
 
+    // Static member management
+    public string $memberSearch  = '';
+    public array  $searchResults = [];
+    public array  $staticMembers = [];
+
     public function mount(): void
     {
         abort_unless(auth()->user()?->can('marketing.audience.view'), 403);
     }
 
     public function updatedSearch(): void { $this->resetPage(); }
+
+    public function updatedMemberSearch(): void
+    {
+        $q = trim($this->memberSearch);
+        if (strlen($q) < 1) {
+            $this->searchResults = [];
+            return;
+        }
+
+        $addedIds = array_column($this->staticMembers, 'id');
+        $like     = '%' . $q . '%';
+
+        $this->searchResults = Lead::where(fn ($query) =>
+                $query->where('name', 'like', $like)
+                      ->orWhere('phone', 'like', $like)
+                      ->orWhere('lead_no', 'like', $like)
+            )
+            ->when($addedIds, fn ($query) => $query->whereNotIn('id', $addedIds))
+            ->limit(8)
+            ->get()
+            ->map(fn (Lead $lead) => [
+                'id'           => $lead->id,
+                'name'         => $lead->name,
+                'lead_no'      => $lead->lead_no,
+                'phone'        => $lead->phone,
+                'status'       => $lead->status_label,
+                'status_color' => $lead->status_color,
+            ])
+            ->toArray();
+    }
+
+    public function addMember(int $leadId): void
+    {
+        if (collect($this->staticMembers)->contains('id', $leadId)) {
+            return;
+        }
+
+        $lead = Lead::findOrFail($leadId);
+        $this->staticMembers[] = [
+            'id'           => $lead->id,
+            'name'         => $lead->name,
+            'lead_no'      => $lead->lead_no,
+            'phone'        => $lead->phone,
+            'status'       => $lead->status_label,
+            'status_color' => $lead->status_color,
+        ];
+
+        $this->memberSearch  = '';
+        $this->searchResults = [];
+    }
+
+    public function removeMember(int $leadId): void
+    {
+        $this->staticMembers = array_values(
+            array_filter($this->staticMembers, fn ($m) => $m['id'] !== $leadId)
+        );
+    }
 
     public function previewAudience(): void
     {
@@ -77,7 +140,29 @@ class AudienceList extends Component
         $this->fBudgetMin         = (string) ($filters['budget_min'] ?? '');
         $this->fIncludeCustomers  = $filters['include_customers'] ?? false;
         $this->fCustomerStatus    = $filters['customer_status'] ?? '';
-        $this->drawerOpen         = true;
+
+        if ($a->type === 'static') {
+            $this->staticMembers = $a->members()
+                ->where('member_type', 'lead')
+                ->get()
+                ->map(function (AudienceMember $m) {
+                    $lead = Lead::find($m->member_id);
+                    if (! $lead) return null;
+                    return [
+                        'id'           => $lead->id,
+                        'name'         => $lead->name,
+                        'lead_no'      => $lead->lead_no,
+                        'phone'        => $lead->phone,
+                        'status'       => $lead->status_label,
+                        'status_color' => $lead->status_color,
+                    ];
+                })
+                ->filter()
+                ->values()
+                ->toArray();
+        }
+
+        $this->drawerOpen = true;
     }
 
     public function save(): void
@@ -100,15 +185,24 @@ class AudienceList extends Component
             abort_unless(auth()->user()?->can('marketing.audience.edit'), 403);
             $audience = MarketingAudience::findOrFail($this->editingId);
             $audience->update($data);
-            $audience->syncMemberCount();
-            $this->dispatch('toast', ['type' => 'success', 'message' => 'Audience updated.']);
         } else {
             abort_unless(auth()->user()?->can('marketing.audience.create'), 403);
             $data['created_by'] = auth()->id();
             $audience = MarketingAudience::create($data);
-            $audience->syncMemberCount();
-            $this->dispatch('toast', ['type' => 'success', 'message' => 'Audience created.']);
         }
+
+        if ($this->fType === 'static') {
+            $audience->members()->delete();
+            foreach ($this->staticMembers as $m) {
+                $audience->members()->create([
+                    'member_type' => 'lead',
+                    'member_id'   => $m['id'],
+                ]);
+            }
+        }
+
+        $audience->syncMemberCount();
+        $this->dispatch('toast', ['type' => 'success', 'message' => $this->editingId ? 'Audience updated.' : 'Audience created.']);
 
         $this->closeDrawer();
     }
@@ -160,6 +254,9 @@ class AudienceList extends Component
         $this->fIncludeCustomers = false;
         $this->fCustomerStatus   = '';
         $this->previewCount      = 0;
+        $this->memberSearch      = '';
+        $this->searchResults     = [];
+        $this->staticMembers     = [];
     }
 
     public function render()

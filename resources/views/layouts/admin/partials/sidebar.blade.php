@@ -1026,8 +1026,15 @@
                     </a>
 
                     <a href="{{ route('admin.settings') }}"
-                        class="block px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
+                        class="block px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white
+                               {{ Route::is('admin.settings') ? 'bg-gray-700 text-white' : '' }}">
                         Account Settings
+                    </a>
+
+                    <a href="{{ route('admin.settings.sms-gateway') }}"
+                        class="block px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white
+                               {{ Route::is('admin.settings.sms-gateway') ? 'bg-gray-700 text-white' : '' }}">
+                        SMS Gateway
                     </a>
 
                     <button type="button" @click="$refs.logoutForm.submit()"

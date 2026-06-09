@@ -34,6 +34,7 @@ Route::get('/users', App\Livewire\Admin\Users\Users::class)->name('users');
 // Profile and Settings
 Route::get('/profile', App\Livewire\Admin\Profile\Profile::class)->name('profile');
 Route::get('/settings', App\Livewire\Admin\Settings\Settings::class)->name('settings');
+Route::get('/settings/sms-gateway', App\Livewire\Admin\Settings\SmsGatewayList::class)->name('settings.sms-gateway');
 
 // permissions
 Route::get('/permissions/roles', App\Livewire\Admin\Permissions\RoleList::class)->name('roles.list');

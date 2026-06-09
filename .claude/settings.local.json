@@ -17,7 +17,12 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(cat)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(xargs grep -l \"AudienceList\\\\|MarketingAudience\")",
+      "PowerShell(cd h:\\\\projects\\\\real-estate-erp-software; php artisan tinker --execute=\"Mail::raw\\('Test mail from ERP', fn\\(\\\\$m\\) => \\\\$m->to\\('test@test.com'\\)->subject\\('Test'\\)\\); echo 'OK';\")",
+      "PowerShell($null)",
+      "PowerShell($response = try { Invoke-WebRequest -Uri \"http://127.0.0.1:8000/admin/settings/sms-gateway\" -UseBasicParsing -TimeoutSec 5 -SessionVariable session } catch { $null }; if \\($response\\) { Write-Output \"✓ SMS Gateway page accessible \\(Status: $\\($response.StatusCode\\)\\)\" } else { Write-Output \"✗ Server not responding yet, checking serve status...\" })",
+      "PowerShell($response = Invoke-WebRequest -Uri \"http://127.0.0.1:8000/admin/settings/sms-gateway\" -UseBasicParsing -TimeoutSec 10; $response.StatusCode; if \\($response.Content -match 'SMS Gateway Settings'\\) { Write-Output \"`n✓ SMS Gateway page loaded successfully\" } else { Write-Output \"`n✗ Page content mismatch\" })"
     ]
   }
 }

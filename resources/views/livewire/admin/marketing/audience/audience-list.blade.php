@@ -101,60 +101,69 @@
     </div>
 
     {{-- Drawer --}}
-    <div x-show="drawerOpen" x-cloak style="position:fixed;inset:0;z-index:50;display:flex;justify-content:flex-end;">
-        <div @click="$wire.closeDrawer()" style="position:absolute;inset:0;background:rgba(0,0,0,.4);"></div>
-        <div x-show="drawerOpen"
-             x-transition:enter="transition ease-out duration-300" x-transition:enter-start="transform translate-x-full" x-transition:enter-end="transform translate-x-0"
-             x-transition:leave="transition ease-in duration-200" x-transition:leave-start="transform translate-x-0" x-transition:leave-end="transform translate-x-full"
-             style="position:relative;width:580px;height:100vh;background:var(--paper);overflow-y:auto;box-shadow:-4px 0 24px rgba(0,0,0,.12);">
+    @teleport('body')
+    <div x-data="{ drawerOpen: $wire.entangle('drawerOpen') }" x-show="drawerOpen" x-cloak
+         class="fixed inset-0 z-9999 flex justify-end">
 
-            <div style="padding:20px 24px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--paper);z-index:10;">
-                <div style="font-weight:600;font-size:16px;" x-text="$wire.editingId ? 'Edit Audience' : 'New Audience'"></div>
-                <button @click="$wire.closeDrawer()" style="background:none;border:none;cursor:pointer;color:var(--ink-3);">
+        {{-- Backdrop --}}
+        <div @click="$wire.closeDrawer()" class="absolute inset-0 bg-black/40"></div>
+
+        {{-- Panel --}}
+        <div class="relative w-145 h-screen bg-white overflow-y-auto shadow-2xl flex flex-col">
+
+            {{-- Header --}}
+            <div class="flex items-center justify-between px-6 py-5 border-b border-gray-200 sticky top-0 bg-white z-10">
+                <div class="font-semibold text-base" x-text="$wire.editingId ? 'Edit Audience' : 'New Audience'"></div>
+                <button @click="$wire.closeDrawer()" class="text-gray-400 hover:text-gray-600">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
                 </button>
             </div>
 
-            <div style="padding:24px;">
+            {{-- Body --}}
+            <div class="p-6 flex-1">
                 <form wire:submit="save">
                     <div class="flex flex-col gap-4">
+
+                        {{-- Name --}}
                         <div>
                             <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Audience Name <span class="text-red-500">*</span></label>
                             <input wire:model="fName" type="text" placeholder="e.g. Hot Leads Q2"
-                                style="width:100%;padding:8px 12px;border:1px solid var(--rule);border-radius:7px;font:13px 'Inter',sans-serif;background:var(--canvas);outline:none;box-sizing:border-box;">
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-gray-400">
                             @error('fName') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
 
+                        {{-- Description --}}
                         <div>
                             <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Description</label>
                             <textarea wire:model="fDescription" rows="2" placeholder="Optional notes…"
-                                style="width:100%;padding:8px 12px;border:1px solid var(--rule);border-radius:7px;font:13px 'Inter',sans-serif;background:var(--canvas);outline:none;resize:none;box-sizing:border-box;"></textarea>
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-gray-400 resize-none"></textarea>
                         </div>
 
+                        {{-- Type --}}
                         <div>
                             <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Type <span class="text-red-500">*</span></label>
                             <div class="flex gap-2">
                                 @foreach(['dynamic'=>'Dynamic (auto-filter)','static'=>'Static (manual list)'] as $val=>$lbl)
                                 <label class="cursor-pointer flex-1">
                                     <input wire:model.live="fType" type="radio" value="{{ $val }}" class="sr-only peer">
-                                    <span class="block text-center py-2 px-3 rounded-lg border text-xs font-semibold transition-all border-gray-200 bg-white text-gray-500 peer-checked:bg-[var(--accent)] peer-checked:text-white peer-checked:border-[var(--accent)]">{{ $lbl }}</span>
+                                    <span class="block text-center py-2 px-3 rounded-lg border text-xs font-semibold border-gray-200 bg-white text-gray-500 peer-checked:bg-accent peer-checked:text-white peer-checked:border-accent">{{ $lbl }}</span>
                                 </label>
                                 @endforeach
                             </div>
                         </div>
 
                         {{-- Dynamic filters --}}
-                        <div x-show="$wire.fType === 'dynamic'" style="border:1px solid var(--rule);border-radius:8px;padding:16px;background:var(--canvas);">
+                        <div x-show="$wire.fType === 'dynamic'" class="border border-gray-200 rounded-lg p-4 bg-gray-50">
                             <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Filter Criteria</div>
-
                             <div class="flex flex-col gap-3">
+
                                 <div>
                                     <label class="block text-xs text-gray-500 mb-1.5">Lead Status</label>
                                     <div class="flex flex-wrap gap-1.5">
                                         @foreach(['new'=>'New','contacted'=>'Contacted','qualified'=>'Qualified','negotiation'=>'Negotiation','won'=>'Won','lost'=>'Lost','cold'=>'Cold'] as $val=>$lbl)
                                         <label class="cursor-pointer">
                                             <input wire:model="fLeadStatus" type="checkbox" value="{{ $val }}" class="sr-only peer">
-                                            <span class="inline-block px-2.5 py-1 rounded-full border text-xs font-medium transition-all border-gray-200 bg-white text-gray-500 peer-checked:bg-[var(--accent)] peer-checked:text-white peer-checked:border-[var(--accent)]">{{ $lbl }}</span>
+                                            <span class="inline-block px-2.5 py-1 rounded-full border text-xs font-medium border-gray-200 bg-white text-gray-500 peer-checked:bg-accent peer-checked:text-white peer-checked:border-accent">{{ $lbl }}</span>
                                         </label>
                                         @endforeach
                                     </div>
@@ -163,7 +172,7 @@
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
                                         <label class="block text-xs text-gray-500 mb-1">Project</label>
-                                        <select wire:model="fProjectId" style="width:100%;padding:7px 10px;border:1px solid var(--rule);border-radius:6px;font:12px 'Inter',sans-serif;background:var(--paper);color:var(--ink-1);outline:none;">
+                                        <select wire:model="fProjectId" class="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg bg-white outline-none">
                                             <option value="">Any project</option>
                                             @foreach($projects as $proj)
                                             <option value="{{ $proj->id }}">{{ $proj->name }}</option>
@@ -172,7 +181,7 @@
                                     </div>
                                     <div>
                                         <label class="block text-xs text-gray-500 mb-1">Lead Source</label>
-                                        <select wire:model="fSourceId" style="width:100%;padding:7px 10px;border:1px solid var(--rule);border-radius:6px;font:12px 'Inter',sans-serif;background:var(--paper);color:var(--ink-1);outline:none;">
+                                        <select wire:model="fSourceId" class="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg bg-white outline-none">
                                             <option value="">Any source</option>
                                             @foreach($sources as $src)
                                             <option value="{{ $src->id }}">{{ $src->name }}</option>
@@ -184,17 +193,17 @@
                                 <div>
                                     <label class="block text-xs text-gray-500 mb-1">Min Budget (BDT)</label>
                                     <input wire:model="fBudgetMin" type="number" placeholder="e.g. 1000000"
-                                        style="width:100%;padding:7px 10px;border:1px solid var(--rule);border-radius:6px;font:12px 'Inter',sans-serif;background:var(--paper);outline:none;box-sizing:border-box;">
+                                        class="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg bg-white outline-none">
                                 </div>
 
                                 <label class="flex items-center gap-2 cursor-pointer">
-                                    <input wire:model.live="fIncludeCustomers" type="checkbox" class="w-4 h-4 rounded accent-[var(--accent)]">
+                                    <input wire:model.live="fIncludeCustomers" type="checkbox" class="w-4 h-4 rounded accent-accent">
                                     <span class="text-xs text-gray-600">Include Customers</span>
                                 </label>
 
                                 <div x-show="$wire.fIncludeCustomers">
                                     <label class="block text-xs text-gray-500 mb-1">Customer Status</label>
-                                    <select wire:model="fCustomerStatus" style="width:100%;padding:7px 10px;border:1px solid var(--rule);border-radius:6px;font:12px 'Inter',sans-serif;background:var(--paper);color:var(--ink-1);outline:none;">
+                                    <select wire:model="fCustomerStatus" class="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg bg-white outline-none">
                                         <option value="">Any status</option>
                                         <option value="active">Active</option>
                                         <option value="inactive">Inactive</option>
@@ -202,33 +211,89 @@
                                 </div>
 
                                 <button type="button" wire:click="previewAudience" wire:loading.attr="disabled"
-                                    style="width:100%;padding:8px;border:1px dashed var(--accent);border-radius:6px;font:600 12px 'Inter',sans-serif;color:var(--accent);background:transparent;cursor:pointer;">
+                                    class="w-full py-2 border border-dashed border-accent rounded-lg text-xs font-semibold text-accent bg-transparent cursor-pointer">
                                     <span wire:loading.remove wire:target="previewAudience">Preview Recipient Count</span>
                                     <span wire:loading wire:target="previewAudience">Counting…</span>
                                 </button>
                                 @if($previewCount > 0)
-                                <div style="text-align:center;font:600 13px var(--mono);color:var(--ink-2);">~{{ number_format($previewCount) }} recipients</div>
+                                <div class="text-center text-sm font-semibold text-gray-600">~{{ number_format($previewCount) }} recipients</div>
                                 @endif
                             </div>
                         </div>
 
+                        {{-- Static member management --}}
+                        <div x-show="$wire.fType === 'static'" class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Members</span>
+                                <span class="text-xs font-semibold text-gray-600">{{ count($staticMembers) }} added</span>
+                            </div>
+
+                            {{-- Search input --}}
+                            <div class="relative mb-3">
+                                <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                                <input wire:model.live.debounce.300ms="memberSearch" type="text"
+                                    placeholder="Search leads by name, phone, lead no…"
+                                    class="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-white outline-none focus:border-gray-400">
+
+                                {{-- Dropdown results --}}
+                                @if(count($searchResults))
+                                <div class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden">
+                                    @foreach($searchResults as $r)
+                                    <button type="button" wire:click="addMember({{ $r['id'] }})"
+                                        class="w-full text-left px-4 py-2.5 border-b border-gray-100 flex items-center justify-between gap-3 hover:bg-gray-50 cursor-pointer">
+                                        <div>
+                                            <div class="text-sm font-semibold text-gray-800">{{ $r['name'] }}</div>
+                                            <div class="text-xs text-gray-400 mt-0.5 font-mono">{{ $r['lead_no'] }} · {{ $r['phone'] }}</div>
+                                        </div>
+                                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                                              style="background:{{ $r['status_color'] }}1a;color:{{ $r['status_color'] }};">{{ $r['status'] }}</span>
+                                    </button>
+                                    @endforeach
+                                </div>
+                                @endif
+                            </div>
+
+                            {{-- Added members list --}}
+                            @if(count($staticMembers))
+                            <div class="border border-gray-200 rounded-lg overflow-hidden">
+                                @foreach($staticMembers as $m)
+                                <div class="flex items-center justify-between gap-3 px-3 py-2.5 border-b border-gray-100 bg-white last:border-b-0">
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-semibold text-gray-800 truncate">{{ $m['name'] }}</div>
+                                        <div class="text-xs text-gray-400 font-mono mt-0.5">{{ $m['lead_no'] }} · {{ $m['phone'] }}</div>
+                                    </div>
+                                    <button type="button" wire:click="removeMember({{ $m['id'] }})"
+                                        class="shrink-0 text-gray-400 hover:text-red-600 text-base leading-none px-1 cursor-pointer bg-transparent border-0"
+                                        title="Remove">×</button>
+                                </div>
+                                @endforeach
+                            </div>
+                            @else
+                            <div class="text-center py-5 text-xs text-gray-400">No members yet. Search leads above to add.</div>
+                            @endif
+                        </div>
+
+                        {{-- Active --}}
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input wire:model="fIsActive" type="checkbox" class="w-4 h-4 rounded accent-[var(--accent)]">
+                            <input wire:model="fIsActive" type="checkbox" class="w-4 h-4 rounded accent-accent">
                             <span class="text-sm text-gray-600">Active</span>
                         </label>
 
+                        {{-- Footer buttons --}}
                         <div class="flex justify-end gap-2 pt-2">
                             <button type="button" @click="$wire.closeDrawer()"
-                                style="padding:9px 20px;border:1px solid var(--rule);border-radius:7px;font:600 12px 'Inter',sans-serif;background:var(--canvas);color:var(--ink-2);cursor:pointer;">Cancel</button>
+                                class="px-5 py-2 text-xs font-semibold border border-gray-200 rounded-lg bg-gray-50 text-gray-600 cursor-pointer">Cancel</button>
                             <button type="submit" wire:loading.attr="disabled"
-                                style="padding:9px 24px;background:var(--ink-1);color:white;border:none;border-radius:7px;font:600 12px 'Inter',sans-serif;cursor:pointer;">
+                                class="px-6 py-2 text-xs font-semibold bg-gray-900 text-white rounded-lg cursor-pointer">
                                 <span wire:loading.remove wire:target="save">Save Audience</span>
                                 <span wire:loading wire:target="save">Saving…</span>
                             </button>
                         </div>
+
                     </div>
                 </form>
             </div>
         </div>
     </div>
+    @endteleport
 </div>

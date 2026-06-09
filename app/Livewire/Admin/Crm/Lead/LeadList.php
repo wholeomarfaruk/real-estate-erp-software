@@ -3,9 +3,11 @@
 namespace App\Livewire\Admin\Crm\Lead;
 
 use App\Livewire\Traits\WithMediaPicker;
+use App\Models\AudienceMember;
 use App\Models\Lead;
 use App\Models\LeadActivity;
 use App\Models\LeadSource;
+use App\Models\MarketingAudience;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -67,6 +69,12 @@ class LeadList extends Component
     public array $attachments = [];
 
     public int $formStep = 1;
+
+    // ── Audience modal ────────────────────────────────────────────────────────
+    public bool   $audienceModalOpen   = false;
+    public ?int   $audienceLeadId      = null;
+    public string $audienceLeadName    = '';
+    public array  $selectedAudienceIds = [];
 
     public function mount(): void
     {
@@ -233,6 +241,45 @@ class LeadList extends Component
         $this->resetPage();
     }
 
+    public function openAudienceModal(int $leadId): void
+    {
+        $lead = Lead::findOrFail($leadId);
+        $this->audienceLeadId      = $leadId;
+        $this->audienceLeadName    = $lead->name;
+        $this->selectedAudienceIds = [];
+        $this->audienceModalOpen   = true;
+    }
+
+    public function closeAudienceModal(): void
+    {
+        $this->audienceModalOpen   = false;
+        $this->audienceLeadId      = null;
+        $this->audienceLeadName    = '';
+        $this->selectedAudienceIds = [];
+    }
+
+    public function addToAudiences(): void
+    {
+        if (! $this->audienceLeadId || empty($this->selectedAudienceIds)) {
+            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Select at least one audience.']);
+            return;
+        }
+
+        foreach ($this->selectedAudienceIds as $audienceId) {
+            AudienceMember::firstOrCreate([
+                'audience_id' => $audienceId,
+                'member_type' => 'lead',
+                'member_id'   => $this->audienceLeadId,
+            ]);
+
+            MarketingAudience::find($audienceId)?->syncMemberCount();
+        }
+
+        $count = count($this->selectedAudienceIds);
+        $this->dispatch('toast', ['type' => 'success', 'message' => "Added to {$count} audience(s)."]);
+        $this->closeAudienceModal();
+    }
+
     public function closeDrawer(): void
     {
         $this->drawerOpen = false;
@@ -299,11 +346,16 @@ class LeadList extends Component
             'lost'      => Lead::where('status', 'lost')->count(),
         ];
 
-        $sources  = LeadSource::where('is_active', true)->orderBy('name')->get();
-        $projects = Project::orderBy('name')->get();
-        $users    = User::orderBy('name')->get();
+        $sources         = LeadSource::where('is_active', true)->orderBy('name')->get();
+        $projects        = Project::orderBy('name')->get();
+        $users           = User::orderBy('name')->get();
+        $staticAudiences = MarketingAudience::where('type', 'static')
+            ->where('is_active', true)
+            ->withCount('members')
+            ->orderBy('name')
+            ->get();
 
-        return view('livewire.admin.crm.lead.lead-list', compact('leads', 'kpi', 'sources', 'projects', 'users'))
+        return view('livewire.admin.crm.lead.lead-list', compact('leads', 'kpi', 'sources', 'projects', 'users', 'staticAudiences'))
             ->layout('layouts.admin.admin');
     }
 }

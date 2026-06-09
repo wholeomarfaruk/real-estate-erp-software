@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Marketing\Message;
 
+use App\Jobs\SendMessageJob;
 use App\Models\CommunicationTemplate;
 use App\Models\Customer;
 use App\Models\Lead;
@@ -83,21 +84,44 @@ class MessageList extends Component
             'sBody'      => 'required|string',
         ]);
 
-        Message::create([
+        // Replace {name} and other placeholders if a member is selected
+        $body    = $this->sBody;
+        $subject = $this->sSubject ?: null;
+
+        if ($this->sMemberId) {
+            $member = $this->sMemberType === 'lead'
+                ? Lead::find($this->sMemberId)
+                : Customer::find($this->sMemberId);
+
+            if ($member) {
+                $vars = [
+                    'name'  => $member->name,
+                    'phone' => $member->phone,
+                    'email' => $member->email ?? '',
+                ];
+                foreach ($vars as $key => $value) {
+                    $body    = str_replace('{' . $key . '}', $value, $body);
+                    $subject = $subject ? str_replace('{' . $key . '}', $value, $subject) : $subject;
+                }
+            }
+        }
+
+        $message = Message::create([
             'type'        => $this->sType,
             'member_type' => $this->sMemberId ? $this->sMemberType : null,
             'member_id'   => $this->sMemberId ?: null,
             'recipient'   => $this->sRecipient,
-            'subject'     => $this->sSubject ?: null,
-            'body'        => $this->sBody,
-            'status'      => 'sent', // In production: queue job
-            'sent_at'     => now(),
+            'subject'     => $subject,
+            'body'        => $body,
+            'status'      => 'queued',
             'sent_by'     => auth()->id(),
         ]);
 
+        SendMessageJob::dispatch($message->id);
+
         $this->sendModal = false;
         $this->resetSendForm();
-        $this->dispatch('toast', ['type' => 'success', 'message' => 'Message sent.']);
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Message queued for sending.']);
     }
 
     private function resetSendForm(): void

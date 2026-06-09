@@ -3,6 +3,7 @@
         drawerOpen: $wire.entangle('drawerOpen'),
         formStep: $wire.entangle('formStep'),
         fStatus: $wire.entangle('fStatus'),
+        audienceModalOpen: $wire.entangle('audienceModalOpen'),
     }"
     x-init="$store.pageName = { name: 'Leads', slug: 'leads' }"
     style="
@@ -202,6 +203,14 @@
                                     Edit
                                 </button>
                                 @endcan
+                                @can('marketing.audience.edit')
+                                <button wire:click="openAudienceModal({{ $lead->id }})"
+                                    style="padding:5px 10px; border:1px solid var(--rule); border-radius:6px; font:12px 'Inter',sans-serif;
+                                           color:var(--accent); background:var(--canvas); cursor:pointer;"
+                                    title="Add to Audience">
+                                    + Audience
+                                </button>
+                                @endcan
                                 @can('crm.lead.delete')
                                 <button x-data="livewireConfirm"
                                     @click="confirmAction({ id:{{ $lead->id }}, method:'deleteLead', title:'Delete lead?', text:'This cannot be undone.' })"
@@ -231,6 +240,55 @@
         </div>
 
     </div>
+
+    {{-- ─── ADD TO AUDIENCE MODAL ─────────────────────────────────────────────── --}}
+    <x-modal wire:model="audienceModalOpen" maxWidth="md">
+        <div style="font-family:'Inter',system-ui,sans-serif;color:#1A1814;">
+            {{-- Header --}}
+            <div style="padding:18px 20px;border-bottom:1px solid #EAE5D9;display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                    <div style="font-weight:600;font-size:15px;">Add to Audience</div>
+                    <div style="font-size:12px;color:#9B9686;margin-top:2px;">{{ $audienceLeadName }}</div>
+                </div>
+                <button @click="$wire.closeAudienceModal()" style="background:none;border:none;cursor:pointer;color:#9B9686;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            {{-- Audience list --}}
+            <div style="max-height:340px;overflow-y:auto;">
+                @forelse($staticAudiences as $aud)
+                <label style="display:flex;align-items:center;gap:12px;padding:11px 20px;border-bottom:1px solid #EAE5D9;cursor:pointer;"
+                       onmouseover="this.style.background='#F2EFE7'" onmouseout="this.style.background='transparent'">
+                    <input type="checkbox"
+                           wire:model="selectedAudienceIds"
+                           value="{{ $aud->id }}"
+                           style="width:15px;height:15px;accent-color:#1F3A68;cursor:pointer;flex-shrink:0;">
+                    <span style="flex:1;font-size:13px;font-weight:500;">{{ $aud->name }}</span>
+                    <span style="font:11px 'IBM Plex Mono',monospace;color:#9B9686;white-space:nowrap;">{{ $aud->members_count }} members</span>
+                </label>
+                @empty
+                <div style="padding:32px 20px;text-align:center;font-size:13px;color:#9B9686;">
+                    No active static audiences found.<br>
+                    <a href="{{ route('admin.marketing.audiences.index') }}" style="color:#1F3A68;font-size:12px;">Create one →</a>
+                </div>
+                @endforelse
+            </div>
+
+            {{-- Footer --}}
+            <div style="padding:14px 20px;border-top:1px solid #EAE5D9;display:flex;justify-content:flex-end;gap:8px;">
+                <button type="button" @click="$wire.closeAudienceModal()"
+                    style="padding:8px 18px;border:1px solid #EAE5D9;border-radius:7px;font:600 12px 'Inter',sans-serif;background:#F2EFE7;color:#5C5648;cursor:pointer;">
+                    Cancel
+                </button>
+                <button type="button" wire:click="addToAudiences" wire:loading.attr="disabled"
+                    style="padding:8px 20px;background:#1F3A68;color:white;border:none;border-radius:7px;font:600 12px 'Inter',sans-serif;cursor:pointer;">
+                    <span wire:loading.remove wire:target="addToAudiences">Add to Selected</span>
+                    <span wire:loading wire:target="addToAudiences">Adding…</span>
+                </button>
+            </div>
+        </div>
+    </x-modal>
 
     {{-- ─── CREATE / EDIT DRAWER ──────────────────────────────────────────────── --}}
     <div x-show="drawerOpen" x-cloak style="position:fixed; inset:0; z-index:50; display:flex; justify-content:flex-end;">
