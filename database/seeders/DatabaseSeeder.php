@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             CustomerSeeder::class,
             LeadSeeder::class,
             MarketingSeeder::class,
+            SmsGatewaySeeder::class,
             DemoTestDataSeeder::class,
             AssignPermissionSeeder::class,
 

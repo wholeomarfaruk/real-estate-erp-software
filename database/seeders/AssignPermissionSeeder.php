@@ -166,6 +166,10 @@ class AssignPermissionSeeder extends Seeder
                 'marketing.automation.create',
                 'marketing.automation.edit',
                 'marketing.automation.delete',
+                'settings.sms_gateway.view',
+                'settings.sms_gateway.create',
+                'settings.sms_gateway.edit',
+                'settings.sms_gateway.delete',
             ])
             ->get();
 
@@ -503,6 +507,7 @@ class AssignPermissionSeeder extends Seeder
                 'marketing.automation.create',
                 'marketing.automation.edit',
                 'marketing.automation.delete',
+                'settings.sms_gateway.view',
             ])
             ->get();
 

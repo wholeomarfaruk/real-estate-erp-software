@@ -323,6 +323,12 @@ class PermissionSeeder extends Seeder
             ['id' => 260, 'name' => 'marketing.automation.create'],
             ['id' => 261, 'name' => 'marketing.automation.edit'],
             ['id' => 262, 'name' => 'marketing.automation.delete'],
+
+            // Settings – SMS Gateway
+            ['id' => 263, 'name' => 'settings.sms_gateway.view'],
+            ['id' => 264, 'name' => 'settings.sms_gateway.create'],
+            ['id' => 265, 'name' => 'settings.sms_gateway.edit'],
+            ['id' => 266, 'name' => 'settings.sms_gateway.delete'],
         ];
 
         foreach ($permissions as $permission) {
