@@ -27,7 +27,9 @@
       "Bash(curl -s \"https://bulksmsdhaka.com/api-documentation\")",
       "Bash(curl -s \"https://bulksmsdhaka.com/api\")",
       "Bash(curl -s \"https://sms.bd/\")",
-      "Bash(curl -s \"https://sms.bd/api\")"
+      "Bash(curl -s \"https://sms.bd/api\")",
+      "Bash(Select-String -Pattern \"Alpha SMS\" -Context 2)",
+      "Bash(git commit -m 'Fix: Improve Alpha SMS balance check response parsing *)"
     ]
   }
 }

@@ -202,28 +202,29 @@ class SmsGatewayList extends Component
             $result = $provider->checkBalance();
 
             if ($result['success']) {
-                $balance = number_format((float)($result['balance'] ?? 0), 4);
+                $balance = number_format((float)($result['balance'] ?? 0), 2);
                 $currency = $result['currency'] ?? 'TK';
                 $this->dispatch('toast', [
                     'type' => 'success',
                     'message' => "💰 Balance: {$balance} {$currency}",
                 ]);
             } else {
-                $error = $result['error'] ?? 'Unknown error';
+                $error = $result['error'] ?? 'Unable to check balance';
                 $this->dispatch('toast', [
                     'type' => 'error',
-                    'message' => "Balance check failed: {$error}",
+                    'message' => $error,
                 ]);
             }
         } catch (\Exception $e) {
             \Log::error('Balance check error', [
                 'gateway_id' => $id,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             $this->dispatch('toast', [
                 'type' => 'error',
-                'message' => 'Network error. Please try again.',
+                'message' => 'Error checking balance. Please try again.',
             ]);
         } finally {
             $this->checkingBalanceId = null;

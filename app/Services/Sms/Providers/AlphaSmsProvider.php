@@ -63,6 +63,11 @@ class AlphaSmsProvider implements SmsProviderInterface
             if ($response->successful()) {
                 $data = $response->json();
 
+                \Log::info('Alpha SMS balance API response', [
+                    'status_code' => $response->status(),
+                    'response' => $data,
+                ]);
+
                 if (isset($data['balance'])) {
                     return [
                         'success' => true,
@@ -72,13 +77,43 @@ class AlphaSmsProvider implements SmsProviderInterface
                     ];
                 }
 
-                return ['success' => false, 'error' => 'Invalid balance response'];
+                if (isset($data['data']['balance'])) {
+                    return [
+                        'success' => true,
+                        'balance' => $data['data']['balance'],
+                        'currency' => $data['currency'] ?? $data['data']['currency'] ?? 'TK',
+                        'response' => $data,
+                    ];
+                }
+
+                if (isset($data['amount'])) {
+                    return [
+                        'success' => true,
+                        'balance' => $data['amount'],
+                        'currency' => $data['currency'] ?? 'TK',
+                        'response' => $data,
+                    ];
+                }
+
+                if (isset($data['user']['balance'])) {
+                    return [
+                        'success' => true,
+                        'balance' => $data['user']['balance'],
+                        'currency' => $data['currency'] ?? 'TK',
+                        'response' => $data,
+                    ];
+                }
+
+                return ['success' => false, 'error' => 'API returned unexpected response. Check logs.'];
             }
 
             $error = $response->json()['message'] ?? $response->json()['error'] ?? 'Balance check failed';
             return ['success' => false, 'error' => $error];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => $e->getMessage()];
+            \Log::error('Alpha SMS balance check exception', [
+                'error' => $e->getMessage(),
+            ]);
+            return ['success' => false, 'error' => 'Connection error. Please try again.'];
         }
     }
 }
