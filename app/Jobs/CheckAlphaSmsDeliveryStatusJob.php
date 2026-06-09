@@ -4,6 +4,10 @@ namespace App\Jobs;
 
 use App\Models\Message;
 use App\Services\Sms\Providers\AlphaSmsProvider;
+use App\Services\Sms\Providers\BulkSmsDhakaProvider;
+use App\Services\Sms\Providers\SslWirelessProvider;
+use App\Services\Sms\Providers\TwilioProvider;
+use App\Services\Sms\Providers\VonageProvider;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -29,7 +33,7 @@ class CheckAlphaSmsDeliveryStatusJob implements ShouldQueue
     {
         $message = Message::find($messageId);
 
-        if (!$message || $message->type !== 'sms' || !$message->alpha_request_id) {
+        if (!$message || $message->type !== 'sms' || !$message->provider_message_id) {
             return;
         }
 
@@ -40,7 +44,8 @@ class CheckAlphaSmsDeliveryStatusJob implements ShouldQueue
     {
         $messages = Message::where('type', 'sms')
             ->where('status', 'sent')
-            ->whereNotNull('alpha_request_id')
+            ->whereNotNull('provider_message_id')
+            ->whereNotNull('sms_provider')
             ->where(function ($query) {
                 $query->whereNull('last_status_check')
                     ->orWhere('last_status_check', '<', now()->subMinutes(5));
@@ -56,16 +61,21 @@ class CheckAlphaSmsDeliveryStatusJob implements ShouldQueue
     private function updateMessageDeliveryStatus(Message $message): void
     {
         try {
-            $gateway = $message->gateway ?? null;
-            if (!$gateway || $gateway->provider !== 'alpha_sms') {
-                $gateway = \App\Models\SmsGateway::where('provider', 'alpha_sms')->first();
-                if (!$gateway) {
-                    return;
-                }
+            if (!$message->sms_provider || !$message->provider_message_id) {
+                return;
             }
 
-            $provider = new AlphaSmsProvider($gateway->credentials);
-            $result = $provider->checkDeliveryStatus($message->alpha_request_id);
+            $gateway = \App\Models\SmsGateway::where('provider', $message->sms_provider)->first();
+            if (!$gateway) {
+                return;
+            }
+
+            $provider = $this->getProvider($message->sms_provider, $gateway->credentials);
+            if (!$provider) {
+                return;
+            }
+
+            $result = $provider->checkDeliveryStatus($message->provider_message_id);
 
             if (!$result['success']) {
                 $message->update(['last_status_check' => now()]);
@@ -82,8 +92,8 @@ class CheckAlphaSmsDeliveryStatusJob implements ShouldQueue
                 ]);
                 $message->addTimelineEvent('delivered', [
                     'via' => 'sms',
-                    'provider' => 'alpha_sms',
-                    'request_id' => $message->alpha_request_id,
+                    'provider' => $message->sms_provider,
+                    'message_id' => $message->provider_message_id,
                 ]);
             } elseif ($status === 'failed') {
                 $message->update([
@@ -92,23 +102,36 @@ class CheckAlphaSmsDeliveryStatusJob implements ShouldQueue
                 ]);
                 $message->addTimelineEvent('failed', [
                     'via' => 'sms',
-                    'provider' => 'alpha_sms',
-                    'reason' => 'Delivery failed per Alpha SMS report',
+                    'provider' => $message->sms_provider,
+                    'reason' => 'Delivery failed per provider report',
                 ]);
             } else {
                 $message->update(['last_status_check' => now()]);
             }
         } catch (\Throwable $e) {
-            \Log::error('CheckAlphaSmsDeliveryStatusJob error', [
+            \Log::error('CheckSmsDeliveryStatusJob error', [
                 'message_id' => $message->id,
+                'provider' => $message->sms_provider ?? 'unknown',
                 'error' => $e->getMessage(),
             ]);
         }
     }
 
+    private function getProvider(string $providerName, array $credentials)
+    {
+        return match($providerName) {
+            'ssl_wireless'     => new SslWirelessProvider($credentials),
+            'twilio'           => new TwilioProvider($credentials),
+            'vonage'           => new VonageProvider($credentials),
+            'bulk_sms_dhaka'   => new BulkSmsDhakaProvider($credentials),
+            'alpha_sms'        => new AlphaSmsProvider($credentials),
+            default            => null,
+        };
+    }
+
     public function failed(\Throwable $e): void
     {
-        \Log::error('CheckAlphaSmsDeliveryStatusJob failed', [
+        \Log::error('CheckSmsDeliveryStatusJob failed', [
             'message_id' => $this->messageId,
             'error' => $e->getMessage(),
         ]);

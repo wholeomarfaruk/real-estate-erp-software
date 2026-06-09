@@ -41,15 +41,26 @@ class SendMessageJob implements ShouldQueue
                     throw new \RuntimeException($result['error'] ?? 'SMS sending failed');
                 }
 
+                $gateway = \App\Models\SmsGateway::where('is_active', true)->first();
+                $provider = $gateway?->provider ?? 'unknown';
+
+                $messageId = $result['response']['id']
+                    ?? $result['response']['message_id']
+                    ?? $result['response']['MessageID']
+                    ?? $result['response']['sid']
+                    ?? $result['id']
+                    ?? null;
+
                 $updateData = [
                     'status'              => 'sent',
                     'sent_at'             => now(),
-                    'external_id'         => $result['response']['id'] ?? $result['response']['message_id'] ?? null,
+                    'external_id'         => $messageId,
                     'provider_response'   => $result['response'],
+                    'sms_provider'        => $provider,
+                    'provider_message_id' => $messageId,
                 ];
 
-                $gateway = \App\Models\SmsGateway::where('is_active', true)->first();
-                if ($gateway && $gateway->provider === 'alpha_sms') {
+                if ($provider === 'alpha_sms') {
                     $updateData['alpha_request_id'] = $result['response']['data']['request_id'] ?? $result['id'] ?? null;
                     $updateData['alpha_payload'] = [
                         'recipient' => $message->recipient,
@@ -61,7 +72,7 @@ class SendMessageJob implements ShouldQueue
                 $message->update($updateData);
                 $message->addTimelineEvent('sent', [
                     'via'      => 'sms',
-                    'provider' => $message->getAttribute('provider_response')['provider'] ?? 'unknown',
+                    'provider' => $provider,
                 ]);
             }
         } catch (\Throwable $e) {

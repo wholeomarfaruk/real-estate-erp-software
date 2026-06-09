@@ -11,6 +11,7 @@ class Message extends Model
         'type', 'campaign_id', 'automation_id', 'member_type', 'member_id',
         'recipient', 'subject', 'body', 'status', 'provider_response', 'sent_at', 'delivered_at',
         'sent_by', 'webhook_data', 'timeline', 'external_id', 'alpha_request_id', 'alpha_payload', 'last_status_check',
+        'sms_provider', 'provider_message_id',
     ];
 
     protected $casts = [
