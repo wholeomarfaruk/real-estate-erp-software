@@ -11,6 +11,7 @@ class SmsService
     public function send(string $to, string $body): array
     {
         $gateway = SmsGateway::where('is_active', true)->first();
+        \Log::info("Attempting to send SMS to {$to} via gateway: " . ($gateway?->provider ?? 'none'));
 
         if (!$gateway) {
             return ['success' => false, 'error' => 'No active SMS gateway configured'];
@@ -21,11 +22,13 @@ class SmsService
             'alpha_sms'      => new AlphaSmsProvider($gateway->credentials),
             default          => null,
         };
+        \Log::info("Initialized SMS driver for provider: {$gateway->provider}", ['driver_class' => get_class($driver)]);
 
         if (!$driver) {
             return ['success' => false, 'error' => "Unknown SMS provider: {$gateway->provider}"];
         }
 
+        \Log::info("Sending SMS to {$to} via driver: " . get_class($driver));
         return $driver->send($to, $body);
     }
 }
