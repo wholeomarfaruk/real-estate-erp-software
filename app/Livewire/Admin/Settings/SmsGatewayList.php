@@ -30,6 +30,14 @@ class SmsGatewayList extends Component
     public string $fApiSecret = '';
     public string $fFrom = '';
 
+    // BulkSMS Dhaka
+    public string $fApiToken = '';
+    public string $fSenderId = '';
+
+    // Alpha SMS
+    public string $fAlphaApiKey = '';
+    public string $fAlphaType = 'text';
+
     public function openCreate(): void
     {
         $this->editingId = null;
@@ -65,6 +73,14 @@ class SmsGatewayList extends Component
                 $this->fApiSecret = $creds['api_secret'] ?? '',
                 $this->fFrom = $creds['from'] ?? '',
             ],
+            'bulk_sms_dhaka' => [
+                $this->fApiToken = $creds['api_token'] ?? '',
+                $this->fSenderId = $creds['sender_id'] ?? '',
+            ],
+            'alpha_sms' => [
+                $this->fAlphaApiKey = $creds['api_key'] ?? '',
+                $this->fAlphaType = $creds['type'] ?? 'text',
+            ],
         };
 
         $this->drawerOpen = true;
@@ -93,6 +109,14 @@ class SmsGatewayList extends Component
                 'api_key'    => $this->fApiKey,
                 'api_secret' => $this->fApiSecret,
                 'from'       => $this->fFrom,
+            ],
+            'bulk_sms_dhaka' => [
+                'api_token' => $this->fApiToken,
+                'sender_id' => $this->fSenderId,
+            ],
+            'alpha_sms' => [
+                'api_key' => $this->fAlphaApiKey,
+                'type'    => $this->fAlphaType,
             ],
         };
 
@@ -159,6 +183,10 @@ class SmsGatewayList extends Component
         $this->fApiKey = '';
         $this->fApiSecret = '';
         $this->fFrom = '';
+        $this->fApiToken = '';
+        $this->fSenderId = '';
+        $this->fAlphaApiKey = '';
+        $this->fAlphaType = 'text';
     }
 
     public function render()

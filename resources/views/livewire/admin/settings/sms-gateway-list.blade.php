@@ -41,8 +41,14 @@
                                         bg-blue-100 text-blue-800
                                     @elseif ($gateway->provider === 'twilio')
                                         bg-red-100 text-red-800
-                                    @else
+                                    @elseif ($gateway->provider === 'vonage')
                                         bg-green-100 text-green-800
+                                    @elseif ($gateway->provider === 'bulk_sms_dhaka')
+                                        bg-yellow-100 text-yellow-800
+                                    @elseif ($gateway->provider === 'alpha_sms')
+                                        bg-purple-100 text-purple-800
+                                    @else
+                                        bg-gray-100 text-gray-800
                                     @endif
                                 ">
                                     {{ str_replace('_', ' ', ucfirst($gateway->provider)) }}
@@ -135,6 +141,16 @@
                                 class="w-4 h-4">
                             <span class="ml-2 text-sm text-gray-700">Vonage</span>
                         </label>
+                        <label class="flex items-center">
+                            <input type="radio" wire:model="fProvider" value="bulk_sms_dhaka"
+                                class="w-4 h-4">
+                            <span class="ml-2 text-sm text-gray-700">BulkSMS Dhaka</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" wire:model="fProvider" value="alpha_sms"
+                                class="w-4 h-4">
+                            <span class="ml-2 text-sm text-gray-700">Alpha SMS</span>
+                        </label>
                     </div>
                     @error('fProvider') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
                 </div>
@@ -208,6 +224,40 @@
                         <input type="text" wire:model="fFrom"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                             placeholder="Sender ID or phone number">
+                    </div>
+                </div>
+
+                <!-- BulkSMS Dhaka Credentials -->
+                <div x-show="$wire.fProvider === 'bulk_sms_dhaka'" x-transition class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">API Token</label>
+                        <input type="password" wire:model="fApiToken"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="Your BulkSMS Dhaka API token">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Sender ID</label>
+                        <input type="text" wire:model="fSenderId"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="Your sender ID">
+                    </div>
+                </div>
+
+                <!-- Alpha SMS Credentials -->
+                <div x-show="$wire.fProvider === 'alpha_sms'" x-transition class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                        <input type="password" wire:model="fAlphaApiKey"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="Your Alpha SMS API key">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Message Type</label>
+                        <select wire:model="fAlphaType"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            <option value="text">Text (Bangla & English)</option>
+                            <option value="unicode">Unicode (Special Characters)</option>
+                        </select>
                     </div>
                 </div>
 

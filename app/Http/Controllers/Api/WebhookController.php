@@ -42,10 +42,12 @@ class WebhookController extends Controller
     private function findMessageByProvider(string $provider, array $payload): ?Message
     {
         return match ($provider) {
-            'twilio'      => $this->findTwilioMessage($payload),
-            'ssl_wireless' => $this->findSslWirelessMessage($payload),
-            'vonage'       => $this->findVonageMessage($payload),
-            default        => null,
+            'twilio'         => $this->findTwilioMessage($payload),
+            'ssl_wireless'   => $this->findSslWirelessMessage($payload),
+            'vonage'         => $this->findVonageMessage($payload),
+            'bulk_sms_dhaka' => $this->findBulkSmsDhakaMessage($payload),
+            'alpha_sms'      => $this->findAlphaSmsMessage($payload),
+            default          => null,
         };
     }
 
@@ -67,15 +69,29 @@ class WebhookController extends Controller
         return $messageId ? Message::where('external_id', $messageId)->first() : null;
     }
 
+    private function findBulkSmsDhakaMessage(array $payload): ?Message
+    {
+        $messageId = $payload['message_id'] ?? $payload['msg_id'] ?? $payload['id'] ?? null;
+        return $messageId ? Message::where('external_id', $messageId)->first() : null;
+    }
+
+    private function findAlphaSmsMessage(array $payload): ?Message
+    {
+        $messageId = $payload['message_id'] ?? $payload['msg_id'] ?? $payload['id'] ?? null;
+        return $messageId ? Message::where('external_id', $messageId)->first() : null;
+    }
+
     private function updateMessageStatus(Message $message, string $provider, array $payload): void
     {
         $message->webhook_data = $payload;
 
         $status = match ($provider) {
-            'twilio'       => $this->getTwilioStatus($payload),
-            'ssl_wireless' => $this->getSslWirelessStatus($payload),
-            'vonage'       => $this->getVonageStatus($payload),
-            default        => null,
+            'twilio'         => $this->getTwilioStatus($payload),
+            'ssl_wireless'   => $this->getSslWirelessStatus($payload),
+            'vonage'         => $this->getVonageStatus($payload),
+            'bulk_sms_dhaka' => $this->getBulkSmsDhakaStatus($payload),
+            'alpha_sms'      => $this->getAlphaSmsStatus($payload),
+            default          => null,
         };
 
         if ($status) {
@@ -133,6 +149,41 @@ class WebhookController extends Controller
             'success' => 'delivered',
             'failed'  => 'failed',
             default   => null,
+        };
+    }
+
+    private function getBulkSmsDhakaStatus(array $payload): ?string
+    {
+        $status = $payload['status'] ?? $payload['delivery_status'] ?? null;
+
+        return match ($status) {
+            'delivered' => 'delivered',
+            'sent'      => 'sent',
+            'failed'    => 'failed',
+            'pending'   => 'queued',
+            'success'   => 'delivered',
+            '1'         => 'delivered',
+            '0'         => 'sent',
+            '2'         => 'failed',
+            default     => null,
+        };
+    }
+
+    private function getAlphaSmsStatus(array $payload): ?string
+    {
+        $status = $payload['status'] ?? $payload['delivery_status'] ?? null;
+
+        return match ($status) {
+            'delivered'      => 'delivered',
+            'sent'           => 'sent',
+            'failed'         => 'failed',
+            'pending'        => 'queued',
+            'success'        => 'delivered',
+            'delivery_success' => 'delivered',
+            '1'              => 'delivered',
+            '0'              => 'sent',
+            '2'              => 'failed',
+            default          => null,
         };
     }
 }
