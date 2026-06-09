@@ -417,3 +417,26 @@ Route::post('/properties/{property}/units/reorder', function (\App\Models\Proper
     }
     return response()->json(['ok' => true]);
 })->name('properties.units.reorder');
+
+// Marketing module
+Route::prefix('marketing')->name('marketing.')->group(function (): void {
+    Route::get('/templates', App\Livewire\Admin\Marketing\Template\TemplateList::class)
+        ->middleware('can:marketing.template.view')
+        ->name('templates.index');
+
+    Route::get('/audiences', App\Livewire\Admin\Marketing\Audience\AudienceList::class)
+        ->middleware('can:marketing.audience.view')
+        ->name('audiences.index');
+
+    Route::get('/campaigns', App\Livewire\Admin\Marketing\Campaign\CampaignList::class)
+        ->middleware('can:marketing.campaign.view')
+        ->name('campaigns.index');
+
+    Route::get('/messages', App\Livewire\Admin\Marketing\Message\MessageList::class)
+        ->middleware('can:marketing.message.view')
+        ->name('messages.index');
+
+    Route::get('/automations', App\Livewire\Admin\Marketing\Automation\AutomationList::class)
+        ->middleware('can:marketing.automation.view')
+        ->name('automations.index');
+});

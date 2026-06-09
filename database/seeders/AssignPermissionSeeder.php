@@ -146,6 +146,26 @@ class AssignPermissionSeeder extends Seeder
                 'crm.task.create',
                 'crm.task.edit',
                 'crm.task.delete',
+                // Marketing – full access for admin
+                'marketing.template.view',
+                'marketing.template.create',
+                'marketing.template.edit',
+                'marketing.template.delete',
+                'marketing.audience.view',
+                'marketing.audience.create',
+                'marketing.audience.edit',
+                'marketing.audience.delete',
+                'marketing.campaign.view',
+                'marketing.campaign.create',
+                'marketing.campaign.edit',
+                'marketing.campaign.delete',
+                'marketing.campaign.send',
+                'marketing.message.view',
+                'marketing.message.send',
+                'marketing.automation.view',
+                'marketing.automation.create',
+                'marketing.automation.edit',
+                'marketing.automation.delete',
             ])
             ->get();
 
@@ -262,6 +282,12 @@ class AssignPermissionSeeder extends Seeder
                 'crm.lead.view',
                 'crm.lead_source.view',
                 'crm.task.view',
+                // Marketing — view only
+                'marketing.template.view',
+                'marketing.audience.view',
+                'marketing.campaign.view',
+                'marketing.message.view',
+                'marketing.automation.view',
             ])
             ->get();
 
@@ -372,6 +398,12 @@ class AssignPermissionSeeder extends Seeder
                 'crm.lead.view',
                 'crm.lead_source.view',
                 'crm.task.view',
+                // Marketing — view only
+                'marketing.template.view',
+                'marketing.audience.view',
+                'marketing.campaign.view',
+                'marketing.message.view',
+                'marketing.automation.view',
             ])
             ->get();
 
@@ -451,6 +483,26 @@ class AssignPermissionSeeder extends Seeder
                 'crm.task.view',
                 'crm.task.create',
                 'crm.task.edit',
+                // Marketing — sales team: full access
+                'marketing.template.view',
+                'marketing.template.create',
+                'marketing.template.edit',
+                'marketing.template.delete',
+                'marketing.audience.view',
+                'marketing.audience.create',
+                'marketing.audience.edit',
+                'marketing.audience.delete',
+                'marketing.campaign.view',
+                'marketing.campaign.create',
+                'marketing.campaign.edit',
+                'marketing.campaign.delete',
+                'marketing.campaign.send',
+                'marketing.message.view',
+                'marketing.message.send',
+                'marketing.automation.view',
+                'marketing.automation.create',
+                'marketing.automation.edit',
+                'marketing.automation.delete',
             ])
             ->get();
 
@@ -503,6 +555,12 @@ class AssignPermissionSeeder extends Seeder
                 'crm.lead.view',
                 'crm.lead_source.view',
                 'crm.task.view',
+                // Marketing — MD: view-only
+                'marketing.template.view',
+                'marketing.audience.view',
+                'marketing.campaign.view',
+                'marketing.message.view',
+                'marketing.automation.view',
             ])
             ->get();
 

@@ -294,6 +294,35 @@ class PermissionSeeder extends Seeder
 
             // Module-level access gate
             ['id' => 243, 'name' => 'module.crm.access'],
+
+            // Marketing – Templates
+            ['id' => 244, 'name' => 'marketing.template.view'],
+            ['id' => 245, 'name' => 'marketing.template.create'],
+            ['id' => 246, 'name' => 'marketing.template.edit'],
+            ['id' => 247, 'name' => 'marketing.template.delete'],
+
+            // Marketing – Audiences
+            ['id' => 248, 'name' => 'marketing.audience.view'],
+            ['id' => 249, 'name' => 'marketing.audience.create'],
+            ['id' => 250, 'name' => 'marketing.audience.edit'],
+            ['id' => 251, 'name' => 'marketing.audience.delete'],
+
+            // Marketing – Campaigns
+            ['id' => 252, 'name' => 'marketing.campaign.view'],
+            ['id' => 253, 'name' => 'marketing.campaign.create'],
+            ['id' => 254, 'name' => 'marketing.campaign.edit'],
+            ['id' => 255, 'name' => 'marketing.campaign.delete'],
+            ['id' => 256, 'name' => 'marketing.campaign.send'],
+
+            // Marketing – Messages
+            ['id' => 257, 'name' => 'marketing.message.view'],
+            ['id' => 258, 'name' => 'marketing.message.send'],
+
+            // Marketing – Automations
+            ['id' => 259, 'name' => 'marketing.automation.view'],
+            ['id' => 260, 'name' => 'marketing.automation.create'],
+            ['id' => 261, 'name' => 'marketing.automation.edit'],
+            ['id' => 262, 'name' => 'marketing.automation.delete'],
         ];
 
         foreach ($permissions as $permission) {
