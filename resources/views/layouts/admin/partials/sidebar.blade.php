@@ -1025,17 +1025,21 @@
                         My Profile
                     </a>
 
-                    <a href="{{ route('admin.settings') }}"
-                        class="block px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white
-                               {{ Route::is('admin.settings') ? 'bg-gray-700 text-white' : '' }}">
-                        Account Settings
-                    </a>
+                    @can('section.settings.access')
+                        <a href="{{ route('admin.settings') }}"
+                            class="block px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white
+                                   {{ Route::is('admin.settings') ? 'bg-gray-700 text-white' : '' }}">
+                            Account Settings
+                        </a>
 
-                    <a href="{{ route('admin.settings.sms-gateway') }}"
-                        class="block px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white
-                               {{ Route::is('admin.settings.sms-gateway') ? 'bg-gray-700 text-white' : '' }}">
-                        SMS Gateway
-                    </a>
+                        @can('settings.sms_gateway.view')
+                        <a href="{{ route('admin.settings.sms-gateway') }}"
+                            class="block px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white
+                                   {{ Route::is('admin.settings.sms-gateway') ? 'bg-gray-700 text-white' : '' }}">
+                            SMS Gateway
+                        </a>
+                        @endcan
+                    @endcan
 
                     <button type="button" @click="$refs.logoutForm.submit()"
                         class="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-gray-700">

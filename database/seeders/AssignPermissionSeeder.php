@@ -166,6 +166,7 @@ class AssignPermissionSeeder extends Seeder
                 'marketing.automation.create',
                 'marketing.automation.edit',
                 'marketing.automation.delete',
+                'section.settings.access',
                 'settings.sms_gateway.view',
                 'settings.sms_gateway.create',
                 'settings.sms_gateway.edit',
@@ -516,6 +517,7 @@ class AssignPermissionSeeder extends Seeder
         $mdPermissions = Permission::query()
             ->whereIn('name', [
                 'section.general.access',
+                'section.settings.access',
                 'module.projects.access',
                 'module.inventory.access',
                 'module.accounts.access',
@@ -566,6 +568,8 @@ class AssignPermissionSeeder extends Seeder
                 'marketing.campaign.view',
                 'marketing.message.view',
                 'marketing.automation.view',
+                // Settings — SMS Gateway view-only
+                'settings.sms_gateway.view',
             ])
             ->get();
 
