@@ -57,5 +57,35 @@ class SmsGatewaySeeder extends Seeder
                 'updated_by'  => 1,
             ]
         );
+
+        // Test BulkSMS Dhaka Gateway
+        SmsGateway::firstOrCreate(
+            ['name' => 'Test BulkSMS Dhaka'],
+            [
+                'provider'    => 'bulk_sms_dhaka',
+                'credentials' => [
+                    'api_token' => env('BULKSMS_DHAKA_API_TOKEN', 'demo_api_token'),
+                    'sender_id' => env('BULKSMS_DHAKA_SENDER_ID', 'DemoSender'),
+                ],
+                'is_active'   => false,
+                'created_by'  => 1,
+                'updated_by'  => 1,
+            ]
+        );
+
+        // Test Alpha SMS Gateway
+        SmsGateway::firstOrCreate(
+            ['name' => 'Test Alpha SMS'],
+            [
+                'provider'    => 'alpha_sms',
+                'credentials' => [
+                    'api_key' => env('ALPHA_SMS_API_KEY', 'demo_api_key'),
+                    'type'    => env('ALPHA_SMS_TYPE', 'text'),
+                ],
+                'is_active'   => false,
+                'created_by'  => 1,
+                'updated_by'  => 1,
+            ]
+        );
     }
 }
