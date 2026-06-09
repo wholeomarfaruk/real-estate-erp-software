@@ -24,7 +24,12 @@ class TwilioProvider implements SmsProviderInterface
                 ]);
 
             if ($response->successful()) {
-                return ['success' => true, 'response' => $response->json()];
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'response' => array_merge($data, ['provider' => 'twilio']),
+                    'id' => $data['sid'] ?? null,
+                ];
             }
 
             return ['success' => false, 'error' => 'Twilio API error: ' . $response->status()];

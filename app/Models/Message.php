@@ -9,12 +9,16 @@ class Message extends Model
 {
     protected $fillable = [
         'type', 'campaign_id', 'automation_id', 'member_type', 'member_id',
-        'recipient', 'subject', 'body', 'status', 'provider_response', 'sent_at', 'sent_by',
+        'recipient', 'subject', 'body', 'status', 'provider_response', 'sent_at', 'delivered_at',
+        'sent_by', 'webhook_data', 'timeline', 'external_id',
     ];
 
     protected $casts = [
         'provider_response' => 'array',
+        'webhook_data'      => 'array',
+        'timeline'          => 'array',
         'sent_at'           => 'datetime',
+        'delivered_at'      => 'datetime',
     ];
 
     public function campaign(): BelongsTo
@@ -46,5 +50,16 @@ class Message extends Model
             'opened'    => '#8B5CF6',
             default     => '#6B7280',
         };
+    }
+
+    public function addTimelineEvent(string $event, array $data = []): void
+    {
+        $timeline = $this->timeline ?? [];
+        $timeline[] = [
+            'event'      => $event,
+            'timestamp'  => now()->toIso8601String(),
+            'data'       => $data,
+        ];
+        $this->update(['timeline' => $timeline]);
     }
 }

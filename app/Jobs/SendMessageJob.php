@@ -29,22 +29,35 @@ class SendMessageJob implements ShouldQueue
                          ->subject($message->subject ?: config('app.name') . ' Message')
                          ->from(config('mail.from.address'), config('mail.from.name'));
                 });
+
+                $message->update([
+                    'status'  => 'sent',
+                    'sent_at' => now(),
+                ]);
+                $message->addTimelineEvent('sent', ['via' => 'email']);
             } else {
                 $result = app(SmsService::class)->send($message->recipient, $message->body);
                 if (!$result['success']) {
                     throw new \RuntimeException($result['error'] ?? 'SMS sending failed');
                 }
-            }
 
-            $message->update([
-                'status'  => 'sent',
-                'sent_at' => now(),
-            ]);
+                $message->update([
+                    'status'              => 'sent',
+                    'sent_at'             => now(),
+                    'external_id'         => $result['response']['id'] ?? $result['response']['message_id'] ?? null,
+                    'provider_response'   => $result['response'],
+                ]);
+                $message->addTimelineEvent('sent', [
+                    'via'      => 'sms',
+                    'provider' => $message->getAttribute('provider_response')['provider'] ?? 'unknown',
+                ]);
+            }
         } catch (\Throwable $e) {
             $message->update([
                 'status'            => 'failed',
                 'provider_response' => ['error' => $e->getMessage()],
             ]);
+            $message->addTimelineEvent('failed', ['error' => $e->getMessage()]);
         }
     }
 

@@ -21,7 +21,12 @@ class VonageProvider implements SmsProviderInterface
             ]);
 
             if ($response->successful()) {
-                return ['success' => true, 'response' => $response->json()];
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'response' => array_merge($data, ['provider' => 'vonage']),
+                    'id' => $data['messages'][0]['message-id'] ?? $data['messageId'] ?? null,
+                ];
             }
 
             return ['success' => false, 'error' => 'Vonage API error: ' . $response->status()];

@@ -21,7 +21,12 @@ class SslWirelessProvider implements SmsProviderInterface
             ]);
 
             if ($response->successful()) {
-                return ['success' => true, 'response' => $response->json()];
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'response' => array_merge($data, ['provider' => 'ssl_wireless']),
+                    'id' => $data['MessageID'] ?? $data['msg_id'] ?? null,
+                ];
             }
 
             return ['success' => false, 'error' => 'SSL Wireless API error: ' . $response->status()];
