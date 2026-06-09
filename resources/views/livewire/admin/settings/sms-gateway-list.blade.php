@@ -72,6 +72,21 @@
                                         Set Active
                                     </button>
                                 @endif
+
+                                @if ($gateway->credentials && isset($gateway->credentials['website']))
+                                    <a href="{{ $gateway->credentials['website'] }}" target="_blank" rel="noopener noreferrer"
+                                        class="text-indigo-600 hover:text-indigo-800 font-medium">
+                                        Website
+                                    </a>
+                                @endif
+
+                                @if ($gateway->credentials && isset($gateway->credentials['dashboard']))
+                                    <a href="{{ $gateway->credentials['dashboard'] }}" target="_blank" rel="noopener noreferrer"
+                                        class="text-cyan-600 hover:text-cyan-800 font-medium">
+                                        Dashboard
+                                    </a>
+                                @endif
+
                                 <button type="button" @click="$wire.openEdit({{ $gateway->id }})"
                                     class="text-blue-600 hover:text-blue-800 font-medium">
                                     Edit
