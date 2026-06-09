@@ -131,10 +131,10 @@ class MessageList extends Component
 
         $message = Message::find($messageId);
 
-        if (!$message || $message->type !== 'sms' || !$message->alpha_request_id) {
+        if (!$message || $message->type !== 'sms' || !$message->provider_message_id) {
             $this->dispatch('toast', [
                 'type' => 'warning',
-                'message' => 'Not an Alpha SMS message or no request ID.',
+                'message' => 'SMS message ID not found or already delivered.',
             ]);
             return;
         }

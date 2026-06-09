@@ -117,7 +117,7 @@
                             @endif
                         </td>
                         <td style="padding:12px 16px;text-align:center;">
-                            @if($msg->type === 'sms' && $msg->status === 'sent' && $msg->alpha_request_id)
+                            @if($msg->type === 'sms' && $msg->status === 'sent' && $msg->provider_message_id)
                             <button wire:click="checkDeliveryStatus({{ $msg->id }})"
                                 wire:loading.attr="disabled"
                                 style="padding:4px 8px;border-radius:5px;border:none;font:500 11px 'Inter',sans-serif;background:#DBEAFE;color:#1D4ED8;cursor:pointer;transition:all;"

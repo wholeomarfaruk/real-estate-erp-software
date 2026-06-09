@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(Get-ChildItem -Path \"f:\\\\projects\\\\erp-software\\\\database\\\\migrations\" -Filter \"*expense*\" -o Name)"
+      "Bash(Get-ChildItem -Path \"f:\\\\projects\\\\erp-software\\\\database\\\\migrations\" -Filter \"*expense*\" -o Name)",
+      "Bash(git commit -m 'Fix: Use provider_message_id for delivery status checks on all providers *)"
     ]
   }
 }
