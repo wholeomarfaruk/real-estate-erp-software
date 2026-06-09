@@ -37,13 +37,7 @@
                             <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $gateway->name }}</td>
                             <td class="px-6 py-4 text-sm">
                                 <span class="px-3 py-1 rounded-full text-xs font-semibold
-                                    @if ($gateway->provider === 'ssl_wireless')
-                                        bg-blue-100 text-blue-800
-                                    @elseif ($gateway->provider === 'twilio')
-                                        bg-red-100 text-red-800
-                                    @elseif ($gateway->provider === 'vonage')
-                                        bg-green-100 text-green-800
-                                    @elseif ($gateway->provider === 'bulk_sms_dhaka')
+                                    @if ($gateway->provider === 'bulk_sms_dhaka')
                                         bg-yellow-100 text-yellow-800
                                     @elseif ($gateway->provider === 'alpha_sms')
                                         bg-purple-100 text-purple-800
@@ -160,21 +154,6 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">Provider</label>
                     <div class="space-y-2">
                         <label class="flex items-center">
-                            <input type="radio" wire:model="fProvider" value="ssl_wireless"
-                                class="w-4 h-4">
-                            <span class="ml-2 text-sm text-gray-700">SSL Wireless</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="radio" wire:model="fProvider" value="twilio"
-                                class="w-4 h-4">
-                            <span class="ml-2 text-sm text-gray-700">Twilio</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="radio" wire:model="fProvider" value="vonage"
-                                class="w-4 h-4">
-                            <span class="ml-2 text-sm text-gray-700">Vonage</span>
-                        </label>
-                        <label class="flex items-center">
                             <input type="radio" wire:model="fProvider" value="bulk_sms_dhaka"
                                 class="w-4 h-4">
                             <span class="ml-2 text-sm text-gray-700">BulkSMS Dhaka</span>
@@ -188,77 +167,6 @@
                     @error('fProvider') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
                 </div>
 
-                <!-- SSL Wireless Credentials -->
-                <div x-show="$wire.fProvider === 'ssl_wireless'" x-transition class="space-y-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">API URL</label>
-                        <input type="text" wire:model="fApiUrl"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            placeholder="https://api.ssl.com.bd/send-sms">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">API User</label>
-                        <input type="text" wire:model="fApiUser"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            placeholder="Your API username">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">API Password</label>
-                        <input type="password" wire:model="fApiPassword"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            placeholder="Your API password">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Sender ID (SID)</label>
-                        <input type="text" wire:model="fSid"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            placeholder="Your sender ID">
-                    </div>
-                </div>
-
-                <!-- Twilio Credentials -->
-                <div x-show="$wire.fProvider === 'twilio'" x-transition class="space-y-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Account SID</label>
-                        <input type="text" wire:model="fAccountSid"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Auth Token</label>
-                        <input type="password" wire:model="fAuthToken"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            placeholder="Your auth token">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">From Number</label>
-                        <input type="text" wire:model="fFromNumber"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            placeholder="+1234567890">
-                    </div>
-                </div>
-
-                <!-- Vonage Credentials -->
-                <div x-show="$wire.fProvider === 'vonage'" x-transition class="space-y-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
-                        <input type="text" wire:model="fApiKey"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            placeholder="Your API key">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">API Secret</label>
-                        <input type="password" wire:model="fApiSecret"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            placeholder="Your API secret">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">From</label>
-                        <input type="text" wire:model="fFrom"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            placeholder="Sender ID or phone number">
-                    </div>
-                </div>
 
                 <!-- BulkSMS Dhaka Credentials -->
                 <div x-show="$wire.fProvider === 'bulk_sms_dhaka'" x-transition class="space-y-3">

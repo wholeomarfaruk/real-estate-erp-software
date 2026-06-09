@@ -5,9 +5,6 @@ namespace App\Jobs;
 use App\Models\Message;
 use App\Services\Sms\Providers\AlphaSmsProvider;
 use App\Services\Sms\Providers\BulkSmsDhakaProvider;
-use App\Services\Sms\Providers\SslWirelessProvider;
-use App\Services\Sms\Providers\TwilioProvider;
-use App\Services\Sms\Providers\VonageProvider;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -120,12 +117,9 @@ class CheckAlphaSmsDeliveryStatusJob implements ShouldQueue
     private function getProvider(string $providerName, array $credentials)
     {
         return match($providerName) {
-            'ssl_wireless'     => new SslWirelessProvider($credentials),
-            'twilio'           => new TwilioProvider($credentials),
-            'vonage'           => new VonageProvider($credentials),
-            'bulk_sms_dhaka'   => new BulkSmsDhakaProvider($credentials),
-            'alpha_sms'        => new AlphaSmsProvider($credentials),
-            default            => null,
+            'bulk_sms_dhaka' => new BulkSmsDhakaProvider($credentials),
+            'alpha_sms'      => new AlphaSmsProvider($credentials),
+            default          => null,
         };
     }
 

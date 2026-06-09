@@ -12,24 +12,8 @@ class SmsGatewayList extends Component
     public ?int $checkingBalanceId = null;
 
     public string $fName = '';
-    public string $fProvider = 'ssl_wireless';
+    public string $fProvider = 'bulk_sms_dhaka';
     public bool $fIsActive = false;
-
-    // SSL Wireless
-    public string $fApiUrl = '';
-    public string $fApiUser = '';
-    public string $fApiPassword = '';
-    public string $fSid = '';
-
-    // Twilio
-    public string $fAccountSid = '';
-    public string $fAuthToken = '';
-    public string $fFromNumber = '';
-
-    // Vonage
-    public string $fApiKey = '';
-    public string $fApiSecret = '';
-    public string $fFrom = '';
 
     // BulkSMS Dhaka
     public string $fApiToken = '';
@@ -60,22 +44,6 @@ class SmsGatewayList extends Component
 
         $creds = $gateway->credentials;
         match($gateway->provider) {
-            'ssl_wireless' => [
-                $this->fApiUrl = $creds['api_url'] ?? '',
-                $this->fApiUser = $creds['api_user'] ?? '',
-                $this->fApiPassword = $creds['api_password'] ?? '',
-                $this->fSid = $creds['sid'] ?? '',
-            ],
-            'twilio' => [
-                $this->fAccountSid = $creds['account_sid'] ?? '',
-                $this->fAuthToken = $creds['auth_token'] ?? '',
-                $this->fFromNumber = $creds['from_number'] ?? '',
-            ],
-            'vonage' => [
-                $this->fApiKey = $creds['api_key'] ?? '',
-                $this->fApiSecret = $creds['api_secret'] ?? '',
-                $this->fFrom = $creds['from'] ?? '',
-            ],
             'bulk_sms_dhaka' => [
                 $this->fApiToken = $creds['api_token'] ?? '',
                 $this->fSenderId = $creds['sender_id'] ?? '',
@@ -99,22 +67,6 @@ class SmsGatewayList extends Component
         ]);
 
         $credentials = match($this->fProvider) {
-            'ssl_wireless' => [
-                'api_url'      => $this->fApiUrl,
-                'api_user'     => $this->fApiUser,
-                'api_password' => $this->fApiPassword,
-                'sid'          => $this->fSid,
-            ],
-            'twilio' => [
-                'account_sid'  => $this->fAccountSid,
-                'auth_token'   => $this->fAuthToken,
-                'from_number'  => $this->fFromNumber,
-            ],
-            'vonage' => [
-                'api_key'    => $this->fApiKey,
-                'api_secret' => $this->fApiSecret,
-                'from'       => $this->fFrom,
-            ],
             'bulk_sms_dhaka' => [
                 'api_token' => $this->fApiToken,
                 'sender_id' => $this->fSenderId,
@@ -241,18 +193,8 @@ class SmsGatewayList extends Component
     {
         $this->editingId = null;
         $this->fName = '';
-        $this->fProvider = 'ssl_wireless';
+        $this->fProvider = 'bulk_sms_dhaka';
         $this->fIsActive = false;
-        $this->fApiUrl = '';
-        $this->fApiUser = '';
-        $this->fApiPassword = '';
-        $this->fSid = '';
-        $this->fAccountSid = '';
-        $this->fAuthToken = '';
-        $this->fFromNumber = '';
-        $this->fApiKey = '';
-        $this->fApiSecret = '';
-        $this->fFrom = '';
         $this->fApiToken = '';
         $this->fSenderId = '';
         $this->fAlphaApiKey = '';

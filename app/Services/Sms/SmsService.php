@@ -5,9 +5,6 @@ namespace App\Services\Sms;
 use App\Models\SmsGateway;
 use App\Services\Sms\Providers\AlphaSmsProvider;
 use App\Services\Sms\Providers\BulkSmsDhakaProvider;
-use App\Services\Sms\Providers\SslWirelessProvider;
-use App\Services\Sms\Providers\TwilioProvider;
-use App\Services\Sms\Providers\VonageProvider;
 
 class SmsService
 {
@@ -20,12 +17,14 @@ class SmsService
         }
 
         $driver = match($gateway->provider) {
-            'ssl_wireless'     => new SslWirelessProvider($gateway->credentials),
-            'twilio'           => new TwilioProvider($gateway->credentials),
-            'vonage'           => new VonageProvider($gateway->credentials),
-            'bulk_sms_dhaka'   => new BulkSmsDhakaProvider($gateway->credentials),
-            'alpha_sms'        => new AlphaSmsProvider($gateway->credentials),
+            'bulk_sms_dhaka' => new BulkSmsDhakaProvider($gateway->credentials),
+            'alpha_sms'      => new AlphaSmsProvider($gateway->credentials),
+            default          => null,
         };
+
+        if (!$driver) {
+            return ['success' => false, 'error' => "Unknown SMS provider: {$gateway->provider}"];
+        }
 
         return $driver->send($to, $body);
     }
