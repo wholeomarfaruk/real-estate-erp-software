@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Marketing\Message;
 
+use App\Jobs\CheckAlphaSmsDeliveryStatusJob;
 use App\Jobs\SendMessageJob;
 use App\Models\CommunicationTemplate;
 use App\Models\Customer;
@@ -122,6 +123,28 @@ class MessageList extends Component
         $this->sendModal = false;
         $this->resetSendForm();
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Message queued for sending.']);
+    }
+
+    public function checkDeliveryStatus(int $messageId): void
+    {
+        abort_unless(auth()->user()?->can('marketing.message.view'), 403);
+
+        $message = Message::find($messageId);
+
+        if (!$message || $message->type !== 'sms' || !$message->alpha_request_id) {
+            $this->dispatch('toast', [
+                'type' => 'warning',
+                'message' => 'Not an Alpha SMS message or no request ID.',
+            ]);
+            return;
+        }
+
+        CheckAlphaSmsDeliveryStatusJob::dispatch($messageId);
+
+        $this->dispatch('toast', [
+            'type' => 'info',
+            'message' => 'Checking delivery status...',
+        ]);
     }
 
     private function resetSendForm(): void

@@ -122,4 +122,71 @@ class AlphaSmsProvider implements SmsProviderInterface
             return ['success' => false, 'error' => 'Connection error. Please try again.'];
         }
     }
+
+    public function checkDeliveryStatus(string $requestId): array
+    {
+        try {
+            $apiUrl = 'https://api.sms.net.bd/report/request/' . $requestId . '/';
+            $apiKey = $this->credentials['api_key'];
+
+            $response = Http::timeout(10)->get($apiUrl, [
+                'api_key' => $apiKey,
+            ]);
+
+            \Log::info('Alpha SMS delivery status check', [
+                'request_id' => $requestId,
+                'status_code' => $response->status(),
+                'response' => $response->json(),
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                if (isset($data['error']) && $data['error'] == 0) {
+                    $recipients = $data['data']['recipients'] ?? [];
+
+                    if (empty($recipients)) {
+                        return [
+                            'success' => true,
+                            'status' => 'pending',
+                            'message' => 'Request found, status checking',
+                            'response' => $data,
+                        ];
+                    }
+
+                    $overallStatus = 'sent';
+                    foreach ($recipients as $recipient) {
+                        if (isset($recipient['status'])) {
+                            $status = strtolower($recipient['status']);
+                            if ($status === 'delivered') {
+                                $overallStatus = 'delivered';
+                                break;
+                            } elseif ($status === 'failed' || $status === 'bounced') {
+                                $overallStatus = 'failed';
+                            }
+                        }
+                    }
+
+                    return [
+                        'success' => true,
+                        'status' => $overallStatus,
+                        'recipients' => $recipients,
+                        'response' => $data,
+                    ];
+                }
+
+                $error = $data['msg'] ?? $data['message'] ?? $data['error'] ?? 'Unknown error';
+                return ['success' => false, 'error' => $error];
+            }
+
+            $error = $response->json()['msg'] ?? $response->json()['error'] ?? 'API error: ' . $response->status();
+            return ['success' => false, 'error' => $error];
+        } catch (\Throwable $e) {
+            \Log::error('Alpha SMS delivery status check exception', [
+                'request_id' => $requestId,
+                'error' => $e->getMessage(),
+            ]);
+            return ['success' => false, 'error' => 'Connection error. Please try again.'];
+        }
+    }
 }

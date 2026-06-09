@@ -41,12 +41,24 @@ class SendMessageJob implements ShouldQueue
                     throw new \RuntimeException($result['error'] ?? 'SMS sending failed');
                 }
 
-                $message->update([
+                $updateData = [
                     'status'              => 'sent',
                     'sent_at'             => now(),
                     'external_id'         => $result['response']['id'] ?? $result['response']['message_id'] ?? null,
                     'provider_response'   => $result['response'],
-                ]);
+                ];
+
+                $gateway = \App\Models\SmsGateway::where('is_active', true)->first();
+                if ($gateway && $gateway->provider === 'alpha_sms') {
+                    $updateData['alpha_request_id'] = $result['response']['data']['request_id'] ?? $result['id'] ?? null;
+                    $updateData['alpha_payload'] = [
+                        'recipient' => $message->recipient,
+                        'body'      => $message->body,
+                        'timestamp' => now()->toIso8601String(),
+                    ];
+                }
+
+                $message->update($updateData);
                 $message->addTimelineEvent('sent', [
                     'via'      => 'sms',
                     'provider' => $message->getAttribute('provider_response')['provider'] ?? 'unknown',

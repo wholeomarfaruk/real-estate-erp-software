@@ -67,6 +67,7 @@
                         <th style="padding:10px 16px;text-align:left;font:600 10px 'Inter',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);">Campaign</th>
                         <th style="padding:10px 16px;text-align:left;font:600 10px 'Inter',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);">Status</th>
                         <th style="padding:10px 16px;text-align:left;font:600 10px 'Inter',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);">Sent At</th>
+                        <th style="padding:10px 16px;text-align:center;font:600 10px 'Inter',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -113,6 +114,19 @@
                             <div style="font:10px var(--mono);color:var(--ink-3);">{{ $msg->sent_at->format('H:i') }}</div>
                             @else
                             <span style="color:var(--ink-3);font-size:11px;">—</span>
+                            @endif
+                        </td>
+                        <td style="padding:12px 16px;text-align:center;">
+                            @if($msg->type === 'sms' && $msg->status === 'sent' && $msg->alpha_request_id)
+                            <button wire:click="checkDeliveryStatus({{ $msg->id }})"
+                                wire:loading.attr="disabled"
+                                style="padding:4px 8px;border-radius:5px;border:none;font:500 11px 'Inter',sans-serif;background:#DBEAFE;color:#1D4ED8;cursor:pointer;transition:all;"
+                                onmouseover="this.style.background='#BFDBFE'"
+                                onmouseout="this.style.background='#DBEAFE'"
+                                wire:loading.style="opacity:0.6">
+                                <span wire:loading.remove>Check Status</span>
+                                <span wire:loading wire:target="checkDeliveryStatus">Checking...</span>
+                            </button>
                             @endif
                         </td>
                     </tr>
