@@ -13,38 +13,44 @@ class AlphaSmsProvider implements SmsProviderInterface
     {
         try {
             $apiUrl = $this->credentials['api_url_send'] ?? 'https://api.sms.net.bd/sendsms';
+            $apiKey = $this->credentials['api_key'];
 
-            $response = Http::timeout(10)->post($apiUrl, [
-                'api_key'    => $this->credentials['api_key'],
-                'type'       => $this->credentials['type'] ?? 'text',
-                'message'    => $message,
-                'number'     => $to,
+            $phone = ltrim($to, '+');
+
+            $payload = [
+                'api_key' => $apiKey,
+                'msg'     => $message,
+                'to'      => $phone,
+            ];
+
+            \Log::info('Alpha SMS send request', [
+                'url' => $apiUrl,
+                'payload' => array_merge($payload, ['api_key' => '***']),
+            ]);
+
+            $response = Http::timeout(10)->get($apiUrl, $payload);
+
+            \Log::info('Alpha SMS send API response', [
+                'status_code' => $response->status(),
+                'response' => $response->json(),
             ]);
 
             if ($response->successful()) {
                 $data = $response->json();
 
-                if (isset($data['status']) && $data['status'] === 'success') {
+                if (isset($data['error']) && $data['error'] == 0) {
                     return [
                         'success' => true,
                         'response' => array_merge($data, ['provider' => 'alpha_sms']),
-                        'id' => $data['message_id'] ?? $data['msg_id'] ?? $data['id'] ?? null,
+                        'id' => $data['data']['request_id'] ?? $data['request_id'] ?? null,
                     ];
                 }
 
-                if ($response->status() === 200 && isset($data['message_id'])) {
-                    return [
-                        'success' => true,
-                        'response' => array_merge($data, ['provider' => 'alpha_sms']),
-                        'id' => $data['message_id'],
-                    ];
-                }
-
-                $error = $data['message'] ?? $data['error'] ?? 'Alpha SMS API error';
+                $error = $data['msg'] ?? $data['message'] ?? $data['error'] ?? 'Alpha SMS API error';
                 return ['success' => false, 'error' => $error];
             }
 
-            $error = $response->json()['message'] ?? $response->json()['error'] ?? 'Alpha SMS API error: ' . $response->status();
+            $error = $response->json()['msg'] ?? $response->json()['message'] ?? $response->json()['error'] ?? 'Alpha SMS API error: ' . $response->status();
             return ['success' => false, 'error' => $error];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => $e->getMessage()];
