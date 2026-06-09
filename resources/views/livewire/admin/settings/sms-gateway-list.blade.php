@@ -87,6 +87,13 @@
                                     </a>
                                 @endif
 
+                                @if ($gateway->provider === 'alpha_sms' && $gateway->is_active)
+                                    <button type="button" @click="$wire.checkBalance({{ $gateway->id }})"
+                                        class="text-amber-600 hover:text-amber-800 font-medium">
+                                        Check Balance
+                                    </button>
+                                @endif
+
                                 <button type="button" @click="$wire.openEdit({{ $gateway->id }})"
                                     class="text-blue-600 hover:text-blue-800 font-medium">
                                     Edit
@@ -273,6 +280,18 @@
                             <option value="text">Text (Bangla & English)</option>
                             <option value="unicode">Unicode (Special Characters)</option>
                         </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Send SMS Endpoint</label>
+                        <input type="text" wire:model="fAlphaApiUrlSend"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="https://api.sms.net.bd/sendsms">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Check Balance Endpoint</label>
+                        <input type="text" wire:model="fAlphaApiUrlBalance"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="https://api.sms.net.bd/user/balance/">
                     </div>
                 </div>
 

@@ -26,7 +26,8 @@
       "Bash(curl -s \"https://bulksmsdhaka.com/\")",
       "Bash(curl -s \"https://bulksmsdhaka.com/api-documentation\")",
       "Bash(curl -s \"https://bulksmsdhaka.com/api\")",
-      "Bash(curl -s \"https://sms.bd/\")"
+      "Bash(curl -s \"https://sms.bd/\")",
+      "Bash(curl -s \"https://sms.bd/api\")"
     ]
   }
 }

@@ -12,11 +12,11 @@ class AlphaSmsProvider implements SmsProviderInterface
     public function send(string $to, string $message): array
     {
         try {
-            // Alpha SMS supports both masking and non-masking API
-            // Using non-masking API endpoint
-            $response = Http::timeout(10)->post('https://api.sms.bd/sendsms', [
+            $apiUrl = $this->credentials['api_url_send'] ?? 'https://api.sms.net.bd/sendsms';
+
+            $response = Http::timeout(10)->post($apiUrl, [
                 'api_key'    => $this->credentials['api_key'],
-                'type'       => $this->credentials['type'] ?? 'text', // text or unicode
+                'type'       => $this->credentials['type'] ?? 'text',
                 'message'    => $message,
                 'number'     => $to,
             ]);
@@ -24,8 +24,6 @@ class AlphaSmsProvider implements SmsProviderInterface
             if ($response->successful()) {
                 $data = $response->json();
 
-                // Alpha SMS returns success with various response formats
-                // Check for common response indicators
                 if (isset($data['status']) && $data['status'] === 'success') {
                     return [
                         'success' => true,
@@ -34,7 +32,6 @@ class AlphaSmsProvider implements SmsProviderInterface
                     ];
                 }
 
-                // Also handle if response code is 200 without explicit status field
                 if ($response->status() === 200 && isset($data['message_id'])) {
                     return [
                         'success' => true,
@@ -43,13 +40,42 @@ class AlphaSmsProvider implements SmsProviderInterface
                     ];
                 }
 
-                // Error in response
                 $error = $data['message'] ?? $data['error'] ?? 'Alpha SMS API error';
                 return ['success' => false, 'error' => $error];
             }
 
-            // HTTP error
             $error = $response->json()['message'] ?? $response->json()['error'] ?? 'Alpha SMS API error: ' . $response->status();
+            return ['success' => false, 'error' => $error];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    public function checkBalance(): array
+    {
+        try {
+            $apiUrl = $this->credentials['api_url_balance'] ?? 'https://api.sms.net.bd/user/balance/';
+
+            $response = Http::timeout(10)->get($apiUrl, [
+                'api_key' => $this->credentials['api_key'],
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                if (isset($data['balance'])) {
+                    return [
+                        'success' => true,
+                        'balance' => $data['balance'],
+                        'currency' => $data['currency'] ?? 'TK',
+                        'response' => $data,
+                    ];
+                }
+
+                return ['success' => false, 'error' => 'Invalid balance response'];
+            }
+
+            $error = $response->json()['message'] ?? $response->json()['error'] ?? 'Balance check failed';
             return ['success' => false, 'error' => $error];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => $e->getMessage()];

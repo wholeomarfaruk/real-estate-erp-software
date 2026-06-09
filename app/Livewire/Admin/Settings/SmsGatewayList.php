@@ -37,6 +37,8 @@ class SmsGatewayList extends Component
     // Alpha SMS
     public string $fAlphaApiKey = '';
     public string $fAlphaType = 'text';
+    public string $fAlphaApiUrlSend = '';
+    public string $fAlphaApiUrlBalance = '';
 
     public function openCreate(): void
     {
@@ -80,6 +82,8 @@ class SmsGatewayList extends Component
             'alpha_sms' => [
                 $this->fAlphaApiKey = $creds['api_key'] ?? '',
                 $this->fAlphaType = $creds['type'] ?? 'text',
+                $this->fAlphaApiUrlSend = $creds['api_url_send'] ?? 'https://api.sms.net.bd/sendsms',
+                $this->fAlphaApiUrlBalance = $creds['api_url_balance'] ?? 'https://api.sms.net.bd/user/balance/',
             ],
         };
 
@@ -115,8 +119,10 @@ class SmsGatewayList extends Component
                 'sender_id' => $this->fSenderId,
             ],
             'alpha_sms' => [
-                'api_key' => $this->fAlphaApiKey,
-                'type'    => $this->fAlphaType,
+                'api_key'         => $this->fAlphaApiKey,
+                'type'            => $this->fAlphaType,
+                'api_url_send'    => $this->fAlphaApiUrlSend,
+                'api_url_balance' => $this->fAlphaApiUrlBalance,
             ],
         };
 
@@ -161,6 +167,36 @@ class SmsGatewayList extends Component
         $this->dispatch('toast', ['type' => 'success', 'message' => 'SMS Gateway activated.']);
     }
 
+    public function checkBalance(int $id): void
+    {
+        $gateway = SmsGateway::find($id);
+        if (!$gateway) return;
+
+        if ($gateway->provider !== 'alpha_sms') {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Balance check only available for Alpha SMS.']);
+            return;
+        }
+
+        try {
+            $provider = new \App\Services\Sms\Providers\AlphaSmsProvider($gateway->credentials);
+            $result = $provider->checkBalance();
+
+            if ($result['success']) {
+                $balance = $result['balance'] ?? 0;
+                $currency = $result['currency'] ?? 'TK';
+                $this->dispatch('toast', [
+                    'type' => 'success',
+                    'message' => "Balance: {$balance} {$currency}",
+                ]);
+            } else {
+                $error = $result['error'] ?? 'Unknown error';
+                $this->dispatch('toast', ['type' => 'error', 'message' => "Balance check failed: {$error}"]);
+            }
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Error: ' . $e->getMessage()]);
+        }
+    }
+
     public function closeDrawer(): void
     {
         $this->drawerOpen = false;
@@ -187,6 +223,8 @@ class SmsGatewayList extends Component
         $this->fSenderId = '';
         $this->fAlphaApiKey = '';
         $this->fAlphaType = 'text';
+        $this->fAlphaApiUrlSend = '';
+        $this->fAlphaApiUrlBalance = '';
     }
 
     public function render()
