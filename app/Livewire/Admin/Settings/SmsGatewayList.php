@@ -9,6 +9,7 @@ class SmsGatewayList extends Component
 {
     public bool $drawerOpen = false;
     public ?int $editingId = null;
+    public ?int $checkingBalanceId = null;
 
     public string $fName = '';
     public string $fProvider = 'ssl_wireless';
@@ -169,31 +170,63 @@ class SmsGatewayList extends Component
 
     public function checkBalance(int $id): void
     {
-        $gateway = SmsGateway::find($id);
-        if (!$gateway) return;
-
-        if ($gateway->provider !== 'alpha_sms') {
-            $this->dispatch('toast', ['type' => 'error', 'message' => 'Balance check only available for Alpha SMS.']);
-            return;
-        }
-
         try {
+            $gateway = SmsGateway::find($id);
+            if (!$gateway) {
+                $this->dispatch('toast', [
+                    'type' => 'error',
+                    'message' => 'Gateway not found.',
+                ]);
+                return;
+            }
+
+            if ($gateway->provider !== 'alpha_sms') {
+                $this->dispatch('toast', [
+                    'type' => 'warning',
+                    'message' => 'Balance check available only for Alpha SMS.',
+                ]);
+                return;
+            }
+
+            if (!isset($gateway->credentials['api_key']) || empty($gateway->credentials['api_key'])) {
+                $this->dispatch('toast', [
+                    'type' => 'warning',
+                    'message' => 'API key not configured. Please edit and save.',
+                ]);
+                return;
+            }
+
+            $this->checkingBalanceId = $id;
+
             $provider = new \App\Services\Sms\Providers\AlphaSmsProvider($gateway->credentials);
             $result = $provider->checkBalance();
 
             if ($result['success']) {
-                $balance = $result['balance'] ?? 0;
+                $balance = number_format((float)($result['balance'] ?? 0), 4);
                 $currency = $result['currency'] ?? 'TK';
                 $this->dispatch('toast', [
                     'type' => 'success',
-                    'message' => "Balance: {$balance} {$currency}",
+                    'message' => "💰 Balance: {$balance} {$currency}",
                 ]);
             } else {
                 $error = $result['error'] ?? 'Unknown error';
-                $this->dispatch('toast', ['type' => 'error', 'message' => "Balance check failed: {$error}"]);
+                $this->dispatch('toast', [
+                    'type' => 'error',
+                    'message' => "Balance check failed: {$error}",
+                ]);
             }
-        } catch (\Throwable $e) {
-            $this->dispatch('toast', ['type' => 'error', 'message' => 'Error: ' . $e->getMessage()]);
+        } catch (\Exception $e) {
+            \Log::error('Balance check error', [
+                'gateway_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->dispatch('toast', [
+                'type' => 'error',
+                'message' => 'Network error. Please try again.',
+            ]);
+        } finally {
+            $this->checkingBalanceId = null;
         }
     }
 
