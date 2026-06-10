@@ -2,11 +2,12 @@
 
 namespace App\Jobs;
 
+use App\Models\Campaign;
 use App\Models\Message;
+use App\Services\Mail\MailService;
 use App\Services\Sms\SmsService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Mail;
 
 class SendMessageJob implements ShouldQueue
 {
@@ -24,11 +25,13 @@ class SendMessageJob implements ShouldQueue
 
         try {
             if ($message->type === 'email') {
-                Mail::html($message->body, function ($mail) use ($message) {
-                    $mail->to($message->recipient)
-                         ->subject($message->subject ?: config('app.name') . ' Message')
-                         ->from(config('mail.from.address'), config('mail.from.name'));
-                });
+                $subject = $message->subject ?: config('app.name') . ' Message';
+
+                app(MailService::class)->send(
+                    $message->recipient,
+                    $subject,
+                    $message->body,
+                );
 
                 $message->update([
                     'status'  => 'sent',
@@ -76,21 +79,49 @@ class SendMessageJob implements ShouldQueue
                 ]);
             }
         } catch (\Throwable $e) {
-            $updateData = [
+            $message->update([
                 'status'            => 'failed',
                 'provider_response' => ['error' => $e->getMessage()],
-            ];
-
-            $message->update($updateData);
+            ]);
             $message->addTimelineEvent('failed', ['error' => $e->getMessage()]);
+        } finally {
+            $this->maybeCompleteCampaign($message);
         }
     }
 
     public function failed(\Throwable $e): void
     {
-        Message::where('id', $this->messageId)->update([
-            'status'            => 'failed',
-            'provider_response' => ['error' => $e->getMessage()],
+        $message = Message::find($this->messageId);
+        if ($message) {
+            $message->update([
+                'status'            => 'failed',
+                'provider_response' => ['error' => $e->getMessage()],
+            ]);
+            $this->maybeCompleteCampaign($message);
+        }
+    }
+
+    private function maybeCompleteCampaign(Message $message): void
+    {
+        if (! $message->campaign_id) return;
+
+        $campaign = Campaign::find($message->campaign_id);
+        if (! $campaign || $campaign->status !== 'running') return;
+
+        $pending = Message::where('campaign_id', $campaign->id)
+            ->where('status', 'queued')
+            ->exists();
+
+        if ($pending) return;
+
+        $sent   = Message::where('campaign_id', $campaign->id)->where('status', 'sent')->count();
+        $failed = Message::where('campaign_id', $campaign->id)->where('status', 'failed')->count();
+        $total  = Message::where('campaign_id', $campaign->id)->count();
+
+        $campaign->update([
+            'status'       => 'completed',
+            'completed_at' => now(),
+            'stats'        => ['sent' => $sent, 'failed' => $failed, 'total' => $total],
         ]);
     }
 }

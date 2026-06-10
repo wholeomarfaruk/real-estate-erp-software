@@ -240,21 +240,25 @@ document.addEventListener("livewire:navigated", () => {
     initFancybox();
 });
 
-Livewire.hook("morph.updated", () => {
-    initFancybox();
-});
+if (typeof Livewire !== 'undefined') {
+    Livewire.hook("morph.updated", () => {
+        initFancybox();
+    });
+}
 
 // Track open state on ALL Fancybox instances (both bind() and show()) via defaults.
-Fancybox.defaults.on = {
-    open: () => {
-        window._fancyboxOpen = true;
-    },
-    destroy: () => {
-        setTimeout(() => {
-            window._fancyboxOpen = false;
-        }, 50);
-    },
-};
+if (Fancybox.defaults) {
+    Fancybox.defaults.on = {
+        open: () => {
+            window._fancyboxOpen = true;
+        },
+        destroy: () => {
+            setTimeout(() => {
+                window._fancyboxOpen = false;
+            }, 50);
+        },
+    };
+}
 
 // Prevent Escape / clicks inside Fancybox from closing parent Alpine x-modal.
 document.addEventListener(

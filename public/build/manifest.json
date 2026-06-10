@@ -31,7 +31,7 @@
     "src": "node_modules/boxicons/fonts/boxicons.woff2"
   },
   "resources/css/admin.css": {
-    "file": "assets/admin-iQ_Fv-RC.css",
+    "file": "assets/admin-DcVAImqY.css",
     "src": "resources/css/admin.css",
     "isEntry": true,
     "name": "admin",
@@ -40,7 +40,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-BiXzsqPB.css",
+    "file": "assets/app-BQ3E3xjl.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -49,7 +49,7 @@
     ]
   },
   "resources/js/admin.js": {
-    "file": "assets/admin-BQvfGmVb.js",
+    "file": "assets/admin-BfrqxoSC.js",
     "name": "admin",
     "src": "resources/js/admin.js",
     "isEntry": true,

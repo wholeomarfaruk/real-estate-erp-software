@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\Accounts\AccountReportExportController;
 use App\Http\Controllers\Admin\Projects\ProjectPdfController;
 use App\Http\Controllers\Admin\Accounts\DailyStatementReportController;
@@ -35,6 +36,7 @@ Route::get('/users', App\Livewire\Admin\Users\Users::class)->name('users');
 Route::get('/profile', App\Livewire\Admin\Profile\Profile::class)->name('profile');
 Route::get('/settings', App\Livewire\Admin\Settings\Settings::class)->name('settings');
 Route::get('/settings/sms-gateway', App\Livewire\Admin\Settings\SmsGatewayList::class)->name('settings.sms-gateway');
+Route::get('/settings/smtp', App\Livewire\Admin\Settings\SmtpConfig::class)->name('settings.smtp');
 
 // permissions
 Route::get('/permissions/roles', App\Livewire\Admin\Permissions\RoleList::class)->name('roles.list');
@@ -440,4 +442,13 @@ Route::prefix('marketing')->name('marketing.')->group(function (): void {
     Route::get('/automations', App\Livewire\Admin\Marketing\Automation\AutomationList::class)
         ->middleware('can:marketing.automation.view')
         ->name('automations.index');
+});
+
+// Reports module
+Route::controller(ReportController::class)->prefix('reports')->name('reports.')->group(function () {
+    Route::get('/',           'index')     ->name('index');
+    Route::get('/dashboard',  'dashboard') ->name('dashboard');
+    Route::get('/builder',    'builder')   ->name('builder');
+    Route::get('/scheduled',  'scheduled') ->name('scheduled');
+    Route::get('/{category}', 'category')  ->name('category');
 });

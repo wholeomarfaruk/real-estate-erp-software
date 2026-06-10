@@ -75,7 +75,7 @@
                         <h2 class="text-gray-500 text-md font-semibold" :class="{ 'hidden': !$store.sidebar.full }"
                             x-transition>CRM</h2>
                     </div>
-                    <div x-data="dropdown" class="relative">
+                    <div x-data="dropdown('crm')" class="relative">
                         <div @click="toggle('crm')" x-data="tooltip" @mouseover="show = true"
                             @mouseleave="show = false"
                             class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
@@ -104,7 +104,7 @@
                                     clip-rule="evenodd" />
                             </svg>
                         </div>
-                        <div x-cloak x-show="open" @click.outside="open=false"
+                        <div x-cloak x-show="open"
                             :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
                             @can('customer.view')
                                 <a href="{{ route('admin.crm.customers.index') }}"
@@ -140,7 +140,7 @@
                         <h2 class="text-gray-500 text-md font-semibold" :class="{ 'hidden': !$store.sidebar.full }"
                             x-transition>Marketing</h2>
                     </div>
-                    <div x-data="dropdown" class="relative">
+                    <div x-data="dropdown('marketing')" class="relative">
                         <div @click="toggle('marketing')" x-data="tooltip" @mouseover="show = true"
                             @mouseleave="show = false"
                             class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
@@ -167,7 +167,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                             </svg>
                         </div>
-                        <div x-cloak x-show="open || $store.sidebar.active == 'marketing'"
+                        <div x-cloak x-show="open"
                             :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
                             @can('marketing.template.view')
                                 <a href="{{ route('admin.marketing.templates.index') }}"
@@ -202,6 +202,75 @@
                         </div>
                     </div>
                 @endif
+
+                @can('module.reports.access')
+                <!-- Reports -->
+                <div class="mt-2 mb-1">
+                    <h2 class="text-gray-500 text-md font-semibold" :class="{ 'hidden': !$store.sidebar.full }"
+                        x-transition>Reports</h2>
+                </div>
+                <div x-data="dropdown('reports')" class="relative">
+                    <div @click="toggle('reports')" x-data="tooltip" @mouseover="show = true"
+                        @mouseleave="show = false"
+                        class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
+                        :class="{
+                            'justify-start': $store.sidebar.full,
+                            'sm:justify-center': !$store.sidebar.full,
+                            'text-gray-200 bg-gray-800': $store.sidebar.active == 'reports',
+                            'text-gray-400': $store.sidebar.active != 'reports'
+                        }">
+                        <div class="relative flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke-width="2" stroke="currentColor" class="size-4">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+                            </svg>
+                            <p x-cloak class="text-xs"
+                                :class="!$store.sidebar.full ? (show ? visibleClass : 'sm:hidden') : ''">
+                                Reports
+                            </p>
+                        </div>
+                        <svg x-cloak :class="$store.sidebar.full ? '' : 'sm:hidden'"
+                            xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 size-6" viewBox="0 0 20 20"
+                            stroke-width="1.5" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div x-cloak x-show="open"
+                        :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                        <a href="{{ route('admin.reports.index') }}"
+                            class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.reports.index') ? 'text-gray-200' : '' }}">
+                            All Reports
+                        </a>
+                        <a href="{{ route('admin.reports.category', 'crm') }}"
+                            class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.reports.category') && request()->route('category') === 'crm' ? 'text-gray-200' : '' }}">
+                            CRM
+                        </a>
+                        <a href="{{ route('admin.reports.category', 'sales') }}"
+                            class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.reports.category') && request()->route('category') === 'sales' ? 'text-gray-200' : '' }}">
+                            Sales & Rents
+                        </a>
+                        <a href="{{ route('admin.reports.category', 'finance') }}"
+                            class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.reports.category') && request()->route('category') === 'finance' ? 'text-gray-200' : '' }}">
+                            Finance
+                        </a>
+                        <a href="{{ route('admin.reports.category', 'project') }}"
+                            class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.reports.category') && request()->route('category') === 'project' ? 'text-gray-200' : '' }}">
+                            Projects
+                        </a>
+                        <a href="{{ route('admin.reports.category', 'hr') }}"
+                            class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.reports.category') && request()->route('category') === 'hr' ? 'text-gray-200' : '' }}">
+                            HR
+                        </a>
+                        <a href="{{ route('admin.reports.category', 'inventory') }}"
+                            class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.reports.category') && request()->route('category') === 'inventory' ? 'text-gray-200' : '' }}">
+                            Inventory
+                        </a>
+                    </div>
+                </div>
+                @endcan
 
                 @can('property.view')
                     <!-- Real Estate -->
@@ -238,8 +307,7 @@
                                     clip-rule="evenodd" />
                             </svg>
                         </div>
-                        <div x-cloak x-show="open" @click.outside="open=false"
-                            :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                        <div x-cloak x-show="open"                            :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
                             <a href="{{ route('admin.properties.index') }}"
                                 class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.properties.*') && !Route::is('admin.properties.sales.*') ? 'text-gray-200' : '' }}">
                                 Property Catalog
@@ -348,7 +416,7 @@
 
                     @can('module.materials.access')
                         <!-- Materials Management -->
-                        <div x-data="dropdown" class="relative">
+                        <div x-data="dropdown('materials')" class="relative">
                             <div @click="toggle('materials')" x-data="tooltip" @mouseover="show = true"
                                 @mouseleave="show = false"
                                 class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
@@ -380,25 +448,21 @@
                                 </svg>
                             </div>
 
-                            <div x-cloak x-show="open" @click.outside="open=false"
-                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                            <div x-cloak x-show="open"                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
                                 <a href="{{ route('admin.materials.categories') }}"
                                     class="hover:text-gray-200 cursor-pointer text-xs">Product Categories</a>
                             </div>
-                            <div x-cloak x-show="open" @click.outside="open=false"
-                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                            <div x-cloak x-show="open"                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
 
                                 <a href="{{ route('admin.materials.brands') }}"
                                     class="hover:text-gray-200 cursor-pointer text-xs">Product Brands</a>
                             </div>
-                            <div x-cloak x-show="open" @click.outside="open=false"
-                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                            <div x-cloak x-show="open"                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
 
                                 <a href="{{ route('admin.materials.products') }}"
                                     class="hover:text-gray-200 cursor-pointer text-xs">Products</a>
                             </div>
-                            <div x-cloak x-show="open" @click.outside="open=false"
-                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                            <div x-cloak x-show="open"                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
                                 <a href="{{ route('admin.materials.units') }}"
                                     class="hover:text-gray-200 cursor-pointer text-xs">Product Units</a>
                             </div>
@@ -409,7 +473,7 @@
 
                     @can('module.suppliers.access')
                         <!-- Supplier Management -->
-                        <div x-data="dropdown" class="relative">
+                        <div x-data="dropdown('supplier')" class="relative">
                             <div @click="toggle('supplier')" x-data="tooltip" @mouseover="show = true"
                                 @mouseleave="show = false"
                                 class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
@@ -455,8 +519,7 @@
                                 ];
                             @endphp
 
-                            <div x-cloak x-show="open" @click.outside="open=false"
-                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                            <div x-cloak x-show="open"                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
                                 @foreach ($supplierMenuRoutes as $item)
                                     @if (Route::has($item['route']) && auth()->user()?->can($item['permission']))
                                         <a href="{{ route($item['route']) }}"
@@ -470,7 +533,7 @@
                     @endcan
                     @can('module.hrm.access')
                         <!-- HRM Management -->
-                        <div x-data="dropdown" class="relative">
+                        <div x-data="dropdown('hrm')" class="relative">
                             <div @click="toggle('hrm')" x-data="tooltip" @mouseover="show = true"
                                 @mouseleave="show = false"
                                 class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
@@ -536,8 +599,7 @@
                                 ];
                             @endphp
 
-                            <div x-cloak x-show="open" @click.outside="open=false"
-                                :class="$store.sidebar.full ? expandedClass : shrinkedClass"
+                            <div x-cloak x-show="open"                                :class="$store.sidebar.full ? expandedClass : shrinkedClass"
                                 class="text-gray-400 space-y-3">
                                 @foreach ($hrmMenuRoutes as $item)
                                     @if (Route::has($item['route']) && auth()->user()?->can($item['permission']))
@@ -552,7 +614,7 @@
                     @endcan
                     @can('module.accounts.access')
                         <!-- Accounts Management -->
-                        <div x-data="dropdown" class="relative">
+                        <div x-data="dropdown('accounts')" class="relative">
                             <div @click="toggle('accounts')" x-data="tooltip" @mouseover="show = true"
                                 @mouseleave="show = false"
                                 class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
@@ -639,8 +701,7 @@
                                 ];
                             @endphp
 
-                            <div x-cloak x-show="open" @click.outside="open=false"
-                                :class="$store.sidebar.full ? expandedClass : shrinkedClass"
+                            <div x-cloak x-show="open"                                :class="$store.sidebar.full ? expandedClass : shrinkedClass"
                                 class="text-gray-400 space-y-3">
                                 @foreach ($accountsMenuRoutes as $item)
                                     @if (Route::has($item['route']) && auth()->user()?->can($item['permission']))
@@ -672,7 +733,7 @@
                     @can('module.inventory.access')
 
                         <!-- inventory Management -->
-                        <div x-data="dropdown" class="relative">
+                        <div x-data="dropdown('inventory')" class="relative">
                             <div @click="toggle('inventory')" x-data="tooltip" @mouseover="show = true"
                                 @mouseleave="show = false"
                                 class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
@@ -808,8 +869,7 @@
                                 ];
                             @endphp
 
-                            <div x-cloak x-show="open" @click.outside="open=false"
-                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                            <div x-cloak x-show="open"                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
                                 @foreach ($inventoryMenuRoutes as $item)
                                     @if (Route::has($item['route']) && auth()->user()?->can($item['permission']))
                                         <a href="{{ route($item['route']) }}"
@@ -857,15 +917,15 @@
 
                     @can('module.users.access')
                         <!-- User Management -->
-                        <div x-data="dropdown" class="relative">
+                        <div x-data="dropdown('users')" class="relative">
                             <div @click="toggle('users')" x-data="tooltip" @mouseover="show = true"
                                 @mouseleave="show = false"
                                 class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
                                 :class="{
                                     'justify-start': $store.sidebar.full,
                                     'sm:justify-center': !$store.sidebar.full,
-                                    'text-gray-200 bg-gray-800': $store.sidebar.active == 'Reports',
-                                    'text-gray-400': $store.sidebar.active != 'Reports'
+                                    'text-gray-200 bg-gray-800': $store.sidebar.active == 'users',
+                                    'text-gray-400': $store.sidebar.active != 'users'
                                 }">
                                 <div class="relative flex items-center gap-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -888,8 +948,7 @@
                                         clip-rule="evenodd" />
                                 </svg>
                             </div>
-                            <div x-cloak x-show="open" @click.outside="open=false"
-                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                            <div x-cloak x-show="open"                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
                                 <a href="{{ route('admin.users') }}"
                                     class="hover:text-gray-200 cursor-pointer text-xs">Users</a>
                             </div>
@@ -948,6 +1007,25 @@
 
                     </a>
                     @endcan
+
+                    <!-- SMTP Configuration -->
+                    @can('settings.smtp.view')
+                    <a href="{{ route('admin.settings.smtp') }}" x-data="tooltip" x-on:mouseover="show = true"
+                        x-on:mouseleave="show = false"
+                        class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400 text-xs
+                    {{ Route::is('admin.settings.smtp') ? 'text-gray-200 bg-gray-800' : '' }}
+                    ">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                        </svg>
+                        <p x-cloak class="text-xs"
+                            x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full ?
+                                'sm:hidden' : ''">
+                            SMTP Config</p>
+                    </a>
+                    @endcan
                 @endcan
                 @can('section.ui_components.access')
                     <!-- Ui elements -->
@@ -958,7 +1036,7 @@
 
                     @can('module.ui_components.access')
                         <!-- UI Elements -->
-                        <div x-data="dropdown" class="relative">
+                        <div x-data="dropdown('uicomponents')" class="relative">
                             <!-- Dropdown head -->
                             <div @click="toggle('uicomponents')" x-data="tooltip" x-on:mouseover="show = true"
                                 x-on:mouseleave="show = false"
@@ -992,8 +1070,7 @@
                                         clip-rule="evenodd" />
                                 </svg>
                             </div>
-                            <div x-cloak x-show="open" @click.outside="open=false"
-                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                            <div x-cloak x-show="open"                                :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
                                 <a href="{{ route('admin.ui.layouts') }}"
                                     class="hover:text-gray-200 cursor-pointer text-xs">Layouts</a>
                             </div>

@@ -2,10 +2,12 @@
 
 namespace App\Livewire\Admin\Marketing\Campaign;
 
+use App\Jobs\SendMessageJob;
 use App\Models\Campaign;
 use App\Models\CommunicationTemplate;
 use App\Models\MarketingAudience;
 use App\Models\Message;
+use App\Models\SmtpConfiguration;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -116,52 +118,81 @@ class CampaignList extends Component
             return;
         }
 
-        DB::transaction(function () use ($campaign) {
+        // Guard: email campaigns require SMTP to be configured
+        if (in_array($campaign->type, ['email', 'both']) && ! SmtpConfiguration::exists()) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'SMTP is not configured. Go to Settings → SMTP Config first.']);
+            return;
+        }
+
+        $messageIds = DB::transaction(function () use ($campaign) {
             $campaign->update(['status' => 'running', 'started_at' => now()]);
 
             $members  = $campaign->audience->resolveMembers();
             $template = $campaign->template;
-            $sent = 0; $failed = 0;
+            $queued   = 0;
+            $failed   = 0;
+            $ids      = [];
 
             foreach ($members as $member) {
-                $data = [
-                    'name'    => $member['name'],
-                    'phone'   => $member['phone'],
-                    'email'   => $member['email'] ?? '',
+                $renderData = [
+                    'name'  => $member['name'],
+                    'phone' => $member['phone'] ?? '',
+                    'email' => $member['email'] ?? '',
                 ];
 
-                $body = $template->render($data);
+                $body = $template->render($renderData);
 
-                // Determine recipient
-                $recipient = $campaign->type === 'email'
-                    ? ($member['email'] ?? null)
-                    : $member['phone'];
+                // For type='both' we create one message per channel per member
+                $channels = match($campaign->type) {
+                    'both'  => ['email', 'sms'],
+                    default => [$campaign->type],
+                };
 
-                if (! $recipient) { $failed++; continue; }
+                foreach ($channels as $channel) {
+                    $recipient = $channel === 'email'
+                        ? ($member['email'] ?? null)
+                        : ($member['phone'] ?? null);
 
-                Message::create([
-                    'type'        => $campaign->type === 'both' ? 'sms' : $campaign->type,
-                    'campaign_id' => $campaign->id,
-                    'member_type' => $member['type'],
-                    'member_id'   => $member['id'],
-                    'recipient'   => $recipient,
-                    'subject'     => $template->subject,
-                    'body'        => $body,
-                    'status'      => 'sent', // In production: dispatch a Queue Job
-                    'sent_at'     => now(),
-                    'sent_by'     => auth()->id(),
-                ]);
-                $sent++;
+                    if (! $recipient) {
+                        $failed++;
+                        continue;
+                    }
+
+                    $msg = Message::create([
+                        'type'        => $channel,
+                        'campaign_id' => $campaign->id,
+                        'member_type' => $member['type'],
+                        'member_id'   => $member['id'],
+                        'recipient'   => $recipient,
+                        'subject'     => $template->subject,
+                        'body'        => $body,
+                        'status'      => 'queued',
+                        'sent_by'     => auth()->id(),
+                    ]);
+
+                    $ids[] = $msg->id;
+                    $queued++;
+                }
             }
 
             $campaign->update([
-                'status'       => 'completed',
-                'completed_at' => now(),
-                'stats'        => ['sent' => $sent, 'failed' => $failed, 'total' => $members->count()],
+                'stats' => [
+                    'queued' => $queued,
+                    'failed' => $failed,
+                    'total'  => $members->count(),
+                ],
             ]);
+
+            return $ids;
         });
 
-        $this->dispatch('toast', ['type' => 'success', 'message' => 'Campaign launched successfully.']);
+        // Dispatch one job per message outside the transaction so DB commits first
+        foreach ($messageIds as $msgId) {
+            SendMessageJob::dispatch($msgId);
+        }
+
+        $count = count($messageIds);
+        $this->dispatch('toast', ['type' => 'success', 'message' => "Campaign launched — {$count} message(s) queued for sending."]);
     }
 
     public function delete(int $id): void

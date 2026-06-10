@@ -12,7 +12,7 @@ class BulkSmsDhakaProvider implements SmsProviderInterface
     public function send(string $to, string $message): array
     {
         try {
-            $response = Http::timeout(10)->post('https://bulksmsdhaka.com/api/sms/send', [
+            $response = Http::timeout(10)->withoutVerifying()->post('https://bulksmsdhaka.com/api/sms/send', [
                 'api_token'  => $this->credentials['api_token'],
                 'sender_id'  => $this->credentials['sender_id'] ?? 'SenderId',
                 'recipients' => $to,
@@ -52,7 +52,7 @@ class BulkSmsDhakaProvider implements SmsProviderInterface
     public function checkDeliveryStatus(string $messageId): array
     {
         try {
-            $response = Http::timeout(10)->post(
+            $response = Http::timeout(10)->withoutVerifying()->post(
                 'https://bulksmsdhaka.com/api/sms/status',
                 [
                     'api_token' => $this->credentials['api_token'],

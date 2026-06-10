@@ -30,7 +30,7 @@ class AlphaSmsProvider implements SmsProviderInterface
                 'payload' => array_merge($payload, ['api_key' => '***']),
             ]);
 
-            $response = Http::timeout(10)->get($apiUrl, $payload);
+            $response = Http::timeout(10)->withoutVerifying()->get($apiUrl, $payload);
 
             \Log::info('Alpha SMS send API response', [
                 'status_code' => $response->status(),
@@ -76,7 +76,7 @@ class AlphaSmsProvider implements SmsProviderInterface
         try {
             $apiUrl = $this->credentials['api_url_balance'] ?? 'https://api.sms.net.bd/user/balance/';
 
-            $response = Http::timeout(10)->get($apiUrl, [
+            $response = Http::timeout(10)->withoutVerifying()->get($apiUrl, [
                 'api_key' => $this->credentials['api_key'],
             ]);
 
@@ -143,7 +143,7 @@ class AlphaSmsProvider implements SmsProviderInterface
             $apiUrl = 'https://api.sms.net.bd/report/request/' . $requestId . '/';
             $apiKey = $this->credentials['api_key'];
 
-            $response = Http::timeout(10)->get($apiUrl, [
+            $response = Http::timeout(10)->withoutVerifying()->get($apiUrl, [
                 'api_key' => $apiKey,
             ]);
 

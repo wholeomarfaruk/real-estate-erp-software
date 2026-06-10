@@ -171,6 +171,12 @@ class AssignPermissionSeeder extends Seeder
                 'settings.sms_gateway.create',
                 'settings.sms_gateway.edit',
                 'settings.sms_gateway.delete',
+                // SMTP
+                'settings.smtp.view',
+                // Reports
+                'module.reports.access',
+                'reports.hub.view',
+                'reports.category.view',
             ])
             ->get();
 
@@ -293,6 +299,12 @@ class AssignPermissionSeeder extends Seeder
                 'marketing.campaign.view',
                 'marketing.message.view',
                 'marketing.automation.view',
+                // SMTP
+                'settings.smtp.view',
+                // Reports
+                'module.reports.access',
+                'reports.hub.view',
+                'reports.category.view',
             ])
             ->get();
 
@@ -409,6 +421,12 @@ class AssignPermissionSeeder extends Seeder
                 'marketing.campaign.view',
                 'marketing.message.view',
                 'marketing.automation.view',
+                // SMTP
+                'settings.smtp.view',
+                // Reports
+                'module.reports.access',
+                'reports.hub.view',
+                'reports.category.view',
             ])
             ->get();
 
@@ -509,6 +527,12 @@ class AssignPermissionSeeder extends Seeder
                 'marketing.automation.edit',
                 'marketing.automation.delete',
                 'settings.sms_gateway.view',
+                // SMTP
+                'settings.smtp.view',
+                // Reports
+                'module.reports.access',
+                'reports.hub.view',
+                'reports.category.view',
             ])
             ->get();
 
@@ -570,6 +594,12 @@ class AssignPermissionSeeder extends Seeder
                 'marketing.automation.view',
                 // Settings — SMS Gateway view-only
                 'settings.sms_gateway.view',
+                // SMTP
+                'settings.smtp.view',
+                // Reports
+                'module.reports.access',
+                'reports.hub.view',
+                'reports.category.view',
             ])
             ->get();
 

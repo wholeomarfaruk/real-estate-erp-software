@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Reports · Star Unity ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style type="text/tailwindcss">
+@theme {
+  --color-paper:   #FCFBF7;
+  --color-canvas:  #F2EFE7;
+  --color-ink-1:   #1A1814;
+  --color-ink-2:   #5C5648;
+  --color-ink-3:   #9B9686;
+  --color-rule:    #EAE5D9;
+  --color-accent:  #1F3A68;
+  --color-sidebar: #1C1A17;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  [x-cloak] { display: none !important; }
+}
+@layer components {
+  /* ── Category tints ──────────────────────────────────────── */
+  .t-crm      { background:#D8E4F5; color:#1F3D72; }
+  .t-sales    { background:#D2E7D5; color:#1F5A2C; }
+  .t-finance  { background:#F7E6C4; color:#7A5418; }
+  .t-project  { background:#DCD9F2; color:#3A3582; }
+  .t-marketing{ background:#F1D3CE; color:#7A2A1E; }
+  .t-hr       { background:#CCE6E2; color:#1F5A52; }
+  .t-inventory{ background:#E4E1C4; color:#5C5A1E; }
+  .t-document { background:#DCE0E6; color:#44505E; }
+  .t-custom   { background:#E8E2D6; color:#5C4A2E; }
+  .d-crm      { background:#1F3D72; }
+  .d-sales    { background:#1F5A2C; }
+  .d-finance  { background:#7A5418; }
+  .d-project  { background:#3A3582; }
+  .d-marketing{ background:#7A2A1E; }
+  .d-hr       { background:#1F5A52; }
+  .d-inventory{ background:#5C5A1E; }
+  .d-document { background:#44505E; }
+  .d-custom   { background:#5C4A2E; }
+
+  /* ── Buttons ─────────────────────────────────────────────── */
+  .btn { appearance:none; border:1px solid var(--color-rule); background:var(--color-paper); color:var(--color-ink-1); padding:7px 14px; font:500 12px "Inter",sans-serif; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; text-decoration:none; }
+  .btn:hover { background:rgba(0,0,0,.03); }
+  .btn svg { width:14px; height:14px; }
+  .btn-primary { background:var(--color-ink-1); color:var(--color-paper); border-color:var(--color-ink-1); }
+  .btn-primary:hover { background:#000; }
+
+  /* ── Report card ─────────────────────────────────────────── */
+  .rep-card { display:flex; align-items:center; gap:14px; padding:16px 18px; border-radius:11px; background:var(--color-paper); border:1px solid var(--color-rule); cursor:pointer; text-decoration:none; color:var(--color-ink-1); transition:border-color .14s,box-shadow .14s,transform .14s; }
+  .rep-card:hover { border-color:var(--color-ink-3); box-shadow:0 4px 16px -10px rgba(0,0,0,.18); transform:translateY(-1px); }
+  .rc-ic { width:48px; height:48px; border-radius:12px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .rc-ic svg { width:22px; height:22px; }
+  .rc-name { font-size:13.5px; font-weight:600; line-height:1.3; }
+  .rc-desc { margin-top:3px; font-size:12px; color:var(--color-ink-2); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .rc-chev { color:var(--color-ink-3); display:flex; flex-shrink:0; transform:translateX(0); transition:transform .14s,color .14s; }
+  .rc-chev svg { width:16px; height:16px; }
+  .rep-card:hover .rc-chev { color:var(--color-ink-1); transform:translateX(3px); }
+
+  /* ── Sidebar nav items ───────────────────────────────────── */
+  .nav-item { display:flex; align-items:center; gap:12px; padding:8px 12px; border-radius:7px; font:500 13px "Inter",sans-serif; color:rgba(255,255,255,.65); text-decoration:none; transition:background .12s,color .12s; cursor:pointer; width:100%; border:0; background:transparent; text-align:left; }
+  .nav-item:hover { background:rgba(255,255,255,.07); color:rgba(255,255,255,.92); }
+  .nav-item.active { background:rgba(255,255,255,.10); color:#fff; }
+  .nav-item svg { width:15px; height:15px; flex-shrink:0; opacity:.75; }
+  .nav-item.active svg { opacity:1; }
+  .nav-label { font:600 9.5px var(--font-mono); letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.28); padding:16px 12px 4px; }
+
+  /* ── Other category pills ────────────────────────────────── */
+  .other-pill { display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:8px; background:var(--color-paper); border:1px solid var(--color-rule); font:500 12.5px "Inter",sans-serif; color:var(--color-ink-2); text-decoration:none; cursor:pointer; transition:border-color .12s,color .12s,background .12s; }
+  .other-pill:hover { border-color:var(--color-ink-3); color:var(--color-ink-1); background:rgba(0,0,0,.018); }
+  .other-pill.active-pill { background:var(--color-ink-1); color:var(--color-paper); border-color:var(--color-ink-1); }
+  .op-ic { width:22px; height:22px; border-radius:6px; display:flex; align-items:center; justify-content:center; }
+  .op-ic svg { width:11px; height:11px; }
+}
+</style>
+</head>
+<body class="flex h-screen overflow-hidden bg-canvas font-sans text-ink-1 antialiased">
+
+<!-- ═══ SIDEBAR ═════════════════════════════════════════════════════════ -->
+<aside class="flex flex-col w-60 flex-shrink-0 bg-sidebar overflow-y-auto"
+       x-data="sidebar()">
+
+  <!-- Logo -->
+  <div class="flex items-center gap-3 px-4 py-[18px] border-b border-white/10">
+    <div class="w-8 h-8 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+      <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+    </div>
+    <div>
+      <div class="text-white text-[13px] font-semibold leading-tight">Star Unity</div>
+      <div class="text-white/35 text-[10px] font-mono">ERP v2.4</div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="flex-1 px-2 py-3 flex flex-col gap-0.5">
+    <a href="#" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</a>
+
+    <div class="nav-label">Workspace</div>
+    <a href="#" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>CRM</a>
+    <a href="#" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Sales &amp; Rents</a>
+    <a href="#" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Finance</a>
+    <a href="#" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Projects</a>
+
+    <div class="nav-label">Procurement</div>
+    <a href="#" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Purchases</a>
+    <a href="Suppliers.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Inventory</a>
+
+    <div class="nav-label">People</div>
+    <a href="#" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>HR</a>
+    <a href="#" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>Marketing</a>
+
+    <div class="nav-label">Insights</div>
+    <div>
+      <button @click="reportsOpen = !reportsOpen" class="nav-item active w-full">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span class="flex-1 text-left">Reports</span>
+        <svg class="w-3.5 h-3.5 text-white/40 transition-transform duration-200" :class="reportsOpen ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div x-show="reportsOpen"
+           x-transition:enter="transition ease-out duration-150"
+           x-transition:enter-start="opacity-0 -translate-y-1"
+           x-transition:enter-end="opacity-100 translate-y-0"
+           class="mt-0.5 ml-3 pl-3 border-l border-white/10 flex flex-col gap-0.5">
+        <a href="Reports.html" class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-white/55 hover:text-white/90 hover:bg-white/[0.05] text-[12px] transition-colors">
+          <svg class="w-3 h-3 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+          All Reports
+        </a>
+        <template x-for="cat in cats" :key="cat.key">
+          <a :href="'Report Category.html#' + cat.key"
+             class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12px] transition-colors"
+             :class="cat.key === activeKey ? 'text-white bg-white/[0.12] font-semibold' : 'text-white/55 hover:text-white/90 hover:bg-white/[0.05]'">
+            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="'d-' + cat.key"></span>
+            <span x-text="cat.name.replace(' Reports','')"></span>
+          </a>
+        </template>
+      </div>
+    </div>
+
+    <div class="nav-label">System</div>
+    <a href="#" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Settings</a>
+  </nav>
+
+  <!-- User -->
+  <div class="flex items-center gap-3 px-4 py-4 border-t border-white/10">
+    <div class="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white text-[11px] font-bold font-mono flex-shrink-0">TA</div>
+    <div class="flex-1 min-w-0">
+      <div class="text-white text-[12.5px] font-medium truncate">Tanvir Ahmed</div>
+      <div class="text-white/35 text-[10.5px] truncate">Administrator</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ══════════════════════════════════════════════════════════════ -->
+<main class="flex-1 overflow-y-auto bg-canvas" x-data="categoryPage()">
+  <div class="max-w-[1100px] mx-auto px-6 py-7">
+
+    <!-- Breadcrumb -->
+    <div class="flex items-center gap-1.5 text-[11.5px] font-mono text-ink-3 mb-3.5">
+      <a href="#" class="hover:text-ink-1 transition-colors">Admin</a>
+      <span class="opacity-50">/</span>
+      <a href="Reports.html" class="hover:text-ink-1 transition-colors">Reports</a>
+      <span class="opacity-50">/</span>
+      <span class="text-ink-1" x-text="active ? active.name : ''"></span>
+    </div>
+
+    <!-- Category hero -->
+    <div class="flex items-center gap-5 bg-paper border border-rule rounded-[14px] px-6 py-5 mb-5" x-show="active">
+      <div class="w-16 h-16 rounded-2xl flex-shrink-0 flex items-center justify-center" :class="active ? 't-' + active.key : ''"
+           x-html="active ? icons[active.key] : ''"></div>
+      <div class="flex-1 min-w-0">
+        <h1 class="text-[21px] font-semibold tracking-tight" x-text="active ? active.name : ''"></h1>
+        <div class="mt-1 flex items-center gap-2 text-[12px] font-mono text-ink-2">
+          <span x-text="active ? active.items.length + ' reports' : ''"></span>
+          <span class="w-[3px] h-[3px] rounded-full bg-ink-3"></span>
+          <span>Reports module</span>
+        </div>
+        <div class="mt-1.5 text-[13px] text-ink-2 leading-snug" x-text="active ? active.desc : ''"></div>
+      </div>
+      <a href="Reports.html" class="btn flex-shrink-0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        All reports
+      </a>
+    </div>
+
+    <!-- Report cards 3-col grid -->
+    <div class="grid grid-cols-3 gap-3 mb-10" x-show="active">
+      <template x-for="item in (active ? active.items : [])" :key="item.name">
+        <a class="rep-card" href="#">
+          <div class="rc-ic" :class="active ? 't-' + active.key : ''"
+               x-html="active ? icons[active.key] : ''"></div>
+          <div class="flex-1 min-w-0">
+            <div class="rc-name" x-text="item.name"></div>
+            <div class="rc-desc" x-text="item.desc"></div>
+          </div>
+          <span class="rc-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </a>
+      </template>
+    </div>
+
+    <!-- Browse other categories -->
+    <div x-show="active">
+      <div class="text-[10.5px] font-mono text-ink-3 uppercase tracking-widest mb-3">Browse categories</div>
+      <div class="flex flex-wrap gap-2">
+        <template x-for="cat in cats" :key="cat.key">
+          <a :href="'Report Category.html#' + cat.key"
+             class="other-pill"
+             :class="cat.key === (active ? active.key : '') ? 'active-pill' : ''">
+            <span class="op-ic" :class="'t-' + cat.key" x-html="icons[cat.key]"></span>
+            <span x-text="cat.name.replace(' Reports','')"></span>
+          </a>
+        </template>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const CATS_FULL = [
+  { key:'crm', name:'CRM Reports', desc:'Track every lead from first contact to conversion — with per-agent and source breakdowns.',
+    items:[
+      {name:'Lead Reports',desc:'Volume, source and quality of all incoming leads by period.'},
+      {name:'Follow-up Reports',desc:'Scheduled and completed follow-up activity by agent and date.'},
+      {name:'Conversion Reports',desc:'Lead-to-booking conversion rate by agent, source and campaign.'},
+      {name:'Lead Source Reports',desc:'Leads broken down by origin channel, referral and campaign.'},
+      {name:'Agent Performance Reports',desc:'Individual agent KPIs across leads, follow-ups and closings.'},
+      {name:'Activity Reports',desc:'Timeline of all CRM actions, calls, emails and site visits.'},
+    ]},
+  { key:'sales', name:'Sales & Rents Reports', desc:'Complete picture of bookings, leases, cancellations and salesperson achievement.',
+    items:[
+      {name:'Booking Reports',desc:'Completed sale and rent bookings by unit, agent and period.'},
+      {name:'Unit Sales Reports',desc:'Unit-level analysis of sold, booked and available stock.'},
+      {name:'Rent & Lease Reports',desc:'Active leases, renewals, expirations and rent collection status.'},
+      {name:'Reservation Reports',desc:'Temporary holds, expiry timelines and conversion to full booking.'},
+      {name:'Cancellation Reports',desc:'Cancelled bookings with stated reasons and revenue impact.'},
+      {name:'Salesperson Performance Reports',desc:'Individual sales targets vs. achievement by period.'},
+      {name:'Commission Reports',desc:'Commission due, paid and pending per salesperson and booking.'},
+    ]},
+  { key:'finance', name:'Finance Reports', desc:'Full financial reporting suite — from daily transactions to annual balance sheet and tax.',
+    items:[
+      {name:'Income Reports',desc:'All revenue streams broken down by category, project and period.'},
+      {name:'Expense Reports',desc:'Expenditure by type, project and cost centre with approval status.'},
+      {name:'Profit & Loss',desc:'Net operating income vs. expenditure over any selected period.'},
+      {name:'Balance Sheet',desc:'Assets, liabilities and equity position at a given date.'},
+      {name:'Cash Flow',desc:'Inflows and outflows with running and closing balance by day or month.'},
+      {name:'Bank Reports',desc:'Bank account activity, statement reconciliation and balances.'},
+      {name:'Accounts Receivable',desc:'Outstanding customer invoices, aging buckets and collection status.'},
+      {name:'Accounts Payable',desc:'Supplier payables, due dates, overdue amounts and payment status.'},
+      {name:'Invoice Reports',desc:'All invoices with paid, partial and unpaid breakdown and aging.'},
+      {name:'Payment Reports',desc:'Received and issued payments with method, reference and date.'},
+      {name:'Transaction Reports',desc:'Full ledger of financial transactions filterable by date or account.'},
+      {name:'Tax Reports',desc:'VAT, TDS and other tax liabilities, filings and compliance status.'},
+    ]},
+  { key:'project', name:'Project Reports', desc:'Monitor project health, budget adherence, resource use and contractor progress.',
+    items:[
+      {name:'Project Summary',desc:'High-level status overview across all active and completed projects.'},
+      {name:'Progress Reports',desc:'Physical progress vs. planned schedule with variance by project.'},
+      {name:'Budget vs Actual',desc:'Planned vs. spent costs with variance and forecast-to-complete.'},
+      {name:'Resource Allocation',desc:'Manpower and equipment usage and availability across projects.'},
+      {name:'Task Reports',desc:'Task completion rates, overdue items and blockers by project.'},
+      {name:'Milestone Reports',desc:'Key milestone tracking and schedule adherence by project.'},
+      {name:'Contractor Reports',desc:'Contractor work orders, progress percentages and payment status.'},
+      {name:'Project Profitability',desc:'Revenue vs. cost per project for unit-level profit margin analysis.'},
+    ]},
+  { key:'marketing', name:'Marketing Reports', desc:'Measure the reach, engagement and ROI of every campaign across email, SMS and ads.',
+    items:[
+      {name:'Campaign Reports',desc:'Reach, impressions, engagement and cost of each marketing campaign.'},
+      {name:'SMS Reports',desc:'Delivery rates, click-through and responses from SMS campaigns.'},
+      {name:'Email Reports',desc:'Email send, open, click-through and bounce metrics by campaign.'},
+      {name:'Lead Generation Reports',desc:'Leads attributed to each campaign, channel and ad set.'},
+      {name:'Campaign ROI Reports',desc:'Return on investment per campaign, channel and marketing period.'},
+      {name:'Open & Click Reports',desc:'Per-email and per-link open and click-through analytics.'},
+    ]},
+  { key:'hr', name:'HR Reports', desc:'People data — attendance, leave, payroll and performance in one place.',
+    items:[
+      {name:'Employee Reports',desc:'Full workforce directory with role, department, status and tenure.'},
+      {name:'Attendance Reports',desc:'Daily attendance, late arrivals and absenteeism by department.'},
+      {name:'Leave Reports',desc:'Leave balances, approvals and utilisation trends by department.'},
+      {name:'Payroll Reports',desc:'Monthly payroll summary, deductions and individual payslips.'},
+      {name:'Performance Reports',desc:'Appraisal scores and KPI achievement by employee and cycle.'},
+    ]},
+  { key:'inventory', name:'Inventory Reports', desc:'Track stock levels, purchases, supplier dues and material consumption across warehouses.',
+    items:[
+      {name:'Stock Reports',desc:'Current stock levels by item, category and warehouse location.'},
+      {name:'Purchase Reports',desc:'All purchase orders and receipts with supplier and date details.'},
+      {name:'Supplier Reports',desc:'Supplier-wise purchase history, outstanding dues and advances.'},
+      {name:'Material Usage Reports',desc:'Material consumed per project vs. estimated with variance.'},
+      {name:'Warehouse Reports',desc:'Inbound, outbound and current balance by warehouse location.'},
+      {name:'Inventory Valuation',desc:'Stock value at cost and market price across all warehouses.'},
+    ]},
+  { key:'document', name:'Document Reports', desc:'Monitor document compliance, identify missing files and review the full audit trail.',
+    items:[
+      {name:'Document Status',desc:'Status of all uploaded documents by category, entity and date.'},
+      {name:'Expiry Reports',desc:'Documents nearing or past their expiry date requiring renewal.'},
+      {name:'Missing Documents',desc:'Required documents not yet uploaded per entity or project.'},
+      {name:'Audit Logs',desc:'Full history of document access, uploads, edits and deletions.'},
+    ]},
+  { key:'custom', name:'Custom Reports', desc:'Build, save, schedule and share your own reports using any combination of data fields.',
+    items:[
+      {name:'Report Builder',desc:'Drag-and-drop interface to create custom reports from any data source.'},
+      {name:'Saved Reports',desc:'Your saved custom report templates — open, clone or delete.'},
+      {name:'Scheduled Reports',desc:'Automated reports delivered by email on a recurring schedule.'},
+      {name:'Shared Reports',desc:'Reports shared with your team, department or management.'},
+    ]},
+];
+
+const ICONS_SVG = {
+  crm:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  sales:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  finance:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+  project:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+  marketing:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>',
+  hr:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>',
+  inventory:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+  document: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+  custom:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>',
+};
+
+document.addEventListener('alpine:init', () => {
+
+  Alpine.data('sidebar', () => ({
+    cats: CATS_FULL,
+    reportsOpen: true,
+    get activeKey() { return location.hash.replace('#','') || CATS_FULL[0].key; },
+  }));
+
+  Alpine.data('categoryPage', () => ({
+    cats: CATS_FULL,
+    icons: ICONS_SVG,
+    activeKey: location.hash.replace('#','') || CATS_FULL[0].key,
+
+    get active() { return this.cats.find(c => c.key === this.activeKey) || this.cats[0]; },
+
+    init() {
+      window.addEventListener('hashchange', () => {
+        this.activeKey = location.hash.replace('#','') || this.cats[0].key;
+        document.title = this.active.name + ' · Reports · Star Unity ERP';
+      });
+      document.title = this.active.name + ' · Reports · Star Unity ERP';
+    },
+  }));
+
+});
+</script>
+</body>
+</html>

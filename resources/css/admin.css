@@ -2,6 +2,7 @@
 @import "tailwindcss";
 @import "./suppliers.css";
 @import "./supplier-detail.css";
+@import "./reports.css";
 
 @plugin 'tailwind-scrollbar';
 

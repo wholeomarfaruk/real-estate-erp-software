@@ -329,6 +329,14 @@ class PermissionSeeder extends Seeder
             ['id' => 264, 'name' => 'settings.sms_gateway.create'],
             ['id' => 265, 'name' => 'settings.sms_gateway.edit'],
             ['id' => 266, 'name' => 'settings.sms_gateway.delete'],
+
+            // Reports Module
+            ['id' => 267, 'name' => 'module.reports.access'],
+            ['id' => 268, 'name' => 'reports.hub.view'],
+            ['id' => 269, 'name' => 'reports.category.view'],
+
+            // SMTP Configuration
+            ['id' => 270, 'name' => 'settings.smtp.view'],
         ];
 
         foreach ($permissions as $permission) {
