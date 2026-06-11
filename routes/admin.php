@@ -452,3 +452,27 @@ Route::controller(ReportController::class)->prefix('reports')->name('reports.')-
     Route::get('/scheduled',  'scheduled') ->name('scheduled');
     Route::get('/{category}', 'category')  ->name('category');
 });
+
+// Sales Reports
+Route::prefix('reports/sales')->name('reports.sales.')->group(function () {
+    Route::get('/regular-client-statement',
+        App\Livewire\Admin\Reports\Sales\RegularClientStatement::class)
+        ->middleware('can:reports.sales.regular-client-statement.view')
+        ->name('regular-client-statement');
+
+    // Exports (shared controller, {report} slug selects the service)
+    Route::get('/export/{report}/pdf',
+        [App\Http\Controllers\Admin\Reports\SalesReportExportController::class, 'pdf'])
+        ->middleware('can:reports.sales.export')
+        ->name('export.pdf');
+
+    Route::get('/export/{report}/excel',
+        [App\Http\Controllers\Admin\Reports\SalesReportExportController::class, 'excel'])
+        ->middleware('can:reports.sales.export')
+        ->name('export.excel');
+
+    Route::get('/export/{report}/print',
+        [App\Http\Controllers\Admin\Reports\SalesReportExportController::class, 'print'])
+        ->middleware('can:reports.sales.export')
+        ->name('export.print');
+});

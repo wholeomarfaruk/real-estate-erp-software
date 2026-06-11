@@ -37,6 +37,7 @@ class ReportController extends Controller
                 ['name'=>'Activity Reports',          'desc'=>'Timeline of all CRM actions, calls, emails and site visits.',            'route'=>'#'],
             ]],
             ['key'=>'sales',     'name'=>'Sales & Rents Reports', 'desc'=>'Complete picture of bookings, leases, cancellations and salesperson achievement.',                   'icon'=>$icons['sales'],     'items'=>[
+                ['name'=>'Regular Client Statement',     'desc'=>'All clients with outstanding balances regardless of overdue status.', 'route'=>route('admin.reports.sales.regular-client-statement')],
                 ['name'=>'Booking Reports',              'desc'=>'Completed sale and rent bookings by unit, agent and period.',         'route'=>'#'],
                 ['name'=>'Unit Sales Reports',           'desc'=>'Unit-level analysis of sold, booked and available stock.',           'route'=>'#'],
                 ['name'=>'Rent & Lease Reports',         'desc'=>'Active leases, renewals, expirations and rent collection status.',   'route'=>'#'],

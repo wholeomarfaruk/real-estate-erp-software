@@ -1,13 +1,13 @@
 {
-  "_fancybox-C6HAUHTn.css": {
-    "file": "assets/fancybox-C6HAUHTn.css",
-    "src": "_fancybox-C6HAUHTn.css"
+  "_fancybox-Cvpy5d-R.css": {
+    "file": "assets/fancybox-Cvpy5d-R.css",
+    "src": "_fancybox-Cvpy5d-R.css"
   },
-  "_fancybox-GJFyfzIa.js": {
-    "file": "assets/fancybox-GJFyfzIa.js",
+  "_fancybox-mkQqqns_.js": {
+    "file": "assets/fancybox-mkQqqns_.js",
     "name": "fancybox",
     "css": [
-      "assets/fancybox-C6HAUHTn.css"
+      "assets/fancybox-Cvpy5d-R.css"
     ]
   },
   "node_modules/boxicons/fonts/boxicons.eot": {
@@ -31,7 +31,7 @@
     "src": "node_modules/boxicons/fonts/boxicons.woff2"
   },
   "resources/css/admin.css": {
-    "file": "assets/admin-DcVAImqY.css",
+    "file": "assets/admin-DK-kfCg7.css",
     "src": "resources/css/admin.css",
     "isEntry": true,
     "name": "admin",
@@ -40,7 +40,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-BQ3E3xjl.css",
+    "file": "assets/app-D-9NquR-.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -49,24 +49,24 @@
     ]
   },
   "resources/js/admin.js": {
-    "file": "assets/admin-BfrqxoSC.js",
+    "file": "assets/admin-DezUWDKr.js",
     "name": "admin",
     "src": "resources/js/admin.js",
     "isEntry": true,
     "imports": [
-      "_fancybox-GJFyfzIa.js"
+      "_fancybox-mkQqqns_.js"
     ],
     "css": [
       "assets/admin-Dc_9RrAu.css"
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-PfVEkbHK.js",
+    "file": "assets/app-DRbYKJ2A.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_fancybox-GJFyfzIa.js"
+      "_fancybox-mkQqqns_.js"
     ]
   },
   "resources/sass/admin.scss": {
