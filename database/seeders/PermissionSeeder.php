@@ -337,6 +337,19 @@ class PermissionSeeder extends Seeder
 
             // SMTP Configuration
             ['id' => 270, 'name' => 'settings.smtp.view'],
+
+            // Sales Reports (from config/reports.php)
+            ['id' => 271, 'name' => 'reports.sales.regular-client-statement.view'],
+            ['id' => 272, 'name' => 'reports.sales.overdue-client-statement.view'],
+            ['id' => 273, 'name' => 'reports.sales.classified-client-statement.view'],
+            ['id' => 274, 'name' => 'reports.sales.detailed-client-statement.view'],
+            ['id' => 275, 'name' => 'reports.sales.all-client-statement.view'],
+            ['id' => 276, 'name' => 'reports.sales.upcoming-installments.view'],
+            ['id' => 277, 'name' => 'reports.sales.collection-performance.view'],
+            ['id' => 278, 'name' => 'reports.sales.defaulter-report.view'],
+            ['id' => 279, 'name' => 'reports.sales.aging-outstanding.view'],
+            ['id' => 280, 'name' => 'reports.sales.rent-collection.view'],
+            ['id' => 281, 'name' => 'reports.sales.export'],
         ];
 
         foreach ($permissions as $permission) {
@@ -345,6 +358,6 @@ class PermissionSeeder extends Seeder
                 ['name' => $permission['name'] ?? null]
             );
         }
-        
+
     }
 }

@@ -15,6 +15,9 @@ class AssignPermissionSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->callOnce([
+            PermissionSeeder::class,
+        ]);
         Role::findByName('superadmin')->syncPermissions(Permission::all());
 
         $adminPermissions = Permission::query()
@@ -177,6 +180,17 @@ class AssignPermissionSeeder extends Seeder
                 'module.reports.access',
                 'reports.hub.view',
                 'reports.category.view',
+                'reports.sales.regular-client-statement.view',
+                'reports.sales.overdue-client-statement.view',
+                'reports.sales.classified-client-statement.view',
+                'reports.sales.detailed-client-statement.view',
+                'reports.sales.all-client-statement.view',
+                'reports.sales.upcoming-installments.view',
+                'reports.sales.collection-performance.view',
+                'reports.sales.defaulter-report.view',
+                'reports.sales.aging-outstanding.view',
+                'reports.sales.rent-collection.view',
+                'reports.sales.export',
             ])
             ->get();
 
@@ -305,6 +319,17 @@ class AssignPermissionSeeder extends Seeder
                 'module.reports.access',
                 'reports.hub.view',
                 'reports.category.view',
+                'reports.sales.regular-client-statement.view',
+                'reports.sales.overdue-client-statement.view',
+                'reports.sales.classified-client-statement.view',
+                'reports.sales.detailed-client-statement.view',
+                'reports.sales.all-client-statement.view',
+                'reports.sales.upcoming-installments.view',
+                'reports.sales.collection-performance.view',
+                'reports.sales.defaulter-report.view',
+                'reports.sales.aging-outstanding.view',
+                'reports.sales.rent-collection.view',
+                'reports.sales.export',
             ])
             ->get();
 
@@ -427,6 +452,17 @@ class AssignPermissionSeeder extends Seeder
                 'module.reports.access',
                 'reports.hub.view',
                 'reports.category.view',
+                'reports.sales.regular-client-statement.view',
+                'reports.sales.overdue-client-statement.view',
+                'reports.sales.classified-client-statement.view',
+                'reports.sales.detailed-client-statement.view',
+                'reports.sales.all-client-statement.view',
+                'reports.sales.upcoming-installments.view',
+                'reports.sales.collection-performance.view',
+                'reports.sales.defaulter-report.view',
+                'reports.sales.aging-outstanding.view',
+                'reports.sales.rent-collection.view',
+                'reports.sales.export',
             ])
             ->get();
 
@@ -533,6 +569,17 @@ class AssignPermissionSeeder extends Seeder
                 'module.reports.access',
                 'reports.hub.view',
                 'reports.category.view',
+                'reports.sales.regular-client-statement.view',
+                'reports.sales.overdue-client-statement.view',
+                'reports.sales.classified-client-statement.view',
+                'reports.sales.detailed-client-statement.view',
+                'reports.sales.all-client-statement.view',
+                'reports.sales.upcoming-installments.view',
+                'reports.sales.collection-performance.view',
+                'reports.sales.defaulter-report.view',
+                'reports.sales.aging-outstanding.view',
+                'reports.sales.rent-collection.view',
+                'reports.sales.export',
             ])
             ->get();
 
@@ -600,6 +647,17 @@ class AssignPermissionSeeder extends Seeder
                 'module.reports.access',
                 'reports.hub.view',
                 'reports.category.view',
+                'reports.sales.regular-client-statement.view',
+                'reports.sales.overdue-client-statement.view',
+                'reports.sales.classified-client-statement.view',
+                'reports.sales.detailed-client-statement.view',
+                'reports.sales.all-client-statement.view',
+                'reports.sales.upcoming-installments.view',
+                'reports.sales.collection-performance.view',
+                'reports.sales.defaulter-report.view',
+                'reports.sales.aging-outstanding.view',
+                'reports.sales.rent-collection.view',
+                'reports.sales.export',
             ])
             ->get();
 
