@@ -119,7 +119,11 @@ document.addEventListener('alpine:init', () => {
             return esc(name.slice(0,i))+'<mark>'+esc(name.slice(i,i+q.length))+'</mark>'+esc(name.slice(i+q.length));
         },
         catRoute(key) {
-            const routes = @json(collect($categories)->mapWithKeys(fn($c) => [$c['key'], route('admin.reports.category', $c['key'])]));
+            const routes = {
+                @foreach($categories as $cat)
+                    '{{ $cat['key'] }}': '{{ route('admin.reports.category', $cat['key']) }}',
+                @endforeach
+            };
             return routes[key] ?? '#';
         },
         get catLabel() {
