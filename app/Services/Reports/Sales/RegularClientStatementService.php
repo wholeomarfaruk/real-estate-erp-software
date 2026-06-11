@@ -16,74 +16,79 @@ class RegularClientStatementService
         $query = PropertySale::with(['customer', 'propertyUnit.property.project', 'paymentSchedules'])
             ->where('payment_status', '!=', 'cancelled');
 
-        // Apply filters
-        if ($filters['sale_type'] !== 'all') {
-            $query->where('sale_type', $filters['sale_type']);
+        // Apply filters with safe defaults
+        $saleType = $filters['sale_type'] ?? 'all';
+        if ($saleType !== 'all' && $saleType !== '') {
+            $query->where('sale_type', $saleType);
         }
 
-        if ($filters['customer_id']) {
-            $query->where('customer_id', $filters['customer_id']);
+        $customerId = $filters['customer_id'] ?? null;
+        if ($customerId) {
+            $query->where('customer_id', $customerId);
         }
 
-        if ($filters['property_id']) {
-            $query->where('property_unit_id', $filters['property_id']);
+        $propertyId = $filters['property_id'] ?? null;
+        if ($propertyId) {
+            $query->where('property_unit_id', $propertyId);
         }
 
-        if ($filters['from_date'] && $filters['to_date']) {
+        $fromDate = $filters['from_date'] ?? null;
+        $toDate = $filters['to_date'] ?? null;
+        if ($fromDate && $toDate) {
             $query->whereBetween('sale_date', [
-                $filters['from_date'],
-                $filters['to_date'],
+                $fromDate,
+                $toDate,
             ]);
         }
 
-        if ($filters['project_id']) {
+        $projectId = $filters['project_id'] ?? null;
+        if ($projectId) {
             $query->whereHas('propertyUnit.property', fn ($q) =>
-                $q->where('project_id', $filters['project_id'])
+                $q->where('project_id', $projectId)
             );
         }
 
         $sales = $query->get();
 
-        // Build rows — filter only those with outstanding balance
-        $rows = $sales->filter(function (PropertySale $sale) {
-            return $sale->totalDue() > 0;
-        })->map(function (PropertySale $sale) {
-            $totalPaid = $sale->totalPaid();
-            $totalDue = $sale->totalDue();
-            $outstanding = $totalDue;
+        // Group by customer and aggregate data
+        $clientData = $sales->groupBy('customer_id')->map(function ($customerSales) {
+            $customer = $customerSales->first()->customer;
+            $totalPaid = 0;
+            $totalDue = 0;
+            $salePropCount = 0;
+            $rentPropCount = 0;
 
-            // Get next installment
-            $nextSchedule = $sale->paymentSchedules()
-                ->where('status', '!=', 'paid')
-                ->orderBy('due_date')
-                ->first();
+            foreach ($customerSales as $sale) {
+                $saleTotal = $sale->totalDue();
+                if ($saleTotal > 0) {
+                    $totalPaid += $sale->totalPaid();
+                    $totalDue += $saleTotal;
 
-            $nextDueDate = $nextSchedule?->due_date?->format('Y-m-d') ?? '-';
-            $dueAmount = $nextSchedule?->amount ?? 0;
-            $status = $nextSchedule ? ($nextSchedule->isOverdue() ? 'Overdue' : 'Current') : '-';
+                    if ($sale->sale_type === 'rent') {
+                        $rentPropCount++;
+                    } else {
+                        $salePropCount++;
+                    }
+                }
+            }
 
             return [
-                'client_name' => $sale->customer->name,
-                'unit_property' => ($sale->propertyUnit?->name ?? '-') . ' / ' . ($sale->propertyUnit?->property?->name ?? '-'),
-                'booking_date' => $sale->sale_date->format('d-M-Y'),
-                'contract_value' => $sale->net_amount,
+                'customer_id' => $customer->id,
+                'client_name' => $customer->name,
+                'sale_property_count' => $salePropCount,
+                'rent_property_count' => $rentPropCount,
                 'total_paid' => $totalPaid,
-                'outstanding_balance' => $outstanding,
-                'next_due_date' => $nextDueDate,
-                'due_amount' => $dueAmount,
-                'status' => $status,
-                'sale_id' => $sale->id,
+                'total_due' => $totalDue,
             ];
-        })->values()->toArray();
+        })->filter(fn ($row) => $row['total_due'] > 0)->values()->toArray();
+
+        $rows = $clientData;
 
         // Summary
         $summary = [
             'total_clients' => \count($rows),
-            'total_outstanding' => collect($rows)->sum('outstanding_balance'),
-            'total_due_this_month' => collect($rows)
-                ->filter(fn ($row) => $row['next_due_date'] !== '-' &&
-                    Carbon::parse($row['next_due_date'])->isSameMonth(now()))
-                ->sum('due_amount'),
+            'total_outstanding' => collect($rows)->sum('total_due'),
+            'total_paid' => collect($rows)->sum('total_paid'),
         ];
 
         // Meta
@@ -98,18 +103,14 @@ class RegularClientStatementService
         ];
 
         return [
-            'title' => 'Regular Client Statement — All Pending',
+            'title' => 'Regular Client Statement — Summary',
             'slug' => 'regular-client-statement',
             'columns' => [
                 ['key' => 'client_name', 'label' => 'Client Name', 'align' => 'left'],
-                ['key' => 'unit_property', 'label' => 'Unit / Property', 'align' => 'left'],
-                ['key' => 'booking_date', 'label' => 'Booking Date', 'align' => 'center'],
-                ['key' => 'contract_value', 'label' => 'Contract Value', 'align' => 'right'],
+                ['key' => 'sale_property_count', 'label' => 'Sale Properties', 'align' => 'center'],
+                ['key' => 'rent_property_count', 'label' => 'Rent Properties', 'align' => 'center'],
                 ['key' => 'total_paid', 'label' => 'Total Paid', 'align' => 'right'],
-                ['key' => 'outstanding_balance', 'label' => 'Outstanding Balance', 'align' => 'right'],
-                ['key' => 'next_due_date', 'label' => 'Next Due Date', 'align' => 'center'],
-                ['key' => 'due_amount', 'label' => 'Due Amount', 'align' => 'right'],
-                ['key' => 'status', 'label' => 'Status', 'align' => 'center'],
+                ['key' => 'total_due', 'label' => 'Total Outstanding', 'align' => 'right'],
             ],
             'rows' => $rows,
             'summary' => $summary,
@@ -130,7 +131,7 @@ class RegularClientStatementService
     public function getProperties(): Collection
     {
         return PropertyUnit::with('property')
-            ->orderBy('name')
-            ->get(['id', 'name', 'property_id']);
+            ->orderBy('type')
+            ->get(['id', 'type', 'property_id']);
     }
 }

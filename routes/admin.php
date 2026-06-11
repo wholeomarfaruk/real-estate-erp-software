@@ -461,6 +461,11 @@ Route::prefix('reports/sales')->name('reports.sales.')->group(function () {
         ->middleware('can:reports.sales.regular-client-statement.view')
         ->name('regular-client-statement');
 
+    Route::get('/client-wise-statement',
+        App\Livewire\Admin\Reports\Sales\ClientWiseStatement::class)
+        ->middleware('can:reports.sales.client-wise-statement.view')
+        ->name('client-wise-statement');
+
     Route::get('/overdue-client-statement',
         App\Livewire\Admin\Reports\Sales\RegularClientStatement::class)
         ->middleware('can:reports.sales.overdue-client-statement.view')

@@ -58,6 +58,11 @@ class PropertyUnit extends Model
 
     // ── convenient getters that bridge old/new column names ─────────────────
 
+    public function getNameAttribute(): string
+    {
+        return $this->type ?? $this->unit_type ?? (string) $this->id;
+    }
+
     public function getEffectiveCodeAttribute(): string
     {
         return $this->code ?? $this->unit_number ?? (string) $this->id;

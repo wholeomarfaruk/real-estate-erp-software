@@ -2,30 +2,32 @@
 
 namespace App\Livewire\Admin\Reports\Sales;
 
-use App\Services\Reports\Sales\RegularClientStatementService;
+use App\Services\Reports\Sales\ClientWiseStatementService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
-class RegularClientStatement extends Component
+class ClientWiseStatement extends Component
 {
-    public ?int $projectId = null;
-
     public ?int $customerId = null;
-
-    public ?int $propertyId = null;
 
     public string $fromDate = '';
 
     public string $toDate = '';
 
-    public string $saleType = 'all';
+    public string $transactionType = 'all';
 
     public string $preset = 'month';
 
-    public function mount(RegularClientStatementService $service): void
+    public function mount(?int $customer_id = null): void
     {
-        $this->authorizePermission('reports.sales.regular-client-statement.view');
+        $this->authorizePermission('reports.sales.client-wise-statement.view');
+
+        if (!$customer_id) {
+            abort(400, 'Customer ID is required.');
+        }
+
+        $this->customerId = $customer_id;
 
         $today = now()->toDateString();
         $this->fromDate = $this->fromDate ?: Carbon::now()->startOfMonth()->toDateString();
@@ -38,10 +40,6 @@ class RegularClientStatement extends Component
     {
         if (in_array($name, ['fromDate', 'toDate'], true)) {
             $this->syncPreset();
-        }
-
-        if ($name === 'projectId' && $this->propertyId) {
-            $this->propertyId = null;
         }
     }
 
@@ -75,40 +73,33 @@ class RegularClientStatement extends Component
 
     public function resetFilters(): void
     {
-        $this->projectId = null;
-        $this->customerId = null;
-        $this->propertyId = null;
-        $this->saleType = 'all';
+        $this->transactionType = 'all';
 
         $this->applyPreset('month');
     }
 
-    public function render(RegularClientStatementService $service): View
+    public function render(ClientWiseStatementService $service): View
     {
-        $this->authorizePermission('reports.sales.regular-client-statement.view');
+        $this->authorizePermission('reports.sales.client-wise-statement.view');
 
         $report = $service->build($this->filterPayload());
 
-        return view('livewire.admin.reports.sales.regular-client-statement', [
+        return view('livewire.admin.reports.sales.client-wise-statement', [
             'report' => $report,
-            'projects' => $service->getProjects(),
-            'customers' => $service->getCustomers(),
-            'properties' => $service->getProperties(),
-            'printUrl' => route('admin.reports.sales.export.print', array_merge(['report' => 'regular-client-statement'], $this->exportQuery())),
-            'pdfUrl' => route('admin.reports.sales.export.pdf', array_merge(['report' => 'regular-client-statement'], $this->exportQuery())),
-            'excelUrl' => route('admin.reports.sales.export.excel', array_merge(['report' => 'regular-client-statement'], $this->exportQuery())),
+            'transactionTypes' => $service->getTransactionTypes(),
+            'printUrl' => route('admin.reports.sales.export.print', array_merge(['report' => 'client-wise-statement'], $this->exportQuery())),
+            'pdfUrl' => route('admin.reports.sales.export.pdf', array_merge(['report' => 'client-wise-statement'], $this->exportQuery())),
+            'excelUrl' => route('admin.reports.sales.export.excel', array_merge(['report' => 'client-wise-statement'], $this->exportQuery())),
         ])->layout('layouts.admin.admin');
     }
 
     protected function filterPayload(): array
     {
         return [
-            'project_id' => $this->projectId,
             'customer_id' => $this->customerId,
-            'property_id' => $this->propertyId,
+            'transaction_type' => $this->transactionType,
             'from_date' => $this->fromDate,
             'to_date' => $this->toDate,
-            'sale_type' => $this->saleType,
         ];
     }
 

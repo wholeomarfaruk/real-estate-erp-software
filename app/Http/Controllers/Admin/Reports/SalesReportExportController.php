@@ -60,7 +60,7 @@ class SalesReportExportController extends Controller
 
         $paper = \count($payload['columns']) > 6 ? ['a4', 'landscape'] : ['a4', 'portrait'];
 
-        $pdf = Pdf::loadView('admin.reports.sales.exports.report-pdf', [
+        $pdf = Pdf::loadView('pdf.reports.sales.exports.report-pdf', [
             'report' => $payload,
         ])->setPaper($paper[0], $paper[1]);
 

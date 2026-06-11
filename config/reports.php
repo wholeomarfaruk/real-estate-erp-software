@@ -39,6 +39,15 @@ return [
                 'permission' => 'reports.sales.regular-client-statement.view',
             ],
 
+            'client-wise-statement' => [
+                'title' => 'Client Wise Statement',
+                'description' => 'Detailed sales and rent transactions for a specific client.',
+                'service' => App\Services\Reports\Sales\ClientWiseStatementService::class,
+                'component' => App\Livewire\Admin\Reports\Sales\ClientWiseStatement::class,
+                'view' => 'livewire.admin.reports.sales.client-wise-statement',
+                'permission' => 'reports.sales.client-wise-statement.view',
+            ],
+
             // 'overdue-client-statement' => [
             //     'title' => 'Overdue Client Statement',
             //     'description' => 'Clients with 1–3 overdue installments but not yet classified as high risk.',
