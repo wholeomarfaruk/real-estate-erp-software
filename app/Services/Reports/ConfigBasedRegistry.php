@@ -29,7 +29,7 @@ class ConfigBasedRegistry
                 $categoryResult['items'][] = [
                     'name' => $reportData['title'],
                     'desc' => $reportData['description'],
-                    'route' => route('admin.reports.' . $categoryKey . '.' . $reportSlug),
+                    'route' => route('admin.reports.' . $categoryKey . '.' . str_replace('_', '-', $reportSlug)),
                 ];
             }
 

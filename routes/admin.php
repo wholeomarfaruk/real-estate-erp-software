@@ -445,12 +445,13 @@ Route::prefix('marketing')->name('marketing.')->group(function (): void {
 });
 
 // Reports module
+Route::get('/reports', \App\Livewire\Admin\Reports\ReportsHub::class)->name('reports.index');
+Route::get('/reports/{key}', \App\Livewire\Admin\Reports\ReportsCategory::class)->name('reports.category');
+
 Route::controller(ReportController::class)->prefix('reports')->name('reports.')->group(function () {
-    Route::get('/',           'index')     ->name('index');
-    Route::get('/dashboard',  'dashboard') ->name('dashboard');
-    Route::get('/builder',    'builder')   ->name('builder');
-    Route::get('/scheduled',  'scheduled') ->name('scheduled');
-    Route::get('/{category}', 'category')  ->name('category');
+    Route::get('/dashboard', 'dashboard')->name('dashboard');
+    Route::get('/builder',   'builder')  ->name('builder');
+    Route::get('/scheduled', 'scheduled')->name('scheduled');
 });
 
 // Sales Reports
@@ -459,6 +460,51 @@ Route::prefix('reports/sales')->name('reports.sales.')->group(function () {
         App\Livewire\Admin\Reports\Sales\RegularClientStatement::class)
         ->middleware('can:reports.sales.regular-client-statement.view')
         ->name('regular-client-statement');
+
+    Route::get('/overdue-client-statement',
+        App\Livewire\Admin\Reports\Sales\RegularClientStatement::class)
+        ->middleware('can:reports.sales.overdue-client-statement.view')
+        ->name('overdue-client-statement');
+
+    Route::get('/classified-client-statement',
+        App\Livewire\Admin\Reports\Sales\RegularClientStatement::class)
+        ->middleware('can:reports.sales.classified-client-statement.view')
+        ->name('classified-client-statement');
+
+    Route::get('/detailed-client-statement',
+        App\Livewire\Admin\Reports\Sales\RegularClientStatement::class)
+        ->middleware('can:reports.sales.detailed-client-statement.view')
+        ->name('detailed-client-statement');
+
+    Route::get('/all-client-statement',
+        App\Livewire\Admin\Reports\Sales\RegularClientStatement::class)
+        ->middleware('can:reports.sales.all-client-statement.view')
+        ->name('all-client-statement');
+
+    Route::get('/upcoming-installments',
+        App\Livewire\Admin\Reports\Sales\RegularClientStatement::class)
+        ->middleware('can:reports.sales.upcoming-installments.view')
+        ->name('upcoming-installments');
+
+    Route::get('/collection-performance',
+        App\Livewire\Admin\Reports\Sales\RegularClientStatement::class)
+        ->middleware('can:reports.sales.collection-performance.view')
+        ->name('collection-performance');
+
+    Route::get('/defaulter-report',
+        App\Livewire\Admin\Reports\Sales\RegularClientStatement::class)
+        ->middleware('can:reports.sales.defaulter-report.view')
+        ->name('defaulter-report');
+
+    Route::get('/aging-outstanding',
+        App\Livewire\Admin\Reports\Sales\RegularClientStatement::class)
+        ->middleware('can:reports.sales.aging-outstanding.view')
+        ->name('aging-outstanding');
+
+    Route::get('/rent-collection',
+        App\Livewire\Admin\Reports\Sales\RegularClientStatement::class)
+        ->middleware('can:reports.sales.rent-collection.view')
+        ->name('rent-collection');
 
     // Exports (shared controller, {report} slug selects the service)
     Route::get('/export/{report}/pdf',
