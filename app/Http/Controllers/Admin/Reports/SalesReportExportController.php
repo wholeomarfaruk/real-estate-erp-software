@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin\Reports;
 
 use App\Http\Controllers\Controller;
-use App\Services\Reports\Sales\RegularClientStatementService;
+use App\Services\Reports\ConfigBasedRegistry;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -11,16 +11,15 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SalesReportExportController extends Controller
 {
-    private array $reportServices = [
-        'regular-client-statement' => RegularClientStatementService::class,
-    ];
+    public function __construct(private ConfigBasedRegistry $registry) {}
 
     public function print(string $report, Request $request): View
     {
         $this->authorizePermission('reports.sales.export');
-        abort_unless(isset($this->reportServices[$report]), 404, 'Report not found.');
 
-        $serviceClass = $this->reportServices[$report];
+        $serviceClass = $this->registry->getServiceClass($report);
+        abort_unless($serviceClass, 404, 'Report not found.');
+
         $service = app($serviceClass);
         $payload = $service->build($request->all());
 
@@ -32,9 +31,10 @@ class SalesReportExportController extends Controller
     public function excel(string $report, Request $request): Response
     {
         $this->authorizePermission('reports.sales.export');
-        abort_unless(isset($this->reportServices[$report]), 404, 'Report not found.');
 
-        $serviceClass = $this->reportServices[$report];
+        $serviceClass = $this->registry->getServiceClass($report);
+        abort_unless($serviceClass, 404, 'Report not found.');
+
         $service = app($serviceClass);
         $payload = $service->build($request->all());
 
@@ -51,13 +51,14 @@ class SalesReportExportController extends Controller
     public function pdf(string $report, Request $request): Response
     {
         $this->authorizePermission('reports.sales.export');
-        abort_unless(isset($this->reportServices[$report]), 404, 'Report not found.');
 
-        $serviceClass = $this->reportServices[$report];
+        $serviceClass = $this->registry->getServiceClass($report);
+        abort_unless($serviceClass, 404, 'Report not found.');
+
         $service = app($serviceClass);
         $payload = $service->build($request->all());
 
-        $paper = count($payload['columns']) > 6 ? ['a4', 'landscape'] : ['a4', 'portrait'];
+        $paper = \count($payload['columns']) > 6 ? ['a4', 'landscape'] : ['a4', 'portrait'];
 
         $pdf = Pdf::loadView('admin.reports.sales.exports.report-pdf', [
             'report' => $payload,
