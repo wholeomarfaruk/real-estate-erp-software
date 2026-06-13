@@ -48,23 +48,23 @@ return [
                 'permission' => 'reports.sales.client-wise-statement.view',
             ],
 
-            // 'overdue-client-statement' => [
-            //     'title' => 'Overdue Client Statement',
-            //     'description' => 'Clients with 1–3 overdue installments but not yet classified as high risk.',
-            //     'service' => App\Services\Reports\Sales\OverdueClientStatementService::class,
-            //     'component' => App\Livewire\Admin\Reports\Sales\OverdueClientStatement::class,
-            //     'view' => 'livewire.admin.reports.sales.overdue-client-statement',
-            //     'permission' => 'reports.sales.overdue-client-statement.view',
-            // ],
+            'overdue-client-statement' => [
+                'title' => 'Overdue Client Statement',
+                'description' => 'Clients with one or more overdue installments.',
+                'service' => App\Services\Reports\Sales\OverdueClientStatementService::class,
+                'component' => App\Livewire\Admin\Reports\Sales\OverdueClientStatement::class,
+                'view' => 'livewire.admin.reports.sales.overdue-client-statement',
+                'permission' => 'reports.sales.overdue-client-statement.view',
+            ],
 
-            // 'classified-client-statement' => [
-            //     'title' => 'Classified Client Statement',
-            //     'description' => 'High-risk clients with 4+ overdue installments requiring collection action.',
-            //     'service' => App\Services\Reports\Sales\ClassifiedClientStatementService::class,
-            //     'component' => App\Livewire\Admin\Reports\Sales\ClassifiedClientStatement::class,
-            //     'view' => 'livewire.admin.reports.sales.classified-client-statement',
-            //     'permission' => 'reports.sales.classified-client-statement.view',
-            // ],
+            'classified-client-statement' => [
+                'title' => 'Classified Client Statement',
+                'description' => 'High-risk clients with more than 3 overdue installments requiring collection action.',
+                'service' => App\Services\Reports\Sales\ClassifiedClientStatementService::class,
+                'component' => App\Livewire\Admin\Reports\Sales\ClassifiedClientStatement::class,
+                'view' => 'livewire.admin.reports.sales.classified-client-statement',
+                'permission' => 'reports.sales.classified-client-statement.view',
+            ],
 
             // 'detailed-client-statement' => [
             //     'title' => 'Detailed Client Statement',
@@ -75,14 +75,14 @@ return [
             //     'permission' => 'reports.sales.detailed-client-statement.view',
             // ],
 
-            // 'all-client-statement' => [
-            //     'title' => 'All Client Statement',
-            //     'description' => 'Master management report with all client data and status.',
-            //     'service' => App\Services\Reports\Sales\AllClientStatementService::class,
-            //     'component' => App\Livewire\Admin\Reports\Sales\AllClientStatement::class,
-            //     'view' => 'livewire.admin.reports.sales.all-client-statement',
-            //     'permission' => 'reports.sales.all-client-statement.view',
-            // ],
+            'all-client-statement' => [
+                'title' => 'All Client Statement',
+                'description' => 'Master statement of all clients with outstanding balances — total, paid, outstanding, overdue amount, scheduled & overdue installments.',
+                'service' => App\Services\Reports\Sales\AllClientStatementService::class,
+                'component' => App\Livewire\Admin\Reports\Sales\AllClientStatement::class,
+                'view' => 'livewire.admin.reports.sales.all-client-statement',
+                'permission' => 'reports.sales.all-client-statement.view',
+            ],
 
             // 'upcoming-installments' => [
             //     'title' => 'Upcoming Installments',

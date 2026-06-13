@@ -255,6 +255,12 @@ class DailyStatementReportService
                 'account:id,name,sub_type',
                 'account.bankAccount:id,account_id,bank_name',
                 'transactionCategory:id,name,type,parent_id',
+                // Resolve the "purpose" + property/unit/floor behind each line.
+                'expense:id,transaction_id,expense_no,title,reference_type,reference_id',
+                'reference',
+                'reference.propertySale.property:id,name',
+                'reference.propertySale.propertyUnit:id,property_floor_id,code,unit_number,type',
+                'reference.propertySale.propertyUnit.floor:id,label,code',
             ])
             ->whereIn('account_id', $trackedAccountIds)
             ->whereIn('type', $this->supportedTransactionTypes())
@@ -397,6 +403,7 @@ class DailyStatementReportService
 
             $totalTaka = $this->money($runningBalance + $cashReceived + $iouReceived + $bankTransfer);
             $closingBalance = $this->money($totalTaka - $expenses);
+            $details = $this->resolveDetails($transaction);
 
             $rows[] = [
                 'mr_no' => $this->referenceNo($transaction),
@@ -408,6 +415,10 @@ class DailyStatementReportService
                 'total_taka' => $totalTaka,
                 'expenses' => $this->money($expenses),
                 'closing_balance' => $closingBalance,
+                'purpose'  => $details['purpose'],
+                'property' => $details['property'],
+                'unit'     => $details['unit'],
+                'floor'    => $details['floor'],
             ];
 
             $runningBalance = $closingBalance;
@@ -431,6 +442,7 @@ class DailyStatementReportService
                 $type = $this->classifyTransactionType($transaction);
                 $isBank = $this->accountSubType($transaction) === 'bank';
                 $amount = $this->money((float) $transaction->credit);
+                $details = $this->resolveDetails($transaction);
 
                 return [
                     'voucher_no' => $this->referenceNo($transaction),
@@ -442,6 +454,10 @@ class DailyStatementReportService
                         ? ($transaction->account?->bankAccount?->bank_name ?: $transaction->account?->name ?: '-')
                         : '-',
                     'category_type' => $type,
+                    'purpose'      => $details['purpose'],
+                    'property'     => $details['property'],
+                    'unit'         => $details['unit'],
+                    'floor'        => $details['floor'],
                 ];
             })
             ->values()
@@ -463,6 +479,7 @@ class DailyStatementReportService
                 $type  = $this->classifyTransactionType($transaction);
                 $isBank = $this->accountSubType($transaction) === 'bank';
                 $amount = $this->money((float) $transaction->debit);
+                $details = $this->resolveDetails($transaction);
 
                 return [
                     'ref_no'       => $this->referenceNo($transaction),
@@ -474,6 +491,10 @@ class DailyStatementReportService
                         ? ($transaction->account?->bankAccount?->bank_name ?: $transaction->account?->name ?: '-')
                         : '-',
                     'category_type'=> $type,
+                    'purpose'      => $details['purpose'],
+                    'property'     => $details['property'],
+                    'unit'         => $details['unit'],
+                    'floor'        => $details['floor'],
                 ];
             })
             ->values()
@@ -515,21 +536,52 @@ class DailyStatementReportService
         return Str::headline(str_replace('_', ' ', $this->classifyTransactionType($transaction)));
     }
 
-    protected function referenceNo(Transaction $transaction): string
+    /**
+     * Resolve the human "purpose" plus property / unit / floor behind a
+     * transaction, so each daily-statement line can show what the money was for.
+     *
+     * @return array{purpose: string, property: ?string, unit: ?string, floor: ?string}
+     */
+    protected function resolveDetails(Transaction $transaction): array
     {
-        if (filled($transaction->reference_no)) {
-            return (string) $transaction->reference_no;
-        }
+        $reference = $transaction->reference;
 
-        $prefix = match ($this->classifyTransactionType($transaction)) {
-            'income' => 'INC',
-            'expense' => 'EXP',
-            'advance' => 'ADV',
-            'transfer' => 'TRF',
-            default => 'TXN',
+        // Property-sale receipts reference a PaymentSchedule → sale → unit/property.
+        $sale = $reference instanceof \App\Models\PaymentSchedule
+            ? $reference->propertySale
+            : null;
+
+        $unit = $sale?->propertyUnit;
+
+        // Purpose: schedule label for sale payments, else expense title, else
+        // the transaction category. (transactionLabel() already covers notes/name.)
+        $purpose = match (true) {
+            $reference instanceof \App\Models\PaymentSchedule => $reference->label(),
+            (bool) $transaction->expense => $transaction->expense->title ?: 'Expense',
+            default => (string) ($transaction->transactionCategory?->name ?? ''),
         };
 
-        return $prefix.'-'.$transaction->id;
+        $unitLabel = $unit
+            ? (string) ($unit->code ?: $unit->unit_number ?: $unit->type ?: $unit->id)
+            : null;
+
+        $floor = $unit?->floor;
+        $floorLabel = $floor
+            ? (string) ($floor->label ?: $floor->code ?: '')
+            : null;
+
+        return [
+            'purpose'  => trim($purpose) !== '' ? trim($purpose) : '',
+            'property' => $sale?->property?->name,
+            'unit'     => $unitLabel,
+            'floor'    => $floorLabel !== '' ? $floorLabel : null,
+        ];
+    }
+
+    protected function referenceNo(Transaction $transaction): string
+    {
+        // Ref. No / V. No columns show the transaction id.
+        return 'TXN-'.$transaction->id;
     }
 
     protected function statementRef(Carbon $reportDate, ?int $bankAccountId): string

@@ -3,8 +3,8 @@
         {{-- Header Section --}}
         <div class="flex items-center justify-between mb-8">
             <div>
-                <h1 class="text-4xl font-bold text-slate-900">Clients Overview</h1>
-                <p class="text-slate-600 mt-2">Monitor all clients with outstanding balances</p>
+                <h1 class="text-4xl font-bold text-slate-900">All Clients</h1>
+                <p class="text-slate-600 mt-2">All clients with an outstanding balance and full payment status</p>
             </div>
             <a href="{{ route('admin.reports.category', 'sales') }}"
                class="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg transition">
@@ -96,50 +96,36 @@
         </div>
 
         {{-- Summary KPIs --}}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {{-- Total Clients Card --}}
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-slate-600">Total Clients</p>
-                        <p class="text-3xl font-bold text-slate-900 mt-2">{{ $report['summary']['total_clients'] }}</p>
-                    </div>
-                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 12H9m6 0a6 6 0 11-12 0 6 6 0 0112 0z"></path>
-                        </svg>
-                    </div>
-                </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+            {{-- Total Clients --}}
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition">
+                <p class="text-xs font-medium text-slate-600">Total Clients</p>
+                <p class="text-2xl font-bold text-slate-900 mt-1">{{ $report['summary']['total_clients'] }}</p>
             </div>
-
-            {{-- Total Outstanding Card --}}
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-slate-600">Total Outstanding</p>
-                        <p class="text-3xl font-bold text-red-600 mt-2">{{ number_format((float)$report['summary']['total_outstanding'], 0) }}</p>
-                    </div>
-                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                </div>
+            {{-- Total Amount --}}
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition">
+                <p class="text-xs font-medium text-slate-600">Total Amount</p>
+                <p class="text-2xl font-bold text-slate-900 mt-1">{{ number_format((float)$report['summary']['total_amount'], 0) }}</p>
             </div>
-
-            {{-- Total Paid Card --}}
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-slate-600">Total Paid</p>
-                        <p class="text-3xl font-bold text-green-600 mt-2">{{ number_format((float)$report['summary']['total_paid'], 0) }}</p>
-                    </div>
-                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7 12a5 5 0 1110 0A5 5 0 017 12z"></path>
-                        </svg>
-                    </div>
-                </div>
+            {{-- Total Paid --}}
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition">
+                <p class="text-xs font-medium text-slate-600">Paid Amount</p>
+                <p class="text-2xl font-bold text-green-600 mt-1">{{ number_format((float)$report['summary']['total_paid'], 0) }}</p>
+            </div>
+            {{-- Outstanding --}}
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition">
+                <p class="text-xs font-medium text-slate-600">Outstanding</p>
+                <p class="text-2xl font-bold text-red-600 mt-1">{{ number_format((float)$report['summary']['total_outstanding'], 0) }}</p>
+            </div>
+            {{-- Overdue Amount --}}
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition">
+                <p class="text-xs font-medium text-slate-600">Overdue Amount</p>
+                <p class="text-2xl font-bold text-orange-600 mt-1">{{ number_format((float)$report['summary']['total_overdue_amount'], 0) }}</p>
+            </div>
+            {{-- Overdue Count --}}
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition">
+                <p class="text-xs font-medium text-slate-600">Overdue / Scheduled</p>
+                <p class="text-2xl font-bold text-slate-900 mt-1">{{ $report['summary']['total_overdue_count'] }} <span class="text-base font-medium text-slate-400">/ {{ $report['summary']['total_scheduled_count'] }}</span></p>
             </div>
         </div>
 
@@ -167,7 +153,7 @@
                 Excel
             </a>
         </div>
-        
+
 
         {{-- Data Table --}}
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -188,8 +174,12 @@
                             <tr class="border-b border-slate-200 hover:bg-blue-50 transition">
                                 @foreach($report['columns'] as $column)
                                     <td class="px-6 py-4 text-{{ $column['align'] }} text-sm text-slate-700">
-                                        @if(in_array($column['key'], ['total_paid', 'total_due']))
+                                        @if(in_array($column['key'], ['total_amount', 'total_paid', 'total_due', 'overdue_amount']))
                                             <span class="font-medium">{{ number_format((float)$row[$column['key']], 0) }}</span>
+                                        @elseif($column['key'] === 'overdue_count')
+                                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold @if(($row['overdue_count'] ?? 0) > 0) bg-red-100 text-red-700 @else bg-slate-100 text-slate-600 @endif">{{ $row['overdue_count'] ?? 0 }}</span>
+                                        @elseif($column['key'] === 'scheduled_count')
+                                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">{{ $row['scheduled_count'] ?? 0 }}</span>
                                         @else
                                             {{ $row[$column['key']] ?? '-' }}
                                         @endif

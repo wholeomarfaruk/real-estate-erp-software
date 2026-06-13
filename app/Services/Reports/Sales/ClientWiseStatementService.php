@@ -39,16 +39,23 @@ class ClientWiseStatementService
             $totalPaid = $sale->totalPaid();
             $totalDue = $sale->totalDue();
 
+            $scheduledCount = $sale->paymentSchedules->count();
+            $overdueCount = $sale->paymentSchedules->filter(fn ($schedule) => $schedule->isOverdue())->count();
+
             return [
                 'sale_id' => $sale->id,
-                'sale_number' => 'ORD-' . str_pad($sale->id, 6, '0', STR_PAD_LEFT),
+                'sale_number' => $sale->sale_number,
                 'type' => ucfirst($sale->sale_type),
                 'property_unit' => ($sale->propertyUnit?->name ?? '-') . ' / ' . ($sale->propertyUnit?->property?->name ?? '-'),
                 'sale_date' => $sale->sale_date->format('d-M-Y'),
                 'amount' => $sale->net_amount,
                 'total_paid' => $totalPaid,
                 'total_due' => $totalDue,
-                'status' => $totalDue > 0 ? ($totalDue == $sale->net_amount ? 'Pending' : 'Partial') : 'Completed',
+                'scheduled_count' => $scheduledCount,
+                'overdue_count' => $overdueCount,
+                // Use the sale's actual payment_status (source of truth, matches the
+                // property-sale detail page) rather than re-deriving from amounts.
+                'status' => ucfirst($sale->payment_status),
             ];
         })->toArray();
 
@@ -63,20 +70,44 @@ class ClientWiseStatementService
                 ->sum('amount'),
             'total_paid' => collect($rows)->sum('total_paid'),
             'total_outstanding' => collect($rows)->sum('total_due'),
+            'total_scheduled' => collect($rows)->sum('scheduled_count'),
+            'total_overdue' => collect($rows)->sum('overdue_count'),
         ];
+
+        $customerInfo = $customer ? [
+            'id' => $customer->id,
+            'name' => $customer->name,
+            'code' => $customer->customer_id,
+            'type' => $customer->type,
+            'company_name' => $customer->company_name,
+            'phone' => $customer->phone,
+            'email' => $customer->email,
+            'address' => collect([$customer->address, $customer->district, $customer->division])
+                ->filter()
+                ->implode(', ') ?: null,
+            'status' => $customer->status,
+            'kyc_status' => $customer->kyc_status,
+            'initials' => collect(explode(' ', trim((string) $customer->name)))
+                ->filter()
+                ->take(2)
+                ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))
+                ->implode('') ?: '?',
+        ] : null;
 
         $meta = [
             'company_name' => config('app.name'),
             'report_title' => 'Client Wise Statement',
             'report_slug' => 'client-wise-statement',
             'generated_at' => now()->format('d-M-Y H:i A'),
+            'generated_by' => auth()->user()?->name ?? 'System',
             'from_date' => $filters['from_date'] ?? '-',
             'to_date' => $filters['to_date'] ?? '-',
             'file_name' => 'client-wise-statement-' . ($customer?->id ?? 'unknown') . '-' . now()->format('Y-m-d-His'),
+            'notes' => $filters['notes'] ?? '',
         ];
 
         return [
-            'title' => 'Client Wise Statement — ' . ($customer?->name ?? 'Customer'),
+            'title' => 'Client Statement — ' . ($customer?->name ?? 'Customer'),
             'slug' => 'client-wise-statement',
             'columns' => [
                 ['key' => 'sale_number', 'label' => 'Sale #', 'align' => 'left'],
@@ -86,10 +117,13 @@ class ClientWiseStatementService
                 ['key' => 'amount', 'label' => 'Amount', 'align' => 'right'],
                 ['key' => 'total_paid', 'label' => 'Paid', 'align' => 'right'],
                 ['key' => 'total_due', 'label' => 'Outstanding', 'align' => 'right'],
+                ['key' => 'scheduled_count', 'label' => 'Scheduled', 'align' => 'center'],
+                ['key' => 'overdue_count', 'label' => 'Overdue', 'align' => 'center'],
                 ['key' => 'status', 'label' => 'Status', 'align' => 'center'],
             ],
             'rows' => $rows,
             'summary' => $summary,
+            'customer' => $customerInfo,
             'meta' => $meta,
         ];
     }

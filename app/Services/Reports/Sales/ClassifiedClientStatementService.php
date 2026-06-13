@@ -9,7 +9,7 @@ use App\Models\Project;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
-class RegularClientStatementService
+class ClassifiedClientStatementService
 {
     public function build(array $filters): array
     {
@@ -57,6 +57,7 @@ class RegularClientStatementService
             $totalDue = 0;
             $salePropCount = 0;
             $rentPropCount = 0;
+            $overdueCount = 0;
 
             foreach ($customerSales as $sale) {
                 $saleTotal = $sale->totalDue();
@@ -70,6 +71,9 @@ class RegularClientStatementService
                         $salePropCount++;
                     }
                 }
+
+                // Count overdue installments across all of this client's sales.
+                $overdueCount += $sale->paymentSchedules->filter->isOverdue()->count();
             }
 
             return [
@@ -78,10 +82,15 @@ class RegularClientStatementService
                 'client_name' => $customer->name,
                 'sale_property_count' => $salePropCount,
                 'rent_property_count' => $rentPropCount,
+                'overdue_count' => $overdueCount,
                 'total_paid' => $totalPaid,
                 'total_due' => $totalDue,
             ];
-        })->filter(fn ($row) => $row['total_due'] > 0)->values()->toArray();
+        })
+            // High-risk: clients with an outstanding balance AND more than 3 overdue installments.
+            ->filter(fn ($row) => $row['total_due'] > 0 && $row['overdue_count'] > 3)
+            ->values()
+            ->toArray();
 
         $rows = $clientData;
 
@@ -95,23 +104,24 @@ class RegularClientStatementService
         // Meta
         $meta = [
             'company_name' => config('app.name'),
-            'report_title' => 'Regular Client Statement',
-            'report_slug' => 'regular-client-statement',
+            'report_title' => 'Classified Client Statement',
+            'report_slug' => 'classified-client-statement',
             'generated_at' => now()->format('d-M-Y H:i A'),
             'generated_by' => auth()->user()?->name ?? 'System',
             'from_date' => $filters['from_date'] ?? '-',
             'to_date' => $filters['to_date'] ?? '-',
-            'file_name' => 'regular-client-statement-' . now()->format('Y-m-d-His'),
+            'file_name' => 'classified-client-statement-' . now()->format('Y-m-d-His'),
             'notes' => $filters['notes'] ?? '',
         ];
 
         return [
-            'title' => 'Regular Client Statement',
-            'slug' => 'regular-client-statement',
+            'title' => 'Classified Client Statement',
+            'slug' => 'classified-client-statement',
             'columns' => [
                 ['key' => 'client_name', 'label' => 'Client Name', 'align' => 'left'],
                 ['key' => 'sale_property_count', 'label' => 'Sale Properties', 'align' => 'center'],
                 ['key' => 'rent_property_count', 'label' => 'Rent Properties', 'align' => 'center'],
+                ['key' => 'overdue_count', 'label' => 'Overdue', 'align' => 'center'],
                 ['key' => 'total_paid', 'label' => 'Total Paid', 'align' => 'right'],
                 ['key' => 'total_due', 'label' => 'Total Outstanding', 'align' => 'right'],
             ],

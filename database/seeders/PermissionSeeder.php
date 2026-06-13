@@ -340,6 +340,7 @@ class PermissionSeeder extends Seeder
 
             // Sales Reports (from config/reports.php)
             ['id' => 271, 'name' => 'reports.sales.regular-client-statement.view'],
+            ['id' => 282, 'name' => 'reports.sales.client-wise-statement.view'],
             ['id' => 272, 'name' => 'reports.sales.overdue-client-statement.view'],
             ['id' => 273, 'name' => 'reports.sales.classified-client-statement.view'],
             ['id' => 274, 'name' => 'reports.sales.detailed-client-statement.view'],

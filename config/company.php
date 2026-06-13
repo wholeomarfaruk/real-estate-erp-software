@@ -9,6 +9,6 @@ return [
     'phone' => '+880 2 555 5555',
     'email' => 'starunityd@gmail.com',
     'logo'         => 'assets/logo/sud-logo.png',
-    'logo_initial' => 'S',
+    'logo_initial' => 'SU',
     'website' => 'wwww.starunitydevelopment.com',
 ];

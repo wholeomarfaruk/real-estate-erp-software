@@ -207,6 +207,59 @@ document.addEventListener("livewire:initialized", () => {
 });
 //FlatPickr==================================================END
 //--    ====================================================
+//TomSelect=================================================START
+import TomSelect from "tom-select";
+import "tom-select/dist/css/tom-select.css";
+
+window.TomSelect = TomSelect;
+
+window.initTomSelect = () => {
+    document.querySelectorAll(".tom-select").forEach((el) => {
+        // Skip if already initialised and still attached to the DOM.
+        if (el.tomselect) {
+            return;
+        }
+
+        const control = new TomSelect(el, {
+            allowEmptyOption: true,
+            create: false,
+            placeholder: el.dataset.placeholder || "Select...",
+        });
+
+        // Bridge to Livewire. The field lives inside wire:ignore, so wire:model
+        // can't observe it directly — push the value to the property named in
+        // data-wire-model (set by the <x-tom-select> component) on every change.
+        const wireProperty = el.dataset.wireModel;
+        if (wireProperty) {
+            control.on("change", (value) => {
+                const component = window.Livewire?.find(
+                    el.closest("[wire\\:id]")?.getAttribute("wire:id")
+                );
+                component?.set(wireProperty, value);
+            });
+        }
+    });
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.initTomSelect();
+});
+
+document.addEventListener("livewire:navigated", () => {
+    window.initTomSelect();
+});
+
+document.addEventListener("livewire:initialized", () => {
+    Livewire.hook("morph.updated", () => {
+        window.initTomSelect();
+    });
+});
+//TomSelect=================================================END
+//--    ====================================================
+//Custom Forms Select (Alpine, no jQuery/3rd-party)=========START
+import "./select-component.js";
+//Custom Forms Select======================================END
+//--    ====================================================
 //Sortable==================================================START
 import Sortable from "sortablejs";
 

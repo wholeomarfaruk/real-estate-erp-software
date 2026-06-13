@@ -9,7 +9,7 @@ use App\Models\Project;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
-class RegularClientStatementService
+class AllClientStatementService
 {
     public function build(array $filters): array
     {
@@ -53,21 +53,25 @@ class RegularClientStatementService
         // Group by customer and aggregate data
         $clientData = $sales->groupBy('customer_id')->map(function ($customerSales) {
             $customer = $customerSales->first()->customer;
+            $totalAmount = 0;
             $totalPaid = 0;
             $totalDue = 0;
-            $salePropCount = 0;
-            $rentPropCount = 0;
+            $overdueAmount = 0;
+            $scheduledCount = 0;
+            $overdueCount = 0;
 
             foreach ($customerSales as $sale) {
-                $saleTotal = $sale->totalDue();
-                if ($saleTotal > 0) {
-                    $totalPaid += $sale->totalPaid();
-                    $totalDue += $saleTotal;
+                $totalAmount += $sale->totalScheduled();
+                $totalPaid += $sale->totalPaid();
+                $totalDue += $sale->totalDue();
 
-                    if ($sale->sale_type === 'rent') {
-                        $rentPropCount++;
-                    } else {
-                        $salePropCount++;
+                // Per-installment metrics across all of this client's sales.
+                foreach ($sale->paymentSchedules as $schedule) {
+                    $scheduledCount++;
+
+                    if ($schedule->isOverdue()) {
+                        $overdueCount++;
+                        $overdueAmount += (float) $schedule->due_amount;
                     }
                 }
             }
@@ -76,44 +80,56 @@ class RegularClientStatementService
                 'customer_id' => $customer->id,
                 'client_display_id' => $customer->customer_id,
                 'client_name' => $customer->name,
-                'sale_property_count' => $salePropCount,
-                'rent_property_count' => $rentPropCount,
+                'total_amount' => $totalAmount,
                 'total_paid' => $totalPaid,
                 'total_due' => $totalDue,
+                'overdue_amount' => $overdueAmount,
+                'scheduled_count' => $scheduledCount,
+                'overdue_count' => $overdueCount,
             ];
-        })->filter(fn ($row) => $row['total_due'] > 0)->values()->toArray();
+        })
+            // All clients that still carry an outstanding balance.
+            ->filter(fn ($row) => $row['total_due'] > 0)
+            ->values()
+            ->toArray();
 
         $rows = $clientData;
 
         // Summary
         $summary = [
             'total_clients' => \count($rows),
-            'total_outstanding' => collect($rows)->sum('total_due'),
+            'total_amount' => collect($rows)->sum('total_amount'),
             'total_paid' => collect($rows)->sum('total_paid'),
+            'total_outstanding' => collect($rows)->sum('total_due'),
+            'total_overdue_amount' => collect($rows)->sum('overdue_amount'),
+            'total_scheduled_count' => collect($rows)->sum('scheduled_count'),
+            'total_overdue_count' => collect($rows)->sum('overdue_count'),
         ];
 
         // Meta
         $meta = [
             'company_name' => config('app.name'),
-            'report_title' => 'Regular Client Statement',
-            'report_slug' => 'regular-client-statement',
+            'report_title' => 'All Client Statement',
+            'report_slug' => 'all-client-statement',
             'generated_at' => now()->format('d-M-Y H:i A'),
             'generated_by' => auth()->user()?->name ?? 'System',
             'from_date' => $filters['from_date'] ?? '-',
             'to_date' => $filters['to_date'] ?? '-',
-            'file_name' => 'regular-client-statement-' . now()->format('Y-m-d-His'),
+            'file_name' => 'all-client-statement-' . now()->format('Y-m-d-His'),
             'notes' => $filters['notes'] ?? '',
         ];
 
         return [
-            'title' => 'Regular Client Statement',
-            'slug' => 'regular-client-statement',
+            'title' => 'All Client Statement',
+            'slug' => 'all-client-statement',
             'columns' => [
                 ['key' => 'client_name', 'label' => 'Client Name', 'align' => 'left'],
-                ['key' => 'sale_property_count', 'label' => 'Sale Properties', 'align' => 'center'],
-                ['key' => 'rent_property_count', 'label' => 'Rent Properties', 'align' => 'center'],
-                ['key' => 'total_paid', 'label' => 'Total Paid', 'align' => 'right'],
-                ['key' => 'total_due', 'label' => 'Total Outstanding', 'align' => 'right'],
+                ['key' => 'total_amount', 'label' => 'Total Amount', 'align' => 'right'],
+                ['key' => 'total_paid', 'label' => 'Paid Amount', 'align' => 'right'],
+                ['key' => 'total_due', 'label' => 'Outstanding', 'align' => 'right'],
+                ['key' => 'overdue_amount', 'label' => 'Overdue Amount', 'align' => 'right'],
+                ['key' => 'scheduled_count', 'label' => 'Scheduled', 'align' => 'center'],
+                ['key' => 'overdue_count', 'label' => 'Overdue', 'align' => 'center'],
             ],
             'rows' => $rows,
             'summary' => $summary,

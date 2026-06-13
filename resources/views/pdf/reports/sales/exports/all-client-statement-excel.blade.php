@@ -1,20 +1,19 @@
 {{--
-    Excel export — mirrors the report-pdf design (company header, info strip,
-    styled data table, totals band) but built for Excel.
+    Excel export — All Client Statement.
+    Mirrors the all-client PDF design (company header, info strip, styled data
+    table, totals band) but built for Excel.
+
+    Columns: Client · Total Amount · Paid · Outstanding · Overdue Amount ·
+             Scheduled (count) · Overdue (count).
 
     Excel notes:
     · Excel ignores <style>/CSS classes → all styling is inline.
-    · The xmlns:x + ExcelWorkbook meta makes Office open it without a warning.
-    · mso-number-format forces text on IDs (no scientific notation) and 2-decimals
-      on money so large values keep precision.
-    · Layout uses one master table; "info strip" / "totals" rows span all columns.
+    · mso-number-format forces text on IDs, 2-decimals on money, integers on counts.
 --}}
 @php
     $colCount = count($report['columns']);
-    // Visible columns mirror the PDF (it hides the standalone rent_property_count column).
-    $visibleCols = collect($report['columns'])->reject(fn ($c) => $c['key'] === 'rent_property_count')->values();
-    $visibleCount = $visibleCols->count();
-    $moneyKeys = ['contract_value', 'total_paid', 'total_due', 'outstanding_balance', 'due_amount', 'amount'];
+    $moneyKeys = ['total_amount', 'total_paid', 'total_due', 'overdue_amount'];
+    $countKeys = ['scheduled_count', 'overdue_count'];
 
     $ink = '#161616';
     $muted = '#5f5f5f';
@@ -36,7 +35,7 @@
 
     {{-- ============================ HEADER ============================ --}}
     <tr>
-        <td colspan="{{ max($visibleCount - 1, 1) }}" style="border:none; vertical-align:top;">
+        <td colspan="{{ max($colCount - 1, 1) }}" style="border:none; vertical-align:top;">
             <span style="font-size:18px; font-weight:bold; color:{{ $ink }};">{{ $report['meta']['company_name'] }}</span><br>
             <span style="font-size:10px; color:{{ $muted }};">
                 {{ config('company.address') }} · {{ config('company.phone') }} · {{ config('company.email') }}
@@ -53,17 +52,17 @@
     </tr>
 
     {{-- thin rule row --}}
-    <tr><td colspan="{{ $visibleCount }}" style="border:none; border-bottom:2px solid {{ $ink }}; height:2px; font-size:1px;">&nbsp;</td></tr>
+    <tr><td colspan="{{ $colCount }}" style="border:none; border-bottom:2px solid {{ $ink }}; height:2px; font-size:1px;">&nbsp;</td></tr>
 
     {{-- ============================ INFO STRIP ============================ --}}
     <tr>
-        <td style="border:1px solid {{ $rule }}; background:#ffffff;">
+        <td colspan="{{ max($colCount - 2, 1) }}" style="border:1px solid {{ $rule }}; background:#ffffff;">
             <span style="font-size:8px; font-weight:bold; color:{{ $muted }};">STATEMENT PERIOD</span><br>
             <span style="font-size:11px; font-weight:bold;">{{ $report['meta']['from_date'] ?? '-' }} – {{ $report['meta']['to_date'] ?? '-' }}</span>
         </td>
-        <td colspan="{{ max($visibleCount - 2, 1) }}" style="border:1px solid {{ $rule }}; text-align:right;">
+        <td style="border:1px solid {{ $rule }};">
             <span style="font-size:8px; font-weight:bold; color:{{ $muted }};">CURRENCY</span><br>
-            <span style="font-size:11px; font-weight:bold;">Bangladeshi Taka (BDT)</span>
+            <span style="font-size:11px; font-weight:bold;">BDT</span>
         </td>
         <td style="border:1px solid {{ $rule }}; text-align:right;">
             <span style="font-size:8px; font-weight:bold; color:{{ $muted }};">TOTAL CLIENTS</span><br>
@@ -72,14 +71,14 @@
     </tr>
 
     {{-- spacer --}}
-    <tr><td colspan="{{ $visibleCount }}" style="border:none; height:6px; font-size:1px;">&nbsp;</td></tr>
+    <tr><td colspan="{{ $colCount }}" style="border:none; height:6px; font-size:1px;">&nbsp;</td></tr>
 
     {{-- ============================ COLUMN HEADERS ============================ --}}
     <tr>
-        @foreach($visibleCols as $column)
+        @foreach($report['columns'] as $column)
             <th style="border:1px solid {{ $ink }}; background:{{ $head }}; text-align:{{ $column['align'] ?? 'left' }};
                        font-size:9px; font-weight:bold; text-transform:uppercase;">
-                @if($column['key'] === 'sale_property_count') Sales / Rents @else {{ $column['label'] }} @endif
+                {{ $column['label'] }}
             </th>
         @endforeach
     </tr>
@@ -87,20 +86,20 @@
     {{-- ============================ DATA ROWS ============================ --}}
     @forelse($report['rows'] as $row)
         <tr style="background:{{ $loop->even ? $zebra : '#ffffff' }};">
-            @foreach($visibleCols as $column)
+            @foreach($report['columns'] as $column)
                 @php($key = $column['key'])
                 @if($key === 'client_name')
                     <td style="border:1px solid {{ $rule }}; text-align:left;">
                         <span style="font-weight:bold;">{{ $row['client_name'] ?? '-' }}</span><br>
                         <span style="font-size:9px; color:{{ $muted }};">ID: {{ $row['client_display_id'] ?? '-' }}</span>
                     </td>
-                @elseif($key === 'sale_property_count')
-                    <td style="border:1px solid {{ $rule }}; text-align:center; mso-number-format:'\@';">
-                        Sale: {{ $row['sale_property_count'] ?? 0 }} · Rent: {{ $row['rent_property_count'] ?? 0 }}
-                    </td>
                 @elseif(in_array($key, $moneyKeys))
                     <td style="border:1px solid {{ $rule }}; text-align:right; mso-number-format:'#,##0.00';">
                         {{ number_format((float)($row[$key] ?? 0), 2) }}
+                    </td>
+                @elseif(in_array($key, $countKeys))
+                    <td style="border:1px solid {{ $rule }}; text-align:center; font-weight:bold; mso-number-format:'0';">
+                        {{ $row[$key] ?? 0 }}
                     </td>
                 @else
                     <td style="border:1px solid {{ $rule }}; text-align:{{ $column['align'] ?? 'left' }};">
@@ -111,45 +110,53 @@
         </tr>
     @empty
         <tr>
-            <td colspan="{{ $visibleCount }}" style="border:1px solid {{ $rule }}; text-align:center;">No records found.</td>
+            <td colspan="{{ $colCount }}" style="border:1px solid {{ $rule }}; text-align:center;">No records found.</td>
         </tr>
     @endforelse
 
     {{-- spacer --}}
-    <tr><td colspan="{{ $visibleCount }}" style="border:none; height:8px; font-size:1px;">&nbsp;</td></tr>
+    <tr><td colspan="{{ $colCount }}" style="border:none; height:8px; font-size:1px;">&nbsp;</td></tr>
 
     {{-- ============================ TOTALS BAND ============================ --}}
     <tr>
-        <td colspan="{{ $visibleCount }}" style="border:none; font-size:8px; font-weight:bold; color:{{ $muted }}; text-transform:uppercase;">
+        <td colspan="{{ $colCount }}" style="border:none; font-size:8px; font-weight:bold; color:{{ $muted }}; text-transform:uppercase;">
             Statement Summary
         </td>
     </tr>
     <tr style="background:{{ $zebra }}; font-weight:bold;">
-        <td colspan="{{ max($visibleCount - 1, 1) }}" style="border:1px solid {{ $ink }}; text-align:right;">Total Clients:</td>
-        <td style="border:1px solid {{ $ink }}; text-align:right;">{{ $report['summary']['total_clients'] ?? 0 }}</td>
+        <td colspan="{{ max($colCount - 1, 1) }}" style="border:1px solid {{ $ink }}; text-align:right;">Total Amount:</td>
+        <td style="border:1px solid {{ $ink }}; text-align:right; mso-number-format:'#,##0.00';">{{ number_format((float)($report['summary']['total_amount'] ?? 0), 2) }}</td>
     </tr>
     <tr style="font-weight:bold;">
-        <td colspan="{{ max($visibleCount - 1, 1) }}" style="border:1px solid {{ $rule }}; text-align:right;">Total Paid:</td>
+        <td colspan="{{ max($colCount - 1, 1) }}" style="border:1px solid {{ $rule }}; text-align:right;">Paid Amount:</td>
         <td style="border:1px solid {{ $rule }}; text-align:right; mso-number-format:'#,##0.00';">{{ number_format((float)($report['summary']['total_paid'] ?? 0), 2) }}</td>
     </tr>
+    <tr style="font-weight:bold;">
+        <td colspan="{{ max($colCount - 1, 1) }}" style="border:1px solid {{ $rule }}; text-align:right;">Overdue Amount:</td>
+        <td style="border:1px solid {{ $rule }}; text-align:right; mso-number-format:'#,##0.00';">{{ number_format((float)($report['summary']['total_overdue_amount'] ?? 0), 2) }}</td>
+    </tr>
+    <tr style="font-weight:bold;">
+        <td colspan="{{ max($colCount - 1, 1) }}" style="border:1px solid {{ $rule }}; text-align:right;">Scheduled / Overdue (count):</td>
+        <td style="border:1px solid {{ $rule }}; text-align:right; mso-number-format:'\@';">{{ $report['summary']['total_scheduled_count'] ?? 0 }} / {{ $report['summary']['total_overdue_count'] ?? 0 }}</td>
+    </tr>
     <tr style="background:{{ $zebra }}; font-weight:bold;">
-        <td colspan="{{ max($visibleCount - 1, 1) }}" style="border:2px solid {{ $ink }}; text-align:right;">Total Outstanding:</td>
+        <td colspan="{{ max($colCount - 1, 1) }}" style="border:2px solid {{ $ink }}; text-align:right;">Total Outstanding:</td>
         <td style="border:2px solid {{ $ink }}; text-align:right; mso-number-format:'#,##0.00';">{{ number_format((float)($report['summary']['total_outstanding'] ?? 0), 2) }}</td>
     </tr>
 
     @if(!empty($report['meta']['notes']))
-        <tr><td colspan="{{ $visibleCount }}" style="border:none; height:8px; font-size:1px;">&nbsp;</td></tr>
+        <tr><td colspan="{{ $colCount }}" style="border:none; height:8px; font-size:1px;">&nbsp;</td></tr>
         <tr>
-            <td colspan="{{ $visibleCount }}" style="border:none; font-size:9px; color:{{ $muted }};">
+            <td colspan="{{ $colCount }}" style="border:none; font-size:9px; color:{{ $muted }};">
                 <b>Notes:</b> {{ $report['meta']['notes'] }}
             </td>
         </tr>
     @endif
 
     {{-- footer --}}
-    <tr><td colspan="{{ $visibleCount }}" style="border:none; height:6px; font-size:1px;">&nbsp;</td></tr>
+    <tr><td colspan="{{ $colCount }}" style="border:none; height:6px; font-size:1px;">&nbsp;</td></tr>
     <tr>
-        <td colspan="{{ $visibleCount }}" style="border:none; border-top:1px solid {{ $rule }}; font-size:8px; color:{{ $muted }};">
+        <td colspan="{{ $colCount }}" style="border:none; border-top:1px solid {{ $rule }}; font-size:8px; color:{{ $muted }};">
             {{ config('company.name') }} · {{ $report['title'] ?? 'Statement' }} ·
             Generated {{ $report['meta']['generated_at'] ?? now()->format('d M Y, H:i') }}
         </td>

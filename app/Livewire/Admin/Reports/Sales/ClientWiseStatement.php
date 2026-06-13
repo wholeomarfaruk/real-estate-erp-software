@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Admin\Reports\Sales;
 
+use App\Models\Customer;
 use App\Services\Reports\Sales\ClientWiseStatementService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Livewire\Component;
 
 class ClientWiseStatement extends Component
@@ -19,15 +21,13 @@ class ClientWiseStatement extends Component
 
     public string $preset = 'month';
 
+
     public function mount(?int $customer_id = null): void
     {
         $this->authorizePermission('reports.sales.client-wise-statement.view');
 
-        if (!$customer_id) {
-            abort(400, 'Customer ID is required.');
-        }
 
-        $this->customerId = $customer_id;
+        $this->customerId = request()->query('customer_id', $customer_id);
 
         $today = now()->toDateString();
         $this->fromDate = $this->fromDate ?: Carbon::now()->startOfMonth()->toDateString();
@@ -41,6 +41,17 @@ class ClientWiseStatement extends Component
         if (in_array($name, ['fromDate', 'toDate'], true)) {
             $this->syncPreset();
         }
+    }
+
+    public function getCustomersProperty(): Collection
+    {
+        return Customer::query()
+            ->orderBy('name')
+            ->get(['id', 'name', 'phone'])
+            ->map(fn (Customer $customer): array => [
+                'id' => $customer->id,
+                'label' => trim($customer->name . ($customer->phone ? ' — ' . $customer->phone : '')),
+            ]);
     }
 
     public function applyPreset(string $preset): void
@@ -82,14 +93,15 @@ class ClientWiseStatement extends Component
     {
         $this->authorizePermission('reports.sales.client-wise-statement.view');
 
-        $report = $service->build($this->filterPayload());
+        $report = $this->customerId ? $service->build($this->filterPayload()) : null;
 
         return view('livewire.admin.reports.sales.client-wise-statement', [
             'report' => $report,
+            'customers' => $this->customers,
             'transactionTypes' => $service->getTransactionTypes(),
-            'printUrl' => route('admin.reports.sales.export.print', array_merge(['report' => 'client-wise-statement'], $this->exportQuery())),
-            'pdfUrl' => route('admin.reports.sales.export.pdf', array_merge(['report' => 'client-wise-statement'], $this->exportQuery())),
-            'excelUrl' => route('admin.reports.sales.export.excel', array_merge(['report' => 'client-wise-statement'], $this->exportQuery())),
+            'printUrl' => route('admin.reports.sales.client-wise.print', $this->exportQuery()),
+            'pdfUrl' => route('admin.reports.sales.client-wise.pdf', $this->exportQuery()),
+            'excelUrl' => route('admin.reports.sales.client-wise.excel', $this->exportQuery()),
         ])->layout('layouts.admin.admin');
     }
 

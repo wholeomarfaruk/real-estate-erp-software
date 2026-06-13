@@ -467,12 +467,12 @@ Route::prefix('reports/sales')->name('reports.sales.')->group(function () {
         ->name('client-wise-statement');
 
     Route::get('/overdue-client-statement',
-        App\Livewire\Admin\Reports\Sales\RegularClientStatement::class)
+        App\Livewire\Admin\Reports\Sales\OverdueClientStatement::class)
         ->middleware('can:reports.sales.overdue-client-statement.view')
         ->name('overdue-client-statement');
 
     Route::get('/classified-client-statement',
-        App\Livewire\Admin\Reports\Sales\RegularClientStatement::class)
+        App\Livewire\Admin\Reports\Sales\ClassifiedClientStatement::class)
         ->middleware('can:reports.sales.classified-client-statement.view')
         ->name('classified-client-statement');
 
@@ -482,7 +482,7 @@ Route::prefix('reports/sales')->name('reports.sales.')->group(function () {
         ->name('detailed-client-statement');
 
     Route::get('/all-client-statement',
-        App\Livewire\Admin\Reports\Sales\RegularClientStatement::class)
+        App\Livewire\Admin\Reports\Sales\AllClientStatement::class)
         ->middleware('can:reports.sales.all-client-statement.view')
         ->name('all-client-statement');
 
@@ -526,4 +526,93 @@ Route::prefix('reports/sales')->name('reports.sales.')->group(function () {
         [App\Http\Controllers\Admin\Reports\SalesReportExportController::class, 'print'])
         ->middleware('can:reports.sales.export')
         ->name('export.print');
+
+    Route::get('/export/{report}/print-standalone',
+        [App\Http\Controllers\Admin\Reports\SalesReportExportController::class, 'printStandalone'])
+        ->middleware('can:reports.sales.export')
+        ->name('export.print-standalone');
+
+    // Dedicated exports for Client Wise Statement (own controller + templates)
+    Route::get('/client-wise/pdf',
+        [App\Http\Controllers\Admin\Reports\ClientWiseStatementExportController::class, 'pdf'])
+        ->middleware('can:reports.sales.export')
+        ->name('client-wise.pdf');
+
+    Route::get('/client-wise/excel',
+        [App\Http\Controllers\Admin\Reports\ClientWiseStatementExportController::class, 'excel'])
+        ->middleware('can:reports.sales.export')
+        ->name('client-wise.excel');
+
+    Route::get('/client-wise/print',
+        [App\Http\Controllers\Admin\Reports\ClientWiseStatementExportController::class, 'print'])
+        ->middleware('can:reports.sales.export')
+        ->name('client-wise.print');
+
+    Route::get('/client-wise/print-standalone',
+        [App\Http\Controllers\Admin\Reports\ClientWiseStatementExportController::class, 'printStandalone'])
+        ->middleware('can:reports.sales.export')
+        ->name('client-wise.print-standalone');
+
+    // Dedicated exports for Overdue Client Statement (own controller, shared templates)
+    Route::get('/overdue/pdf',
+        [App\Http\Controllers\Admin\Reports\OverdueClientStatementExportController::class, 'pdf'])
+        ->middleware('can:reports.sales.export')
+        ->name('overdue.pdf');
+
+    Route::get('/overdue/excel',
+        [App\Http\Controllers\Admin\Reports\OverdueClientStatementExportController::class, 'excel'])
+        ->middleware('can:reports.sales.export')
+        ->name('overdue.excel');
+
+    Route::get('/overdue/print',
+        [App\Http\Controllers\Admin\Reports\OverdueClientStatementExportController::class, 'print'])
+        ->middleware('can:reports.sales.export')
+        ->name('overdue.print');
+
+    Route::get('/overdue/print-standalone',
+        [App\Http\Controllers\Admin\Reports\OverdueClientStatementExportController::class, 'printStandalone'])
+        ->middleware('can:reports.sales.export')
+        ->name('overdue.print-standalone');
+
+    // Dedicated exports for Classified Client Statement (own controller + templates)
+    Route::get('/classified/pdf',
+        [App\Http\Controllers\Admin\Reports\ClassifiedClientStatementExportController::class, 'pdf'])
+        ->middleware('can:reports.sales.export')
+        ->name('classified.pdf');
+
+    Route::get('/classified/excel',
+        [App\Http\Controllers\Admin\Reports\ClassifiedClientStatementExportController::class, 'excel'])
+        ->middleware('can:reports.sales.export')
+        ->name('classified.excel');
+
+    Route::get('/classified/print',
+        [App\Http\Controllers\Admin\Reports\ClassifiedClientStatementExportController::class, 'print'])
+        ->middleware('can:reports.sales.export')
+        ->name('classified.print');
+
+    Route::get('/classified/print-standalone',
+        [App\Http\Controllers\Admin\Reports\ClassifiedClientStatementExportController::class, 'printStandalone'])
+        ->middleware('can:reports.sales.export')
+        ->name('classified.print-standalone');
+
+    // Dedicated exports for All Client Statement (own controller + templates)
+    Route::get('/all/pdf',
+        [App\Http\Controllers\Admin\Reports\AllClientStatementExportController::class, 'pdf'])
+        ->middleware('can:reports.sales.export')
+        ->name('all.pdf');
+
+    Route::get('/all/excel',
+        [App\Http\Controllers\Admin\Reports\AllClientStatementExportController::class, 'excel'])
+        ->middleware('can:reports.sales.export')
+        ->name('all.excel');
+
+    Route::get('/all/print',
+        [App\Http\Controllers\Admin\Reports\AllClientStatementExportController::class, 'print'])
+        ->middleware('can:reports.sales.export')
+        ->name('all.print');
+
+    Route::get('/all/print-standalone',
+        [App\Http\Controllers\Admin\Reports\AllClientStatementExportController::class, 'printStandalone'])
+        ->middleware('can:reports.sales.export')
+        ->name('all.print-standalone');
 });

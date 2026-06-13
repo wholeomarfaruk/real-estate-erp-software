@@ -373,7 +373,7 @@
                     <td style="width:64%;">
                         <table style="border-collapse:collapse;">
                             <tr>
-             
+
                                 <td style="vertical-align:middle;">
                                     <div class="co-name">{{ $report['meta']['company_name'] }}</div>
                                     <div class="co-addr">
@@ -410,7 +410,7 @@
                             @endif
                         </div>
                     </td>
-                   
+                  
                     <td style="width:30%;">
                         <div class="k" style="text-align:right;">Total Clients</div>
                         <div class="v" style="text-align:right;">{{ $report['summary']['total_clients'] ?? 0 }}

@@ -3,8 +3,8 @@
         {{-- Header Section --}}
         <div class="flex items-center justify-between mb-8">
             <div>
-                <h1 class="text-4xl font-bold text-slate-900">Clients Overview</h1>
-                <p class="text-slate-600 mt-2">Monitor all clients with outstanding balances</p>
+                <h1 class="text-4xl font-bold text-slate-900">Overdue Clients</h1>
+                <p class="text-slate-600 mt-2">Clients with one or more overdue installments</p>
             </div>
             <a href="{{ route('admin.reports.category', 'sales') }}"
                class="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg transition">
@@ -101,7 +101,7 @@
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-slate-600">Total Clients</p>
+                        <p class="text-sm font-medium text-slate-600">Overdue Clients</p>
                         <p class="text-3xl font-bold text-slate-900 mt-2">{{ $report['summary']['total_clients'] }}</p>
                     </div>
                     <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -167,7 +167,7 @@
                 Excel
             </a>
         </div>
-        
+
 
         {{-- Data Table --}}
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -190,6 +190,8 @@
                                     <td class="px-6 py-4 text-{{ $column['align'] }} text-sm text-slate-700">
                                         @if(in_array($column['key'], ['total_paid', 'total_due']))
                                             <span class="font-medium">{{ number_format((float)$row[$column['key']], 0) }}</span>
+                                        @elseif($column['key'] === 'overdue_count')
+                                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">{{ $row['overdue_count'] ?? 0 }}</span>
                                         @else
                                             {{ $row[$column['key']] ?? '-' }}
                                         @endif

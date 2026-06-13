@@ -27,6 +27,7 @@
         "sweetalert2": "^11.26.18",
         "swiper": "^12.1.1",
         "tailwind-scrollbar": "^4.0.2",
+        "tom-select": "^2.6.1",
         "vite": "^7.0.4"
     },
     "optionalDependencies": {

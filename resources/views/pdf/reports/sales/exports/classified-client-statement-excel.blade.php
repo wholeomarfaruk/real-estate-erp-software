@@ -1,6 +1,7 @@
 {{--
-    Excel export — mirrors the report-pdf design (company header, info strip,
-    styled data table, totals band) but built for Excel.
+    Excel export — Classified Client Statement.
+    Mirrors the classified PDF design (company header, info strip, styled data
+    table, totals band) but built for Excel.
 
     Excel notes:
     · Excel ignores <style>/CSS classes → all styling is inline.
@@ -98,6 +99,10 @@
                     <td style="border:1px solid {{ $rule }}; text-align:center; mso-number-format:'\@';">
                         Sale: {{ $row['sale_property_count'] ?? 0 }} · Rent: {{ $row['rent_property_count'] ?? 0 }}
                     </td>
+                @elseif($key === 'overdue_count')
+                    <td style="border:1px solid {{ $rule }}; text-align:center; font-weight:bold; mso-number-format:'0';">
+                        {{ $row['overdue_count'] ?? 0 }}
+                    </td>
                 @elseif(in_array($key, $moneyKeys))
                     <td style="border:1px solid {{ $rule }}; text-align:right; mso-number-format:'#,##0.00';">
                         {{ number_format((float)($row[$key] ?? 0), 2) }}
@@ -127,6 +132,10 @@
     <tr style="background:{{ $zebra }}; font-weight:bold;">
         <td colspan="{{ max($visibleCount - 1, 1) }}" style="border:1px solid {{ $ink }}; text-align:right;">Total Clients:</td>
         <td style="border:1px solid {{ $ink }}; text-align:right;">{{ $report['summary']['total_clients'] ?? 0 }}</td>
+    </tr>
+    <tr style="font-weight:bold;">
+        <td colspan="{{ max($visibleCount - 1, 1) }}" style="border:1px solid {{ $rule }}; text-align:right;">Total Overdue:</td>
+        <td style="border:1px solid {{ $rule }}; text-align:right; mso-number-format:'0';">{{ collect($report['rows'])->sum('overdue_count') }}</td>
     </tr>
     <tr style="font-weight:bold;">
         <td colspan="{{ max($visibleCount - 1, 1) }}" style="border:1px solid {{ $rule }}; text-align:right;">Total Paid:</td>

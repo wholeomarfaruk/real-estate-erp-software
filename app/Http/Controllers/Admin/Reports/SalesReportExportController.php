@@ -13,7 +13,9 @@ class SalesReportExportController extends Controller
 {
     public function __construct(private ConfigBasedRegistry $registry) {}
 
-    public function print(string $report, Request $request): View
+
+
+    public function printStandalone(string $report, Request $request): View
     {
         $this->authorizePermission('reports.sales.export');
 
@@ -23,9 +25,9 @@ class SalesReportExportController extends Controller
         $service = app($serviceClass);
         $payload = $service->build($request->all());
 
-        return view('admin.reports.sales.exports.report-print', [
+        return view('pdf.reports.sales.exports.report-print-standalone', [
             'report' => $payload,
-        ])->layout('layouts.admin.admin');
+        ]);
     }
 
     public function excel(string $report, Request $request): Response
@@ -38,7 +40,7 @@ class SalesReportExportController extends Controller
         $service = app($serviceClass);
         $payload = $service->build($request->all());
 
-        $content = view('admin.reports.sales.exports.report-excel', [
+        $content = view('pdf.reports.sales.exports.report-excel', [
             'report' => $payload,
         ])->render();
 
@@ -57,8 +59,9 @@ class SalesReportExportController extends Controller
 
         $service = app($serviceClass);
         $payload = $service->build($request->all());
+       
 
-        $paper = \count($payload['columns']) > 6 ? ['a4', 'landscape'] : ['a4', 'portrait'];
+        $paper = count($payload['columns']) > 6 ? ['a4', 'landscape'] : ['a4', 'portrait'];
 
         $pdf = Pdf::loadView('pdf.reports.sales.exports.report-pdf', [
             'report' => $payload,

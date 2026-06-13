@@ -215,7 +215,19 @@
         @forelse($statement->cashDetails as $cash)
         <tr>
             <td>{{ $cash->mr_no ?: '-' }}</td>
-            <td>{{ $cash->particulars ?: '-' }}</td>
+            <td>
+                {{ $cash->particulars ?: '-' }}
+                @php
+                    $cashMeta = collect([$cash->property ?? null, ($cash->unit ?? null) ? 'Unit '.$cash->unit : null, ($cash->floor ?? null) ? 'Floor '.$cash->floor : null])->filter()->implode(' · ');
+                @endphp
+                @if(!empty($cash->purpose) || $cashMeta !== '')
+                <div style="font-size:8.5px;color:#777;margin-top:1px;line-height:1.3">
+                    @if(!empty($cash->purpose))<span>Purpose: {{ $cash->purpose }}</span>@endif
+                    @if(!empty($cash->purpose) && $cashMeta !== '')<br>@endif
+                    @if($cashMeta !== ''){{ $cashMeta }}@endif
+                </div>
+                @endif
+            </td>
             <td class="r">{{ abs((float)($cash->opening_balance ?? 0)) > 0.004 ? $money($cash->opening_balance) : '' }}</td>
             <td class="r">{{ abs((float)($cash->cash_received  ?? 0)) > 0.004 ? $money($cash->cash_received)   : '' }}</td>
             <td class="r">{{ abs((float)($cash->iou_received   ?? 0)) > 0.004 ? $money($cash->iou_received)    : '' }}</td>
@@ -260,7 +272,19 @@
         @forelse($incomes as $income)
         <tr>
             <td class="c">{{ $income->ref_no ?: '-' }}</td>
-            <td>{{ $income->particulars ?: '-' }}</td>
+            <td>
+                {{ $income->particulars ?: '-' }}
+                @php
+                    $incMeta = collect([$income->property ?? null, ($income->unit ?? null) ? 'Unit '.$income->unit : null, ($income->floor ?? null) ? 'Floor '.$income->floor : null])->filter()->implode(' · ');
+                @endphp
+                @if(!empty($income->purpose) || $incMeta !== '')
+                <div style="font-size:8.5px;color:#777;margin-top:1px;line-height:1.3">
+                    @if(!empty($income->purpose))<span>Purpose: {{ $income->purpose }}</span>@endif
+                    @if(!empty($income->purpose) && $incMeta !== '')<br>@endif
+                    @if($incMeta !== ''){{ $incMeta }}@endif
+                </div>
+                @endif
+            </td>
             <td>{{ $income->category ?: '-' }}</td>
             <td class="r">{{ abs((float)($income->cash ?? 0)) > 0.004 ? $money($income->cash) : '' }}</td>
             <td class="r">{{ abs((float)($income->bank_transfer ?? 0)) > 0.004 ? $money($income->bank_transfer) : '' }}</td>
@@ -302,7 +326,19 @@
         @forelse($expenses as $expense)
         <tr>
             <td class="c">{{ $expense->voucher_no ?: '-' }}</td>
-            <td>{{ $expense->particulars ?: '-' }}</td>
+            <td>
+                {{ $expense->particulars ?: '-' }}
+                @php
+                    $expMeta = collect([$expense->property ?? null, ($expense->unit ?? null) ? 'Unit '.$expense->unit : null, ($expense->floor ?? null) ? 'Floor '.$expense->floor : null])->filter()->implode(' · ');
+                @endphp
+                @if(!empty($expense->purpose) || $expMeta !== '')
+                <div style="font-size:8.5px;color:#777;margin-top:1px;line-height:1.3">
+                    @if(!empty($expense->purpose))<span>Purpose: {{ $expense->purpose }}</span>@endif
+                    @if(!empty($expense->purpose) && $expMeta !== '')<br>@endif
+                    @if($expMeta !== ''){{ $expMeta }}@endif
+                </div>
+                @endif
+            </td>
             <td>{{ $expense->req_no ?: '-' }}</td>
             <td class="r">{{ abs((float)($expense->amount ?? 0)) > 0.004 ? $money($expense->amount) : '' }}</td>
             <td class="r">{{ abs((float)($expense->bank_transfer ?? 0)) > 0.004 ? $money($expense->bank_transfer) : '' }}</td>

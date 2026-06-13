@@ -2,12 +2,12 @@
 
 namespace App\Livewire\Admin\Reports\Sales;
 
-use App\Services\Reports\Sales\RegularClientStatementService;
+use App\Services\Reports\Sales\AllClientStatementService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
-class RegularClientStatement extends Component
+class AllClientStatement extends Component
 {
     public ?int $projectId = null;
 
@@ -25,9 +25,9 @@ class RegularClientStatement extends Component
 
     public string $notes = '';
 
-    public function mount(RegularClientStatementService $service): void
+    public function mount(AllClientStatementService $service): void
     {
-        $this->authorizePermission('reports.sales.regular-client-statement.view');
+        $this->authorizePermission('reports.sales.all-client-statement.view');
 
         $today = now()->toDateString();
         $this->fromDate = $this->fromDate ?: Carbon::now()->startOfMonth()->toDateString();
@@ -85,21 +85,21 @@ class RegularClientStatement extends Component
         $this->applyPreset('month');
     }
 
-    public function render(RegularClientStatementService $service): View
+    public function render(AllClientStatementService $service): View
     {
-        $this->authorizePermission('reports.sales.regular-client-statement.view');
+        $this->authorizePermission('reports.sales.all-client-statement.view');
 
         $report = $service->build($this->filterPayload());
 
-        return view('livewire.admin.reports.sales.regular-client-statement', [
+        return view('livewire.admin.reports.sales.all-client-statement', [
             'report' => $report,
             'projects' => $service->getProjects(),
             'customers' => $service->getCustomers(),
             'properties' => $service->getProperties(),
-            'printUrl' => route('admin.reports.sales.export.print', array_merge(['report' => 'regular-client-statement'], $this->exportQuery())),
-            'printStandaloneUrl' => route('admin.reports.sales.export.print-standalone', array_merge(['report' => 'regular-client-statement'], $this->exportQuery())),
-            'pdfUrl' => route('admin.reports.sales.export.pdf', array_merge(['report' => 'regular-client-statement'], $this->exportQuery())),
-            'excelUrl' => route('admin.reports.sales.export.excel', array_merge(['report' => 'regular-client-statement'], $this->exportQuery())),
+            'printUrl' => route('admin.reports.sales.all.print', $this->exportQuery()),
+            'printStandaloneUrl' => route('admin.reports.sales.all.print-standalone', $this->exportQuery()),
+            'pdfUrl' => route('admin.reports.sales.all.pdf', $this->exportQuery()),
+            'excelUrl' => route('admin.reports.sales.all.excel', $this->exportQuery()),
         ])->layout('layouts.admin.admin');
     }
 

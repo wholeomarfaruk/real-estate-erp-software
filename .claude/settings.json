@@ -3,7 +3,35 @@
     "allow": [
       "Bash(Get-ChildItem -Path \"f:\\\\projects\\\\erp-software\\\\database\\\\migrations\" -Filter \"*expense*\" -o Name)",
       "Bash(git commit -m 'Fix: Use provider_message_id for delivery status checks on all providers *)",
-      "Bash(git commit -m 'Refactor: Remove SSL Wireless, Vonage, and Twilio providers completely *)"
+      "Bash(git commit -m 'Refactor: Remove SSL Wireless, Vonage, and Twilio providers completely *)",
+      "PowerShell(npm install tom-select --silent 2>&1)",
+      "PowerShell(npm run build 2>&1)",
+      "Bash(php -l app/Livewire/Admin/Reports/Sales/ClientWiseStatement.php)",
+      "Bash(ls resources/views/components/)",
+      "Bash(ls resources/views/components/admin/)",
+      "Bash(ls resources/views/components/admin/forms/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/resources/js/admin.js)",
+      "Bash(curl -s http://localhost:5173/resources/js/admin.js)",
+      "Bash(grep -n 'protected $fillable\\\\|'\\\\''project_id'\\\\''\\\\|'\\\\''unit_id'\\\\''\\\\|'\\\\''sale_type'\\\\''' app/Models/PropertySale.php)",
+      "Bash(php -l app/Services/Reports/Sales/ClientWiseStatementService.php)",
+      "Bash(grep -rln 'report\\\\['\\\\''columns'\\\\''\\\\]\\\\|$columns\\\\|->columns\\\\|columns as' resources/views/pdf/reports/sales/)",
+      "Bash(php -l app/Http/Controllers/Admin/Reports/ClientWiseStatementExportController.php)",
+      "Bash(ls resources/views/pdf/reports/sales/exports/)",
+      "Bash(ls resources/views/admin/reports/sales/exports/)",
+      "Bash(php artisan *)",
+      "Bash(php -r ' *)",
+      "Bash(rm -f storage/cwexcel-compiled.php)",
+      "Bash(ls -1 resources/views/pdf/reports/sales/exports/*excel* resources/views/admin/reports/sales/exports/*excel*)",
+      "Bash(php -l app/Services/Reports/Sales/OverdueClientStatementService.php)",
+      "Bash(php -l app/Livewire/Admin/Reports/Sales/OverdueClientStatement.php)",
+      "Bash(php -l app/Http/Controllers/Admin/Reports/OverdueClientStatementExportController.php)",
+      "Bash(php -l app/Services/Reports/Sales/ClassifiedClientStatementService.php)",
+      "Bash(php -l app/Livewire/Admin/Reports/Sales/ClassifiedClientStatement.php)",
+      "Bash(php -l app/Http/Controllers/Admin/Reports/ClassifiedClientStatementExportController.php)",
+      "Bash(php -l app/Services/Reports/Sales/AllClientStatementService.php)",
+      "Bash(php -l app/Livewire/Admin/Reports/Sales/AllClientStatement.php)",
+      "Bash(php -l app/Http/Controllers/Admin/Reports/AllClientStatementExportController.php)",
+      "Bash(php -l app/Services/Accounts/DailyStatementReportService.php)"
     ]
   }
 }
