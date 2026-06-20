@@ -65,7 +65,7 @@ class ProjectReports extends Component
 
         // Actual: labour + other from posted expense transactions (ledger)
         $expenses = $this->project->expenseTransactions()
-            ->with('transactionCategory')
+            ->with('lines')
             ->get();
 
         $actualLabour = 0;
@@ -73,10 +73,11 @@ class ProjectReports extends Component
         $actualByPhase = []; // phase => ['labour' => X, 'other' => Y]
 
         foreach ($expenses as $exp) {
-            $name = strtolower($exp->transactionCategory?->name ?? '');
-            $isLabour = str_contains($name, 'labour') || str_contains($name, 'labor');
-            $type = $isLabour ? 'labour' : 'other';
-            $amount = (float)$exp->credit;
+            // Categories were removed from transactions; labour vs other can no longer
+            // be derived from a category, so all spend falls under "other".
+            $isLabour = false;
+            $type = 'other';
+            $amount = (float) $exp->lines->sum('credit');
 
             if ($isLabour) {
                 $actualLabour += $amount;
@@ -101,7 +102,7 @@ class ProjectReports extends Component
         // Monthly spend trend (last 12 months)
         $monthlySpend = $expenses
             ->groupBy(fn($e) => $e->datetime?->format('Y-m') ?? 'unknown')
-            ->map(fn($group) => $group->sum('credit'))
+            ->map(fn($group) => (float) $group->sum(fn($e) => $e->lines->sum('credit')))
             ->sortKeys()
             ->take(-12);
 

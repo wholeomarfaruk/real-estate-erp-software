@@ -120,15 +120,6 @@
             @endforeach
         </select>
 
-        {{-- Category filter --}}
-        <select wire:model.live="categoryFilter"
-            class="h-9 rounded-md border border-gray-200 bg-white px-2.5 text-xs text-gray-700 focus:border-gray-400 focus:outline-none appearance-none pr-7"
-            style="background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 8px center;">
-            <option value="">All categories</option>
-            @foreach ($categories as $cat)
-                <option value="{{ $cat->id }}">{{ $cat->parent_id ? '— ' : '' }}{{ $cat->name }}</option>
-            @endforeach
-        </select>
 
         {{-- Method filter --}}
         <select wire:model.live="methodFilter"
@@ -167,7 +158,7 @@
                                 Account</th>
                             <th
                                 class="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-widest text-gray-400">
-                                Category / Reference</th>
+                                Reference</th>
                             <th
                                 class="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                                 Method</th>
@@ -183,25 +174,13 @@
                     <tbody class="divide-y divide-gray-100">
                         @forelse ($transactions as $transaction)
                             @php
+                                $hasLines = $transaction->lines->isNotEmpty();
+                                $lineDebit = (float) $transaction->lines->sum('debit');
+                                $lineCredit = (float) $transaction->lines->sum('credit');
+                                $rowDebit = $lineDebit;
+                                $rowCredit = $lineCredit;
                                 $isAdv = $transaction->type?->value === 'advance';
                                 $isIncome = $transaction->type?->value === 'income';
-                                $bankAcc = $transaction->account?->bankAccount;
-                                $accColor = match ($transaction->account?->type?->value ?? '') {
-                                    'bank' => '#0d2a4a',
-                                    'cash' => '#b45309',
-                                    'mfs' => '#be185d',
-                                    'wallet' => '#6d28d9',
-                                    default => '#4b5563',
-                                };
-                                $accInitial = $bankAcc
-                                    ? mb_strtoupper(
-                                        mb_substr($bankAcc->bank_name ?? ($transaction->account?->name ?? '?'), 0, 1),
-                                    )
-                                    : mb_strtoupper(mb_substr($transaction->account?->name ?? '?', 0, 1));
-                                $accLabel = $bankAcc ? $bankAcc->bank_name : $transaction->account?->name ?? '—';
-                                $accSub = $bankAcc
-                                    ? $bankAcc->code ?? ($transaction->account?->code ?? '')
-                                    : $transaction->account?->code ?? '';
                             @endphp
                             <tr wire:click="openDrawer({{ $transaction->id }})"
                                 class="cursor-pointer transition hover:bg-gray-50 {{ $viewingId === $transaction->id ? 'bg-blue-50 hover:bg-blue-50' : '' }}">
@@ -216,26 +195,56 @@
 
                                 {{-- Account --}}
                                 <td class="px-4 py-3">
-                                    <div class="flex items-center gap-2">
-                                        <span
-                                            class="inline-grid h-6 w-6 shrink-0 place-items-center rounded-md text-[11px] font-bold text-white"
-                                            style="background:{{ $accColor }}">{{ $accInitial }}</span>
-                                        <div>
-                                            <div class="text-xs font-medium text-gray-800 leading-tight">
-                                                {{ \Illuminate\Support\Str::limit($accLabel, 22) }}</div>
-                                            @if ($accSub)
-                                                <div class="mt-0.5 font-mono text-[10px] text-gray-400">
-                                                    {{ $accSub }}</div>
-                                            @endif
+                                    @if ($hasLines)
+                                        @php
+                                            // Double-entry: a line is either a debit (money IN to that account)
+                                            // or a credit (money OUT of that account).
+                                            $debitLines = $transaction->lines->filter(fn ($l) => (float) $l->debit > 0)->values();
+                                            $creditLines = $transaction->lines->filter(fn ($l) => (float) $l->credit > 0)->values();
+                                            $drLine = $debitLines->first();
+                                            $crLine = $creditLines->first();
+                                            $drExtra = max(0, $debitLines->count() - 1);
+                                            $crExtra = max(0, $creditLines->count() - 1);
+                                        @endphp
+                                        <div class="space-y-1">
+                                            {{-- IN — debit side --}}
+                                            <div class="flex items-center gap-1.5 text-xs">
+                                                <span class="inline-flex items-center gap-0.5 rounded bg-emerald-50 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-emerald-700">
+                                                    <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                                                    In
+                                                </span>
+                                                <span class="font-medium text-gray-800">{{ \Illuminate\Support\Str::limit($drLine?->account?->name ?? '—', 14) }}</span>
+                                                @if ($drExtra)
+                                                    <span class="font-mono text-[9px] text-gray-400">+{{ $drExtra }}</span>
+                                                @endif
+                                                <span class="ml-auto font-mono text-[10px] font-semibold text-emerald-700">{{ number_format($lineDebit, 2) }}</span>
+                                            </div>
+                                            {{-- OUT — credit side --}}
+                                            <div class="flex items-center gap-1.5 text-xs">
+                                                <span class="inline-flex items-center gap-0.5 rounded bg-rose-50 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-rose-700">
+                                                    <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                                                    Out
+                                                </span>
+                                                <span class="font-medium text-gray-800">{{ \Illuminate\Support\Str::limit($crLine?->account?->name ?? '—', 14) }}</span>
+                                                @if ($crExtra)
+                                                    <span class="font-mono text-[9px] text-gray-400">+{{ $crExtra }}</span>
+                                                @endif
+                                                <span class="ml-auto font-mono text-[10px] font-semibold text-rose-700">{{ number_format($lineCredit, 2) }}</span>
+                                            </div>
                                         </div>
-                                    </div>
+                                        <div class="mt-0.5 font-mono text-[10px] text-gray-400">
+                                            {{ $transaction->lines->count() }} ledger lines · double-entry
+                                        </div>
+                                    @else
+                                        <span class="text-xs text-gray-300">No ledger lines</span>
+                                    @endif
                                 </td>
 
-                                {{-- Category / Reference --}}
+                                {{-- Reference --}}
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-1.5">
                                         <span class="text-xs font-medium text-gray-800">
-                                            {{ $transaction->transactionCategory?->name ?? '—' }}
+                                            {{ ucfirst($transaction->type?->value ?? '—') }}
                                         </span>
                                         @if ($isAdv)
                                             <span
@@ -267,9 +276,9 @@
 
                                 {{-- Debit --}}
                                 <td class="px-4 py-3 text-right font-mono text-xs font-semibold whitespace-nowrap">
-                                    @if ((float) $transaction->debit > 0)
+                                    @if ($rowDebit > 0)
                                         <span class="{{ $isAdv ? 'text-cyan-700' : 'text-emerald-700' }}">
-                                            +{{ number_format((float) $transaction->debit, 2) }}
+                                            +{{ number_format($rowDebit, 2) }}
                                         </span>
                                     @else
                                         <span class="text-gray-300">—</span>
@@ -278,9 +287,9 @@
 
                                 {{-- Credit --}}
                                 <td class="px-4 py-3 text-right font-mono text-xs font-semibold whitespace-nowrap">
-                                    @if ((float) $transaction->credit > 0)
+                                    @if ($rowCredit > 0)
                                         <span class="{{ $isAdv ? 'text-cyan-700' : 'text-rose-700' }}">
-                                            −{{ number_format((float) $transaction->credit, 2) }}
+                                            −{{ number_format($rowCredit, 2) }}
                                         </span>
                                     @else
                                         <span class="text-gray-300">—</span>
@@ -335,29 +344,20 @@
             style="min-height: 100%">
             @if ($viewTransaction)
                 @php
+                    $vHasLines = $viewTransaction->lines->isNotEmpty();
+                    $vLineDebit = (float) $viewTransaction->lines->sum('debit');
+                    $vLineCredit = (float) $viewTransaction->lines->sum('credit');
                     $vIsIncome = $viewTransaction->type?->value === 'income';
                     $vIsAdv = $viewTransaction->type?->value === 'advance';
                     $vIsExpense = $viewTransaction->type?->value === 'expense';
+                    $vDebit = $vLineDebit;
+                    $vCredit = $vLineCredit;
                     $amount =
-                        $vIsIncome || ($vIsAdv && (float) $viewTransaction->debit > 0)
-                            ? (float) $viewTransaction->debit
-                            : (float) $viewTransaction->credit;
-                    $amtSign = $vIsIncome || ($vIsAdv && (float) $viewTransaction->debit > 0) ? '+' : '−';
+                        $vIsIncome || ($vIsAdv && $vDebit > 0)
+                            ? $vDebit
+                            : $vCredit;
+                    $amtSign = $vIsIncome || ($vIsAdv && $vDebit > 0) ? '+' : '−';
                     $amtClass = $vIsAdv ? 'text-cyan-700' : ($vIsIncome ? 'text-emerald-700' : 'text-rose-700');
-
-                    $vBankAcc = $viewTransaction->account?->bankAccount;
-                    $vAccColor = match ($viewTransaction->account?->type?->value ?? '') {
-                        'bank' => '#0d2a4a',
-                        'cash' => '#b45309',
-                        'mfs' => '#be185d',
-                        'wallet' => '#6d28d9',
-                        default => '#4b5563',
-                    };
-                    $vAccInitial = $vBankAcc
-                        ? mb_strtoupper(
-                            mb_substr($vBankAcc->bank_name ?? ($viewTransaction->account?->name ?? '?'), 0, 1),
-                        )
-                        : mb_strtoupper(mb_substr($viewTransaction->account?->name ?? '?', 0, 1));
                 @endphp
 
                 {{-- Drawer head --}}
@@ -392,7 +392,7 @@
                             <span
                                 class="inline-flex items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-cyan-700">
                                 <span class="h-1.5 w-1.5 rounded-full bg-cyan-600"></span>
-                                ADVANCE · {{ (float) $viewTransaction->debit > 0 ? 'Received' : 'Paid' }}
+                                ADVANCE · {{ $vDebit > 0 ? 'Received' : 'Paid' }}
                             </span>
                         @elseif ($vIsIncome)
                             <span
@@ -451,13 +451,9 @@
                         <dd class="font-mono text-xs font-medium text-gray-700">
                             {{ optional($viewTransaction->datetime)->format('d M Y, H:i') }}</dd>
 
-                        <dt class="pt-px text-[10px] font-semibold uppercase tracking-wide text-gray-400">Category</dt>
+                        <dt class="pt-px text-[10px] font-semibold uppercase tracking-wide text-gray-400">Type</dt>
                         <dd class="text-gray-700">
-                            {{ $viewTransaction->transactionCategory?->name ?? '—' }}
-                            @if ($viewTransaction->transactionCategory?->parent)
-                                <span
-                                    class="block font-mono text-[10px] text-gray-400">{{ $viewTransaction->transactionCategory->parent->name }}</span>
-                            @endif
+                            {{ ucfirst($viewTransaction->type?->value ?? '—') }}
                         </dd>
 
                         @if ($viewTransaction->name)
@@ -477,59 +473,60 @@
                         <dd class="text-gray-700">{{ $viewTransaction->creator?->name ?? 'N/A' }}</dd>
                     </dl>
 
-                    {{-- Bank account card --}}
-                    <div class="mt-4">
-                        <p class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">Bank Account
-                        </p>
-                        <div class="flex items-center gap-3 rounded-lg border border-blue-100 bg-blue-50/40 p-3">
-                            <span
-                                class="inline-grid h-8 w-8 shrink-0 place-items-center rounded-lg text-sm font-bold text-white"
-                                style="background:{{ $vAccColor }}">{{ $vAccInitial }}</span>
-                            <div class="flex-1 min-w-0">
-                                <p class="font-mono text-xs font-semibold text-gray-800">
-                                    {{ $vBankAcc ? $vBankAcc->bank_name : $viewTransaction->account?->name ?? '—' }}
-                                </p>
-                                <p class="mt-0.5 font-mono text-[10px] text-gray-500">
-                                    {{ $viewTransaction->account?->code ?? '' }}
-                                    @if ($vBankAcc?->code)
-                                        · {{ $vBankAcc->code }}
-                                    @endif
-                                    @if ($vBankAcc?->ac_number)
-                                        · {{ $vBankAcc->masked_ac_number }}
-                                    @endif
-                                </p>
+                    {{-- Journal Entry / Ledger Lines (double-entry) --}}
+                    @if ($vHasLines)
+                        <div class="mt-4">
+                            <p class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">Journal
+                                Entry</p>
+                            <div class="overflow-hidden rounded-lg border border-gray-200">
+                                <table class="min-w-full border-collapse text-xs">
+                                    <thead>
+                                        <tr class="bg-gray-50 text-[10px] uppercase tracking-wide text-gray-400">
+                                            <th class="px-3 py-2 text-left font-semibold">Account</th>
+                                            <th class="px-3 py-2 text-right font-semibold">Debit</th>
+                                            <th class="px-3 py-2 text-right font-semibold">Credit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        @foreach ($viewTransaction->lines as $line)
+                                            <tr>
+                                                <td class="px-3 py-2">
+                                                    <div class="font-medium text-gray-800">
+                                                        {{ $line->account?->name ?? '—' }}</div>
+                                                    @if ($line->account?->code || $line->notes)
+                                                        <div class="mt-0.5 font-mono text-[10px] text-gray-400">
+                                                            {{ $line->account?->code }}{{ $line->account?->code && $line->notes ? ' · ' : '' }}{{ $line->notes }}
+                                                        </div>
+                                                    @endif
+                                                </td>
+                                                <td class="px-3 py-2 text-right font-mono text-emerald-700">
+                                                    {{ (float) $line->debit > 0 ? number_format((float) $line->debit, 2) : '—' }}
+                                                </td>
+                                                <td class="px-3 py-2 text-right font-mono text-rose-700">
+                                                    {{ (float) $line->credit > 0 ? number_format((float) $line->credit, 2) : '—' }}
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="border-t border-gray-200 bg-gray-50 font-semibold">
+                                            <td class="px-3 py-2 text-[10px] uppercase tracking-wide text-gray-500">Total
+                                            </td>
+                                            <td class="px-3 py-2 text-right font-mono text-gray-800">
+                                                {{ number_format($vLineDebit, 2) }}</td>
+                                            <td class="px-3 py-2 text-right font-mono text-gray-800">
+                                                {{ number_format($vLineCredit, 2) }}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
                             </div>
+                            @if (round($vLineDebit, 3) !== round($vLineCredit, 3))
+                                <p class="mt-1.5 text-[10px] font-semibold text-rose-600">⚠ Entry is not balanced.</p>
+                            @else
+                                <p class="mt-1.5 text-[10px] text-emerald-600">✓ Balanced double-entry.</p>
+                            @endif
                         </div>
-                    </div>
-
-                    {{-- Linked COA --}}
-                    <div class="mt-4">
-                        <p class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">Linked Chart
-                            of Accounts</p>
-                        <div class="flex items-center gap-3 rounded-lg border border-blue-100 bg-[#eaf0f8] p-3">
-                            <span
-                                class="inline-grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#0d2a4a] text-white">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                    <polyline points="14 2 14 8 20 8" />
-                                </svg>
-                            </span>
-                            <div class="flex-1 min-w-0">
-                                <p class="font-mono text-xs font-semibold text-gray-800">
-                                    {{ $viewTransaction->account?->code ? $viewTransaction->account->code . ' · ' : '' }}{{ $viewTransaction->account?->name ?? '—' }}
-                                </p>
-                                <p class="mt-0.5 font-mono text-[10px] text-gray-500">
-                                    {{ ucfirst($viewTransaction->account?->type?->value ?? '') }} · accounts.id
-                                    #{{ $viewTransaction->account?->id ?? '—' }}
-                                </p>
-                            </div>
-                            <a href="{{ route('admin.accounts.chart-of-accounts.index') }}"
-                                class="text-[10.5px] font-semibold text-[#0d2a4a] hover:underline whitespace-nowrap">
-                                Open ledger →
-                            </a>
-                        </div>
-                    </div>
+                    @endif
 
                     {{-- Source reference --}}
                     @if ($viewTransactionReference)

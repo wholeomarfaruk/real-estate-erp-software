@@ -10,6 +10,7 @@ use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Supplier;
 use App\Models\Transaction;
+use App\Models\TransactionLine;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -985,19 +986,23 @@ class AccountReportService
      */
     protected function buildAccountLedgerReport(string $title, array $filters): array
     {
-        $lines = Transaction::query()
+        $lines = TransactionLine::query()
             ->with([
                 'account:id,name,code',
-                'payment:id,transaction_id,payment_no,payee_name,reference_type,reference_id',
-                'collection:id,transaction_id,collection_no,payer_name,reference_type,reference_id',
-                'expense:id,transaction_id,expense_no,title,reference_type,reference_id',
+                'transaction.payment:id,transaction_id,payment_no,payee_name,reference_type,reference_id',
+                'transaction.collection:id,transaction_id,collection_no,payer_name,reference_type,reference_id',
+                'transaction.expense:id,transaction_id,expense_no,title,reference_type,reference_id',
             ])
-            ->when($filters['account_id'], fn (Builder $builder): Builder => $builder->where('account_id', $filters['account_id']))
-            ->whereDate('datetime', '>=', $filters['from']->toDateString())
-            ->whereDate('datetime', '<=', $filters['to']->toDateString())
-            ->orderBy('account_id')
-            ->orderBy('datetime')
-            ->orderBy('id')
+            ->when($filters['account_id'], fn (Builder $builder): Builder => $builder->where('transaction_lines.account_id', $filters['account_id']))
+            ->whereHas('transaction', function (Builder $query) use ($filters): void {
+                $query->whereDate('datetime', '>=', $filters['from']->toDateString())
+                    ->whereDate('datetime', '<=', $filters['to']->toDateString());
+            })
+            ->join('transactions', 'transactions.id', '=', 'transaction_lines.transaction_id')
+            ->orderBy('transaction_lines.account_id')
+            ->orderBy('transactions.datetime')
+            ->orderBy('transactions.id')
+            ->select('transaction_lines.*')
             ->get();
 
         $openingBalances = $this->openingBalanceMapForLedger($filters);
@@ -1117,11 +1122,13 @@ class AccountReportService
      */
     protected function accountBalanceRows(array $filters, ?array $types, string $mode): Collection
     {
-        $aggregate = DB::table('transactions as t')
-            ->selectRaw('t.account_id')
-            ->selectRaw('COALESCE(SUM(t.debit), 0) as total_debit')
-            ->selectRaw('COALESCE(SUM(t.credit), 0) as total_credit')
-            ->whereNotNull('t.account_id');
+        // Aggregate per-account movements from the double-entry ledger lines.
+        $aggregate = DB::table('transaction_lines as tl')
+            ->join('transactions as t', 't.id', '=', 'tl.transaction_id')
+            ->selectRaw('tl.account_id')
+            ->selectRaw('COALESCE(SUM(tl.debit), 0) as total_debit')
+            ->selectRaw('COALESCE(SUM(tl.credit), 0) as total_credit')
+            ->whereNotNull('tl.account_id');
 
         if ($mode === 'through') {
             $aggregate->whereDate('t.datetime', '<=', $filters['to']->toDateString());
@@ -1130,7 +1137,7 @@ class AccountReportService
                 ->whereDate('t.datetime', '<=', $filters['to']->toDateString());
         }
 
-        $aggregate->groupBy('t.account_id');
+        $aggregate->groupBy('tl.account_id');
 
         return Account::query()
             ->leftJoinSub($aggregate, 'ledger_agg', function ($join): void {
@@ -1162,18 +1169,26 @@ class AccountReportService
             return collect();
         }
 
-        return Transaction::query()
+        // Per-account movements now live in transaction_lines. Each line carries its
+        // own debit/credit + account; the parent transaction supplies date / type /
+        // source relations. Callers read $line->debit, $line->credit, $line->account,
+        // $line->datetime and $line->payment/collection/expense — all proxied below.
+        return TransactionLine::query()
             ->with([
                 'account:id,name,code',
-                'payment:id,transaction_id,payment_no,payee_name,reference_type,reference_id',
-                'collection:id,transaction_id,collection_no,payer_name,reference_type,reference_id',
-                'expense:id,transaction_id,expense_no,title,reference_type,reference_id',
+                'transaction.payment:id,transaction_id,payment_no,payee_name,reference_type,reference_id',
+                'transaction.collection:id,transaction_id,collection_no,payer_name,reference_type,reference_id',
+                'transaction.expense:id,transaction_id,expense_no,title,reference_type,reference_id',
             ])
             ->whereIn('account_id', $accountIds)
-            ->whereDate('datetime', '>=', $filters['from']->toDateString())
-            ->whereDate('datetime', '<=', $filters['to']->toDateString())
-            ->orderBy('datetime')
-            ->orderBy('id')
+            ->whereHas('transaction', function (Builder $query) use ($filters): void {
+                $query->whereDate('datetime', '>=', $filters['from']->toDateString())
+                    ->whereDate('datetime', '<=', $filters['to']->toDateString());
+            })
+            ->join('transactions', 'transactions.id', '=', 'transaction_lines.transaction_id')
+            ->orderBy('transactions.datetime')
+            ->orderBy('transactions.id')
+            ->select('transaction_lines.*')
             ->get();
     }
 
@@ -1187,10 +1202,11 @@ class AccountReportService
             return 0.0;
         }
 
-        return round((float) (DB::table('transactions as t')
-            ->whereIn('t.account_id', $accountIds)
+        return round((float) (DB::table('transaction_lines as tl')
+            ->join('transactions as t', 't.id', '=', 'tl.transaction_id')
+            ->whereIn('tl.account_id', $accountIds)
             ->whereDate('t.datetime', '<', $filters['from']->toDateString())
-            ->selectRaw('COALESCE(SUM(t.debit - t.credit), 0) as balance')
+            ->selectRaw('COALESCE(SUM(tl.debit - tl.credit), 0) as balance')
             ->value('balance') ?? 0), 2);
     }
 
@@ -1200,22 +1216,23 @@ class AccountReportService
      */
     protected function openingBalanceMapForLedger(array $filters): array
     {
-        $query = DB::table('transactions as t')
-            ->selectRaw('t.account_id, COALESCE(SUM(t.debit - t.credit), 0) as balance')
+        $query = DB::table('transaction_lines as tl')
+            ->join('transactions as t', 't.id', '=', 'tl.transaction_id')
+            ->selectRaw('tl.account_id, COALESCE(SUM(tl.debit - tl.credit), 0) as balance')
             ->whereDate('t.datetime', '<', $filters['from']->toDateString())
-            ->whereNotNull('t.account_id');
+            ->whereNotNull('tl.account_id');
 
         if ($filters['account_id']) {
-            $query->where('t.account_id', $filters['account_id']);
+            $query->where('tl.account_id', $filters['account_id']);
         }
 
-        return $query->groupBy('t.account_id')
-            ->pluck('balance', 't.account_id')
+        return $query->groupBy('tl.account_id')
+            ->pluck('balance', 'tl.account_id')
             ->map(fn (mixed $balance): float => round((float) $balance, 2))
             ->all();
     }
 
-    protected function lineParticulars(Transaction $line, array $selectedAccountIds = []): string
+    protected function lineParticulars(Transaction|TransactionLine $line, array $selectedAccountIds = []): string
     {
         if ($line->payment) {
             return collect([$line->payment->payee_name, $line->notes])->filter()->implode(' — ') ?: 'Payment';
@@ -1232,7 +1249,7 @@ class AccountReportService
         return $line->notes ?: $line->name ?: ($line->type?->label() ?? '-');
     }
 
-    protected function transactionReference(?Transaction $transaction): string
+    protected function transactionReference(Transaction|TransactionLine|null $transaction): string
     {
         if (! $transaction) {
             return '-';
@@ -1409,13 +1426,14 @@ class AccountReportService
     {
         $filters = $this->normalizeFilters($rawFilters);
 
-        $aggregate = DB::table('transactions as t')
-            ->selectRaw('t.account_id')
-            ->selectRaw('COALESCE(SUM(t.debit), 0) as total_debit')
-            ->selectRaw('COALESCE(SUM(t.credit), 0) as total_credit')
-            ->whereNotNull('t.account_id')
+        $aggregate = DB::table('transaction_lines as tl')
+            ->join('transactions as t', 't.id', '=', 'tl.transaction_id')
+            ->selectRaw('tl.account_id')
+            ->selectRaw('COALESCE(SUM(tl.debit), 0) as total_debit')
+            ->selectRaw('COALESCE(SUM(tl.credit), 0) as total_credit')
+            ->whereNotNull('tl.account_id')
             ->whereDate('t.datetime', '<=', $filters['to']->toDateString())
-            ->groupBy('t.account_id');
+            ->groupBy('tl.account_id');
 
         $rows = Account::query()
             ->leftJoinSub($aggregate, 'ledger_agg', fn ($join) => $join->on('ledger_agg.account_id', '=', 'accounts.id'))

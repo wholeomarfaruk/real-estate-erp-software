@@ -34,7 +34,7 @@ class Dashboard extends Component
         $kpis = [];
 
         if ($isFinance) {
-            $bankBalance = (float) DB::table('transactions')
+            $bankBalance = (float) DB::table('transaction_lines')
                 ->whereIn('account_id',
                     BankAccount::where('status', 'active')->whereNotNull('account_id')->pluck('account_id')
                 )
@@ -51,12 +51,14 @@ class Dashboard extends Component
         }
 
         if ($isAdmin || $isAccounts) {
-            $thisMonthIncome = (float) Transaction::whereIn('account_id',
+            $thisMonthIncome = (float) DB::table('transaction_lines as tl')
+                ->join('transactions as t', 't.id', '=', 'tl.transaction_id')
+                ->whereIn('tl.account_id',
                     BankAccount::whereNotNull('account_id')->pluck('account_id')
                 )
-                ->whereMonth('datetime', now()->month)
-                ->whereYear('datetime', now()->year)
-                ->sum('debit');
+                ->whereMonth('t.datetime', now()->month)
+                ->whereYear('t.datetime', now()->year)
+                ->sum('tl.debit');
 
             $kpis[] = [
                 'label' => 'Income This Month',
@@ -174,7 +176,7 @@ class Dashboard extends Component
             $summaryAcctIds = $summaryBanks->pluck('account_id')->filter()->all();
 
             $summaryBalances = $summaryAcctIds
-                ? DB::table('transactions')
+                ? DB::table('transaction_lines')
                     ->whereIn('account_id', $summaryAcctIds)
                     ->selectRaw('account_id, COALESCE(SUM(debit) - SUM(credit), 0) as balance')
                     ->groupBy('account_id')

@@ -37,9 +37,15 @@ class ProjectExpenses extends Component
     {
         return Transaction::query()
             ->where('type', TransactionType::EXPENSE->value)
-            ->where('credit', '>', 0)
+            ->whereHas('lines', fn ($l) => $l->where('credit', '>', 0))
             ->where('reference_type', Project::class)
             ->where('reference_id', $this->project->id);
+    }
+
+    /** Total credit (money out) across a transaction's ledger lines. */
+    private function lineCredit(Transaction $t): float
+    {
+        return (float) $t->lines->sum('credit');
     }
 
     private function getPhaseLabel(?string $phaseValue): string
@@ -59,14 +65,11 @@ class ProjectExpenses extends Component
     public function render()
     {
         $expenses = $this->baseQuery()
-            ->with(['transactionCategory:id,name', 'account:id,name'])
+            ->with(['lines.account:id,name'])
             ->when($this->search, fn($q) => $q->where(function ($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
                   ->orWhere('notes', 'like', '%' . $this->search . '%');
             }))
-            ->when($this->filterType, fn($q) => $q->whereHas('transactionCategory', fn($cq) =>
-                $cq->where('name', 'like', '%' . $this->filterType . '%')
-            ))
             ->latest('datetime')
             ->latest('id')
             ->paginate(15);
@@ -80,15 +83,15 @@ class ProjectExpenses extends Component
         $showEditButton = false;
 
         // KPIs from all posted expense transactions for this project
-        $all = $this->baseQuery()->with('transactionCategory')->get();
+        $all = $this->baseQuery()->with('lines')->get();
 
-        $totalAmount = (float) $all->sum('credit');
-        $thisMonth   = (float) $all->filter(fn($t) => $t->datetime?->isCurrentMonth())->sum('credit');
+        $totalAmount = (float) $all->sum(fn($t) => $this->lineCredit($t));
+        $thisMonth   = (float) $all->filter(fn($t) => $t->datetime?->isCurrentMonth())
+            ->sum(fn($t) => $this->lineCredit($t));
 
-        $labourTotal = (float) $all->filter(fn($t) =>
-            str_contains(strtolower($t->transactionCategory?->name ?? ''), 'labour') ||
-            str_contains(strtolower($t->transactionCategory?->name ?? ''), 'labor')
-        )->sum('credit');
+        // Categories were removed from transactions; labour split is no longer
+        // derivable from a category, so it collapses into the total.
+        $labourTotal = 0.0;
         $otherTotal = $totalAmount - $labourTotal;
 
         // Pending (requested but not yet posted to ledger) — informational
@@ -99,9 +102,9 @@ class ProjectExpenses extends Component
             ->whereIn('status', ['pending', 'approved', 'released'])
             ->sum('amount');
 
-        // Estimate vs actual — actual per category from posted transactions
-        $actualByCategory = $all->groupBy('transaction_category_id')
-            ->map(fn($g) => (float) $g->sum('credit'));
+        // Estimate vs actual — categories were removed from transactions, so there is
+        // no per-category actual to group by anymore.
+        $actualByCategory = collect();
 
         $categories = TransactionCategory::active()
             ->where('type', 'expense')

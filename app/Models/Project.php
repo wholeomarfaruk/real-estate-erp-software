@@ -136,7 +136,7 @@ class Project extends Model
     {
         return Transaction::query()
             ->where('type', 'expense')
-            ->where('credit', '>', 0)
+            ->whereHas('lines', fn ($l) => $l->where('credit', '>', 0))
             ->where('reference_type', self::class)
             ->where('reference_id', $this->id);
     }
@@ -152,7 +152,11 @@ class Project extends Model
     /** Actual money spent = posted expense transactions (not pending requests). */
     public function totalSpent(): float
     {
-        return (float) $this->expenseTransactions()->sum('credit');
+        return (float) \App\Models\TransactionLine::query()
+            ->whereHas('transaction', fn ($t) => $t->where('type', 'expense')
+                ->where('reference_type', self::class)
+                ->where('reference_id', $this->id))
+            ->sum('credit');
     }
 
     public function approvedEstimate(): ?ProjectEstimate

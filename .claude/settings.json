@@ -31,7 +31,16 @@
       "Bash(php -l app/Services/Reports/Sales/AllClientStatementService.php)",
       "Bash(php -l app/Livewire/Admin/Reports/Sales/AllClientStatement.php)",
       "Bash(php -l app/Http/Controllers/Admin/Reports/AllClientStatementExportController.php)",
-      "Bash(php -l app/Services/Accounts/DailyStatementReportService.php)"
+      "Bash(php -l app/Services/Accounts/DailyStatementReportService.php)",
+      "PowerShell(php artisan migrate)",
+      "PowerShell(php artisan migrate --path=database/migrations/2026_06_20_000000_create_transaction_lines_table.php)",
+      "PowerShell(@\\('app/Services/Accounts/LedgerService.php','app/Services/Accounts/ExpenseService.php','app/Services/Inventory/PurchaseInvoicePaymentService.php','app/Services/Inventory/PurchaseInvoiceService.php','app/Services/Inventory/FundReleaseService.php','app/Services/Hrm/HrmAccountingService.php','app/Livewire/Admin/Accounts/AdvanceRefundForm.php','app/Livewire/Admin/Accounts/Banking/BankingManagement.php'\\) | ForEach-Object { php -l $_ })",
+      "PowerShell(php artisan view:clear)",
+      "PowerShell(php artisan migrate:fresh --seed 2>&1)",
+      "PowerShell(@\\('app/Services/Accounts/LedgerService.php','app/Models/Account.php','app/Services/Accounts/AccountReportService.php','app/Services/Accounts/StatementReportService.php','app/Services/Accounts/DailyStatementReportService.php'\\) | ForEach-Object { php -l $_ })",
+      "PowerShell(php artisan tinker storage/app/verify_de.php)",
+      "PowerShell(php artisan tinker storage/app/verify_reports.php)",
+      "Bash(php -l app/Livewire/Admin/Accounts/Account/AccountList.php)"
     ]
   }
 }

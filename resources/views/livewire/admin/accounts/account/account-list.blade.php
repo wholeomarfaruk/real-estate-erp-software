@@ -86,116 +86,63 @@
         </div>
 
         <div class="border-t border-gray-100 p-5 sm:p-6">
-            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
-                <div class="max-w-full overflow-x-auto min-h-[55vh]">
-                    <table class="min-w-full">
-                        <thead>
-                            <tr class="border-b border-gray-100">
-                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Code</th>
-                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Account</th>
-                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Parent</th>
-                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Type</th>
-                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Status</th>
-                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Created</th>
-                                <th class="px-5 py-3 text-right text-xs font-medium text-gray-500">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            @forelse ($accounts as $account)
-                                <tr>
-                                    <td class="px-5 py-4 text-sm text-gray-700">{{ $account->code ?: 'N/A' }}</td>
+            <div class="space-y-4">
+                @forelse ($tree as $group)
+                    @php
+                        $groupEnum = $group->group;
+                        $accent = match ($groupEnum?->value) {
+                            'asset'     => ['ring' => 'ring-emerald-200', 'bar' => 'bg-emerald-500', 'chip' => 'bg-emerald-50 text-emerald-700', 'text' => 'text-emerald-700'],
+                            'liability' => ['ring' => 'ring-rose-200',    'bar' => 'bg-rose-500',    'chip' => 'bg-rose-50 text-rose-700',    'text' => 'text-rose-700'],
+                            'equity'    => ['ring' => 'ring-violet-200',  'bar' => 'bg-violet-500',  'chip' => 'bg-violet-50 text-violet-700', 'text' => 'text-violet-700'],
+                            'income'    => ['ring' => 'ring-blue-200',    'bar' => 'bg-blue-500',    'chip' => 'bg-blue-50 text-blue-700',    'text' => 'text-blue-700'],
+                            'expense'   => ['ring' => 'ring-amber-200',   'bar' => 'bg-amber-500',   'chip' => 'bg-amber-50 text-amber-700',  'text' => 'text-amber-700'],
+                            default     => ['ring' => 'ring-gray-200',    'bar' => 'bg-gray-400',    'chip' => 'bg-gray-100 text-gray-700',   'text' => 'text-gray-700'],
+                        };
+                    @endphp
 
-                                    <td class="px-5 py-4 text-sm text-gray-800 font-medium" style="padding-left: {{ 20 + ((int) ($account->depth ?? 0) * 16) }}px;">
-                                        {{ $account->name }}
-                                    </td>
+                    <div x-data="{ open: true }" class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm ring-1 {{ $accent['ring'] }}">
+                        {{-- Group header --}}
+                        <div class="flex items-center gap-3 px-4 py-3 sm:px-5">
+                            <span class="h-8 w-1.5 shrink-0 rounded-full {{ $accent['bar'] }}"></span>
 
-                                    <td class="px-5 py-4 text-sm text-gray-700">{{ $account->parent?->name ?: 'Root' }}</td>
+                            <button type="button" @click="open = !open" class="flex min-w-0 flex-1 items-center gap-2 text-left">
+                                <svg class="h-4 w-4 shrink-0 text-gray-400 transition-transform" :class="open ? 'rotate-90' : ''" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M7.21 5.23a.75.75 0 0 1 1.06.02l4 4.25a.75.75 0 0 1 0 1.04l-4 4.25a.75.75 0 1 1-1.08-1.04L10.69 10 7.23 6.29a.75.75 0 0 1-.02-1.06Z" clip-rule="evenodd" />
+                                </svg>
+                                <span class="truncate text-base font-semibold text-gray-800">{{ $group->name }}</span>
+                                <span class="hidden rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide sm:inline {{ $accent['chip'] }}">
+                                    {{ $groupEnum?->label() ?? 'Group' }}
+                                </span>
+                                @if ($group->is_locked)
+                                    <svg class="h-3.5 w-3.5 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                @endif
+                                <span class="ml-1 rounded-full bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-500">{{ $group->treeChildren->count() }}</span>
+                            </button>
 
-                                    <td class="px-5 py-4">
-                                        <x-account-type-badge :type="$account->type" />
-                                    </td>
+                            <div class="shrink-0 text-right">
+                                <p class="text-[10px] uppercase tracking-wide text-gray-400">Balance</p>
+                                <p class="font-mono text-sm font-semibold {{ $accent['text'] }}">{{ number_format((float) $group->rollup_balance, 2) }}</p>
+                            </div>
 
-                                    <td class="px-5 py-4">
-                                        <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {{ $account->is_active ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700' }}">
-                                            {{ $account->is_active ? 'Active' : 'Inactive' }}
-                                        </span>
-                                    </td>
+                            @include('livewire.admin.accounts.account.partials.account-row-actions', ['account' => $group])
+                        </div>
 
-                                    <td class="px-5 py-4 text-sm text-gray-700">{{ optional($account->created_at)->format('d M, Y') }}</td>
-
-                                    <td class="px-5 py-4">
-                                        <div class="relative flex justify-end" x-data="{ open: false }">
-                                            <button type="button" @click="open = !open" class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-600 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                                <span class="sr-only">Open actions</span>
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path d="M10 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM10 11.5A1.5 1.5 0 1 0 10 8.5a1.5 1.5 0 0 0 0 3ZM10 17a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />
-                                                </svg>
-                                            </button>
-
-                                            <div x-show="open" @click.away="open = false" style="display: none;" x-transition class="absolute right-0 z-40 mt-10 w-52 origin-top-right rounded-md border border-zinc-200 bg-white p-1 shadow-lg">
-                                                @can('accounts.chart.edit')
-                                                    <button
-                                                        type="button"
-                                                        wire:click="openEditModal({{ $account->id }})"
-                                                        class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100"
-                                                    >
-                                                        Edit
-                                                    </button>
-
-                                                    <button
-                                                        type="button"
-                                                        x-data="livewireConfirm"
-                                                        @click="confirmAction({
-                                                            id: {{ $account->id }},
-                                                            method: 'toggleStatus',
-                                                            title: 'Change account status?',
-                                                            text: 'Account status will be updated immediately.',
-                                                            confirmText: 'Yes, update status'
-                                                        })"
-                                                        class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100"
-                                                    >
-                                                        {{ $account->is_active ? 'Mark Inactive' : 'Mark Active' }}
-                                                    </button>
-                                                @endcan
-
-                                                @can('accounts.chart.delete')
-                                                    <button
-                                                        type="button"
-                                                        x-data="livewireConfirm"
-                                                        @click="confirmAction({
-                                                            id: {{ $account->id }},
-                                                            method: 'deleteAccount',
-                                                            title: 'Delete account?',
-                                                            text: 'Used accounts cannot be deleted and this action is permanent.',
-                                                            confirmText: 'Yes, delete account'
-                                                        })"
-                                                        class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-rose-600 transition hover:bg-rose-50"
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                @endcan
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
+                        {{-- Children --}}
+                        <div x-show="open" x-cloak x-transition.opacity class="divide-y divide-gray-50 border-t border-gray-100">
+                            @forelse ($group->treeChildren as $child)
+                                @include('livewire.admin.accounts.account.partials.account-tree-row', ['node' => $child])
                             @empty
-                                <tr>
-                                    <td colspan="7" class="px-5 py-12 text-center">
-                                        <p class="text-sm font-medium text-gray-700">No accounts found.</p>
-                                        <p class="mt-1 text-xs text-gray-500">Try changing filters or add a new account.</p>
-                                    </td>
-                                </tr>
+                                <p class="px-5 py-4 text-xs italic text-gray-400">No child accounts.</p>
                             @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="rounded-2xl border border-dashed border-gray-200 bg-white px-5 py-16 text-center">
+                        <p class="text-sm font-medium text-gray-700">No accounts found.</p>
+                        <p class="mt-1 text-xs text-gray-500">Try changing filters or add a new account.</p>
+                    </div>
+                @endforelse
             </div>
-
-            @if ($accounts->hasPages())
-                <div class="mt-6">
-                    {{ $accounts->links() }}
-                </div>
-            @endif
         </div>
     </div>
 

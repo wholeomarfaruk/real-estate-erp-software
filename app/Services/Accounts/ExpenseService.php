@@ -3,18 +3,19 @@
 namespace App\Services\Accounts;
 
 use App\Enums\Accounts\AccountType;
-use App\Enums\Accounts\TransactionRelationType;
 use App\Enums\Accounts\TransactionType;
 use App\Models\Account;
 use App\Models\BankAccount;
 use App\Models\BankingPaymentRequest;
-use App\Models\Transaction;
 use Illuminate\Support\Facades\DB;
 
 class ExpenseService
 {
+    public function __construct(private readonly LedgerService $ledger) {}
+
     /**
-     * Complete an expense banking request — creates paired transactions.
+     * Complete an expense banking request — posts a balanced double-entry
+     * transaction (DR expense ledger, CR bank/cash ledger).
      * Called by BankingManagement::markCompleted() when source_type='expense'.
      */
     public function completeExpense(BankingPaymentRequest $bankingRequest, int $userId): BankingPaymentRequest
@@ -44,49 +45,32 @@ class ExpenseService
             $categoryId = $bankingRequest->transaction_category_id;
             $notes = $bankingRequest->notes ?? $bankingRequest->description;
 
-            // ------------------------------------------------------------------
-            // TXN-CASH: CR bank/cash ledger — money physically leaves the account
-            // ------------------------------------------------------------------
             $attachmentPaths = $bankingRequest->external_data['attachments'] ?? null;
 
-            $txnCash = Transaction::query()->create([
-                'account_id'              => $cashAccountId,
-                'datetime'                => $datetime,
-                'type'                    => TransactionType::EXPENSE->value,
-                'transaction_category_id' => $categoryId,
-                'reference_type'          => $bankingRequest->sourceable_type,
-                'reference_id'            => $bankingRequest->sourceable_id,
-                'debit'                   => 0,
-                'credit'                  => $amount,
-                'name'                    => 'Expense Payment',
-                'notes'                   => $notes,
-                'created_by'              => $userId,
-                'external_data'           => $bankingRequest->external_data,
-                'attachments'             => $attachmentPaths,
-            ]);
-
-            // ------------------------------------------------------------------
-            // TXN-EXPENSE: DR expense ledger account — cost is recorded
-            // ------------------------------------------------------------------
-            // $txnExpense = Transaction::query()->create([
-            //     'account_id'              => $expAccountId,
-            //     'datetime'                => $datetime,
-            //     'type'                    => TransactionType::EXPENSE->value,
-            //     'transaction_category_id' => $categoryId,
-            //     'reference_type'          => $bankingRequest->sourceable_type,
-            //     'reference_id'            => $bankingRequest->sourceable_id,
-            //     'debit'                   => $amount,
-            //     'credit'                  => 0,
-            //     'name'                    => 'Expense',
-            //     'notes'                   => $notes,
-            //     'related_transaction_id'  => $txnCash->id,
-            //     'relation_type'           => TransactionRelationType::PAIR->value,
-            //     'created_by'              => $userId,
-            // ]);
+            // Balanced double-entry: DR expense ledger (cost recorded),
+            // CR bank/cash ledger (money physically leaves the account).
+            $transaction = $this->ledger->post(
+                [
+                    'datetime'                => $datetime,
+                    'type'                    => TransactionType::EXPENSE->value,
+                    'transaction_category_id' => $categoryId,
+                    'reference_type'          => $bankingRequest->sourceable_type,
+                    'reference_id'            => $bankingRequest->sourceable_id,
+                    'name'                    => 'Expense Payment',
+                    'notes'                   => $notes,
+                    'created_by'              => $userId,
+                    'external_data'           => $bankingRequest->external_data,
+                    'attachments'             => $attachmentPaths,
+                ],
+                [
+                    ['account_id' => $expAccountId,  'debit' => $amount, 'credit' => 0,       'notes' => 'Expense'],
+                    ['account_id' => $cashAccountId, 'debit' => 0,       'credit' => $amount, 'notes' => 'Cash'],
+                ],
+            );
 
             // Update BankingPaymentRequest → completed
             $bankingRequest->update([
-                'transaction_id' => $txnCash->id,
+                'transaction_id' => $transaction->id,
                 'status'         => 'completed',
                 'completed_by'   => $userId,
                 'completed_at'   => now(),

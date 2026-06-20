@@ -185,6 +185,12 @@ class AccountList extends Component
             return;
         }
 
+        if ($account->is_locked) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'This is a system account and cannot be deleted.']);
+
+            return;
+        }
+
         if ($account->children()->exists()) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Account has child accounts and cannot be deleted.']);
 
@@ -206,44 +212,24 @@ class AccountList extends Component
     {
         $this->authorizePermission('accounts.chart.list');
 
-        $accounts = Account::query()
-            ->with('parent:id,name,parent_id')
-            ->when($this->search !== '', function (Builder $query): void {
-                $search = '%'.$this->search.'%';
-
-                $query->where(function (Builder $subQuery) use ($search): void {
-                    $subQuery->where('name', 'like', $search)
-                        ->orWhere('code', 'like', $search);
-                });
-            })
-            ->when($this->typeFilter !== '', function (Builder $query): void {
-                $query->where('type', $this->typeFilter);
-            })
-            ->when($this->statusFilter !== '', function (Builder $query): void {
-                $query->where('is_active', $this->statusFilter === 'active');
-            })
-            ->orderBy('type')
-            ->orderBy('parent_id')
+        // Load the whole chart (bounded size) with each account's own balance summed
+        // from the double-entry ledger lines, then assemble it into a nested tree.
+        $allAccounts = Account::query()
+            ->withSum('lines as line_debit', 'debit')
+            ->withSum('lines as line_credit', 'credit')
+            ->orderByRaw('ISNULL(`group`), `group`')
+            ->orderByRaw('ISNULL(`parent_id`), `parent_id`')
             ->orderBy('name')
-            ->paginate(15);
+            ->get();
 
-        $accounts->getCollection()->transform(function (Account $account): Account {
-            $depth = 0;
-            $cursor = $account;
-
-            while ($cursor->parent) {
-                $depth++;
-                if ($depth >= 10) {
-                    break;
-                }
-
-                $cursor = $cursor->parent;
-            }
-
-            $account->setAttribute('depth', $depth);
-
-            return $account;
+        $allAccounts->each(function (Account $account): void {
+            $account->setAttribute(
+                'own_balance',
+                round((float) ($account->line_debit ?? 0) - (float) ($account->line_credit ?? 0), 2)
+            );
         });
+
+        $tree = $this->buildTree($allAccounts);
 
         $parentOptions = Account::query()
             ->when($this->editingId, fn (Builder $query): Builder => $query->where('id', '!=', $this->editingId))
@@ -251,10 +237,12 @@ class AccountList extends Component
             ->orderBy('name')
             ->get(['id', 'name', 'type']);
 
+        // Per-account balance is summed from the double-entry ledger lines
+        // (transactions no longer carry debit/credit on the header).
         $cashBankAccounts = Account::query()
             ->whereIn('type', [AccountType::CASH->value, AccountType::BANK->value])
-            ->withSum('transactions as total_debit', 'debit')
-            ->withSum('transactions as total_credit', 'credit')
+            ->withSum('lines as total_debit', 'debit')
+            ->withSum('lines as total_credit', 'credit')
             ->orderBy('type')
             ->orderBy('name')
             ->get();
@@ -279,7 +267,7 @@ class AccountList extends Component
 
     
         return view('livewire.admin.accounts.account.account-list', [
-            'accounts' => $accounts,
+            'tree' => $tree,
             'types' => AccountType::cases(),
             'parentOptions' => $parentOptions,
             'referenceOptions' => collect(account_reference_config())
@@ -289,6 +277,92 @@ class AccountList extends Component
             'totalCashBalance' => $totalCashBalance,
             'totalBankBalance' => $totalBankBalance,
         ])->layout('layouts.admin.admin');
+    }
+
+    /**
+     * Assemble the flat account collection into a nested tree of root nodes.
+     * Applies the active search/type/status filters while keeping the ancestor
+     * chain of any match visible, attaches `depth`, and rolls each parent's
+     * balance up from its descendants.
+     *
+     * @param  \Illuminate\Support\Collection<int, \App\Models\Account>  $accounts
+     * @return \Illuminate\Support\Collection<int, \App\Models\Account>
+     */
+    protected function buildTree($accounts)
+    {
+        $matchedIds = $this->filteredAccountIds($accounts);
+
+        // Group children by their parent id for O(1) lookup.
+        $byParent = $accounts->groupBy(fn (Account $a): string => (string) ($a->parent_id ?? 'root'));
+
+        $attach = function (Account $node, int $depth) use (&$attach, $byParent, $matchedIds): bool {
+            $node->setAttribute('depth', $depth);
+
+            $children = collect();
+            $anyChildVisible = false;
+
+            foreach ($byParent->get((string) $node->id, collect()) as $child) {
+                if ($attach($child, $depth + 1)) {
+                    $children->push($child);
+                    $anyChildVisible = true;
+                }
+            }
+
+            $node->setRelation('treeChildren', $children->values());
+
+            // Roll-up balance = own movement + sum of visible descendants.
+            $rollup = (float) $node->own_balance
+                + (float) $children->sum(fn (Account $c): float => (float) $c->rollup_balance);
+            $node->setAttribute('rollup_balance', round($rollup, 2));
+
+            // A node stays in the tree if it matches the filter itself or has a
+            // visible (matching) descendant.
+            return $matchedIds === null || in_array($node->id, $matchedIds, true) || $anyChildVisible;
+        };
+
+        return $accounts
+            ->filter(fn (Account $a): bool => $a->parent_id === null)
+            ->filter(fn (Account $a): bool => $attach($a, 0))
+            ->values();
+    }
+
+    /**
+     * Ids of accounts that directly match the active filters, or null when no
+     * filter is active (meaning "show everything").
+     *
+     * @param  \Illuminate\Support\Collection<int, \App\Models\Account>  $accounts
+     * @return array<int, int>|null
+     */
+    protected function filteredAccountIds($accounts): ?array
+    {
+        $search = trim($this->search);
+        $hasFilter = $search !== '' || $this->typeFilter !== '' || $this->statusFilter !== '';
+
+        if (! $hasFilter) {
+            return null;
+        }
+
+        return $accounts
+            ->filter(function (Account $a) use ($search): bool {
+                if ($search !== ''
+                    && stripos((string) $a->name, $search) === false
+                    && stripos((string) $a->code, $search) === false) {
+                    return false;
+                }
+
+                if ($this->typeFilter !== '' && ($a->type?->value ?? null) !== $this->typeFilter) {
+                    return false;
+                }
+
+                if ($this->statusFilter !== '' && $a->is_active !== ($this->statusFilter === 'active')) {
+                    return false;
+                }
+
+                return true;
+            })
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
     }
 
     /**
@@ -381,6 +455,6 @@ class AccountList extends Component
 
     protected function isAccountInUse(int $accountId): bool
     {
-        return \App\Models\Transaction::query()->where('account_id', $accountId)->exists();
+        return \App\Models\TransactionLine::query()->where('account_id', $accountId)->exists();
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Services\Inventory;
 
-use App\Enums\Accounts\TransactionRelationType;
 use App\Enums\Accounts\TransactionType;
 use App\Enums\Inventory\PurchaseInvoiceStatus;
 use App\Models\Account;
@@ -10,14 +9,17 @@ use App\Models\AdvanceAdjustment;
 use App\Models\PurchaseFund;
 use App\Models\PurchaseInvoice;
 use App\Models\StockReceive;
-use App\Models\Transaction;
+use App\Services\Accounts\LedgerService;
 use App\Services\NumberSequenceService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PurchaseInvoiceService
 {
-    public function __construct(private readonly NumberSequenceService $sequences) {}
+    public function __construct(
+        private readonly NumberSequenceService $sequences,
+        private readonly LedgerService $ledger,
+    ) {}
 
     // -------------------------------------------------------------------------
     // Helpers
@@ -297,96 +299,72 @@ class PurchaseInvoiceService
             $notes    = 'Purchase Invoice #' . $locked->invoice_no;
 
             // ------------------------------------------------------------------
-            // 4. TXN-PURCHASE: DR inventory/expense account
+            // 4. Build a single balanced journal:
+            //      DR inventory/expense [total]
+            //      CR advance account   [totalAdvance]  (per-fund clearing)
+            //      CR cash/bank         [paid]
+            //      CR accounts payable  [due]
+            //    (total === totalAdvance + paid + due)
             // ------------------------------------------------------------------
-            $txnPurchase = Transaction::query()->create([
-                'account_id'     => $inventoryAccountId,
-                'datetime'       => $datetime,
-                'type'           => TransactionType::PURCHASE_INVOICE->value,
-                'reference_type' => 'purchase_invoice',
-                'reference_id'   => (int) $locked->id,
-                'debit'          => $total,
-                'credit'         => 0,
-                'notes'          => $notes,
-                'created_by'     => $actorId,
-            ]);
+            $journalLines = [
+                ['account_id' => $inventoryAccountId, 'debit' => $total, 'credit' => 0, 'notes' => 'Inventory / expense'],
+            ];
 
-            // ------------------------------------------------------------------
-            // 5. TXN-ADV-CLEAR per fund: CR advance account + AdvanceAdjustment
-            // ------------------------------------------------------------------
             if ($totalAdvance > 0 && ! empty($advanceLines)) {
                 $advanceAccountId = $this->resolveAdvanceAccountId();
-
                 foreach ($advanceLines as $line) {
                     if ($line['amount'] <= 0) {
                         continue;
                     }
+                    $journalLines[] = [
+                        'account_id' => $advanceAccountId,
+                        'debit'      => 0,
+                        'credit'     => $line['amount'],
+                        'notes'      => 'Advance clear',
+                    ];
+                }
+            }
 
-                    $txnAdvClear = Transaction::query()->create([
-                        'account_id'             => $advanceAccountId,
-                        'datetime'               => $datetime,
-                        'type'                   => TransactionType::PURCHASE_INVOICE->value,
-                        'reference_type'         => 'purchase_invoice',
-                        'reference_id'           => (int) $locked->id,
-                        'debit'                  => 0,
-                        'credit'                 => $line['amount'],
-                        'notes'                  => $notes . ' – advance clear',
-                        'related_transaction_id' => $txnPurchase->id,
-                        'relation_type'          => TransactionRelationType::ADVANCE_CLEAR->value,
-                        'created_by'             => $actorId,
-                    ]);
+            if ($paid > 0) {
+                $journalLines[] = ['account_id' => $paymentAccountId, 'debit' => 0, 'credit' => $paid, 'notes' => 'Payment'];
+            }
 
-                    // Link to the original advance transaction via AdvanceAdjustment
+            if ($due > 0) {
+                $journalLines[] = ['account_id' => $payableAccountId, 'debit' => 0, 'credit' => $due, 'notes' => 'Accounts payable'];
+            }
+
+            $txnPurchase = $this->ledger->post(
+                [
+                    'datetime'       => $datetime,
+                    'type'           => TransactionType::PURCHASE_INVOICE->value,
+                    'reference_type' => 'purchase_invoice',
+                    'reference_id'   => (int) $locked->id,
+                    'method'         => $paid > 0 ? ($paymentMethod ?: null) : null,
+                    'notes'          => $notes,
+                    'created_by'     => $actorId,
+                ],
+                $journalLines,
+            );
+
+            // ------------------------------------------------------------------
+            // 5. Link cleared advances to their original advance transactions
+            // ------------------------------------------------------------------
+            if ($totalAdvance > 0 && ! empty($advanceLines)) {
+                foreach ($advanceLines as $line) {
+                    if ($line['amount'] <= 0) {
+                        continue;
+                    }
                     $fund = PurchaseFund::query()->find($line['fund_id']);
                     if ($fund && $fund->transaction_id) {
                         AdvanceAdjustment::query()->create([
                             'advance_transaction_id' => $fund->transaction_id,
-                            'adjust_transaction_id'  => $txnAdvClear->id,
+                            'adjust_transaction_id'  => $txnPurchase->id,
                             'amount'                 => $line['amount'],
                             'notes'                  => $notes,
                             'created_by'             => $actorId,
                         ]);
                     }
                 }
-            }
-
-            // ------------------------------------------------------------------
-            // 6. TXN-PAYMENT: CR cash/bank
-            // ------------------------------------------------------------------
-            if ($paid > 0) {
-                Transaction::query()->create([
-                    'account_id'             => $paymentAccountId,
-                    'datetime'               => $datetime,
-                    'type'                   => TransactionType::PURCHASE_INVOICE->value,
-                    'reference_type'         => 'purchase_invoice',
-                    'reference_id'           => (int) $locked->id,
-                    'debit'                  => 0,
-                    'credit'                 => $paid,
-                    'method'                 => $paymentMethod,
-                    'notes'                  => $notes . ' – payment',
-                    'related_transaction_id' => $txnPurchase->id,
-                    'relation_type'          => TransactionRelationType::PAIR->value,
-                    'created_by'             => $actorId,
-                ]);
-            }
-
-            // ------------------------------------------------------------------
-            // 7. TXN-PAYABLE: CR accounts payable
-            // ------------------------------------------------------------------
-            if ($due > 0) {
-                Transaction::query()->create([
-                    'account_id'             => $payableAccountId,
-                    'datetime'               => $datetime,
-                    'type'                   => TransactionType::PURCHASE_INVOICE->value,
-                    'reference_type'         => 'purchase_invoice',
-                    'reference_id'           => (int) $locked->id,
-                    'debit'                  => 0,
-                    'credit'                 => $due,
-                    'notes'                  => $notes . ' – payable',
-                    'related_transaction_id' => $txnPurchase->id,
-                    'relation_type'          => TransactionRelationType::PAIR->value,
-                    'created_by'             => $actorId,
-                ]);
             }
 
             // ------------------------------------------------------------------
@@ -472,11 +450,15 @@ class PurchaseInvoiceService
             return;
         }
 
-        // Sum only payment CRs — exclude the payable/AP pair entry created at invoice approval.
-        // The approval pair hits accounts_payable_account_id; actual payments hit a bank account.
-        $paid = (float) Transaction::query()
-            ->where('reference_type', 'purchase_invoice')
-            ->where('reference_id', $locked->id)
+        // Sum only payment CR ledger lines — exclude the payable/AP credit posted at
+        // invoice approval. Approval credits accounts_payable_account_id; actual
+        // payments credit a bank/cash account. Summing from lines (not the header
+        // summary) keeps this correct under double-entry.
+        $paid = (float) \App\Models\TransactionLine::query()
+            ->whereHas('transaction', function ($q) use ($locked): void {
+                $q->where('reference_type', 'purchase_invoice')
+                    ->where('reference_id', $locked->id);
+            })
             ->where('credit', '>', 0)
             ->where('account_id', '!=', $locked->accounts_payable_account_id)
             ->sum('credit');

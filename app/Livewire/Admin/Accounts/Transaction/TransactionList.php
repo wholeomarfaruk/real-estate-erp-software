@@ -9,7 +9,6 @@ use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Models\Account;
 use App\Models\File;
 use App\Models\Transaction;
-use App\Models\TransactionCategory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
@@ -22,7 +21,6 @@ class TransactionList extends Component
 
     public string $search = '';
     public string $typeFilter = '';
-    public string $categoryFilter = '';
     public string $methodFilter = '';
     public string $accountFilter = '';
     public ?string $dateFrom = null;
@@ -39,8 +37,7 @@ class TransactionList extends Component
     }
 
     public function updatedSearch(): void { $this->resetPage(); }
-    public function updatedTypeFilter(): void { $this->resetPage(); $this->categoryFilter = ''; }
-    public function updatedCategoryFilter(): void { $this->resetPage(); }
+    public function updatedTypeFilter(): void { $this->resetPage(); }
     public function updatedMethodFilter(): void { $this->resetPage(); }
     public function updatedAccountFilter(): void { $this->resetPage(); }
     public function updatedDateFrom(): void { $this->resetPage(); }
@@ -75,10 +72,9 @@ class TransactionList extends Component
         $transactions = Transaction::query()
             ->with([
                 'creator:id,name',
-                'account:id,name,code,type',
-                'account.bankAccount:id,account_id,bank_name,type,code',
-                'transactionCategory:id,name,type,parent_id',
-                'transactionCategory.parent:id,name',
+                'lines:id,transaction_id,account_id,debit,credit,notes',
+                'lines.account:id,name,code,type',
+                'lines.account.bankAccount:id,account_id,bank_name,type,code',
             ])
             ->when($this->search !== '', function (Builder $query): void {
                 $search = '%'.$this->search.'%';
@@ -92,9 +88,11 @@ class TransactionList extends Component
             })
             ->when($typeValue !== '', fn (Builder $q) => $q->where('type', $typeValue))
             ->when($isAdjustedTab, fn (Builder $q) => $q->whereNotNull('adjusted_at'))
-            ->when($this->categoryFilter !== '', fn (Builder $q) => $q->where('transaction_category_id', $this->categoryFilter))
             ->when($this->methodFilter !== '', fn (Builder $q) => $q->where('method', $this->methodFilter))
-            ->when($this->accountFilter !== '', fn (Builder $q) => $q->where('account_id', $this->accountFilter))
+            ->when($this->accountFilter !== '', fn (Builder $q) => $q->whereHas(
+                'lines',
+                fn (Builder $l) => $l->where('account_id', $this->accountFilter)
+            ))
             ->when($this->dateFrom, fn (Builder $q) => $q->whereDate('datetime', '>=', $this->dateFrom))
             ->when($this->dateTo,   fn (Builder $q) => $q->whereDate('datetime', '<=', $this->dateTo))
             ->latest('datetime')
@@ -110,10 +108,9 @@ class TransactionList extends Component
                 ->with([
                     'creator:id,name',
                     'adjustedByUser:id,name',
-                    'account:id,name,code,type',
-                    'account.bankAccount:id,account_id,bank_name,type,code,ac_number',
-                    'transactionCategory:id,name,type,parent_id',
-                    'transactionCategory.parent:id,name',
+                    'lines:id,transaction_id,account_id,debit,credit,notes',
+                    'lines.account:id,name,code,type',
+                    'lines.account.bankAccount:id,account_id,bank_name,type,code,ac_number',
                 ])
                 ->find($this->viewingId);
 
@@ -148,27 +145,40 @@ class TransactionList extends Component
             ")
             ->first();
 
-        // KPI strip — respects active date filters
-        $kpi = Transaction::query()
+        // KPI strip — respects active date filters. Per-account movements are summed
+        // from transaction_lines (the header debit/credit columns were removed); the
+        // count metrics stay on the transaction header.
+        $lineAgg = Transaction::query()
+            ->join('transaction_lines as tl', 'tl.transaction_id', '=', 'transactions.id')
             ->when($this->dateFrom, fn (Builder $q) => $q->whereDate('datetime', '>=', $this->dateFrom))
             ->when($this->dateTo,   fn (Builder $q) => $q->whereDate('datetime', '<=', $this->dateTo))
             ->selectRaw("
-                SUM(CASE WHEN type = 'income'                        THEN debit  ELSE 0 END) AS total_income,
-                SUM(CASE WHEN type = 'expense'                       THEN credit ELSE 0 END) AS total_expense,
-                SUM(CASE WHEN type = 'advance' AND debit  > 0        THEN debit  ELSE 0 END) AS advance_in,
-                SUM(CASE WHEN type = 'advance' AND credit > 0        THEN credit ELSE 0 END) AS advance_out,
-                SUM(debit) - SUM(credit)                                                     AS net_position,
-                COUNT(*)                                                                     AS total_count,
-                SUM(CASE WHEN adjusted_at IS NOT NULL THEN 1 ELSE 0 END)                     AS adjusted_count
+                SUM(CASE WHEN type = 'income'                  THEN tl.debit  ELSE 0 END) AS total_income,
+                SUM(CASE WHEN type = 'expense'                 THEN tl.credit ELSE 0 END) AS total_expense,
+                SUM(CASE WHEN type = 'advance' AND tl.debit  > 0 THEN tl.debit  ELSE 0 END) AS advance_in,
+                SUM(CASE WHEN type = 'advance' AND tl.credit > 0 THEN tl.credit ELSE 0 END) AS advance_out,
+                SUM(tl.debit) - SUM(tl.credit)                                              AS net_position
             ")
             ->first();
 
-        // Category filter (contextual to selected type)
-        $categories = TransactionCategory::query()
-            ->active()
-            ->when($typeValue !== '', fn (Builder $q) => $q->where('type', $typeValue))
-            ->orderByRaw('ISNULL(parent_id), parent_id, name')
-            ->get(['id', 'name', 'type', 'parent_id']);
+        $countAgg = Transaction::query()
+            ->when($this->dateFrom, fn (Builder $q) => $q->whereDate('datetime', '>=', $this->dateFrom))
+            ->when($this->dateTo,   fn (Builder $q) => $q->whereDate('datetime', '<=', $this->dateTo))
+            ->selectRaw("
+                COUNT(*)                                                AS total_count,
+                SUM(CASE WHEN adjusted_at IS NOT NULL THEN 1 ELSE 0 END) AS adjusted_count
+            ")
+            ->first();
+
+        $kpi = (object) [
+            'total_income'  => $lineAgg->total_income ?? 0,
+            'total_expense' => $lineAgg->total_expense ?? 0,
+            'advance_in'    => $lineAgg->advance_in ?? 0,
+            'advance_out'   => $lineAgg->advance_out ?? 0,
+            'net_position'  => $lineAgg->net_position ?? 0,
+            'total_count'   => $countAgg->total_count ?? 0,
+            'adjusted_count' => $countAgg->adjusted_count ?? 0,
+        ];
 
         // Accounts for filter dropdown
         $accounts = Account::query()
@@ -180,7 +190,6 @@ class TransactionList extends Component
             'transactions'               => $transactions,
             'types'                      => TransactionType::cases(),
             'methods'                    => EntryMethod::cases(),
-            'categories'                 => $categories,
             'accounts'                   => $accounts,
             'viewTransaction'            => $viewTransaction,
             'viewTransactionFiles'       => $viewTransactionFiles,

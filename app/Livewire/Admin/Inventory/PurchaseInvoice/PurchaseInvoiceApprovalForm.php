@@ -237,7 +237,7 @@ class PurchaseInvoiceApprovalForm extends Component
             ->where('purchase_order_id', $this->invoice->purchase_order_id)
             ->where('status', 'completed')
             ->whereNotNull('transaction_id')
-            ->with(['transactionCategory:id,name', 'transaction:id,debit,type'])
+            ->with(['transactionCategory:id,name', 'transaction:id,type', 'transaction.lines:id,transaction_id,debit,credit'])
             ->get();
 
         $this->advanceFundLines = $funds->map(function ($fund) use ($existing) {

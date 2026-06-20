@@ -8,6 +8,7 @@ use App\Models\BankingPaymentRequest;
 use App\Models\Transaction;
 use App\Models\TransactionCategory;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -39,10 +40,9 @@ class ExpenseList extends Component
         // so each expense appears once.
         $expenses = Transaction::query()
             ->where('type', TransactionType::EXPENSE->value)
-            ->where('credit', '>', 0)
+            ->whereHas('lines', fn ($l) => $l->where('credit', '>', 0))
             ->with([
-                'account:id,name,code',
-                'transactionCategory:id,name',
+                'lines.account:id,name,code',
                 'creator:id,name',
             ])
             ->when($this->search, fn ($q, $s) =>
@@ -51,7 +51,6 @@ class ExpenseList extends Component
                        ->orWhere('notes', 'like', "%{$s}%")
                 )
             )
-            ->when($this->categoryFilter, fn ($q, $c) => $q->where('transaction_category_id', (int) $c))
             ->when($this->dateFrom, fn ($q, $d) => $q->whereDate('datetime', '>=', $d))
             ->when($this->dateTo,   fn ($q, $d) => $q->whereDate('datetime', '<=', $d))
             ->latest('datetime')
@@ -75,11 +74,17 @@ class ExpenseList extends Component
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        $kpi = Transaction::query()
+        $kpiCount = Transaction::query()
             ->where('type', TransactionType::EXPENSE->value)
-            ->where('credit', '>', 0)
-            ->selectRaw('COUNT(*) AS cnt, COALESCE(SUM(credit),0) AS total')
-            ->first();
+            ->whereHas('lines', fn ($l) => $l->where('credit', '>', 0))
+            ->count();
+
+        $kpiTotal = (float) DB::table('transaction_lines as tl')
+            ->join('transactions as t', 't.id', '=', 'tl.transaction_id')
+            ->where('t.type', TransactionType::EXPENSE->value)
+            ->sum('tl.credit');
+
+        $kpi = (object) ['cnt' => $kpiCount, 'total' => $kpiTotal];
 
         return view('livewire.admin.accounts.expense.expense-list', compact(
             'expenses', 'bprs', 'expenseCategories', 'kpi'

@@ -4,6 +4,7 @@ namespace App\Services\Accounts;
 
 use App\Models\Account;
 use App\Models\Transaction;
+use App\Models\TransactionLine;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -217,11 +218,12 @@ class DailyStatementReportService
             return [];
         }
 
-        return DB::table('transactions')
-            ->selectRaw('account_id, COALESCE(SUM(debit - credit), 0) as balance')
-            ->whereIn('account_id', $accountIds)
-            ->where('datetime', '<', $beforeDate->toDateTimeString())
-            ->groupBy('account_id')
+        return DB::table('transaction_lines as tl')
+            ->join('transactions as t', 't.id', '=', 'tl.transaction_id')
+            ->selectRaw('tl.account_id, COALESCE(SUM(tl.debit - tl.credit), 0) as balance')
+            ->whereIn('tl.account_id', $accountIds)
+            ->where('t.datetime', '<', $beforeDate->toDateTimeString())
+            ->groupBy('tl.account_id')
             ->pluck('balance', 'account_id')
             ->map(fn (mixed $value): float => $this->money((float) $value))
             ->all();
@@ -233,10 +235,11 @@ class DailyStatementReportService
             return 0.0;
         }
 
-        return $this->money((float) DB::table('transactions')
-            ->whereIn('account_id', $advanceAccountIds)
-            ->where('datetime', '<=', $throughDate->copy()->endOfDay()->toDateTimeString())
-            ->selectRaw('COALESCE(SUM(debit - credit), 0) as balance')
+        return $this->money((float) DB::table('transaction_lines as tl')
+            ->join('transactions as t', 't.id', '=', 'tl.transaction_id')
+            ->whereIn('tl.account_id', $advanceAccountIds)
+            ->where('t.datetime', '<=', $throughDate->copy()->endOfDay()->toDateTimeString())
+            ->selectRaw('COALESCE(SUM(tl.debit - tl.credit), 0) as balance')
             ->value('balance'));
     }
 
@@ -250,26 +253,32 @@ class DailyStatementReportService
             return collect();
         }
 
-        return Transaction::query()
+        // Per-account daily movements come from transaction_lines. Each line carries
+        // its own account + debit/credit; TransactionLine proxy accessors expose the
+        // parent transaction's type/datetime/reference/expense so the row builders
+        // below read $tx->account_id / debit / credit / reference unchanged.
+        return TransactionLine::query()
             ->with([
                 'account:id,name,sub_type',
                 'account.bankAccount:id,account_id,bank_name',
-                'transactionCategory:id,name,type,parent_id',
-                // Resolve the "purpose" + property/unit/floor behind each line.
-                'expense:id,transaction_id,expense_no,title,reference_type,reference_id',
-                'reference',
-                'reference.propertySale.property:id,name',
-                'reference.propertySale.propertyUnit:id,property_floor_id,code,unit_number,type',
-                'reference.propertySale.propertyUnit.floor:id,label,code',
+                'transaction.expense:id,transaction_id,expense_no,title,reference_type,reference_id',
+                'transaction.reference',
+                'transaction.reference.propertySale.property:id,name',
+                'transaction.reference.propertySale.propertyUnit:id,property_floor_id,code,unit_number,type',
+                'transaction.reference.propertySale.propertyUnit.floor:id,label,code',
             ])
-            ->whereIn('account_id', $trackedAccountIds)
-            ->whereIn('type', $this->supportedTransactionTypes())
-            ->whereBetween('datetime', [
-                $reportDate->copy()->startOfDay()->toDateTimeString(),
-                $reportDate->copy()->endOfDay()->toDateTimeString(),
-            ])
-            ->orderBy('datetime')
-            ->orderBy('id')
+            ->whereIn('transaction_lines.account_id', $trackedAccountIds)
+            ->whereHas('transaction', function (Builder $query) use ($reportDate): void {
+                $query->whereIn('type', $this->supportedTransactionTypes())
+                    ->whereBetween('datetime', [
+                        $reportDate->copy()->startOfDay()->toDateTimeString(),
+                        $reportDate->copy()->endOfDay()->toDateTimeString(),
+                    ]);
+            })
+            ->join('transactions', 'transactions.id', '=', 'transaction_lines.transaction_id')
+            ->orderBy('transactions.datetime')
+            ->orderBy('transactions.id')
+            ->select('transaction_lines.*')
             ->get();
     }
 
@@ -434,11 +443,11 @@ class DailyStatementReportService
     protected function buildExpenseRows(Collection $transactions): array
     {
         return $transactions
-            ->filter(function (Transaction $transaction): bool {
+            ->filter(function (Transaction|TransactionLine $transaction): bool {
                 return (float) $transaction->credit > 0
                     && in_array($this->classifyTransactionType($transaction), ['expense', 'advance'], true);
             })
-            ->map(function (Transaction $transaction): array {
+            ->map(function (Transaction|TransactionLine $transaction): array {
                 $type = $this->classifyTransactionType($transaction);
                 $isBank = $this->accountSubType($transaction) === 'bank';
                 $amount = $this->money((float) $transaction->credit);
@@ -471,11 +480,11 @@ class DailyStatementReportService
     protected function buildIncomeRows(Collection $transactions): array
     {
         return $transactions
-            ->filter(function (Transaction $transaction): bool {
+            ->filter(function (Transaction|TransactionLine $transaction): bool {
                 return (float) $transaction->debit > 0
                     && in_array($this->classifyTransactionType($transaction), ['income', 'opening_balance', 'adjustment'], true);
             })
-            ->map(function (Transaction $transaction): array {
+            ->map(function (Transaction|TransactionLine $transaction): array {
                 $type  = $this->classifyTransactionType($transaction);
                 $isBank = $this->accountSubType($transaction) === 'bank';
                 $amount = $this->money((float) $transaction->debit);
@@ -501,21 +510,19 @@ class DailyStatementReportService
             ->all();
     }
 
-    protected function classifyTransactionType(Transaction $transaction): string
+    protected function classifyTransactionType(Transaction|TransactionLine $transaction): string
     {
-        $categoryType = strtolower((string) optional($transaction->transactionCategory)->type);
-        if (in_array($categoryType, ['income', 'expense', 'advance', 'transfer', 'adjustment'], true)) {
-            return $categoryType;
-        }
-
-        $rawType = strtolower((string) $transaction->getRawOriginal('type'));
+        // Categories were removed from transactions; classify purely from the
+        // transaction's own type, falling back to the debit/credit sign.
+        $type = $transaction->type;
+        $rawType = strtolower((string) ($type instanceof \BackedEnum ? $type->value : $type));
 
         return in_array($rawType, ['income', 'expense', 'advance', 'transfer', 'adjustment', 'opening_balance'], true)
             ? $rawType
             : ($transaction->credit > 0 ? 'expense' : 'income');
     }
 
-    protected function transactionLabel(Transaction $transaction): string
+    protected function transactionLabel(Transaction|TransactionLine $transaction): string
     {
         $notes = trim((string) $transaction->notes);
         $name = trim((string) $transaction->name);
@@ -542,7 +549,7 @@ class DailyStatementReportService
      *
      * @return array{purpose: string, property: ?string, unit: ?string, floor: ?string}
      */
-    protected function resolveDetails(Transaction $transaction): array
+    protected function resolveDetails(Transaction|TransactionLine $transaction): array
     {
         $reference = $transaction->reference;
 
@@ -578,7 +585,7 @@ class DailyStatementReportService
         ];
     }
 
-    protected function referenceNo(Transaction $transaction): string
+    protected function referenceNo(Transaction|TransactionLine $transaction): string
     {
         // Ref. No / V. No columns show the transaction id.
         return 'TXN-'.$transaction->id;
@@ -591,12 +598,12 @@ class DailyStatementReportService
             : 'DS-'.$reportDate->format('Ymd');
     }
 
-    protected function accountSubType(Transaction $transaction): string
+    protected function accountSubType(Transaction|TransactionLine $transaction): string
     {
         return strtolower((string) optional($transaction->account)->sub_type);
     }
 
-    protected function usesCheque(Transaction $transaction): bool
+    protected function usesCheque(Transaction|TransactionLine $transaction): bool
     {
         return str_contains(strtolower((string) $transaction->method), 'cheque');
     }

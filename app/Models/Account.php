@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Accounts\AccountGroupType;
 use App\Enums\Accounts\AccountType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use App\Models\AccountReferenceLink;
+use App\Models\TransactionLine;
 
 class Account extends Model
 {
@@ -19,13 +21,17 @@ class Account extends Model
         'code',
         'name',
         'type',
+        'group',
         'is_active',
+        'is_locked',
         'sub_type',
     ];
 
     protected $casts = [
         'type' => AccountType::class,
+        'group' => AccountGroupType::class,
         'is_active' => 'boolean',
+        'is_locked' => 'boolean',
     ];
 
     public function parent(): BelongsTo
@@ -94,10 +100,17 @@ class Account extends Model
     {
         return $this->hasOne(BankAccount::class);
     }
+    public function lines(): HasMany
+    {
+        return $this->hasMany(TransactionLine::class);
+    }
+
     public function getBalanceAttribute(): float
     {
+        // Balance is computed from the per-account ledger lines (double-entry),
+        // which hold the true debit/credit movement for this account.
         return round(
-            (float) $this->transactions()->sum('debit') - (float) $this->transactions()->sum('credit'),
+            (float) $this->lines()->sum('debit') - (float) $this->lines()->sum('credit'),
             3
         );
     }

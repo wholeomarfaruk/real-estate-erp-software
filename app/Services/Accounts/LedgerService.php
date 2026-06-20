@@ -42,9 +42,12 @@ class LedgerService
         }
 
         return DB::transaction(function () use ($header, $lines): Transaction {
+            // The transaction header no longer stores account_id/debit/credit/
+            // transaction_category_id — per-account movements live entirely in
+            // transaction_lines. Only header metadata is persisted here.
             $allowedKeys = [
-                'datetime', 'type', 'reference_no', 'reference_type', 'reference_id',
-                'notes', 'method', 'name', 'phone', 'attachments',
+                'datetime', 'type', 'reference_no', 'reference_type',
+                'reference_id', 'notes', 'method', 'name', 'phone', 'attachments', 'external_data',
                 'related_transaction_id', 'relation_type', 'created_by', 'updated_by',
             ];
 
@@ -58,7 +61,7 @@ class LedgerService
                     'account_id'     => (int) $line['account_id'],
                     'debit'          => (float) ($line['debit']  ?? 0),
                     'credit'         => (float) ($line['credit'] ?? 0),
-                    'description'    => $line['description'] ?? null,
+                    'notes'          => $line['notes'] ?? $line['description'] ?? null,
                 ]);
             }
 

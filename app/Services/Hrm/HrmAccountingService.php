@@ -2,16 +2,17 @@
 
 namespace App\Services\Hrm;
 
-use App\Enums\Accounts\TransactionRelationType;
 use App\Enums\Accounts\TransactionType;
 use App\Models\Transaction;
 use App\Models\TransactionCategory;
+use App\Services\Accounts\LedgerService;
 use Carbon\Carbon;
 
 class HrmAccountingService
 {
     public function __construct(
-        protected HrmAccountResolver $accountResolver
+        protected HrmAccountResolver $accountResolver,
+        protected LedgerService $ledger,
     ) {}
 
     public function createPayrollGenerationTransaction(
@@ -30,33 +31,22 @@ class HrmAccountingService
         $salaryPayable = $this->accountResolver->resolveRequiredAccount('salary_payable');
         $categoryId = $this->resolvePayrollCategoryId();
 
-        $payableTransaction = Transaction::query()->create([
-            'account_id' => $salaryPayable->id,
-            'datetime' => $this->asDateTime($date),
-            'type' => TransactionType::EXPENSE->value,
-            'transaction_category_id' => $categoryId,
-            'reference_type' => $referenceType,
-            'reference_id' => $referenceId,
-            'debit' => 0,
-            'credit' => $amount,
-            'notes' => $notes,
-            'created_by' => $actorId,
-        ]);
-
-        return Transaction::query()->create([
-            'account_id' => $salaryExpense->id,
-            'datetime' => $this->asDateTime($date),
-            'type' => TransactionType::EXPENSE->value,
-            'transaction_category_id' => $categoryId,
-            'reference_type' => $referenceType,
-            'reference_id' => $referenceId,
-            'debit' => $amount,
-            'credit' => 0,
-            'notes' => $notes,
-            'related_transaction_id' => $payableTransaction->id,
-            'relation_type' => TransactionRelationType::PAIR->value,
-            'created_by' => $actorId,
-        ]);
+        // DR salary expense (cost) / CR salary payable (liability)
+        return $this->ledger->post(
+            [
+                'datetime' => $this->asDateTime($date),
+                'type' => TransactionType::EXPENSE->value,
+                'transaction_category_id' => $categoryId,
+                'reference_type' => $referenceType,
+                'reference_id' => $referenceId,
+                'notes' => $notes,
+                'created_by' => $actorId,
+            ],
+            [
+                ['account_id' => (int) $salaryExpense->id, 'debit' => $amount, 'credit' => 0,       'notes' => 'Salary expense'],
+                ['account_id' => (int) $salaryPayable->id, 'debit' => 0,       'credit' => $amount, 'notes' => 'Salary payable'],
+            ],
+        );
     }
 
     public function createPayrollPaymentTransaction(
@@ -82,37 +72,24 @@ class HrmAccountingService
             : $this->accountResolver->resolvePaymentAccountByMethod($paymentMethod);
         $categoryId = $transactionCategoryId ?: $this->resolvePayrollCategoryId();
 
-        $cashTransaction = Transaction::query()->create([
-            'account_id' => (int) $paymentAccount->id,
-            'datetime' => $this->asDateTime($date),
-            'type' => TransactionType::EXPENSE->value,
-            'transaction_category_id' => $categoryId,
-            'reference_type' => $referenceType,
-            'reference_id' => $referenceId,
-            'debit' => 0,
-            'credit' => $amount,
-            'method' => $normalizedMethod,
-            'name' => $name,
-            'notes' => $notes,
-            'created_by' => $actorId,
-        ]);
-
-        return Transaction::query()->create([
-            'account_id' => $salaryPayable->id,
-            'datetime' => $this->asDateTime($date),
-            'type' => TransactionType::EXPENSE->value,
-            'transaction_category_id' => $categoryId,
-            'reference_type' => $referenceType,
-            'reference_id' => $referenceId,
-            'debit' => $amount,
-            'credit' => 0,
-            'method' => $normalizedMethod,
-            'name' => $name,
-            'notes' => $notes,
-            'related_transaction_id' => $cashTransaction->id,
-            'relation_type' => TransactionRelationType::PAIR->value,
-            'created_by' => $actorId,
-        ]);
+        // DR salary payable (settle liability) / CR cash-bank (money leaves)
+        return $this->ledger->post(
+            [
+                'datetime' => $this->asDateTime($date),
+                'type' => TransactionType::EXPENSE->value,
+                'transaction_category_id' => $categoryId,
+                'reference_type' => $referenceType,
+                'reference_id' => $referenceId,
+                'method' => $normalizedMethod,
+                'name' => $name,
+                'notes' => $notes,
+                'created_by' => $actorId,
+            ],
+            [
+                ['account_id' => (int) $salaryPayable->id, 'debit' => $amount, 'credit' => 0,       'notes' => 'Salary payable'],
+                ['account_id' => (int) $paymentAccount->id, 'debit' => 0,      'credit' => $amount, 'notes' => 'Cash/Bank'],
+            ],
+        );
     }
 
     public function createEmployeeAdvanceTransaction(
@@ -133,35 +110,23 @@ class HrmAccountingService
         $paymentAccount = $this->accountResolver->resolvePaymentAccountByMethod($paymentMethod);
         $categoryId = $this->resolveCategoryIdBySlug('employee-advance');
 
-        $cashTransaction = Transaction::query()->create([
-            'account_id' => $paymentAccount->id,
-            'datetime' => $this->asDateTime($date),
-            'type' => TransactionType::ADVANCE->value,
-            'transaction_category_id' => $categoryId,
-            'reference_type' => $referenceType,
-            'reference_id' => $referenceId,
-            'debit' => 0,
-            'credit' => $amount,
-            'method' => $normalizedMethod,
-            'notes' => $notes,
-            'created_by' => $actorId,
-        ]);
-
-        return Transaction::query()->create([
-            'account_id' => $employeeAdvance->id,
-            'datetime' => $this->asDateTime($date),
-            'type' => TransactionType::ADVANCE->value,
-            'transaction_category_id' => $categoryId,
-            'reference_type' => $referenceType,
-            'reference_id' => $referenceId,
-            'debit' => $amount,
-            'credit' => 0,
-            'method' => $normalizedMethod,
-            'notes' => $notes,
-            'related_transaction_id' => $cashTransaction->id,
-            'relation_type' => TransactionRelationType::PAIR->value,
-            'created_by' => $actorId,
-        ]);
+        // DR employee advance (receivable) / CR cash-bank (money leaves)
+        return $this->ledger->post(
+            [
+                'datetime' => $this->asDateTime($date),
+                'type' => TransactionType::ADVANCE->value,
+                'transaction_category_id' => $categoryId,
+                'reference_type' => $referenceType,
+                'reference_id' => $referenceId,
+                'method' => $normalizedMethod,
+                'notes' => $notes,
+                'created_by' => $actorId,
+            ],
+            [
+                ['account_id' => (int) $employeeAdvance->id, 'debit' => $amount, 'credit' => 0,       'notes' => 'Employee advance'],
+                ['account_id' => (int) $paymentAccount->id,  'debit' => 0,       'credit' => $amount, 'notes' => 'Cash/Bank'],
+            ],
+        );
     }
 
     protected function asDateTime(string $date): string

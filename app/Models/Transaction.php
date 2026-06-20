@@ -16,15 +16,11 @@ class Transaction extends Model
     use HasFactory;
 
     protected $fillable = [
-        'account_id',
         'datetime',
         'type',
-        'transaction_category_id',
         'reference_type',
         'reference_id',
         'notes',
-        'debit',
-        'credit',
         'adjusted_at',
         'adjusted_by',
         'adjusted_transaction_id',
@@ -44,8 +40,6 @@ class Transaction extends Model
         'adjusted_at' => 'datetime',
         'type'        => TransactionType::class,
         'relation_type' => TransactionRelationType::class,
-        'debit'       => 'decimal:3',
-        'credit'      => 'decimal:3',
         'attachments' => 'array',
         'external_data' => 'array',
     ];
@@ -62,14 +56,27 @@ class Transaction extends Model
         return $this->belongsTo(User::class, 'adjusted_by');
     }
 
-    public function account(): BelongsTo
+    public function lines(): HasMany
     {
-        return $this->belongsTo(Account::class);
+        return $this->hasMany(TransactionLine::class)->orderBy('id');
     }
 
-    public function transactionCategory(): BelongsTo
+    /**
+     * Derived "primary" account for legacy display readers. The transaction no
+     * longer stores account_id — it is sourced from the first ledger line
+     * (preferring the debit side, mirroring LedgerService's old primary line).
+     * Returns null when lines are not loaded/empty.
+     */
+    public function getAccountAttribute(): ?Account
     {
-        return $this->belongsTo(TransactionCategory::class, 'transaction_category_id');
+        if (! $this->relationLoaded('lines')) {
+            $this->load('lines.account');
+        }
+
+        $line = $this->lines->firstWhere(fn ($l) => (float) $l->debit > 0)
+            ?? $this->lines->first();
+
+        return $line?->account;
     }
 
     public function payment(): HasOne
@@ -163,6 +170,11 @@ class Transaction extends Model
         if (! $this->isAdvance()) {
             return 0.0;
         }
-        return max(0.0, (float) $this->debit - $this->adjustedAmount());
+
+        // The advance amount is the debit movement across the transaction's lines
+        // (account_id/debit were removed from the header).
+        $advanceDebit = (float) $this->lines()->sum('debit');
+
+        return max(0.0, $advanceDebit - $this->adjustedAmount());
     }
 }

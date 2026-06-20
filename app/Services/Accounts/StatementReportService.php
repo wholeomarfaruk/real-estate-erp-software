@@ -7,6 +7,7 @@ use App\Models\Expense;
 use App\Models\Project;
 use App\Models\Property;
 use App\Models\Transaction;
+use App\Models\TransactionLine;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -237,15 +238,16 @@ class StatementReportService
             return [];
         }
 
-        $rows = DB::table('transactions')
-            ->selectRaw('account_id, COALESCE(SUM(debit - credit), 0) AS balance')
-            ->whereIn('account_id', $accountIds)
-            ->where('datetime', '<', $from->toDateString());
+        $rows = DB::table('transaction_lines as tl')
+            ->join('transactions', 'transactions.id', '=', 'tl.transaction_id')
+            ->selectRaw('tl.account_id, COALESCE(SUM(tl.debit - tl.credit), 0) AS balance')
+            ->whereIn('tl.account_id', $accountIds)
+            ->where('transactions.datetime', '<', $from->toDateString());
 
         $this->applyTransactionDimensionFilters($rows, $filters);
 
         return $rows
-            ->groupBy('account_id')
+            ->groupBy('tl.account_id')
             ->pluck('balance', 'account_id')
             ->map(fn (mixed $value): float => $this->roundMoney((float) $value))
             ->all();
@@ -261,10 +263,11 @@ class StatementReportService
             return 0.0;
         }
 
-        $query = DB::table('transactions')
-            ->selectRaw('COALESCE(SUM(debit - credit), 0) AS balance')
-            ->whereIn('account_id', $accountIds)
-            ->where('datetime', '<=', $to->toDateString());
+        $query = DB::table('transaction_lines as tl')
+            ->join('transactions', 'transactions.id', '=', 'tl.transaction_id')
+            ->selectRaw('COALESCE(SUM(tl.debit - tl.credit), 0) AS balance')
+            ->whereIn('tl.account_id', $accountIds)
+            ->where('transactions.datetime', '<=', $to->toDateString());
 
         $this->applyTransactionDimensionFilters($query, $filters);
 
@@ -282,17 +285,25 @@ class StatementReportService
             return collect();
         }
 
-        return Transaction::query()
+        // Per-account movements come from transaction_lines: each line for a tracked
+        // account carries that account's own debit/credit. The proxy accessors on
+        // TransactionLine expose the parent transaction's date/account_id/relations,
+        // so the row builders below read $tx->account_id / debit / credit unchanged.
+        return TransactionLine::query()
             ->with([
-                'payment:id,transaction_id,payment_no,payee_name,notes',
-                'collection:id,transaction_id,collection_no,payer_name,notes',
-                'expense:id,transaction_id,expense_no,title,notes',
+                'transaction.payment:id,transaction_id,payment_no,payee_name,notes',
+                'transaction.collection:id,transaction_id,collection_no,payer_name,notes',
+                'transaction.expense:id,transaction_id,expense_no,title,notes',
             ])
-            ->whereIn('account_id', $trackedAccountIds)
-            ->whereBetween('datetime', [$from->toDateString(), $to->toDateString()])
-            ->tap(fn (Builder $query) => $this->applyTransactionDimensionFilters($query, $filters))
-            ->orderBy('datetime')
-            ->orderBy('id')
+            ->whereIn('transaction_lines.account_id', $trackedAccountIds)
+            ->whereHas('transaction', function (Builder $query) use ($from, $to, $filters): void {
+                $query->whereBetween('datetime', [$from->toDateString(), $to->toDateString()]);
+                $this->applyTransactionDimensionFilters($query, $filters);
+            })
+            ->join('transactions', 'transactions.id', '=', 'transaction_lines.transaction_id')
+            ->orderBy('transactions.datetime')
+            ->orderBy('transactions.id')
+            ->select('transaction_lines.*')
             ->get();
     }
 
@@ -579,7 +590,7 @@ class StatementReportService
         return $bankActivity || $cashRows !== [] || $expenseRows !== [];
     }
 
-    protected function cashReferenceNo(Transaction $transaction): string
+    protected function cashReferenceNo(Transaction|TransactionLine $transaction): string
     {
         if ($transaction->collection) {
             return $transaction->collection->collection_no ?: 'COL-'.$transaction->id;
@@ -600,7 +611,7 @@ class StatementReportService
      * @param  array<int, string>  $counterparts
      */
     protected function cashParticulars(
-        Transaction $transaction,
+        Transaction|TransactionLine $transaction,
         array $counterparts,
         float $bankTransfer,
         float $iouAdjustment,

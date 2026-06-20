@@ -213,7 +213,7 @@
                         Last txn
                         @if ($account->account_id)
                             <span
-                                class="font-mono text-gray-600">{{ optional(\App\Models\Transaction::where('account_id', $account->account_id)->latest('datetime')->value('datetime'))->format('d M Y') ?? '—' }}</span>
+                                class="font-mono text-gray-600">{{ optional(\App\Models\Transaction::whereHas('lines', fn ($l) => $l->where('account_id', $account->account_id))->latest('datetime')->value('datetime'))->format('d M Y') ?? '—' }}</span>
                         @else
                             <span class="text-gray-300">—</span>
                         @endif
@@ -507,10 +507,10 @@
                                             <td class="px-3 py-2 text-gray-700 max-w-[180px] truncate">
                                                 {{ $txn->notes ?: ($txn->name ?: '—') }}</td>
                                             <td class="px-3 py-2 text-right font-mono font-semibold text-emerald-600">
-                                                {{ $txn->debit > 0 ? number_format($txn->debit, 2) : '—' }}
+                                                {{ $txn->acct_debit > 0 ? number_format($txn->acct_debit, 2) : '—' }}
                                             </td>
                                             <td class="px-3 py-2 text-right font-mono font-semibold text-rose-600">
-                                                {{ $txn->credit > 0 ? number_format($txn->credit, 2) : '—' }}
+                                                {{ $txn->acct_credit > 0 ? number_format($txn->acct_credit, 2) : '—' }}
                                             </td>
                                         </tr>
                                     @endforeach

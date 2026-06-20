@@ -3,16 +3,17 @@
 namespace App\Services\Inventory;
 
 use App\Enums\Accounts\PaymentRequestSourceType;
-use App\Enums\Accounts\TransactionRelationType;
 use App\Enums\Accounts\TransactionType;
 use App\Models\BankAccount;
 use App\Models\BankingPaymentRequest;
 use App\Models\PurchaseInvoice;
-use App\Models\Transaction;
+use App\Services\Accounts\LedgerService;
 use Illuminate\Support\Facades\DB;
 
 class PurchaseInvoicePaymentService
 {
+    public function __construct(private readonly LedgerService $ledger) {}
+
     /**
      * Create a BankingPaymentRequest for a purchase invoice payment.
      * Validates amount does not exceed due_amount.
@@ -57,8 +58,9 @@ class PurchaseInvoicePaymentService
      * Called by BankingManagement::markCompleted() when source_type = 'supplier'
      * and sourceable is a PurchaseInvoice.
      *
-     * Creates:
-     *   CR cash/bank account  [payment amount]   (money leaves)
+     * Posts a balanced double-entry transaction:
+     *   DR accounts payable  [payment amount]   (liability settled)
+     *   CR cash/bank account [payment amount]   (money leaves)
      *
      * Then syncs invoice paid_amount + status via the existing syncPaymentStatus().
      */
@@ -79,24 +81,31 @@ class PurchaseInvoicePaymentService
                 );
             }
 
+            $payableAccountId = (int) $invoice->accounts_payable_account_id;
+
+            if ($payableAccountId <= 0) {
+                throw new \DomainException('Invoice has no accounts payable account to settle against.');
+            }
+
             $amount   = round((float) $request->amount, 3);
             $notes    = 'Purchase Invoice #' . $invoice->invoice_no . ' – supplier payment';
             $datetime = now()->format('Y-m-d H:i:s');
 
-            // CR cash/bank — money leaves
-            $txn = Transaction::create([
-                'account_id'             => (int) $bankAccount->account_id,
-                'datetime'               => $datetime,
-                'type'                   => TransactionType::PURCHASE_INVOICE->value,
-                'reference_type'         => 'purchase_invoice',
-                'reference_id'           => $invoice->id,
-                'debit'                  => 0,
-                'credit'                 => $amount,
-                'notes'                  => $notes,
-                'related_transaction_id' => $invoice->transaction_id,
-                'relation_type'          => TransactionRelationType::PAIR->value,
-                'created_by'             => $userId,
-            ]);
+            // DR payable (settle liability) / CR cash-bank (money leaves)
+            $txn = $this->ledger->post(
+                [
+                    'datetime'       => $datetime,
+                    'type'           => TransactionType::PURCHASE_INVOICE->value,
+                    'reference_type' => 'purchase_invoice',
+                    'reference_id'   => $invoice->id,
+                    'notes'          => $notes,
+                    'created_by'     => $userId,
+                ],
+                [
+                    ['account_id' => $payableAccountId,            'debit' => $amount, 'credit' => 0,       'notes' => 'Accounts payable'],
+                    ['account_id' => (int) $bankAccount->account_id, 'debit' => 0,     'credit' => $amount, 'notes' => 'Bank/Cash'],
+                ],
+            );
 
             // Mark request completed
             $request->update([

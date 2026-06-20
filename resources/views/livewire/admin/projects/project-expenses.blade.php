@@ -233,17 +233,12 @@ td.amt { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12.5px; 
             <div class="exp-date" style="font-size:12px;">{{ optional($expense->datetime)->format('d M Y') ?? '—' }}</div>
           </td>
           <td class="cat-cell">
-            @if($expense->transactionCategory)
-              @php $catType = (str_contains(strtolower($expense->transactionCategory->name), 'labour') || str_contains(strtolower($expense->transactionCategory->name), 'labor')) ? 'labour' : 'other'; @endphp
-              <span class="ct-badge {{ $catType }}"><span class="d"></span>{{ $expense->transactionCategory->name }}</span>
-            @else
-              <span style="color:var(--muted-2)">—</span>
-            @endif
+            <span class="ct-badge other"><span class="d"></span>{{ ucfirst($expense->type?->value ?? '—') }}</span>
           </td>
           <td>{{ $expense->name ?? $expense->notes ?? '—' }}</td>
           <td style="font-size:11px;"><span style="display:inline-block;padding:2px 8px;background:#f0f0f1;border-radius:4px;color:var(--muted);">{{ $expense->phase }}</span></td>
           <td>{{ $expense->account?->name ?? '—' }}</td>
-          <td class="right amt">BDT {{ number_format($expense->credit, 2) }}</td>
+          <td class="right amt">BDT {{ number_format($expense->lines->sum('credit'), 2) }}</td>
         </tr>
         @endforeach
       </tbody>

@@ -4,12 +4,12 @@ namespace App\Livewire\Admin\Accounts;
 
 use App\Enums\Accounts\AccountType;
 use App\Enums\Accounts\EntryMethod;
-use App\Enums\Accounts\TransactionRelationType;
 use App\Enums\Accounts\TransactionType;
 use App\Models\Account;
 use App\Models\AdvanceAdjustment;
 use App\Models\PurchaseFund;
 use App\Models\Transaction;
+use App\Services\Accounts\LedgerService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -70,41 +70,31 @@ class AdvanceRefundForm extends Component
 
                 $datetime = $this->refund_date . ' 00:00:00';
                 $actorId  = (int) Auth::id();
+                $notes    = $this->remarks ?: ('Advance refund – Fund #' . $fund->id);
 
-                // TXN-CASH-RETURN: DR cash/bank (money comes back in)
-                $txnCash = Transaction::query()->create([
-                    'account_id'     => (int) $this->cash_account_id,
-                    'datetime'       => $datetime,
-                    'type'           => TransactionType::ADVANCE->value,
-                    'reference_type' => 'purchase_fund',
-                    'reference_id'   => $fund->id,
-                    'debit'          => $this->refund_amount,
-                    'credit'         => 0,
-                    'method'         => $this->method,
-                    'notes'          => $this->remarks ?: ('Advance refund – Fund #' . $fund->id),
-                    'created_by'     => $actorId,
-                ]);
-
-                // TXN-ADV-REDUCE: CR advance account (advance balance reduces)
-                $txnAdvReduce = Transaction::query()->create([
-                    'account_id'             => $advanceAccount->id,
-                    'datetime'               => $datetime,
-                    'type'                   => TransactionType::ADVANCE->value,
-                    'reference_type'         => 'purchase_fund',
-                    'reference_id'           => $fund->id,
-                    'debit'                  => 0,
-                    'credit'                 => $this->refund_amount,
-                    'method'                 => $this->method,
-                    'notes'                  => $this->remarks ?: ('Advance refund – Fund #' . $fund->id),
-                    'related_transaction_id' => $txnCash->id,
-                    'relation_type'          => TransactionRelationType::REFUND->value,
-                    'created_by'             => $actorId,
-                ]);
+                // Balanced double-entry:
+                //   DR cash/bank   (money comes back in)
+                //   CR advance     (advance balance reduces)
+                $refundTxn = app(LedgerService::class)->post(
+                    [
+                        'datetime'       => $datetime,
+                        'type'           => TransactionType::ADVANCE->value,
+                        'reference_type' => 'purchase_fund',
+                        'reference_id'   => $fund->id,
+                        'method'         => $this->method,
+                        'notes'          => $notes,
+                        'created_by'     => $actorId,
+                    ],
+                    [
+                        ['account_id' => (int) $this->cash_account_id, 'debit' => $this->refund_amount, 'credit' => 0,                   'notes' => 'Cash returned'],
+                        ['account_id' => (int) $advanceAccount->id,    'debit' => 0,                    'credit' => $this->refund_amount, 'notes' => 'Advance reduced'],
+                    ],
+                );
 
                 // Record in advance_adjustments so remainingAdvance() is updated
                 AdvanceAdjustment::query()->create([
                     'advance_transaction_id' => $advanceTxn->id,
-                    'adjust_transaction_id'  => $txnAdvReduce->id,
+                    'adjust_transaction_id'  => $refundTxn->id,
                     'amount'                 => $this->refund_amount,
                     'notes'                  => 'Refund – ' . ($this->remarks ?: 'Fund #' . $fund->id),
                     'created_by'             => $actorId,
@@ -128,7 +118,8 @@ class AdvanceRefundForm extends Component
             ->with([
                 'purchaseOrder:id,po_no',
                 'transactionCategory:id,name',
-                'transaction:id,debit',
+                'transaction:id,type',
+                'transaction.lines:id,transaction_id,debit,credit',
                 'receiver',
             ])
             ->get()

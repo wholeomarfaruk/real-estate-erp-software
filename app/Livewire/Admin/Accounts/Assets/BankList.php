@@ -12,6 +12,7 @@ use App\Models\BankingPaymentRequest;
 use App\Models\Transaction;
 use App\Models\TransactionCategory;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -84,10 +85,12 @@ class BankList extends Component
         // Compute today's inflow / outflow in one query
         $linkedAccountIds = $accounts->pluck('account_id')->filter()->values()->all();
         if ($linkedAccountIds) {
-            $flows = Transaction::whereIn('account_id', $linkedAccountIds)
-                ->whereDate('datetime', today())
-                ->selectRaw('account_id, SUM(debit) as total_debit, SUM(credit) as total_credit')
-                ->groupBy('account_id')
+            $flows = DB::table('transaction_lines as tl')
+                ->join('transactions as t', 't.id', '=', 'tl.transaction_id')
+                ->whereIn('tl.account_id', $linkedAccountIds)
+                ->whereDate('t.datetime', today())
+                ->selectRaw('tl.account_id, SUM(tl.debit) as total_debit, SUM(tl.credit) as total_credit')
+                ->groupBy('tl.account_id')
                 ->get()
                 ->keyBy('account_id');
 
@@ -128,10 +131,21 @@ class BankList extends Component
             if ($viewingAccount) {
                 $viewingAccount->computed_balance = (float) ($viewingAccount->account?->balance ?? 0);
                 if ($viewingAccount->account_id) {
-                    $viewingAccount->recent_transactions = Transaction::where('account_id', $viewingAccount->account_id)
+                    $acctId = (int) $viewingAccount->account_id;
+
+                    $viewingAccount->recent_transactions = Transaction::whereHas(
+                        'lines',
+                        fn ($l) => $l->where('account_id', $acctId)
+                    )
+                        ->with(['lines' => fn ($l) => $l->where('account_id', $acctId)])
                         ->latest('datetime')
                         ->limit(5)
-                        ->get();
+                        ->get()
+                        ->each(function (Transaction $txn): void {
+                            // This account's own movement on the transaction.
+                            $txn->acct_debit  = (float) $txn->lines->sum('debit');
+                            $txn->acct_credit = (float) $txn->lines->sum('credit');
+                        });
                 }
             }
         }

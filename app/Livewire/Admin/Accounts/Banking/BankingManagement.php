@@ -256,18 +256,29 @@ class BankingManagement extends Component
             }
 
             try {
-                $transaction = \App\Models\Transaction::query()->create([
-                    'account_id'              => $ledgerAccountId,
-                    'datetime'                => now()->format('Y-m-d H:i:s'),
-                    'type'                    => $request->source_type,
-                    'transaction_category_id' => $request->transaction_category_id,
-                    'reference_type'          => 'banking_payment_request',
-                    'reference_id'            => $request->id,
-                    'debit'                   => (float) $request->amount,
-                    'credit'                  => 0,
-                    'notes'                   => $request->description,
-                    'created_by'              => (int) Auth::id(),
-                ]);
+                // Balanced double-entry: DR bank/cash ledger (money in) and CR a
+                // generic income / opening-balance equity contra ledger so the
+                // entry balances. The bank (DR) line drives the header summary.
+                $contraAccount = \App\Models\Account::query()->firstOrCreate(
+                    ['name' => 'Opening Balance / Income', 'type' => \App\Enums\Accounts\AccountType::LEDGER->value, 'parent_id' => null],
+                    ['is_active' => true]
+                );
+
+                $transaction = app(\App\Services\Accounts\LedgerService::class)->post(
+                    [
+                        'datetime'                => now()->format('Y-m-d H:i:s'),
+                        'type'                    => $request->source_type,
+                        'transaction_category_id' => $request->transaction_category_id,
+                        'reference_type'          => 'banking_payment_request',
+                        'reference_id'            => $request->id,
+                        'notes'                   => $request->description,
+                        'created_by'              => (int) Auth::id(),
+                    ],
+                    [
+                        ['account_id' => $ledgerAccountId,          'debit' => (float) $request->amount, 'credit' => 0,                    'notes' => 'Bank/Cash'],
+                        ['account_id' => (int) $contraAccount->id,  'debit' => 0,                        'credit' => (float) $request->amount, 'notes' => 'Income / opening balance'],
+                    ],
+                );
 
                 $request->update([
                     'transaction_id' => $transaction->id,
