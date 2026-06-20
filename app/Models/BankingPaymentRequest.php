@@ -21,6 +21,7 @@ class BankingPaymentRequest extends Model
         'payment_date',
         'description',
         'bank_account_id',
+        'account_id',
         'status',
         'notes',
         'rejection_reason',
@@ -49,6 +50,12 @@ class BankingPaymentRequest extends Model
     public function bankAccount(): BelongsTo
     {
         return $this->belongsTo(BankAccount::class);
+    }
+
+    /** Chart-of-accounts money account the payment is/was made from. */
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Account::class, 'account_id');
     }
 
     public function sourceable(): MorphTo

@@ -3,12 +3,13 @@
 namespace App\Livewire\Suppliers\Show;
 
 use App\Enums\Accounts\EntryMethod;
-use App\Models\BankAccount;
+use App\Models\Account;
 use App\Models\PurchaseInvoice;
 use App\Models\Supplier;
-use App\Models\TransactionCategory;
 use App\Services\Inventory\PurchaseInvoicePaymentService;
+use App\Livewire\Traits\WithMediaPicker;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -16,6 +17,7 @@ use Livewire\WithPagination;
 class Invoices extends Component
 {
     use WithPagination;
+    use WithMediaPicker;
 
     public Supplier $supplier;
 
@@ -25,9 +27,18 @@ class Invoices extends Component
     public string $payDate       = '';
     public string $payMethod     = 'bank';
     public string $payReference  = '';
-    public ?int $payBankId       = null;
-    public ?int $payCategoryId   = null;
     public string $payNotes      = '';
+
+    // Source = chart-of-accounts money account (cash/bank/mfs/wallet), picked by type.
+    public string $payAccountType = '';   // cash | bank | mfs | wallet
+    public ?int   $payAccountId   = null;  // accounts.id
+
+    // Receiver — leave name & phone blank when paying the supplier directly.
+    public string $payName  = '';
+    public string $payPhone = '';
+
+    /** Uploaded attachment file ids (cheque slip / voucher photo). */
+    public array $payAttachmentIds = [];
 
     public function mount(Supplier $supplier): void
     {
@@ -53,7 +64,7 @@ class Invoices extends Component
                 'creator:id,name',
                 'approver:id,name',
                 'bankingPaymentRequests' => fn ($q) => $q
-                    ->with(['bankAccount:id,bank_name,type', 'requestedBy:id,name', 'completedBy:id,name', 'transactionCategory:id,name'])
+                    ->with(['bankAccount:id,bank_name,type', 'account:id,name,code', 'requestedBy:id,name', 'completedBy:id,name'])
                     ->latest(),
             ])->find($this->payInvoiceId)
             : null;
@@ -74,13 +85,31 @@ class Invoices extends Component
         ];
     }
 
+    /** Active money accounts of the chosen type (chart of accounts). */
     #[Computed]
-    public function bankAccounts()
+    public function moneyAccounts()
     {
-        return BankAccount::where('status', 'active')
-            ->orderBy('type')
-            ->orderBy('bank_name')
-            ->get(['id', 'bank_name', 'type', 'ac_number']);
+        if (! in_array($this->payAccountType, ['cash', 'bank', 'mfs', 'wallet'], true)) {
+            return collect();
+        }
+
+        return Account::query()
+            ->where('is_active', true)
+            ->where('type', $this->payAccountType)
+            ->with('bankAccount:id,account_id,bank_name,ac_number')
+            ->orderBy('name')
+            ->get(['id', 'name', 'code', 'type']);
+    }
+
+    public function updatedPayAccountType(): void
+    {
+        $this->payAccountId = null;
+    }
+
+    #[Computed]
+    public function accountTypes(): array
+    {
+        return ['cash' => 'Cash', 'bank' => 'Bank', 'mfs' => 'MFS', 'wallet' => 'Wallet'];
     }
 
     #[Computed]
@@ -89,30 +118,27 @@ class Invoices extends Component
         return EntryMethod::cases();
     }
 
-    #[Computed]
-    public function expenseCategories()
-    {
-        $supplierBill = TransactionCategory::where('slug', 'supplier-bill')->first();
-        if (! $supplierBill) {
-            return collect();
-        }
-        return TransactionCategory::where('parent_id', $supplierBill->id)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-    }
-
     public function openPay(int $id): void
     {
-        $this->payInvoiceId  = $id;
         $inv = PurchaseInvoice::find($id);
-        $this->payAmount     = (string) ((float) ($inv?->due_amount ?? 0));
-        $this->payDate       = now()->toDateString();
-        $this->payMethod     = 'bank';
-        $this->payReference  = '';
-        $this->payNotes      = '';
-        $this->payBankId     = null;
-        $this->payCategoryId = null;
+
+        if (! $inv) {
+            return;
+        }
+
+        // Opening a fully-paid invoice just shows its details — the payment form is
+        // hidden in the view; recordPayment() also re-checks the due amount.
+        $this->payInvoiceId     = $id;
+        $this->payAmount        = (string) ((float) $inv->due_amount);
+        $this->payDate          = now()->toDateString();
+        $this->payMethod        = 'bank';
+        $this->payReference     = '';
+        $this->payNotes         = '';
+        $this->payAccountType   = '';
+        $this->payAccountId     = null;
+        $this->payName          = '';
+        $this->payPhone         = '';
+        $this->payAttachmentIds = [];
         unset($this->activeInvoice);
         $this->dispatch('pay-modal-open');
     }
@@ -139,13 +165,21 @@ class Invoices extends Component
     public function recordPayment(): void
     {
         $this->validate([
-            'payAmount'      => 'required|numeric|min:0.01',
-            'payDate'        => 'required|date',
-            'payBankId'      => 'required|exists:bank_accounts,id',
-            'payCategoryId'  => 'nullable|exists:transaction_categories,id',
-            'payMethod'      => 'required|in:' . implode(',', array_column(EntryMethod::cases(), 'value')),
-            'payReference'   => 'nullable|string|max:100',
-            'payNotes'       => 'nullable|string|max:500',
+            'payAmount'       => 'required|numeric|min:0.01',
+            'payDate'         => 'required|date',
+            'payAccountType'  => 'required|in:cash,bank,mfs,wallet',
+            'payAccountId'    => [
+                'required', 'integer',
+                Rule::exists('accounts', 'id')->where('is_active', true)->where('type', $this->payAccountType),
+            ],
+            'payMethod'       => 'required|in:' . implode(',', array_column(EntryMethod::cases(), 'value')),
+            'payName'         => 'nullable|string|max:150',
+            'payPhone'        => 'nullable|string|max:30',
+            'payReference'    => 'nullable|string|max:100',
+            'payNotes'        => 'nullable|string|max:500',
+        ], [
+            'payAccountType.required' => 'Select the account type.',
+            'payAccountId.required'   => 'Select the source account.',
         ]);
 
         $invoice = PurchaseInvoice::find($this->payInvoiceId);
@@ -155,15 +189,23 @@ class Invoices extends Component
             return;
         }
 
+        if ((float) $invoice->due_amount <= 0) {
+            $this->addError('payAmount', 'This invoice is already fully paid.');
+            return;
+        }
+
         try {
             app(PurchaseInvoicePaymentService::class)->requestPayment($invoice, [
-                'amount'                  => $this->payAmount,
-                'payment_date'            => $this->payDate,
-                'bank_account_id'         => $this->payBankId,
-                'transaction_category_id' => $this->payCategoryId ?: null,
-                'method'                  => $this->payMethod,
-                'reference'               => $this->payReference ?: null,
-                'notes'                   => $this->payNotes ?: null,
+                'amount'             => $this->payAmount,
+                'payment_date'       => $this->payDate,
+                'payment_account_id' => $this->payAccountId,
+                'method'             => $this->payMethod,
+                // Blank name & phone ⇒ paid directly to the supplier.
+                'name'               => trim($this->payName) ?: null,
+                'phone'              => trim($this->payPhone) ?: null,
+                'reference'          => $this->payReference ?: null,
+                'notes'              => $this->payNotes ?: null,
+                'attachment_ids'     => $this->payAttachmentIds,
             ], (int) Auth::id());
 
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Payment request created. Awaiting banking approval.']);

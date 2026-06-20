@@ -24,7 +24,9 @@ class PurchaseFund extends Model
         'status',
         'transaction_category_id',
         'bank_account_id',
+        'payment_account_id',
         'method',
+        'reference_no',
     ];
 
     protected $casts = [
@@ -55,6 +57,12 @@ class PurchaseFund extends Model
     public function bankAccount(): BelongsTo
     {
         return $this->belongsTo(BankAccount::class);
+    }
+
+    /** Chart-of-accounts money account the advance is paid from (the Cr leg). */
+    public function paymentAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'payment_account_id');
     }
 
     public function receiver()

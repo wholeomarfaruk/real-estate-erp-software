@@ -21,17 +21,20 @@ class ChartOfAccountsSeeder extends Seeder
                 'name'     => 'Assets',
                 'group'    => AccountGroupType::ASSET,
                 'children' => [
-                    ['code' => 'ASSET-CASH', 'name' => 'Cash',                'type' => AccountType::CASH, 'sub_type' => AccountSubType::CASH],
-                    ['code' => 'ASSET-BANK', 'name' => 'Bank',                'type' => AccountType::BANK, 'sub_type' => AccountSubType::BANK],
-                    ['code' => 'ASSET-AR',   'name' => 'Accounts Receivable', 'type' => AccountType::LEDGER],
+                    ['code' => 'ASSET-CASH',    'name' => 'Cash',                'type' => AccountType::CASH, 'sub_type' => AccountSubType::CASH],
+                    ['code' => 'ASSET-BANK',    'name' => 'Bank',                'type' => AccountType::BANK, 'sub_type' => AccountSubType::BANK],
+                    ['code' => 'ASSET-AR',      'name' => 'Accounts Receivable', 'type' => AccountType::LEDGER],
+                    ['code' => 'ASSET-SUP-ADV', 'name' => 'Supplier Advance',    'type' => AccountType::LEDGER],
+                    ['code' => 'ASSET-INV',     'name' => 'Inventory',           'type' => AccountType::LEDGER],
                 ],
             ],
             'LIAB' => [
                 'name'     => 'Liabilities',
                 'group'    => AccountGroupType::LIABILITY,
                 'children' => [
-                    ['code' => 'LIAB-ADV',     'name' => 'Customer Advance',  'type' => AccountType::LEDGER],
-                    ['code' => 'LIAB-DEPOSIT', 'name' => 'Security Deposit',  'type' => AccountType::LEDGER],
+                    ['code' => 'LIAB-ADV',     'name' => 'Customer Advance',   'type' => AccountType::LEDGER],
+                    ['code' => 'LIAB-DEPOSIT', 'name' => 'Security Deposit',   'type' => AccountType::LEDGER],
+                    ['code' => 'LIAB-AP',      'name' => 'Accounts Payable',   'type' => AccountType::LEDGER],
                 ],
             ],
             'INC' => [

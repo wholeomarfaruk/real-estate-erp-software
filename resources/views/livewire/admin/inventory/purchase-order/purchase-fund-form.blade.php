@@ -36,40 +36,22 @@
 
                 <form wire:submit.prevent="save" class="mt-5 space-y-5">
 
-                    {{-- ── SECTION 1: Advance Type ──────────────────────────── --}}
-                    <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                        <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">1. Advance Type</p>
-                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            @foreach ($advanceCategories as $category)
-                                <label wire:click="$set('transaction_category_id', '{{ $category->id }}')"
-                                    class="flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition
-                                        {{ (string) $transaction_category_id === (string) $category->id
-                                            ? 'border-indigo-500 bg-indigo-50'
-                                            : 'border-gray-200 bg-white hover:border-gray-300' }}">
-                                    <div class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2
-                                        {{ (string) $transaction_category_id === (string) $category->id
-                                            ? 'border-indigo-500 bg-indigo-500'
-                                            : 'border-gray-300' }}">
-                                        @if ((string) $transaction_category_id === (string) $category->id)
-                                            <div class="h-1.5 w-1.5 rounded-full bg-white"></div>
-                                        @endif
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-semibold text-gray-800">{{ $category->name }}</p>
-                                        <p class="mt-0.5 text-xs text-gray-500">
-                                            @if ($category->slug === 'employee-advance')
-                                                Cash given to an employee for purchasing
-                                            @elseif ($category->slug === 'supplier-advance')
-                                                Advance payment to supplier before invoice
-                                            @else
-                                                {{ $category->name }}
-                                            @endif
-                                        </p>
-                                    </div>
-                                </label>
-                            @endforeach
+                    {{-- ── SECTION 1: Advance ───────────────────────────────── --}}
+                    <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
+                        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-indigo-500">1. Advance</p>
+                        <div class="flex items-center gap-3">
+                            <span class="inline-grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-indigo-500 text-white">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3M3.75 19.5h16.5A2.25 2.25 0 0 0 22.5 17.25V6.75A2.25 2.25 0 0 0 20.25 4.5H3.75A2.25 2.25 0 0 0 1.5 6.75v10.5A2.25 2.25 0 0 0 3.75 19.5Z"/></svg>
+                            </span>
+                            <div>
+                                <p class="text-sm font-semibold text-indigo-900">Supplier Advance</p>
+                                <p class="mt-0.5 text-xs text-indigo-600/80">
+                                    Advance against PO for
+                                    <span class="font-semibold">{{ $purchaseOrder->supplier?->name ?? '— no supplier —' }}</span>.
+                                    Posted as <span class="font-mono">Dr Supplier Advance / Cr {payment account}</span> on banking approval.
+                                </p>
+                            </div>
                         </div>
-                        <x-input-error for="transaction_category_id" class="mt-2" />
                     </div>
 
                     {{-- ── SECTION 2: Source & Payment ─────────────────────── --}}
@@ -78,27 +60,36 @@
 
                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-                            {{-- Source Bank Account --}}
-                            <div class="sm:col-span-2">
+                            {{-- Account Type filter --}}
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">
+                                    Account Type <span class="text-red-500">*</span>
+                                </label>
+                                <select wire:model.live="account_type"
+                                    class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
+                                    <option value="">Select type</option>
+                                    @foreach ($accountTypes as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                <x-input-error for="account_type" class="mt-1" />
+                            </div>
+
+                            {{-- Source COA money account (filtered by type) --}}
+                            <div>
                                 <label class="text-sm font-medium text-gray-700">
                                     Source Account <span class="text-red-500">*</span>
                                 </label>
-                                <select wire:model="bank_account_id"
-                                    class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
-                                    <option value="">Select source account</option>
-                                    @foreach ($sourceAccounts as $ba)
-                                        <option value="{{ $ba->id }}">
-                                            {{ $ba->bank_name }}
-                                            @if ($ba->type)
-                                                ({{ strtoupper($ba->type) }})
-                                            @endif
-                                            @if ($ba->code || $ba->ac_number)
-                                                — {{ $ba->code ?: $ba->ac_number }}
-                                            @endif
+                                <select wire:model="payment_account_id" @disabled(! $account_type)
+                                    class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400">
+                                    <option value="">{{ $account_type ? 'Select account' : 'Select a type first' }}</option>
+                                    @foreach ($sourceAccounts as $acc)
+                                        <option value="{{ $acc->id }}">
+                                            {{ $acc->code ? $acc->code.' · ' : '' }}{{ $acc->name }}@if ($acc->bankAccount) — {{ $acc->bankAccount->bank_name }}{{ $acc->bankAccount->ac_number ? ' ('.$acc->bankAccount->ac_number.')' : '' }}@endif
                                         </option>
                                     @endforeach
                                 </select>
-                                <x-input-error for="bank_account_id" class="mt-1" />
+                                <x-input-error for="payment_account_id" class="mt-1" />
                             </div>
 
                             {{-- Payment Method --}}
@@ -137,6 +128,15 @@
                                 <x-input-error for="release_date" class="mt-1" />
                             </div>
 
+                            {{-- Reference No --}}
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Reference / Voucher No.</label>
+                                <input type="text" wire:model="reference_no"
+                                    class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none"
+                                    placeholder="Cheque / voucher / slip no. (optional)">
+                                <x-input-error for="reference_no" class="mt-1" />
+                            </div>
+
                             {{-- Remarks --}}
                             <div>
                                 <label class="text-sm font-medium text-gray-700">Remarks</label>
@@ -148,37 +148,46 @@
                         </div>
                     </div>
 
-                    {{-- ── SECTION 3: Receiver ─────────────────────────────── --}}
+                    {{-- ── SECTION 3: Paid To ──────────────────────────────── --}}
                     <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                        <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">3. Receiver</p>
+                        <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">3. Paid To</p>
 
-                        @if (! $transaction_category_id)
-                            <p class="text-sm text-gray-400">Select an advance type above to set the receiver.</p>
-                        @elseif ($payee_type === 'supplier')
-                            <div class="flex items-center gap-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
-                                <svg class="h-5 w-5 shrink-0 text-blue-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016 2.993 2.993 0 0 0 2.25-1.016 3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z"/>
-                                </svg>
-                                <div>
-                                    <p class="text-xs text-blue-500">Supplier (from PO)</p>
-                                    <p class="text-sm font-semibold text-blue-900">
-                                        {{ $purchaseOrder->supplier?->name ?? 'No supplier on this PO' }}
-                                    </p>
+                        {{-- Direct supplier vs through an employee --}}
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label wire:click="$set('receiver_mode', 'supplier_direct')"
+                                class="flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition
+                                    {{ $receiver_mode === 'supplier_direct' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 bg-white hover:border-gray-300' }}">
+                                <div class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 {{ $receiver_mode === 'supplier_direct' ? 'border-indigo-500 bg-indigo-500' : 'border-gray-300' }}">
+                                    @if ($receiver_mode === 'supplier_direct')<div class="h-1.5 w-1.5 rounded-full bg-white"></div>@endif
                                 </div>
-                            </div>
-                            <x-input-error for="receiver_id" class="mt-2" />
-                        @elseif ($payee_type === 'employee')
-                            <div>
-                                <label class="text-sm font-medium text-gray-700">
-                                    Employee <span class="text-red-500">*</span>
-                                </label>
+                                <div>
+                                    <p class="text-sm font-semibold text-gray-800">Directly to supplier</p>
+                                    <p class="mt-0.5 text-xs text-gray-500">Paid straight to {{ $purchaseOrder->supplier?->name ?? 'the supplier' }}.</p>
+                                </div>
+                            </label>
+
+                            <label wire:click="$set('receiver_mode', 'via_employee')"
+                                class="flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition
+                                    {{ $receiver_mode === 'via_employee' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 bg-white hover:border-gray-300' }}">
+                                <div class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 {{ $receiver_mode === 'via_employee' ? 'border-indigo-500 bg-indigo-500' : 'border-gray-300' }}">
+                                    @if ($receiver_mode === 'via_employee')<div class="h-1.5 w-1.5 rounded-full bg-white"></div>@endif
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold text-gray-800">Through an employee</p>
+                                    <p class="mt-0.5 text-xs text-gray-500">Cash handed to an employee who pays the supplier.</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        {{-- Employee picker — only when paying through an employee --}}
+                        @if ($receiver_mode === 'via_employee')
+                            <div class="mt-3">
+                                <label class="text-sm font-medium text-gray-700">Employee <span class="text-red-500">*</span></label>
                                 <select wire:model="receiver_id"
                                     class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
                                     <option value="">Select employee</option>
-                                    @foreach ($receivers as $r)
-                                        <option value="{{ $r->id }}" @selected($receiver_id == $r->id)>
-                                            {{ $r->name }}
-                                        </option>
+                                    @foreach ($employees as $r)
+                                        <option value="{{ $r->id }}" @selected($receiver_id == $r->id)>{{ $r->name }}</option>
                                     @endforeach
                                 </select>
                                 <x-input-error for="receiver_id" class="mt-1" />
@@ -253,7 +262,7 @@
                         <tr class="border-b border-gray-100 bg-gray-50">
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Status</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Date</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Advance Type</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Paid To</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Source Account</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Method</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">Amount</th>
@@ -265,17 +274,17 @@
                     <tbody class="divide-y divide-gray-100">
                         @forelse ($purchaseOrder->funds as $fund)
                             @php
-                                // Category: prefer completed transaction's category, fallback to fund's own
-                                $advanceCategory = $fund->transaction?->transactionCategory ?? $fund->transactionCategory;
-                                $catSlug  = $advanceCategory?->slug ?? '';
-                                $isEmployee = str_contains($catSlug, 'employee');
+                                // Paid via an employee or directly to the supplier.
+                                $isEmployee = $fund->payto === 'employee';
 
-                                // Source: prefer completed transaction's account, fallback to fund's bank account
+                                // Source: the payment (credit) ledger line's account from the
+                                // posted transaction, else the fund's own bank account.
+                                $paymentLine = $fund->transaction?->lines->firstWhere(fn ($l) => (float) $l->credit > 0);
                                 $sourceName = null;
-                                if ($fund->transaction?->account) {
-                                    $sourceName = $fund->transaction->account->name;
-                                    if ($fund->transaction->account->bankAccount) {
-                                        $sourceName .= ' (' . $fund->transaction->account->bankAccount->bank_name . ')';
+                                if ($paymentLine?->account) {
+                                    $sourceName = $paymentLine->account->name;
+                                    if ($paymentLine->account->bankAccount) {
+                                        $sourceName .= ' (' . $paymentLine->account->bankAccount->bank_name . ')';
                                     }
                                 } elseif ($fund->bankAccount) {
                                     $sourceName = $fund->bankAccount->bank_name;
@@ -304,13 +313,12 @@
                                     {{ $fund->release_date?->format('d M Y') ?? '—' }}
                                 </td>
                                 <td class="px-4 py-3">
-                                    @if ($advanceCategory)
-                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-                                            {{ $isEmployee ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700' }}">
-                                            {{ $advanceCategory->name }}
-                                        </span>
-                                    @else
-                                        <span class="text-xs text-gray-400">—</span>
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+                                        {{ $isEmployee ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700' }}">
+                                        {{ $isEmployee ? 'Via employee' : 'Supplier (direct)' }}
+                                    </span>
+                                    @if ($fund->reference_no)
+                                        <span class="mt-0.5 block font-mono text-[10px] text-gray-400">Ref: {{ $fund->reference_no }}</span>
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-700">

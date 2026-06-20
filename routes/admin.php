@@ -154,6 +154,10 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
     Route::get('/transaction-categories', App\Livewire\Admin\Accounts\TransactionCategoryManager::class)
         ->name('transaction-categories');
 
+    Route::get('/settings', App\Livewire\Admin\Accounts\Settings\AccountingSettings::class)
+        ->middleware('can:accounts.settings.manage')
+        ->name('settings');
+
     Route::prefix('expenses')->name('expenses.')->group(function (): void {
         Route::get('/', App\Livewire\Admin\Accounts\Expense\ExpenseList::class)
             ->middleware('can:accounts.expense.list')

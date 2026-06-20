@@ -182,6 +182,7 @@ class PermissionSeeder extends Seeder
             ['id' => 127, 'name' => 'accounts.transaction-attachment.view'],
             ['id' => 128, 'name' => 'accounts.transaction-attachment.create'],
             ['id' => 129, 'name' => 'accounts.transaction-attachment.delete'],
+            ['id' => 283, 'name' => 'accounts.settings.manage'],
             ['id' => 130, 'name' => 'module.hrm.access'],
             ['id' => 131, 'name' => 'hrm.departments.view'],
             ['id' => 132, 'name' => 'hrm.departments.create'],

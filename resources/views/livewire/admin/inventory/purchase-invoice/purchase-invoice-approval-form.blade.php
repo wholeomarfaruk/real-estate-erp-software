@@ -137,16 +137,8 @@
                                 wire:model.lazy="discount_amount"
                                 class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-right text-sm focus:border-indigo-500 focus:outline-none">
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600">Shipping / Freight</label>
-                            <input type="number" step="0.001" min="0"
-                                wire:model.lazy="shipping_amount"
-                                class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-right text-sm focus:border-indigo-500 focus:outline-none">
-                        </div>
                     </div>
                 @endif
-
-                @php $totalAdvance = collect($advanceFundLines)->sum('adjust_amount'); @endphp
 
                 <dl class="mt-4 space-y-2 text-sm">
                     <div class="flex justify-between">
@@ -159,226 +151,22 @@
                         <dd>- {{ number_format($discount_amount, 2) }}</dd>
                     </div>
                     @endif
-                    @if ($shipping_amount > 0)
-                    <div class="flex justify-between text-blue-600">
-                        <dt>Shipping</dt>
-                        <dd>+ {{ number_format($shipping_amount, 2) }}</dd>
-                    </div>
-                    @endif
                     <div class="flex justify-between border-t border-gray-100 pt-2 text-base font-semibold text-gray-800">
                         <dt>Total</dt>
                         <dd>{{ number_format($total_amount, 2) }}</dd>
                     </div>
-                    @if ($paid_amount > 0)
+                    @if ($isPosted && $paid_amount > 0)
                     <div class="flex justify-between text-emerald-600">
-                        <dt>Paid (cash)</dt>
+                        <dt>Paid (historical)</dt>
                         <dd>- {{ number_format($paid_amount, 2) }}</dd>
                     </div>
                     @endif
-                    @if ($totalAdvance > 0)
-                    <div class="flex justify-between text-amber-600">
-                        <dt>Advance Applied</dt>
-                        <dd>- {{ number_format($totalAdvance, 2) }}</dd>
-                    </div>
-                    @endif
                     <div class="flex justify-between {{ $due_amount > 0 ? 'text-red-600' : 'text-gray-400' }} font-semibold">
-                        <dt>Due (AP)</dt>
+                        <dt>Payable (AP)</dt>
                         <dd>{{ number_format($due_amount, 2) }}</dd>
                     </div>
                 </dl>
             </div>
-
-            {{-- Accounting section (accounts manager only) --}}
-            @can('inventory.purchase_invoice.approve')
-                <div class="rounded-2xl border border-gray-200 bg-white px-6 py-5">
-                    <h2 class="text-sm font-semibold text-gray-700">Accounting</h2>
-                    @if ($isPosted)
-                        <p class="mt-1 text-xs text-amber-600">Posted — accounts are locked.</p>
-                    @endif
-
-                    <div class="mt-4 space-y-4">
-
-                        {{-- DR: Inventory / Expense account --}}
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600">
-                                DR — Inventory / Expense Account <span class="text-red-500">*</span>
-                            </label>
-                            @if ($isEditable)
-                                <select wire:model.live="inventory_account_id"
-                                    class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-                                    <option value="">— Select account —</option>
-                                    @foreach ($inventoryAccounts as $acc)
-                                        <option value="{{ $acc->id }}">{{ $acc->code }} {{ $acc->name }}</option>
-                                    @endforeach
-                                </select>
-                                @error('inventory_account_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                            @else
-                                <p class="mt-1 text-sm font-medium text-gray-800">
-                                    {{ $invoice->inventoryAccount?->name ?? '—' }}
-                                </p>
-                            @endif
-                        </div>
-
-                        {{-- CR: Accounts Payable --}}
-                        @if ($due_amount > 0 || $isPosted)
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600">
-                                CR — Accounts Payable Account
-                                @if ($due_amount > 0) <span class="text-red-500">*</span> @endif
-                            </label>
-                            @if ($isEditable)
-                                <select wire:model.live="accounts_payable_account_id"
-                                    class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-                                    <option value="">— Select account —</option>
-                                    @foreach ($payableAccounts as $acc)
-                                        <option value="{{ $acc->id }}">{{ $acc->code }} {{ $acc->name }}</option>
-                                    @endforeach
-                                </select>
-                                @error('accounts_payable_account_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                            @else
-                                <p class="mt-1 text-sm font-medium text-gray-800">
-                                    {{ $invoice->payableAccount?->name ?? '—' }}
-                                </p>
-                            @endif
-                        </div>
-                        @endif
-
-                        {{-- Advance Adjustment — per-fund lines --}}
-                        @if (count($advanceFundLines) > 0)
-                        <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
-                            <p class="text-xs font-semibold text-amber-800 mb-3">Pre-Released Advance Funds</p>
-                            <div class="space-y-3">
-                                @foreach ($advanceFundLines as $fi => $fundLine)
-                                <div class="rounded-lg bg-white border border-amber-100 px-3 py-2.5">
-                                    <div class="flex items-center justify-between mb-1.5">
-                                        <span class="text-xs font-medium text-amber-800">{{ $fundLine['category'] }}</span>
-                                        <span class="text-xs text-amber-600">
-                                            Remaining: <strong>{{ number_format($fundLine['remaining'], 2) }}</strong>
-                                        </span>
-                                    </div>
-                                    @if ($isEditable)
-                                        <input type="number" step="0.01" min="0"
-                                            max="{{ $fundLine['remaining'] }}"
-                                            wire:model.lazy="advanceFundLines.{{ $fi }}.adjust_amount"
-                                            placeholder="0.00"
-                                            class="h-8 w-full rounded border border-amber-200 bg-amber-50 px-2 text-right text-sm focus:border-amber-400 focus:outline-none">
-                                        @error("advanceFundLines.{{ $fi }}.adjust_amount")
-                                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    @else
-                                        <p class="text-right text-sm font-semibold text-amber-900">
-                                            {{ number_format($fundLine['adjust_amount'], 2) }}
-                                        </p>
-                                    @endif
-                                </div>
-                                @endforeach
-                            </div>
-                            @if ($totalAdvance > 0)
-                            <div class="mt-2 flex justify-between border-t border-amber-200 pt-2 text-xs font-semibold text-amber-800">
-                                <span>Total Advance Applied</span>
-                                <span>{{ number_format($totalAdvance, 2) }}</span>
-                            </div>
-                            @endif
-                        </div>
-                        @endif
-
-                        {{-- Initial payment section --}}
-                        <div class="border-t border-gray-100 pt-4">
-                            <label class="block text-xs font-medium text-gray-600">
-                                Initial Payment at Approval
-                            </label>
-                            @if ($isEditable)
-                                <p class="mt-0.5 text-xs text-gray-400">Optional — leave 0 if paying later.</p>
-                                <input type="number" step="0.01" min="0"
-                                    wire:model.lazy="paid_amount"
-                                    placeholder="0.00"
-                                    class="mt-2 h-9 w-full rounded-lg border border-gray-300 px-3 text-right text-sm focus:border-indigo-500 focus:outline-none">
-                                @error('paid_amount') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                            @else
-                                <p class="mt-1 text-sm font-medium text-gray-800">{{ number_format($paid_amount, 2) }}</p>
-                            @endif
-
-                            @if ($paid_amount > 0 || $isPosted)
-                                <div class="mt-3 space-y-3">
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-600">
-                                            CR — Cash / Bank Account
-                                            @if ($paid_amount > 0) <span class="text-red-500">*</span> @endif
-                                        </label>
-                                        @if ($isEditable)
-                                            <select wire:model.live="payment_account_id"
-                                                class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-                                                <option value="">— Select account —</option>
-                                                @foreach ($paymentAccounts as $acc)
-                                                    <option value="{{ $acc->id }}">{{ $acc->code }} {{ $acc->name }}</option>
-                                                @endforeach
-                                            </select>
-                                            @error('payment_account_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                                        @else
-                                            <p class="mt-1 text-sm font-medium text-gray-800">
-                                                {{ $invoice->paymentAccount?->name ?? '—' }}
-                                            </p>
-                                        @endif
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-600">
-                                            Payment Method
-                                            @if ($paid_amount > 0) <span class="text-red-500">*</span> @endif
-                                        </label>
-                                        @if ($isEditable)
-                                            <select wire:model.live="payment_method"
-                                                class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-                                                <option value="">— Select method —</option>
-                                                @foreach ($paymentMethods as $method)
-                                                    <option value="{{ $method->value }}">{{ $method->label() }}</option>
-                                                @endforeach
-                                            </select>
-                                            @error('payment_method') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                                        @else
-                                            <p class="mt-1 text-sm font-medium text-gray-800">
-                                                {{ $invoice->payment_method ?? '—' }}
-                                            </p>
-                                        @endif
-                                    </div>
-                                </div>
-                            @endif
-                        </div>
-
-                        {{-- Journal preview --}}
-                        @if ($isEditable && $inventory_account_id)
-                            <div class="rounded-lg bg-gray-50 p-4 text-xs font-mono">
-                                <p class="mb-2 font-sans text-xs font-semibold text-gray-500">Journal Preview</p>
-                                <div class="space-y-1">
-                                    <div class="flex justify-between">
-                                        <span class="text-indigo-700">DR Inventory / Expense</span>
-                                        <span class="font-semibold">{{ number_format($total_amount, 2) }}</span>
-                                    </div>
-                                    @if ($due_amount > 0)
-                                        <div class="flex justify-between pl-4 text-gray-500">
-                                            <span>CR Accounts Payable</span>
-                                            <span>{{ number_format($due_amount, 2) }}</span>
-                                        </div>
-                                    @endif
-                                    @if ($totalAdvance > 0)
-                                        <div class="flex justify-between pl-4 text-amber-700">
-                                            <span>CR Advance Account</span>
-                                            <span>{{ number_format($totalAdvance, 2) }}</span>
-                                        </div>
-                                    @endif
-                                    @if ($paid_amount > 0)
-                                        <div class="flex justify-between pl-4 text-gray-500">
-                                            <span>CR Cash / Bank</span>
-                                            <span>{{ number_format($paid_amount, 2) }}</span>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                        @endif
-
-                    </div>
-                </div>
-            @endcan
 
             {{-- Additional details --}}
             <div class="rounded-2xl border border-gray-200 bg-white px-6 py-5">

@@ -156,27 +156,22 @@ class PurchaseInvoiceService
 
             $locked->refresh()->loadMissing('items');
 
+            // Shipping + payment-at-approval were removed: no freight, no cash leg here.
             $subtotal  = round((float) $locked->items->sum('total_amount'), 3);
             $discount  = round(max(0, (float) ($payload['discount_amount'] ?? $locked->discount_amount)), 3);
-            $shipping  = round(max(0, (float) ($payload['shipping_amount'] ?? $locked->shipping_amount)), 3);
-            $total     = round(max(0, $subtotal - $discount + $shipping), 3);
-            $paid      = round(max(0, min((float) ($payload['paid_amount'] ?? $locked->paid_amount), $total)), 3);
-            $due       = round(max(0, $total - $paid), 3);
+            $total     = round(max(0, $subtotal - $discount), 3);
+            $due       = $total;
 
             $locked->update([
-                'subtotal'                    => $subtotal,
-                'discount_amount'             => $discount,
-                'shipping_amount'             => $shipping,
-                'total_amount'                => $total,
-                'paid_amount'                 => $paid,
-                'due_amount'                  => $due,
-                'inventory_account_id'        => $payload['inventory_account_id'] ?? $locked->inventory_account_id,
-                'accounts_payable_account_id' => $payload['accounts_payable_account_id'] ?? $locked->accounts_payable_account_id,
-                'payment_account_id'          => $payload['payment_account_id'] ?? $locked->payment_account_id,
-                'payment_method'              => $payload['payment_method'] ?? $locked->payment_method,
-                'due_date'                    => $payload['due_date'] ?? $locked->due_date,
-                'supplier_invoice_no'         => $payload['supplier_invoice_no'] ?? $locked->supplier_invoice_no,
-                'remarks'                     => $payload['remarks'] ?? $locked->remarks,
+                'subtotal'            => $subtotal,
+                'discount_amount'     => $discount,
+                'shipping_amount'     => 0,
+                'total_amount'        => $total,
+                'paid_amount'         => 0,
+                'due_amount'          => $due,
+                'due_date'            => $payload['due_date'] ?? $locked->due_date,
+                'supplier_invoice_no' => $payload['supplier_invoice_no'] ?? $locked->supplier_invoice_no,
+                'remarks'             => $payload['remarks'] ?? $locked->remarks,
             ]);
 
             return $locked->refresh();
@@ -255,126 +250,48 @@ class PurchaseInvoiceService
             $locked->refresh()->loadMissing('items');
 
             // ------------------------------------------------------------------
-            // 2. Compute final totals
+            // 2. Compute final totals — operational page books the payable only;
+            //    no shipping, no advance application, no payment at approval.
             // ------------------------------------------------------------------
             $subtotal = round((float) $locked->items->sum('total_amount'), 3);
             $discount = round(max(0, (float) ($payload['discount_amount'] ?? $locked->discount_amount)), 3);
-            $shipping = round(max(0, (float) ($payload['shipping_amount'] ?? $locked->shipping_amount)), 3);
-            $total    = round(max(0, $subtotal - $discount + $shipping), 3);
+            $total    = round(max(0, $subtotal - $discount), 3);
+            $due      = $total;
 
             if ($total <= 0) {
                 throw new \DomainException('Invoice total must be greater than zero before approval.');
             }
 
-            $paid = round(max(0, min((float) ($payload['paid_amount'] ?? $locked->paid_amount), $total)), 3);
-
-            // Resolve per-fund advance adjustments
-            $advanceLines     = $this->resolveAdvanceAdjustments($payload['advance_adjustments'] ?? []);
-            $totalAdvance     = round(array_sum(array_column($advanceLines, 'amount')), 3);
-            $totalAdvance     = round(min($totalAdvance, $total - $paid), 3);
-            $due              = round(max(0, $total - $paid - $totalAdvance), 3);
+            $notes = 'Purchase Invoice #' . $locked->invoice_no;
 
             // ------------------------------------------------------------------
-            // 3. Validate required accounts
+            // 3. Auto-post the payable via the configured `purchase.invoice` event
+            //    (Dr Inventory / Cr Accounts Payable for the full total). Accounts
+            //    are admin-configured — no per-invoice picking on the page.
             // ------------------------------------------------------------------
-            $inventoryAccountId = (int) ($payload['inventory_account_id'] ?? $locked->inventory_account_id ?? 0);
-            $payableAccountId   = (int) ($payload['accounts_payable_account_id'] ?? $locked->accounts_payable_account_id ?? 0);
-            $paymentAccountId   = (int) ($payload['payment_account_id'] ?? $locked->payment_account_id ?? 0);
-            $paymentMethod      = (string) ($payload['payment_method'] ?? $locked->payment_method ?? '');
-
-            if ($inventoryAccountId <= 0) {
-                throw new \DomainException('Inventory / expense account is required.');
-            }
-            if ($due > 0 && $payableAccountId <= 0) {
-                throw new \DomainException('Accounts payable account is required when there is an outstanding due amount.');
-            }
-            if ($paid > 0 && $paymentAccountId <= 0) {
-                throw new \DomainException('Cash / bank account is required when a payment is made.');
-            }
-            if ($paid > 0 && $paymentMethod === '') {
-                throw new \DomainException('Payment method is required when a payment is made.');
-            }
-
-            $datetime = $locked->invoice_date->format('Y-m-d') . ' 00:00:00';
-            $notes    = 'Purchase Invoice #' . $locked->invoice_no;
-
-            // ------------------------------------------------------------------
-            // 4. Build a single balanced journal:
-            //      DR inventory/expense [total]
-            //      CR advance account   [totalAdvance]  (per-fund clearing)
-            //      CR cash/bank         [paid]
-            //      CR accounts payable  [due]
-            //    (total === totalAdvance + paid + due)
-            // ------------------------------------------------------------------
-            $journalLines = [
-                ['account_id' => $inventoryAccountId, 'debit' => $total, 'credit' => 0, 'notes' => 'Inventory / expense'],
-            ];
-
-            if ($totalAdvance > 0 && ! empty($advanceLines)) {
-                $advanceAccountId = $this->resolveAdvanceAccountId();
-                foreach ($advanceLines as $line) {
-                    if ($line['amount'] <= 0) {
-                        continue;
-                    }
-                    $journalLines[] = [
-                        'account_id' => $advanceAccountId,
-                        'debit'      => 0,
-                        'credit'     => $line['amount'],
-                        'notes'      => 'Advance clear',
-                    ];
-                }
-            }
-
-            if ($paid > 0) {
-                $journalLines[] = ['account_id' => $paymentAccountId, 'debit' => 0, 'credit' => $paid, 'notes' => 'Payment'];
-            }
-
-            if ($due > 0) {
-                $journalLines[] = ['account_id' => $payableAccountId, 'debit' => 0, 'credit' => $due, 'notes' => 'Accounts payable'];
-            }
-
-            $txnPurchase = $this->ledger->post(
-                [
-                    'datetime'       => $datetime,
-                    'type'           => TransactionType::PURCHASE_INVOICE->value,
-                    'reference_type' => 'purchase_invoice',
-                    'reference_id'   => (int) $locked->id,
-                    'method'         => $paid > 0 ? ($paymentMethod ?: null) : null,
-                    'notes'          => $notes,
-                    'created_by'     => $actorId,
-                ],
-                $journalLines,
+            $txnPurchase = app(\App\Services\Accounts\PostingEngine::class)->record(
+                'purchase.invoice',
+                new \App\Accounting\PostingContext(
+                    amount: $total,
+                    datetime: $locked->invoice_date->format('Y-m-d') . ' 00:00:00',
+                    referenceType: 'purchase_invoice',
+                    referenceId: (int) $locked->id,
+                    notes: $notes,
+                    actorId: $actorId,
+                ),
             );
 
-            // ------------------------------------------------------------------
-            // 5. Link cleared advances to their original advance transactions
-            // ------------------------------------------------------------------
-            if ($totalAdvance > 0 && ! empty($advanceLines)) {
-                foreach ($advanceLines as $line) {
-                    if ($line['amount'] <= 0) {
-                        continue;
-                    }
-                    $fund = PurchaseFund::query()->find($line['fund_id']);
-                    if ($fund && $fund->transaction_id) {
-                        AdvanceAdjustment::query()->create([
-                            'advance_transaction_id' => $fund->transaction_id,
-                            'adjust_transaction_id'  => $txnPurchase->id,
-                            'amount'                 => $line['amount'],
-                            'notes'                  => $notes,
-                            'created_by'             => $actorId,
-                        ]);
-                    }
-                }
-            }
+            // Resolve the event's posted legs so the invoice records which COA
+            // accounts were used (the A/P account is needed by the payment flow).
+            $txnPurchase->loadMissing('lines.account');
+            $inventoryAccountId = (int) ($txnPurchase->lines->firstWhere(fn ($l) => (float) $l->debit > 0)?->account_id ?? 0);
+            $payableAccountId   = (int) ($txnPurchase->lines->firstWhere(fn ($l) => (float) $l->credit > 0)?->account_id ?? 0);
 
             // ------------------------------------------------------------------
             // 8. Determine final invoice status
             // ------------------------------------------------------------------
-            $newStatus = match (true) {
-                $due <= 0 => PurchaseInvoiceStatus::PAID,
-                $paid > 0 => PurchaseInvoiceStatus::PARTIALLY_PAID,
-                default   => PurchaseInvoiceStatus::APPROVED,
-            };
+            // Approval just books the payable; payment happens via the Payment Module.
+            $newStatus = PurchaseInvoiceStatus::APPROVED;
 
             // ------------------------------------------------------------------
             // 9. Persist invoice
@@ -382,15 +299,15 @@ class PurchaseInvoiceService
             $locked->update([
                 'subtotal'                    => $subtotal,
                 'discount_amount'             => $discount,
-                'shipping_amount'             => $shipping,
+                'shipping_amount'             => 0,
                 'total_amount'                => $total,
-                'paid_amount'                 => $paid,
+                'paid_amount'                 => 0,
                 'due_amount'                  => $due,
                 'status'                      => $newStatus->value,
                 'inventory_account_id'        => $inventoryAccountId,
                 'accounts_payable_account_id' => $payableAccountId ?: null,
-                'payment_account_id'          => $paymentAccountId ?: null,
-                'payment_method'              => $paymentMethod ?: null,
+                'payment_account_id'          => null,
+                'payment_method'              => null,
                 'transaction_id'              => (int) $txnPurchase->id,
                 'due_date'                    => $payload['due_date'] ?? $locked->due_date,
                 'supplier_invoice_no'         => $payload['supplier_invoice_no'] ?? $locked->supplier_invoice_no,
@@ -486,12 +403,12 @@ class PurchaseInvoiceService
 
     private function resolveAdvanceAccountId(): int
     {
-        $account = Account::query()
-            ->whereRaw('LOWER(name) = ?', ['advance'])
-            ->first();
+        // Same Supplier Advance asset account the fund release debited
+        // (purchase.supplier_advance event), so clearing offsets it cleanly.
+        $account = Account::query()->where('code', 'ASSET-SUP-ADV')->first();
 
         if (! $account) {
-            throw new \DomainException('No account named "advance" found. Please create a Ledger account named "Advance".');
+            throw new \DomainException('Supplier Advance account (ASSET-SUP-ADV) not found. Please run the chart-of-accounts seeder.');
         }
 
         return (int) $account->id;

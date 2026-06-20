@@ -683,6 +683,11 @@
                                         'route' => 'admin.accounts.transaction-categories',
                                         'permission' => 'accounts.transaction.list',
                                     ],
+                                    [
+                                        'label' => 'Accounting Settings',
+                                        'route' => 'admin.accounts.settings',
+                                        'permission' => 'accounts.settings.manage',
+                                    ],
                                 ];
 
                                 $accountsReportRoutes = [

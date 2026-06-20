@@ -40,7 +40,24 @@
       "PowerShell(@\\('app/Services/Accounts/LedgerService.php','app/Models/Account.php','app/Services/Accounts/AccountReportService.php','app/Services/Accounts/StatementReportService.php','app/Services/Accounts/DailyStatementReportService.php'\\) | ForEach-Object { php -l $_ })",
       "PowerShell(php artisan tinker storage/app/verify_de.php)",
       "PowerShell(php artisan tinker storage/app/verify_reports.php)",
-      "Bash(php -l app/Livewire/Admin/Accounts/Account/AccountList.php)"
+      "Bash(php -l app/Livewire/Admin/Accounts/Account/AccountList.php)",
+      "Bash(php -l app/Livewire/Admin/Accounts/Settings/AccountingSettings.php)",
+      "Bash(php -l app/Livewire/Admin/Properties/PropertySaleDetails.php)",
+      "Bash(php -l database/seeders/AssignPermissionSeeder.php)",
+      "Bash(ls public/build/manifest.json)",
+      "Bash(ls public/hot)",
+      "Bash(grep -n \"accounts.settings\\\\|Settings\\\\\\\\\\\\\\\\AccountingSettings\\\\|/settings\" routes/admin.php)",
+      "Bash(php -l database/seeders/ChartOfAccountsSeeder.php)",
+      "Bash(php -l app/Accounting/AccountingEventRegistry.php)",
+      "Bash(php -l app/Services/Inventory/FundReleaseService.php)",
+      "Bash(php -l database/migrations/2026_06_20_150000_use_coa_account_for_fund_release.php)",
+      "Bash(grep -n ''\\\\''account_id'\\\\''\\\\|'\\\\''bank_account_id'\\\\''\\\\|protected $fillable' app/Models/BankingPaymentRequest.php)",
+      "Bash(php -l app/Services/Inventory/PurchaseInvoiceService.php)",
+      "Bash(php -l app/Livewire/Admin/Inventory/PurchaseInvoice/PurchaseInvoiceApprovalForm.php)",
+      "Bash(php -l app/Livewire/Suppliers/Show/Invoices.php)",
+      "Bash(php -l app/Services/Inventory/PurchaseInvoicePaymentService.php)",
+      "Bash(php -l app/Models/BankingPaymentRequest.php)",
+      "Bash(grep -n '\\\\$isDue\\\\|@endif\\\\|openPay\\\\|Pay now\\\\|Pay Now\\\\|paynow\\\\|@if \\(\\\\$isDue\\)\\\\|This invoice is\\\\|fully paid\\\\|@else' resources/views/livewire/suppliers/show/invoices.blade.php)"
     ]
   }
 }

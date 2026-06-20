@@ -31,26 +31,39 @@ class PurchaseInvoicePaymentService
             throw new \DomainException("Payment amount (৳ {$amount}) exceeds due amount (৳ {$due}).");
         }
 
+        // Source is a chart-of-accounts money account; a BankAccount (if one is
+        // attached to it) is just descriptive info for the banking screen.
+        $accountId           = (int) ($payload['payment_account_id'] ?? 0);
+        $linkedBankAccountId = $accountId > 0
+            ? BankAccount::query()->where('account_id', $accountId)->value('id')
+            : null;
+
+        $attachmentIds = collect($payload['attachment_ids'] ?? [])
+            ->map(fn ($id): int => (int) $id)->filter()->unique()->values()->all();
+
         $externalData = array_filter([
-            'method'    => $payload['method'] ?? null,
-            'reference' => $payload['reference'] ?? null,
-        ]);
+            'method'      => $payload['method'] ?? null,
+            'reference'   => $payload['reference'] ?? null,
+            'name'        => $payload['name'] ?? null,   // blank ⇒ paid directly to supplier
+            'phone'       => $payload['phone'] ?? null,
+            'attachments' => $attachmentIds ?: null,
+        ], fn ($v) => $v !== null && $v !== '');
 
         return BankingPaymentRequest::create([
-            'request_no'              => BankingPaymentRequest::generateRequestNo(),
-            'source_type'             => PaymentRequestSourceType::SUPPLIER->value,
-            'sourceable_type'         => PurchaseInvoice::class,
-            'sourceable_id'           => $invoice->id,
-            'amount'                  => $amount,
-            'payment_date'            => $payload['payment_date'] ?? null,
-            'transaction_category_id' => $payload['transaction_category_id'] ?? null,
-            'description'             => 'Payment for Purchase Invoice #' . $invoice->invoice_no
+            'request_no'      => BankingPaymentRequest::generateRequestNo(),
+            'source_type'     => PaymentRequestSourceType::SUPPLIER->value,
+            'sourceable_type' => PurchaseInvoice::class,
+            'sourceable_id'   => $invoice->id,
+            'amount'          => $amount,
+            'payment_date'    => $payload['payment_date'] ?? null,
+            'description'     => 'Payment for Purchase Invoice #' . $invoice->invoice_no
                 . ' — ' . $invoice->supplier->name,
-            'bank_account_id'         => (int) $payload['bank_account_id'],
-            'notes'                   => $payload['notes'] ?? null,
-            'external_data'           => $externalData ?: null,
-            'status'                  => 'pending',
-            'requested_by'            => $userId,
+            'account_id'      => $accountId ?: null,
+            'bank_account_id' => $linkedBankAccountId,
+            'notes'           => $payload['notes'] ?? null,
+            'external_data'   => $externalData ?: null,
+            'status'          => 'pending',
+            'requested_by'    => $userId,
         ]);
     }
 
@@ -73,12 +86,14 @@ class PurchaseInvoicePaymentService
                 throw new \DomainException('Invoice is not in a posted state.');
             }
 
-            $bankAccount = BankAccount::findOrFail($request->bank_account_id);
-
-            if (! $bankAccount->account_id) {
-                throw new \DomainException(
-                    'Bank account "' . $bankAccount->bank_name . '" has no linked Chart of Accounts entry.'
-                );
+            // The payment (Cr) account is the chart-of-accounts money account stored on
+            // the request. Fall back to the linked BankAccount for legacy requests.
+            $cashAccountId = (int) ($request->account_id ?: 0);
+            if ($cashAccountId <= 0 && $request->bank_account_id) {
+                $cashAccountId = (int) (BankAccount::find($request->bank_account_id)?->account_id ?? 0);
+            }
+            if ($cashAccountId <= 0) {
+                throw new \DomainException('Payment request has no source account to pay from.');
             }
 
             $payableAccountId = (int) $invoice->accounts_payable_account_id;
@@ -91,21 +106,37 @@ class PurchaseInvoicePaymentService
             $notes    = 'Purchase Invoice #' . $invoice->invoice_no . ' – supplier payment';
             $datetime = now()->format('Y-m-d H:i:s');
 
+            // Receiver details — blank name/phone means paid directly to the supplier.
+            $ext        = (array) ($request->external_data ?? []);
+            $payeeName  = $ext['name'] ?? null ?: $invoice->supplier?->name;
+            $payeePhone = $ext['phone'] ?? null;
+            $method     = $ext['method'] ?? null;
+            $reference  = $ext['reference'] ?? null;
+
             // DR payable (settle liability) / CR cash-bank (money leaves)
             $txn = $this->ledger->post(
-                [
+                array_filter([
                     'datetime'       => $datetime,
                     'type'           => TransactionType::PURCHASE_INVOICE->value,
                     'reference_type' => 'purchase_invoice',
                     'reference_id'   => $invoice->id,
+                    'reference_no'   => $reference,
+                    'method'         => $method,
+                    'name'           => $payeeName,
+                    'phone'          => $payeePhone,
                     'notes'          => $notes,
                     'created_by'     => $userId,
-                ],
+                ], fn ($v) => $v !== null),
                 [
-                    ['account_id' => $payableAccountId,            'debit' => $amount, 'credit' => 0,       'notes' => 'Accounts payable'],
-                    ['account_id' => (int) $bankAccount->account_id, 'debit' => 0,     'credit' => $amount, 'notes' => 'Bank/Cash'],
+                    ['account_id' => $payableAccountId, 'debit' => $amount, 'credit' => 0,       'notes' => 'Accounts payable'],
+                    ['account_id' => $cashAccountId,    'debit' => 0,       'credit' => $amount, 'notes' => 'Bank/Cash'],
                 ],
             );
+
+            // Carry uploaded attachments onto the posted transaction.
+            if (! empty($ext['attachments'])) {
+                $txn->update(['attachments' => $ext['attachments']]);
+            }
 
             // Mark request completed
             $request->update([

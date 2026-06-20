@@ -251,11 +251,8 @@
      NEW SUPPLIER MODAL  — Alpine controls visibility, Livewire the form
      ════════════════════════════════════════════════════════════════ --}}
 @canany(['supplier.create', 'supplier.edit'])
-<div class="scrim" x-show="$wire.modalOpen" x-cloak
-     x-transition.opacity.duration.200ms
-     @click.self="$wire.closeModal()">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="supModalTitle"
-         x-transition:enter="" x-transition:enter-start="">
+<x-modal wire:model="modalOpen" maxWidth="2xl">
+    <div class="su-modal-inner" role="dialog" aria-modal="true" aria-labelledby="supModalTitle">
         <div class="modal-head">
             <div>
                 <h3 id="supModalTitle">{{ $editMode ? 'Edit supplier' : 'New supplier' }}</h3>
@@ -395,7 +392,7 @@
             </div>
         </footer>
     </div>
-</div>
+</x-modal>
 @endcanany
 
 </div>

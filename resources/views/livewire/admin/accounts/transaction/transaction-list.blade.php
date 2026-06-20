@@ -207,11 +207,10 @@
                                             $crExtra = max(0, $creditLines->count() - 1);
                                         @endphp
                                         <div class="space-y-1">
-                                            {{-- IN — debit side --}}
+                                            {{-- Dr — debit side --}}
                                             <div class="flex items-center gap-1.5 text-xs">
-                                                <span class="inline-flex items-center gap-0.5 rounded bg-emerald-50 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-emerald-700">
-                                                    <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
-                                                    In
+                                                <span class="inline-flex items-center justify-center rounded bg-emerald-50 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-emerald-700">
+                                                    Dr
                                                 </span>
                                                 <span class="font-medium text-gray-800">{{ \Illuminate\Support\Str::limit($drLine?->account?->name ?? '—', 14) }}</span>
                                                 @if ($drExtra)
@@ -219,11 +218,10 @@
                                                 @endif
                                                 <span class="ml-auto font-mono text-[10px] font-semibold text-emerald-700">{{ number_format($lineDebit, 2) }}</span>
                                             </div>
-                                            {{-- OUT — credit side --}}
+                                            {{-- Cr — credit side --}}
                                             <div class="flex items-center gap-1.5 text-xs">
-                                                <span class="inline-flex items-center gap-0.5 rounded bg-rose-50 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-rose-700">
-                                                    <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-                                                    Out
+                                                <span class="inline-flex items-center justify-center rounded bg-rose-50 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-rose-700">
+                                                    Cr
                                                 </span>
                                                 <span class="font-medium text-gray-800">{{ \Illuminate\Support\Str::limit($crLine?->account?->name ?? '—', 14) }}</span>
                                                 @if ($crExtra)

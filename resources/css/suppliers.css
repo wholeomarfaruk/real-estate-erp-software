@@ -179,6 +179,9 @@
   /* MODAL */
   .scrim{ position:fixed; inset:0; background:rgba(20,18,16,.45); backdrop-filter:blur(4px); z-index:50; display:flex; align-items:center; justify-content:center; padding:24px; }
   .modal{ width:760px; max-width:100%; max-height:90vh; background:var(--canvas); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 30px 70px -20px rgba(0,0,0,.5); }
+  /* Inner content when rendered inside the shared <x-modal> panel (panel owns the
+     width / rounded white surface; this just lays out head/body/foot + body scroll). */
+  .su-modal-inner{ background:var(--canvas); max-height:85vh; overflow:hidden; display:flex; flex-direction:column; }
   .modal-head{ padding:18px 22px; border-bottom:1px solid var(--rule); background:var(--paper); display:flex; justify-content:space-between; align-items:center; }
   .modal-head h3{ margin:0; font-size:16px; font-weight:600; }
   .modal-head .sub{ margin-top:2px; font:500 11px var(--mono); color:var(--ink-3); letter-spacing:.04em; text-transform:uppercase; }

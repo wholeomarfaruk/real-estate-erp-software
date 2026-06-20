@@ -8,7 +8,6 @@ use App\Models\PaymentSchedule;
 use App\Models\PropertySale;
 use App\Models\PropertyUnit;
 use App\Livewire\Traits\WithMediaPicker;
-use App\Models\TransactionCategory;
 use App\Services\Property\PaymentAllocationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -309,11 +308,7 @@ class PropertySaleDetails extends Component
         $this->payNowNotes         = '';
         $this->payNowAttachmentIds = [];
         $this->payNowModalOpen     = true;
-        $this->payTransactions     = $schedule->paymentTransactions()
-            ->with('account')
-            ->orderByDesc('created_at')
-            ->get()
-            ->toArray();
+        $this->payTransactions     = $this->loadPayTransactions($schedule);
     }
 
     public function submitPayment(): void
@@ -356,23 +351,33 @@ class PropertySaleDetails extends Component
             return;
         }
 
-        $categorySlug = $this->sale->sale_type === 'rent' ? 'property-rent' : 'property-sale';
-        $categoryId   = TransactionCategory::where('slug', $categorySlug)->value('id');
+        // Auto-post the balanced double-entry via the configured accounting event:
+        //   rent  → Dr [user payment account] / Cr Rent Revenue
+        //   sale  → Dr [user payment account] / Cr Customer Advance
+        $eventKey = $this->sale->sale_type === 'rent'
+            ? 'property.rent_collection'
+            : 'property.down_payment';
 
-        $schedule->paymentTransactions()->create([
-            'datetime'               => $this->payNowDate,
-            'type'                   => \App\Enums\Accounts\TransactionType::INCOME->value,
-            'transaction_category_id' => $categoryId,
-            'account_id'             => (int) $this->payNowAccountId,
-            'method'                 => $this->payNowPaymentMethod,
-            'name'                   => $this->payNowPayerName ?: null,
-            'reference_no'           => $this->payNowReferenceNo ?: null,
-            'phone'                  => $this->payNowPhone ?: null,
-            'debit'                  => $amount,
-            'notes'                  => $this->payNowNotes ?: null,
-            'attachments'            => !empty($this->payNowAttachmentIds) ? $this->payNowAttachmentIds : null,
-            'created_by'             => Auth::id(),
-        ]);
+        $transaction = app(\App\Services\Accounts\PostingEngine::class)->record(
+            $eventKey,
+            new \App\Accounting\PostingContext(
+                amount: $amount,
+                datetime: $this->payNowDate,
+                paymentAccountId: (int) $this->payNowAccountId,
+                referenceType: PaymentSchedule::class,
+                referenceId: (int) $schedule->id,
+                referenceNo: $this->payNowReferenceNo ?: null,
+                method: $this->payNowPaymentMethod,
+                name: $this->payNowPayerName ?: null,
+                phone: $this->payNowPhone ?: null,
+                notes: $this->payNowNotes ?: null,
+                actorId: Auth::id(),
+            ),
+        );
+
+        if (! empty($this->payNowAttachmentIds)) {
+            $transaction->update(['attachments' => $this->payNowAttachmentIds]);
+        }
 
         $newPaid = round((float) $schedule->paid_amount + $amount, 2);
         $newDue  = round(max(0, (float) $schedule->amount - $newPaid), 2);
@@ -384,11 +389,7 @@ class PropertySaleDetails extends Component
 
         app(PaymentAllocationService::class)->syncSalePaymentStatus($this->sale);
 
-        $this->payTransactions = $schedule->paymentTransactions()
-            ->with('account')
-            ->orderByDesc('created_at')
-            ->get()
-            ->toArray();
+        $this->payTransactions = $this->loadPayTransactions($schedule);
 
         $this->sale = $this->sale->fresh([
             'propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
@@ -401,6 +402,38 @@ class PropertySaleDetails extends Component
         $this->resetValidation();
 
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Payment recorded successfully.']);
+    }
+
+    /**
+     * Map a schedule's payment transactions to the array shape the view renders.
+     * Under double-entry the amount + receiving account come from the debit line
+     * (the money-in side), not the removed transaction header columns.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    protected function loadPayTransactions(PaymentSchedule $schedule): array
+    {
+        return $schedule->paymentTransactions()
+            ->with('lines.account:id,name,code')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($tx): array {
+                $debitLine = $tx->lines->firstWhere(fn ($l) => (float) $l->debit > 0) ?? $tx->lines->first();
+
+                return [
+                    'id'      => $tx->id,
+                    'debit'   => (float) $tx->lines->sum('debit'),
+                    'method'  => $tx->method,
+                    'name'    => $tx->name,
+                    'notes'   => $tx->notes,
+                    'datetime' => optional($tx->datetime)->toDateTimeString(),
+                    'created_at' => optional($tx->created_at)->toDateTimeString(),
+                    'account' => $debitLine?->account
+                        ? ['name' => $debitLine->account->name, 'code' => $debitLine->account->code]
+                        : null,
+                ];
+            })
+            ->all();
     }
 
 

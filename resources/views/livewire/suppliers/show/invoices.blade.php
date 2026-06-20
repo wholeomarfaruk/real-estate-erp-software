@@ -148,23 +148,24 @@
                                 @error('payDate') <div style="margin-top:5px;font:500 11px 'Inter';color:var(--rj-fg);">{{ $message }}</div> @enderror
                             </div>
                             <div>
-                                <label class="field-label">Bank account <span style="color:var(--rj-fg)">*</span></label>
-                                <select class="select" wire:model="payBankId">
-                                    <option value="">— Select bank account —</option>
-                                    @foreach ($this->bankAccounts as $ba)
-                                        <option value="{{ $ba->id }}">{{ $ba->bank_name }} ({{ strtoupper($ba->type) }}) · {{ $ba->ac_number }}</option>
+                                <label class="field-label">Account type <span style="color:var(--rj-fg)">*</span></label>
+                                <select class="select" wire:model.live="payAccountType">
+                                    <option value="">— Select type —</option>
+                                    @foreach ($this->accountTypes as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
                                     @endforeach
                                 </select>
-                                @error('payBankId') <div style="margin-top:5px;font:500 11px 'Inter';color:var(--rj-fg);">{{ $message }}</div> @enderror
+                                @error('payAccountType') <div style="margin-top:5px;font:500 11px 'Inter';color:var(--rj-fg);">{{ $message }}</div> @enderror
                             </div>
-                            <div class="span-2m">
-                                <label class="field-label">Expense category</label>
-                                <select class="select" wire:model="payCategoryId">
-                                    <option value="">— Supplier Bill (select sub-category) —</option>
-                                    @foreach ($this->expenseCategories as $cat)
-                                        <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                            <div>
+                                <label class="field-label">Source account <span style="color:var(--rj-fg)">*</span></label>
+                                <select class="select" wire:model="payAccountId" @disabled(! $payAccountType)>
+                                    <option value="">{{ $payAccountType ? '— Select account —' : 'Select a type first' }}</option>
+                                    @foreach ($this->moneyAccounts as $acc)
+                                        <option value="{{ $acc->id }}">{{ $acc->code ? $acc->code.' · ' : '' }}{{ $acc->name }}@if ($acc->bankAccount) — {{ $acc->bankAccount->bank_name }}@endif</option>
                                     @endforeach
                                 </select>
+                                @error('payAccountId') <div style="margin-top:5px;font:500 11px 'Inter';color:var(--rj-fg);">{{ $message }}</div> @enderror
                             </div>
                             <div>
                                 <label class="field-label">Method <span style="color:var(--rj-fg)">*</span></label>
@@ -181,9 +182,31 @@
                                 @error('payReference') <div style="margin-top:5px;font:500 11px 'Inter';color:var(--rj-fg);">{{ $message }}</div> @enderror
                             </div>
                             <div class="span-2m">
+                                <label class="field-label">Receiver name &amp; phone</label>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                                    <input class="input" wire:model="payName" placeholder="Receiver name (blank = supplier)" />
+                                    <input class="input mono" wire:model="payPhone" placeholder="Phone (optional)" />
+                                </div>
+                                <div style="margin-top:5px;font:400 11px 'Inter';color:var(--muted,#6b7280);">Leave blank if paid directly to the supplier.</div>
+                                @error('payName') <div style="margin-top:5px;font:500 11px 'Inter';color:var(--rj-fg);">{{ $message }}</div> @enderror
+                                @error('payPhone') <div style="margin-top:5px;font:500 11px 'Inter';color:var(--rj-fg);">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="span-2m">
                                 <label class="field-label">Notes</label>
                                 <input class="input" wire:model="payNotes" placeholder="Optional note for this payment request" />
                                 @error('payNotes') <div style="margin-top:5px;font:500 11px 'Inter';color:var(--rj-fg);">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="span-2m">
+                                <label class="field-label">Attachment (cheque slip / voucher)</label>
+                                <x-media-picker-field
+                                    field="payAttachmentIds"
+                                    :value="$payAttachmentIds"
+                                    label="Payment Attachments"
+                                    placeholder="Upload or select image / file"
+                                    :multiple="true"
+                                    type="all"
+                                    :required="false"
+                                />
                             </div>
                         </div>
                     </section>
@@ -218,7 +241,7 @@
                                 <div class="pmt-main">
                                     <div class="t">
                                         {{ $full($pr->amount) }}
-                                        @if($pr->bankAccount) · {{ $pr->bankAccount->bank_name }} @endif
+                                        @if($pr->account) · {{ $pr->account->name }}@elseif($pr->bankAccount) · {{ $pr->bankAccount->bank_name }}@endif
                                         <span class="pill {{ $prPill[0] }}" style="font-size:10px; padding:2px 8px; vertical-align:middle; margin-left:6px;">
                                             <span class="dot"></span>{{ $prPill[1] }}
                                         </span>
@@ -229,8 +252,8 @@
                                         @if ($pr->payment_date)
                                             · Pay date: {{ $pr->payment_date->format('Y-m-d') }}
                                         @endif
-                                        @if ($pr->transactionCategory)
-                                            · {{ $pr->transactionCategory->name }}
+                                        @if ($pr->external_data['name'] ?? null)
+                                            · To: {{ $pr->external_data['name'] }}@if ($pr->external_data['phone'] ?? null) ({{ $pr->external_data['phone'] }})@endif
                                         @endif
                                         @if ($pr->external_data['method'] ?? null)
                                             · {{ \App\Enums\Accounts\EntryMethod::tryFrom($pr->external_data['method'])?->label() ?? $pr->external_data['method'] }}

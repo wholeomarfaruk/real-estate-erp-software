@@ -2,6 +2,7 @@
 
 namespace App\Services\Inventory;
 
+use App\Accounting\PostingContext;
 use App\Enums\Accounts\TransactionType;
 use App\Models\Account;
 use App\Models\BankAccount;
@@ -11,13 +12,15 @@ use App\Models\PurchaseFund;
 use App\Models\PurchaseInvoice;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
-use App\Models\TransactionCategory;
-use App\Services\Accounts\LedgerService;
+use App\Services\Accounts\PostingEngine;
 use Illuminate\Support\Facades\DB;
 
 class FundReleaseService
 {
-    public function __construct(private readonly LedgerService $ledger) {}
+    /** Event key + advance account: a PO fund release is always a supplier advance. */
+    private const ADVANCE_EVENT = 'purchase.supplier_advance';
+
+    public function __construct(private readonly PostingEngine $engine) {}
 
     /**
      * Submit a fund advance request (pending banking approval).
@@ -26,14 +29,15 @@ class FundReleaseService
      * No ledger Transaction is created at this point.
      *
      * @param  array{
-     *   transaction_category_id: int,
-     *   bank_account_id: int,
+     *   payment_account_id: int,  // chart-of-accounts money account (the Cr leg)
+     *   account_type: string,     // cash | bank | mfs | wallet
      *   method: string,
      *   amount: float,
      *   release_date: string,
-     *   payee_type: string,
+     *   receiver_mode: string,    // 'supplier_direct' | 'via_employee'
      *   receiver_id: int,
-     *   remarks: ?string,
+     *   reference_no?: ?string,
+     *   remarks?: ?string,
      * } $payload
      */
     public function requestRelease(PurchaseOrder $po, array $payload, int $userId): PurchaseFund
@@ -51,36 +55,46 @@ class FundReleaseService
             }
 
             // ------------------------------------------------------------------
-            // 2. Parse payload
+            // 2. Parse payload — a PO fund release is always a supplier advance;
+            //    the money is paid directly to the supplier or via an employee.
             // ------------------------------------------------------------------
             $amount        = round((float) ($payload['amount'] ?? 0), 2);
-            $bankAccountId = (int) ($payload['bank_account_id'] ?? 0);
-            $categoryId    = (int) ($payload['transaction_category_id'] ?? 0);
+            $paymentAccountId = (int) ($payload['payment_account_id'] ?? 0);
             $method        = (string) ($payload['method'] ?? '');
             $releaseDate   = (string) ($payload['release_date'] ?? now()->toDateString());
-            $payeeType     = (string) ($payload['payee_type'] ?? '');
-            $receiverId    = (int) ($payload['receiver_id'] ?? 0);
+            $receiverMode  = (string) ($payload['receiver_mode'] ?? 'supplier_direct');
+            $referenceNo   = trim((string) ($payload['reference_no'] ?? '')) ?: null;
 
             if ($amount <= 0) {
                 throw new \DomainException('Release amount must be greater than zero.');
             }
-            if ($bankAccountId <= 0) {
-                throw new \DomainException('Source bank account is required.');
-            }
-            if ($categoryId <= 0) {
-                throw new \DomainException('Advance category is required.');
+            if ($paymentAccountId <= 0) {
+                throw new \DomainException('Source account is required.');
             }
 
-            $category = TransactionCategory::query()
-                ->where('id', $categoryId)
-                ->where('type', 'advance')
-                ->first();
+            // The source is a chart-of-accounts money account; a BankAccount (when
+            // one is attached to it) is just descriptive info for the banking screen.
+            $paymentAccount = Account::query()->where('is_active', true)->findOrFail($paymentAccountId);
+            $linkedBankAccountId = BankAccount::query()
+                ->where('account_id', $paymentAccount->id)
+                ->value('id');
 
-            if (! $category) {
-                throw new \DomainException('Invalid advance category selected.');
+            // Receiver: directly the PO supplier, or an employee intermediary.
+            if ($receiverMode === 'via_employee') {
+                $receiverId = (int) ($payload['receiver_id'] ?? 0);
+                if ($receiverId <= 0) {
+                    throw new \DomainException('Please select the employee receiving the advance.');
+                }
+                $payeeType     = 'employee';
+                $receiverClass = Employee::class;
+            } else {
+                $receiverId = (int) ($locked->supplier_id ?? 0);
+                if ($receiverId <= 0) {
+                    throw new \DomainException('This purchase order has no supplier to advance to.');
+                }
+                $payeeType     = 'supplier';
+                $receiverClass = Supplier::class;
             }
-
-            $bankAccount = BankAccount::query()->findOrFail($bankAccountId);
 
             // ------------------------------------------------------------------
             // 3. Cap check — pending + completed both count against the limit
@@ -112,47 +126,47 @@ class FundReleaseService
             // ------------------------------------------------------------------
             // 4. Resolve receiver for description
             // ------------------------------------------------------------------
-            $receiverName  = $this->resolveReceiverName($payeeType, $receiverId, $po);
-            $receiverClass = $payeeType === 'employee' ? Employee::class : Supplier::class;
+            $receiverName = $this->resolveReceiverName($payeeType, $receiverId, $po);
 
             // ------------------------------------------------------------------
             // 5. Create PurchaseFund (status = pending — no transaction yet)
             // ------------------------------------------------------------------
             $fund = PurchaseFund::query()->create([
-                'purchase_order_id'       => (int) $locked->id,
-                'transaction_id'          => null,
-                'amount'                  => $amount,
-                'released_by'             => $userId,
-                'release_date'            => $releaseDate,
-                'payto'                   => $payeeType,
-                'receiver_type'           => $receiverClass,
-                'receiver_id'             => $receiverId,
-                'remarks'                 => $payload['remarks'] ?? null,
-                'status'                  => 'pending',
-                'transaction_category_id' => $categoryId,
-                'bank_account_id'         => $bankAccountId,
-                'method'                  => $method,
+                'purchase_order_id'  => (int) $locked->id,
+                'transaction_id'     => null,
+                'amount'             => $amount,
+                'released_by'        => $userId,
+                'release_date'       => $releaseDate,
+                'payto'              => $payeeType,
+                'receiver_type'      => $receiverClass,
+                'receiver_id'        => $receiverId,
+                'reference_no'       => $referenceNo,
+                'remarks'            => $payload['remarks'] ?? null,
+                'status'             => 'pending',
+                'payment_account_id' => $paymentAccount->id,   // COA money account (Cr leg)
+                'bank_account_id'    => $linkedBankAccountId,   // info, if one is attached
+                'method'             => $method,
             ]);
 
             // ------------------------------------------------------------------
             // 6. Create BankingPaymentRequest — sourceable → PurchaseFund
             // ------------------------------------------------------------------
             BankingPaymentRequest::query()->create([
-                'request_no'              => BankingPaymentRequest::generateRequestNo(),
-                'source_type'             => TransactionType::ADVANCE->value,
-                'sourceable_type'         => PurchaseFund::class,
-                'sourceable_id'           => $fund->id,
-                'transaction_category_id' => $categoryId,
-                'amount'                  => $amount,
-                'description'             => sprintf(
-                    'Fund advance – PO# %s → %s',
+                'request_no'      => BankingPaymentRequest::generateRequestNo(),
+                'source_type'     => TransactionType::ADVANCE->value,
+                'sourceable_type' => PurchaseFund::class,
+                'sourceable_id'   => $fund->id,
+                'amount'          => $amount,
+                'description'     => sprintf(
+                    'Supplier advance – PO# %s → %s',
                     $locked->po_no,
                     $receiverName ?? 'Unknown'
                 ),
-                'bank_account_id'         => $bankAccountId,
-                'status'                  => 'pending',
-                'notes'                   => $payload['remarks'] ?? null,
-                'requested_by'            => $userId,
+                'account_id'      => $paymentAccount->id,    // COA money account
+                'bank_account_id' => $linkedBankAccountId,   // info, if attached
+                'status'          => 'pending',
+                'notes'           => $payload['remarks'] ?? null,
+                'requested_by'    => $userId,
             ]);
 
             return $fund;
@@ -184,44 +198,36 @@ class FundReleaseService
                 ->where('status', 'pending')
                 ->firstOrFail();
 
-            $bankAccount = BankAccount::query()->findOrFail($bankingRequest->bank_account_id);
-            $accountId   = (int) $bankAccount->account_id;
+            // The payment (Cr) leg is the chart-of-accounts money account stored on
+            // the fund — resolved straight from `accounts`, no BankAccount indirection.
+            $paymentAccountId = (int) ($fund->payment_account_id ?: $bankingRequest->account_id);
+            if ($paymentAccountId <= 0) {
+                throw new \DomainException('Fund release has no source account to pay from.');
+            }
 
             $po           = $fund->purchaseOrder;
-            $receiverName = $this->resolveReceiverName($fund->payto, (int) $fund->receiver_id, $po);
-
-            $datetime    = $fund->release_date->format('Y-m-d') . ' 00:00:00';
-            $categoryId  = $bankingRequest->transaction_category_id ?? $fund->transaction_category_id;
-            $amount      = (float) $fund->amount;
-            $notes       = $fund->remarks ?? ('Fund release – PO# ' . $po->po_no);
+            $receiver     = $fund->receiver;   // Supplier or Employee (morph)
+            $receiverName = $receiver?->name ?? $this->resolveReceiverName($fund->payto, (int) $fund->receiver_id, $po);
+            $notes        = $fund->remarks ?? ('Supplier advance – PO# ' . $po->po_no);
 
             // ------------------------------------------------------------------
-            // Balanced double-entry for the fund release:
-            //   DR advance account  — receivable/advance created
-            //   CR bank/cash        — money physically leaves the account
-            // The advance (DR) line drives the header summary, so the single
-            // transaction is what PurchaseFund.transaction_id tracks and
-            // remainingAdvance() reads.
+            // Auto-post the balanced double-entry via the configured event:
+            //   Dr Supplier Advance (asset)  /  Cr the chosen money account.
+            // Receiver details (name/phone) + reference_no ride on the header.
             // ------------------------------------------------------------------
-            $advanceAccount = $this->resolveAdvanceAccount();
-
-            $transaction = $this->ledger->post(
-                [
-                    'datetime'                => $datetime,
-                    'type'                    => TransactionType::ADVANCE->value,
-                    'transaction_category_id' => $categoryId,
-                    'reference_type'          => 'purchase_order',
-                    'reference_id'            => (int) $po->id,
-                    'name'                    => $receiverName,
-                    'method'                  => $fund->method,
-                    'notes'                   => $notes,
-                    'created_by'              => $userId,
-                ],
-                [
-                    ['account_id' => (int) $advanceAccount->id, 'debit' => $amount, 'credit' => 0,       'notes' => 'Advance'],
-                    ['account_id' => $accountId,                'debit' => 0,       'credit' => $amount, 'notes' => 'Bank/Cash'],
-                ],
-            );
+            $transaction = $this->engine->record(self::ADVANCE_EVENT, new PostingContext(
+                amount: (float) $fund->amount,
+                datetime: $fund->release_date->format('Y-m-d') . ' 00:00:00',
+                paymentAccountId: $paymentAccountId,
+                referenceType: 'purchase_order',
+                referenceId: (int) $po->id,
+                referenceNo: $fund->reference_no,
+                method: $fund->method,
+                name: $receiverName,
+                phone: $receiver?->phone,
+                notes: $notes,
+                actorId: $userId,
+            ));
 
             // Update PurchaseFund → completed
             $fund->update([
@@ -263,19 +269,6 @@ class FundReleaseService
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
-
-    private function resolveAdvanceAccount(): Account
-    {
-        $account = Account::query()
-            ->whereRaw('LOWER(name) = ?', ['advance'])
-            ->first();
-
-        if (! $account) {
-            throw new \DomainException('No account named "advance" found. Please create a Ledger account named "Advance".');
-        }
-
-        return $account;
-    }
 
     private function resolveReceiverName(string $payeeType, int $receiverId, PurchaseOrder $po): ?string
     {
