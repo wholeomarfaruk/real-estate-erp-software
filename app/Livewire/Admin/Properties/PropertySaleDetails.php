@@ -70,7 +70,7 @@ class PropertySaleDetails extends Component
     {
         abort_unless(Auth::user()?->can('property_sale.view'), 403);
         $this->sale = $sale->load([
-            'propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
+            'propertyUnit.property', 'saleUnits.propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
             'paymentSchedules',
         ]);
 
@@ -162,7 +162,7 @@ class PropertySaleDetails extends Component
         ]);
 
         $this->sale = $this->sale->fresh([
-            'propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
+            'propertyUnit.property', 'saleUnits.propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
             'paymentSchedules',
         ]);
         $this->closeDrawer();
@@ -258,7 +258,7 @@ class PropertySaleDetails extends Component
         }
 
         $this->sale = $this->sale->fresh([
-            'propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
+            'propertyUnit.property', 'saleUnits.propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
             'paymentSchedules',
         ]);
         $this->closeScheduleDrawer();
@@ -269,7 +269,7 @@ class PropertySaleDetails extends Component
         abort_unless(Auth::user()?->can('property_sale.edit'), 403);
         PaymentSchedule::findOrFail($id)->delete();
         $this->sale = $this->sale->fresh([
-            'propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
+            'propertyUnit.property', 'saleUnits.propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
             'paymentSchedules',
         ]);
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Schedule entry removed.']);
@@ -285,7 +285,7 @@ class PropertySaleDetails extends Component
             'status'      => 'paid',
         ]);
         $this->sale = $this->sale->fresh([
-            'propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
+            'propertyUnit.property', 'saleUnits.propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
             'paymentSchedules',
         ]);
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Marked as paid.']);
@@ -392,7 +392,7 @@ class PropertySaleDetails extends Component
         $this->payTransactions = $this->loadPayTransactions($schedule);
 
         $this->sale = $this->sale->fresh([
-            'propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
+            'propertyUnit.property', 'saleUnits.propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
             'paymentSchedules',
         ]);
 

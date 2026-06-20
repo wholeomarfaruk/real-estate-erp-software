@@ -94,6 +94,20 @@
             </div>
         </div>
         <div style="display:flex; gap:8px; flex-shrink:0;">
+            <a href="{{ route('admin.properties.sales.invoice', $sale) }}" target="_blank"
+                style="appearance:none; border:1px solid var(--accent); background:var(--accent); color:#fff;
+                       padding:7px 14px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
+                       display:inline-flex; align-items:center; gap:6px; text-decoration:none;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                Invoice
+            </a>
+            <a href="{{ route('admin.properties.sales.schedule', $sale) }}" target="_blank"
+                style="appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2);
+                       padding:7px 14px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
+                       display:inline-flex; align-items:center; gap:6px; text-decoration:none;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Schedule
+            </a>
             @can('property_sale.edit')
                 <button @click="drawerOpen = true"
                     style="appearance:none; border:1px solid var(--ink-1); background:var(--ink-1); color:var(--paper);
@@ -182,40 +196,99 @@
                     </div>
 
                 @else
-                    {{-- ── SALE ── --}}
-                    <div style="padding:16px 20px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                        <div style="background:var(--canvas); border-radius:8px; padding:12px 14px;">
-                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Unit Price</div>
-                            <div style="font:600 16px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->propertyUnit->price ?? $sale->propertyUnit->sell_price ?? 0, 2) }}</div>
-                        </div>
-                        <div style="background:var(--canvas); border-radius:8px; padding:12px 14px;">
-                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Down Payment</div>
-                            <div style="font:600 16px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->down_payment_amount ?? 0, 2) }}</div>
-                            @if($sale->down_payment_percentage)
-                                <span style="display:block; font:500 11px var(--mono); color:var(--ink-3); margin-top:2px;">({{ number_format($sale->down_payment_percentage, 2) }}%)</span>
+                    {{-- ── SALE (multi-unit) ── --}}
+                    @php
+                        // Prefer per-unit breakdown rows; fall back to the primary unit for
+                        // legacy sales created before multi-unit support.
+                        $units = $sale->saleUnits;
+                        if ($units->isEmpty() && $sale->propertyUnit) {
+                            $units = collect([(object) [
+                                'propertyUnit'    => $sale->propertyUnit,
+                                'sale_amount'     => $sale->sale_amount,
+                                'discount_amount' => $sale->discount_amount,
+                                'tax_amount'      => $sale->tax_amount,
+                                'net_amount'      => $sale->net_amount,
+                                'service_charge'  => $sale->propertyUnit->service_charge ?? 0,
+                                'utility_charge'  => $sale->propertyUnit->utility_charge ?? 0,
+                            ]]);
+                        }
+                        $serviceTotal = (float) $units->sum('service_charge');
+                        $utilityTotal = (float) $units->sum('utility_charge');
+                        $finalTotal   = (float) $sale->net_amount + $serviceTotal + $utilityTotal;
+                    @endphp
+
+                    {{-- Per-unit breakdown --}}
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                            <thead>
+                                <tr style="background:var(--canvas);">
+                                    <th style="padding:8px 16px; text-align:left;  font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Unit</th>
+                                    <th style="padding:8px 12px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Sale</th>
+                                    <th style="padding:8px 12px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--rj-fg); border-bottom:1px solid var(--rule);">Discount</th>
+                                    <th style="padding:8px 12px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Tax</th>
+                                    <th style="padding:8px 12px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Service</th>
+                                    <th style="padding:8px 12px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Utility</th>
+                                    <th style="padding:8px 16px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Net</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($units as $u)
+                                    @php $pu = $u->propertyUnit; @endphp
+                                    <tr style="border-bottom:1px solid var(--rule);">
+                                        <td style="padding:10px 16px;">
+                                            <div style="font:600 12.5px var(--mono); color:var(--accent);">{{ $pu?->effective_code ?? '—' }}</div>
+                                            <div style="font:11px 'Inter', sans-serif; color:var(--ink-3); margin-top:1px;">
+                                                {{ $pu?->property?->name ?? '—' }}@if($pu?->effective_type) · {{ ucfirst($pu->effective_type) }}@endif
+                                            </div>
+                                        </td>
+                                        <td style="padding:10px 12px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format((float) $u->sale_amount, 2) }}</td>
+                                        <td style="padding:10px 12px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; color:{{ (float) $u->discount_amount > 0 ? 'var(--rj-fg)' : 'var(--ink-3)' }};">{{ (float) $u->discount_amount > 0 ? '− ' : '' }}৳ {{ number_format((float) $u->discount_amount, 2) }}</td>
+                                        <td style="padding:10px 12px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format((float) $u->tax_amount, 2) }}</td>
+                                        <td style="padding:10px 12px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format((float) $u->service_charge, 2) }}</td>
+                                        <td style="padding:10px 12px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format((float) ($u->utility_charge ?? 0), 2) }}</td>
+                                        <td style="padding:10px 16px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:600;">৳ {{ number_format((float) $u->net_amount, 2) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                            @if($units->count() > 1)
+                                <tfoot>
+                                    <tr style="background:var(--canvas);">
+                                        <td style="padding:9px 16px; font:600 10px 'Inter', sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-2);">{{ $units->count() }} units · total</td>
+                                        <td style="padding:9px 12px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:600;">৳ {{ number_format((float) $sale->sale_amount, 2) }}</td>
+                                        <td style="padding:9px 12px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:600; color:var(--rj-fg);">− ৳ {{ number_format((float) $sale->discount_amount, 2) }}</td>
+                                        <td style="padding:9px 12px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:600;">৳ {{ number_format((float) $sale->tax_amount, 2) }}</td>
+                                        <td style="padding:9px 12px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:600;">৳ {{ number_format($serviceTotal, 2) }}</td>
+                                        <td style="padding:9px 12px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:600;">৳ {{ number_format($utilityTotal, 2) }}</td>
+                                        <td style="padding:9px 16px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:700; color:var(--accent);">৳ {{ number_format((float) $sale->net_amount, 2) }}</td>
+                                    </tr>
+                                </tfoot>
                             @endif
+                        </table>
+                    </div>
+
+                    {{-- Down payment + combined service + utility --}}
+                    <div style="border-top:1px solid var(--rule); display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:var(--rule);">
+                        <div style="background:var(--paper); padding:12px 20px;">
+                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px;">Down Payment</div>
+                            <div style="font:600 16px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->down_payment_amount ?? 0, 2) }}@if($sale->down_payment_percentage)<span style="font:500 11px var(--mono); color:var(--ink-3);"> ({{ number_format($sale->down_payment_percentage, 2) }}%)</span>@endif</div>
                         </div>
-                        <div style="background:var(--canvas); border-radius:8px; padding:12px 14px;">
-                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Service Charge</div>
-                            <div style="font:600 16px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->propertyUnit->service_charge ?? 0, 2) }}</div>
+                        <div style="background:var(--paper); padding:12px 20px;">
+                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px;">Service Charge</div>
+                            <div style="font:600 16px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($serviceTotal, 2) }}</div>
                         </div>
-                        <div style="background:var(--canvas); border-radius:8px; padding:12px 14px;">
-                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--rj-fg); margin-bottom:5px;">Discount</div>
-                            <div style="font:600 16px var(--mono); color:var(--rj-fg); font-variant-numeric:tabular-nums;">− ৳ {{ number_format($sale->discount_amount ?? 0, 2) }}</div>
-                        </div>
-                        <div style="background:var(--canvas); border-radius:8px; padding:12px 14px;">
-                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Tax</div>
-                            <div style="font:600 16px var(--mono); font-variant-numeric:tabular-nums;">+ ৳ {{ number_format($sale->tax_amount ?? 0, 2) }}</div>
+                        <div style="background:var(--paper); padding:12px 20px;">
+                            <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px;">Utility Charge</div>
+                            <div style="font:600 16px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($utilityTotal, 2) }}</div>
                         </div>
                     </div>
                     <div style="border-top:1px solid var(--rule);">
                         <div style="padding:10px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--rule);">
-                            <span style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Initial Commitment (Down Payment + Service Charge)</span>
-                            <span style="font:600 14px var(--mono); color:var(--ink-2); font-variant-numeric:tabular-nums;">৳ {{ number_format(($sale->down_payment_amount ?? 0) + ($sale->propertyUnit->service_charge ?? 0), 2) }}</span>
+                            <span style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Initial Commitment (Down Payment + Service + Utility)</span>
+                            <span style="font:600 14px var(--mono); color:var(--ink-2); font-variant-numeric:tabular-nums;">৳ {{ number_format(($sale->down_payment_amount ?? 0) + $serviceTotal + $utilityTotal, 2) }}</span>
                         </div>
                         <div style="padding:12px 20px; background:#F5F2E8; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2);">Final Amount (Unit Price + Service Charge − Discount + Tax)</span>
-                            <span style="font:700 20px var(--mono); color:var(--accent); font-variant-numeric:tabular-nums;">৳ {{ number_format(($sale->propertyUnit->price ?? $sale->propertyUnit->sell_price ?? 0) + ($sale->propertyUnit->service_charge ?? 0) - ($sale->discount_amount ?? 0) + ($sale->tax_amount ?? 0), 2) }}</span>
+                            <span style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2);">Final Amount (Net + Service + Utility)</span>
+                            <span style="font:700 20px var(--mono); color:var(--accent); font-variant-numeric:tabular-nums;">৳ {{ number_format($finalTotal, 2) }}</span>
                         </div>
                     </div>
                 @endif
@@ -418,13 +491,53 @@
         {{-- ── RIGHT COLUMN ── --}}
         <div style="display:flex; flex-direction:column; gap:16px;">
 
-            {{-- Property Unit --}}
+            {{-- Property Unit(s) --}}
+            @php
+                $unitStatusColors = [
+                    'available' => ['bg'=>'var(--av-bg)','fg'=>'var(--av-fg)'],
+                    'booked'    => ['bg'=>'var(--bk-bg)','fg'=>'var(--bk-fg)'],
+                    'sold'      => ['bg'=>'var(--rj-bg)','fg'=>'var(--rj-fg)'],
+                    'rented'    => ['bg'=>'var(--sd-bg)','fg'=>'var(--sd-fg)'],
+                ];
+                $saleUnitRows = $sale->saleUnits;
+                $isMultiUnit  = $saleUnitRows->count() > 1;
+            @endphp
             <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; overflow:hidden;">
-                <div style="padding:12px 16px; border-bottom:1px solid var(--rule); background:rgba(0,0,0,.012);">
-                    <h3 style="margin:0; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3);">Property Unit</h3>
+                <div style="padding:12px 16px; border-bottom:1px solid var(--rule); background:rgba(0,0,0,.012); display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3);">{{ $isMultiUnit ? 'Units in this invoice' : 'Property Unit' }}</h3>
+                    @if($isMultiUnit)
+                        <span style="font:600 10px var(--mono); color:var(--ink-3); background:var(--canvas); border-radius:999px; padding:2px 8px;">{{ $saleUnitRows->count() }}</span>
+                    @endif
                 </div>
-                <div style="padding:16px;">
-                    @if($sale->propertyUnit)
+
+                @if($isMultiUnit)
+                    {{-- Multiple units — compact list across (possibly different) properties --}}
+                    <div style="display:flex; flex-direction:column;">
+                        @foreach($saleUnitRows as $su)
+                            @php
+                                $pu = $su->propertyUnit;
+                                $uc = $unitStatusColors[$pu?->effective_status] ?? $unitStatusColors['available'];
+                            @endphp
+                            <div style="padding:12px 16px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+                                <div style="min-width:0;">
+                                    <div style="font:700 13px var(--mono); color:var(--accent);">{{ $pu?->effective_code ?? '—' }}</div>
+                                    <div style="font:500 12px 'Inter', sans-serif; color:var(--ink-1); margin-top:2px;">{{ $pu?->property?->name ?? '—' }}</div>
+                                    <div style="font:11px 'Inter', sans-serif; color:var(--ink-3); margin-top:1px;">
+                                        <span style="text-transform:capitalize;">{{ $pu?->effective_type ?? '—' }}</span>@if($pu?->effective_area) · {{ number_format($pu->effective_area, 0) }} sqft @endif@if($pu?->floor) · {{ $pu->floor->label }} @endif
+                                    </div>
+                                </div>
+                                <div style="text-align:right; flex-shrink:0;">
+                                    @if($pu)
+                                        <span style="padding:2px 8px; border-radius:999px; background:{{ $uc['bg'] }}; color:{{ $uc['fg'] }}; font:600 9.5px 'Inter', sans-serif; letter-spacing:.04em; text-transform:uppercase;">{{ ucfirst($pu->effective_status) }}</span>
+                                    @endif
+                                    <div style="font:600 12px var(--mono); color:var(--ink-1); margin-top:5px; font-variant-numeric:tabular-nums;">৳ {{ number_format((float) $su->net_amount, 2) }}</div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @elseif($sale->propertyUnit)
+                    {{-- Single unit — full detail --}}
+                    <div style="padding:16px;">
                         <div style="font:700 16px var(--mono); color:var(--accent); margin-bottom:4px;">{{ $sale->propertyUnit->effective_code }}</div>
                         <div style="font:500 13px 'Inter', sans-serif; color:var(--ink-1); margin-bottom:8px;">{{ $sale->propertyUnit->property?->name ?? '—' }}</div>
                         <div style="display:flex; flex-direction:column; gap:6px; font-size:12.5px;">
@@ -444,15 +557,7 @@
                                     <span style="font-weight:500;">{{ $sale->propertyUnit->floor->label }}</span>
                                 </div>
                             @endif
-                            @php
-                                $unitStatusColors = [
-                                    'available' => ['bg'=>'var(--av-bg)','fg'=>'var(--av-fg)'],
-                                    'booked'    => ['bg'=>'var(--bk-bg)','fg'=>'var(--bk-fg)'],
-                                    'sold'      => ['bg'=>'var(--rj-bg)','fg'=>'var(--rj-fg)'],
-                                    'rented'    => ['bg'=>'var(--sd-bg)','fg'=>'var(--sd-fg)'],
-                                ];
-                                $uc = $unitStatusColors[$sale->propertyUnit->effective_status] ?? $unitStatusColors['available'];
-                            @endphp
+                            @php $uc = $unitStatusColors[$sale->propertyUnit->effective_status] ?? $unitStatusColors['available']; @endphp
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <span style="color:var(--ink-3);">Unit Status</span>
                                 <span style="padding:2px 8px; border-radius:999px; background:{{ $uc['bg'] }}; color:{{ $uc['fg'] }}; font:600 10px 'Inter', sans-serif; letter-spacing:.04em; text-transform:uppercase;">
@@ -460,10 +565,10 @@
                                 </span>
                             </div>
                         </div>
-                    @else
-                        <div style="color:var(--ink-3); font-size:13px;">Unit not found.</div>
-                    @endif
-                </div>
+                    </div>
+                @else
+                    <div style="padding:16px; color:var(--ink-3); font-size:13px;">Unit not found.</div>
+                @endif
             </div>
 
             {{-- Customer --}}

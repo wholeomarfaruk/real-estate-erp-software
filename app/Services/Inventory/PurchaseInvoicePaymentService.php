@@ -4,9 +4,13 @@ namespace App\Services\Inventory;
 
 use App\Enums\Accounts\PaymentRequestSourceType;
 use App\Enums\Accounts\TransactionType;
+use App\Models\Account;
+use App\Models\AdvanceAdjustment;
 use App\Models\BankAccount;
 use App\Models\BankingPaymentRequest;
+use App\Models\PurchaseFund;
 use App\Models\PurchaseInvoice;
+use App\Models\Transaction;
 use App\Services\Accounts\LedgerService;
 use Illuminate\Support\Facades\DB;
 
@@ -65,6 +69,112 @@ class PurchaseInvoicePaymentService
             'status'          => 'pending',
             'requested_by'    => $userId,
         ]);
+    }
+
+    /**
+     * Settle part of a purchase invoice using an existing supplier advance.
+     *
+     * The advance money already left the company (the PurchaseFund was completed,
+     * which posted Dr Supplier Advance / Cr cash). Applying it to an invoice is an
+     * internal reclassification, so it posts immediately — no banking approval:
+     *
+     *   DR Accounts Payable   (invoice liability settled)
+     *   CR Supplier Advance   (ASSET-SUP-ADV asset reduced)
+     *
+     * One invoice payment consumes exactly one advance (fund). The whole remaining
+     * advance is applied, capped at the invoice's due amount so it never over-pays.
+     */
+    public function applyAdvance(PurchaseInvoice $invoice, int $fundId, int $userId): Transaction
+    {
+        return DB::transaction(function () use ($invoice, $fundId, $userId): Transaction {
+            $locked = PurchaseInvoice::lockForUpdate()->findOrFail($invoice->id);
+
+            if (! $locked->status->isPosted()) {
+                throw new \DomainException('Invoice is not in a posted state.');
+            }
+
+            $due = round((float) $locked->due_amount, 3);
+            if ($due <= 0) {
+                throw new \DomainException('This invoice is already fully paid.');
+            }
+
+            // The fund must be a completed advance for one of this supplier's POs.
+            $fund = PurchaseFund::query()
+                ->where('id', $fundId)
+                ->where('status', 'completed')
+                ->whereNotNull('transaction_id')
+                ->with('purchaseOrder:id,supplier_id,po_no')
+                ->first();
+
+            if (! $fund) {
+                throw new \DomainException('Selected advance is not available.');
+            }
+
+            if ((int) $fund->purchaseOrder?->supplier_id !== (int) $locked->supplier_id) {
+                throw new \DomainException('The advance belongs to a different supplier.');
+            }
+
+            $advanceTxn = Transaction::lockForUpdate()->findOrFail($fund->transaction_id);
+            $remaining  = round($advanceTxn->remainingAdvance(), 3);
+
+            if ($remaining <= 0) {
+                throw new \DomainException('This advance has no remaining balance.');
+            }
+
+            // Apply the whole remaining advance, but never more than what is due.
+            $amount = round(min($remaining, $due), 3);
+            if ($amount <= 0) {
+                throw new \DomainException('Nothing to apply from this advance.');
+            }
+
+            $payableAccountId = (int) $locked->accounts_payable_account_id;
+            if ($payableAccountId <= 0) {
+                throw new \DomainException('Invoice has no accounts payable account to settle against.');
+            }
+
+            $advanceAccountId = (int) Account::query()->where('code', 'ASSET-SUP-ADV')->value('id');
+            if ($advanceAccountId <= 0) {
+                throw new \DomainException('Supplier Advance account (ASSET-SUP-ADV) not found.');
+            }
+
+            $datetime = now()->format('Y-m-d H:i:s');
+            $notes    = 'Purchase Invoice #' . $locked->invoice_no
+                . ' – settled from advance (PO# ' . ($fund->purchaseOrder?->po_no ?? '—') . ')';
+
+            // DR payable (settle liability) / CR supplier advance (asset reduces)
+            $txn = $this->ledger->post(
+                [
+                    'datetime'       => $datetime,
+                    'type'           => TransactionType::PURCHASE_INVOICE->value,
+                    'reference_type' => 'purchase_invoice',
+                    'reference_id'   => $locked->id,
+                    'notes'          => $notes,
+                    'created_by'     => $userId,
+                ],
+                [
+                    ['account_id' => $payableAccountId, 'debit' => $amount, 'credit' => 0,       'notes' => 'Accounts payable'],
+                    ['account_id' => $advanceAccountId, 'debit' => 0,       'credit' => $amount, 'notes' => 'Supplier advance applied'],
+                ],
+            );
+
+            // Keep Transaction::remainingAdvance() accurate.
+            AdvanceAdjustment::query()->create([
+                'advance_transaction_id' => $advanceTxn->id,
+                'adjust_transaction_id'  => $txn->id,
+                'amount'                 => $amount,
+                'notes'                  => 'Applied to Invoice #' . $locked->invoice_no,
+                'created_by'             => $userId,
+            ]);
+
+            // Track total advance offset on the invoice.
+            $locked->advance_adjusted_amount = round((float) $locked->advance_adjusted_amount + $amount, 3);
+            $locked->save();
+
+            // Re-sync paid/due/status — the CR above (≠ AP account) counts as paid.
+            app(PurchaseInvoiceService::class)->syncPaymentStatus($locked);
+
+            return $txn;
+        });
     }
 
     /**

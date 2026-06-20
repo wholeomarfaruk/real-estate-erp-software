@@ -30,7 +30,9 @@ class PropertyShow extends Component
     public string $dStatus        = 'available';
     public string $dArea          = '';
     public string $dPrice         = '';
+    public string $dRatePerSqft   = '';
     public string $dServiceCharge      = '';
+    public string $dUtilityCharge      = '';
     public string $dFacing             = '';
     public string $dNotes              = '';
     public string $dPurpose            = '';
@@ -58,6 +60,38 @@ class PropertyShow extends Component
         $this->loadProperty();
         $this->documents       = $this->property->documents ?? [];
         $this->propertyImages  = $this->property->property_images ?? [];
+    }
+
+    // ── Unit price ⇄ rate/sqft auto-calc (two-way) ──────────────────────────────
+    public function updatedDRatePerSqft(): void
+    {
+        $area = (float) $this->dArea;
+        $rate = (float) $this->dRatePerSqft;
+        if ($area > 0 && $rate > 0) {
+            $this->dPrice = (string) round($rate * $area, 3);
+        }
+    }
+
+    public function updatedDPrice(): void
+    {
+        $area = (float) $this->dArea;
+        if ($area > 0 && (float) $this->dPrice > 0) {
+            $this->dRatePerSqft = (string) round((float) $this->dPrice / $area, 3);
+        }
+    }
+
+    public function updatedDArea(): void
+    {
+        $area = (float) $this->dArea;
+        if ($area <= 0) {
+            return;
+        }
+        // Rate is the source of truth when set; otherwise back-fill rate from price.
+        if ((float) $this->dRatePerSqft > 0) {
+            $this->dPrice = (string) round((float) $this->dRatePerSqft * $area, 3);
+        } elseif ((float) $this->dPrice > 0) {
+            $this->dRatePerSqft = (string) round((float) $this->dPrice / $area, 3);
+        }
     }
 
     // ── Reload ────────────────────────────────────────────────────────────────
@@ -228,7 +262,9 @@ class PropertyShow extends Component
         $this->dStatus         = $unit->effective_status;
         $this->dArea           = $unit->effective_area ?: '';
         $this->dPrice          = $unit->effective_price ?: '';
+        $this->dRatePerSqft    = $unit->rate_per_sqft ? (string) (float) $unit->rate_per_sqft : '';
         $this->dServiceCharge  = $unit->service_charge ?? '';
+        $this->dUtilityCharge  = $unit->utility_charge ?? '';
         $this->dFacing         = $unit->facing ?? '';
         $this->dNotes          = $unit->notes ?? '';
         $this->dPurpose        = $unit->purpose ?? '';
@@ -261,7 +297,9 @@ class PropertyShow extends Component
             'status'            => $this->dStatus,
             'area'              => $this->dArea !== '' ? $this->dArea : null,
             'price'             => $this->dPrice !== '' ? $this->dPrice : 0,
+            'rate_per_sqft'     => $this->dRatePerSqft !== '' ? $this->dRatePerSqft : 0,
             'service_charge'    => $this->dServiceCharge !== '' ? $this->dServiceCharge : 0,
+            'utility_charge'    => $this->dUtilityCharge !== '' ? $this->dUtilityCharge : 0,
             'facing'                   => $this->dFacing ?: null,
             'notes'                    => $this->dNotes ?: null,
             'purpose'                  => $this->dPurpose ?: null,
@@ -399,7 +437,7 @@ class PropertyShow extends Component
         $this->dFloorId = null;
         $this->dCode = $this->dType = '';
         $this->dStatus = 'available';
-        $this->dArea = $this->dPrice = $this->dServiceCharge = $this->dFacing = $this->dNotes = '';
+        $this->dArea = $this->dPrice = $this->dRatePerSqft = $this->dServiceCharge = $this->dUtilityCharge = $this->dFacing = $this->dNotes = '';
         $this->dPurpose = $this->dDownPaymentPct = $this->dDepositAmount = '';
     }
 }

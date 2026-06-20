@@ -4,6 +4,7 @@ namespace App\Livewire\Suppliers\Show;
 
 use App\Enums\Accounts\EntryMethod;
 use App\Models\Account;
+use App\Models\PurchaseFund;
 use App\Models\PurchaseInvoice;
 use App\Models\Supplier;
 use App\Services\Inventory\PurchaseInvoicePaymentService;
@@ -25,6 +26,11 @@ class Invoices extends Component
     public ?int $payInvoiceId    = null;
     public string $payAmount     = '';
     public string $payDate       = '';
+
+    // Payment mode: 'request' = new cash/bank request (banking approval),
+    //               'advance' = settle from an existing supplier advance.
+    public string $payMode  = 'request';
+    public ?int   $payFundId = null;   // selected PurchaseFund (advance) id
     public string $payMethod     = 'bank';
     public string $payReference  = '';
     public string $payNotes      = '';
@@ -118,6 +124,65 @@ class Invoices extends Component
         return EntryMethod::cases();
     }
 
+    /**
+     * Completed supplier advances (PurchaseFunds) for this supplier's POs that
+     * still have a remaining, unadjusted balance — eligible to settle invoices.
+     *
+     * @return \Illuminate\Support\Collection<int, array{id:int, po_no:?string, remaining:float, release_date:?string}>
+     */
+    #[Computed]
+    public function availableAdvances()
+    {
+        return PurchaseFund::query()
+            ->where('status', 'completed')
+            ->whereNotNull('transaction_id')
+            ->whereHas('purchaseOrder', fn ($q) => $q->where('supplier_id', $this->supplier->id))
+            ->with(['purchaseOrder:id,po_no', 'transaction:id,type', 'transaction.lines:id,transaction_id,debit,credit'])
+            ->latest('id')
+            ->get()
+            ->filter(fn ($fund) => $fund->transaction && $fund->transaction->remainingAdvance() > 0)
+            ->map(fn ($fund) => [
+                'id'           => $fund->id,
+                'po_no'        => $fund->purchaseOrder?->po_no,
+                'remaining'    => round((float) $fund->transaction->remainingAdvance(), 2),
+                'release_date' => $fund->release_date?->format('Y-m-d'),
+            ])
+            ->values();
+    }
+
+    /** Remaining balance of the currently selected advance (0 if none). */
+    #[Computed]
+    public function selectedAdvanceRemaining(): float
+    {
+        if (! $this->payFundId) {
+            return 0.0;
+        }
+
+        $fund = $this->availableAdvances->firstWhere('id', $this->payFundId);
+
+        return $fund ? (float) $fund['remaining'] : 0.0;
+    }
+
+    /** Amount that would actually be applied from the advance (capped at due). */
+    #[Computed]
+    public function advanceApplyAmount(): float
+    {
+        $due = (float) ($this->activeInvoice?->due_amount ?? 0);
+
+        return round(min($this->selectedAdvanceRemaining, $due), 2);
+    }
+
+    public function setPayMode(string $mode): void
+    {
+        $this->payMode = in_array($mode, ['request', 'advance'], true) ? $mode : 'request';
+        $this->resetErrorBag();
+    }
+
+    public function selectAdvance(int $fundId): void
+    {
+        $this->payFundId = $fundId;
+    }
+
     public function openPay(int $id): void
     {
         $inv = PurchaseInvoice::find($id);
@@ -139,14 +204,18 @@ class Invoices extends Component
         $this->payName          = '';
         $this->payPhone         = '';
         $this->payAttachmentIds = [];
-        unset($this->activeInvoice);
+        $this->payMode          = 'request';
+        $this->payFundId        = null;
+        unset($this->activeInvoice, $this->availableAdvances);
         $this->dispatch('pay-modal-open');
     }
 
     public function closePay(): void
     {
         $this->payInvoiceId = null;
-        unset($this->activeInvoice);
+        $this->payMode      = 'request';
+        $this->payFundId    = null;
+        unset($this->activeInvoice, $this->availableAdvances);
         $this->dispatch('pay-modal-close');
     }
 
@@ -214,6 +283,42 @@ class Invoices extends Component
 
         } catch (\DomainException $e) {
             $this->addError('payAmount', $e->getMessage());
+        }
+    }
+
+    /**
+     * Settle the invoice from a selected supplier advance (one advance, applied
+     * in full up to the due amount). Posts immediately — no banking approval.
+     */
+    public function applyAdvancePayment(): void
+    {
+        if (! $this->payFundId) {
+            $this->addError('payFundId', 'Select an advance to apply.');
+            return;
+        }
+
+        $invoice = PurchaseInvoice::find($this->payInvoiceId);
+
+        if (! $invoice) {
+            $this->addError('payFundId', 'Invoice not found.');
+            return;
+        }
+
+        if ((float) $invoice->due_amount <= 0) {
+            $this->addError('payFundId', 'This invoice is already fully paid.');
+            return;
+        }
+
+        try {
+            app(PurchaseInvoicePaymentService::class)
+                ->applyAdvance($invoice, (int) $this->payFundId, (int) Auth::id());
+
+            $this->dispatch('toast', ['type' => 'success', 'message' => 'Advance applied to the invoice.']);
+            $this->closePay();
+            unset($this->invoices, $this->stats);
+
+        } catch (\DomainException $e) {
+            $this->addError('payFundId', $e->getMessage());
         }
     }
 

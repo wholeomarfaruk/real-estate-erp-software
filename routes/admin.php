@@ -398,6 +398,8 @@ Route::get('/site-engineers', App\Livewire\Admin\SiteEngineer\Engineer::class)->
 Route::get('/properties', App\Livewire\Admin\Properties\PropertyCatalog::class)->name('properties.index');
 Route::get('/properties/sales', App\Livewire\Admin\Properties\PropertySaleList::class)->name('properties.sales.index');
 Route::get('/properties/sales/create', App\Livewire\Admin\Properties\PropertySaleCreate::class)->name('properties.sales.create');
+Route::get('/properties/sales/{sale}/invoice', [App\Http\Controllers\Admin\Property\PropertySaleInvoiceController::class, 'show'])->name('properties.sales.invoice');
+Route::get('/properties/sales/{sale}/schedule', [App\Http\Controllers\Admin\Property\PropertySaleInvoiceController::class, 'schedule'])->name('properties.sales.schedule');
 Route::get('/properties/sales/{sale}', App\Livewire\Admin\Properties\PropertySaleDetails::class)->name('properties.sales.show');
 Route::get('/properties/{property}', App\Livewire\Admin\Properties\PropertyShow::class)->name('properties.show');
 Route::get('/properties/sales/receipts/{transaction}', [ReceiptController::class, 'show'])->name('properties.receipts.show');

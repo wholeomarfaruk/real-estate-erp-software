@@ -122,20 +122,80 @@
                 </div>
 
                 @if ($isDue)
+                    @php $advances = $this->availableAdvances; @endphp
                     <section class="section">
                         <h4>
                             <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-                            New payment request
+                            {{ $payMode === 'advance' ? 'Pay from supplier advance' : 'New payment request' }}
                             @if ($pendingCount > 0)
                                 <span style="margin-left:8px; font:400 11px 'Inter'; color:var(--amber); background:var(--amber-bg,#fffbeb); border:1px solid var(--amber-border,#fcd34d); border-radius:20px; padding:2px 8px;">
                                     {{ $pendingCount }} pending
                                 </span>
                             @endif
                         </h4>
+
+                        {{-- Mode toggle: cash/bank request  vs  apply an existing advance --}}
+                        <div class="seg" style="display:inline-flex; gap:4px; padding:3px; margin-bottom:14px; background:var(--surf-2,#f1f5f9); border:1px solid var(--line,#e2e8f0); border-radius:10px;">
+                            <button type="button" wire:click="setPayMode('request')"
+                                style="font:600 12px 'Inter'; padding:6px 12px; border-radius:7px; border:0; cursor:pointer; {{ $payMode === 'request' ? 'background:#fff; color:var(--ink-1); box-shadow:0 1px 2px rgba(0,0,0,.06);' : 'background:transparent; color:var(--ink-3);' }}">
+                                New payment request
+                            </button>
+                            <button type="button" wire:click="setPayMode('advance')"
+                                style="font:600 12px 'Inter'; padding:6px 12px; border-radius:7px; border:0; cursor:pointer; {{ $payMode === 'advance' ? 'background:#fff; color:var(--ink-1); box-shadow:0 1px 2px rgba(0,0,0,.06);' : 'background:transparent; color:var(--ink-3);' }}">
+                                From advance
+                                @if ($advances->isNotEmpty())
+                                    <span style="margin-left:5px; font:600 10px 'Inter'; background:var(--av-bg,#ecfdf5); color:var(--av-fg,#059669); border-radius:10px; padding:1px 6px;">{{ $advances->count() }}</span>
+                                @endif
+                            </button>
+                        </div>
+
+                        @if ($payMode === 'advance')
+                            {{-- ADVANCE MODE: pick one advance; amount is fixed (not editable) --}}
+                            @if ($advances->isEmpty())
+                                <div class="pmt-empty">No supplier advance available to apply.</div>
+                            @else
+                                <div class="pmt-list" style="margin-bottom:14px;">
+                                    @foreach ($advances as $adv)
+                                        <label class="pmt-item" wire:key="adv-{{ $adv['id'] }}"
+                                            style="cursor:pointer; align-items:center; {{ $payFundId === $adv['id'] ? 'outline:2px solid var(--av-fg,#059669); outline-offset:-1px; border-radius:10px;' : '' }}">
+                                            <input type="radio" name="payFundId" value="{{ $adv['id'] }}"
+                                                wire:model="payFundId" wire:click="selectAdvance({{ $adv['id'] }})"
+                                                style="margin:0 4px 0 2px; accent-color:var(--av-fg,#059669);" />
+                                            <div class="pmt-main">
+                                                <div class="t">
+                                                    {{ $full($adv['remaining']) }}
+                                                    @if ($adv['po_no']) · PO {{ $adv['po_no'] }} @endif
+                                                    <span class="pill partial" style="font-size:10px; padding:2px 8px; vertical-align:middle; margin-left:6px;">
+                                                        <span class="dot"></span>Available advance
+                                                    </span>
+                                                </div>
+                                                <div class="s">
+                                                    Advance #{{ $adv['id'] }}
+                                                    @if ($adv['release_date']) · Released {{ $adv['release_date'] }} @endif
+                                                </div>
+                                            </div>
+                                            <div class="pmt-amt"><div class="a">{{ $full($adv['remaining']) }}</div></div>
+                                        </label>
+                                    @endforeach
+                                </div>
+                                @error('payFundId') <div style="margin-bottom:10px;font:500 11px 'Inter';color:var(--rj-fg);">{{ $message }}</div> @enderror
+
+                                <div class="grid-2m">
+                                    <div>
+                                        <label class="field-label">Amount to apply</label>
+                                        <input class="input mono" value="{{ $payFundId ? $full($this->advanceApplyAmount) : '' }}"
+                                               placeholder="Select an advance" disabled />
+                                        <div style="margin-top:5px;font:400 11px 'Inter';color:var(--muted,#6b7280);">
+                                            The full remaining advance is applied (capped at the balance due of {{ $full($inv->due_amount) }}). Not editable.
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        @else
                         <div class="grid-2m">
                             <div>
                                 <label class="field-label">Amount <span style="color:var(--rj-fg)">*</span></label>
-                                <input class="input mono" wire:model="payAmount" placeholder="0" />
+                                <input class="input mono" wire:model.blur="payAmount" placeholder="0" />
                                 @error('payAmount') <div style="margin-top:5px;font:500 11px 'Inter';color:var(--rj-fg);">{{ $message }}</div> @enderror
                                 <div class="quick-amts">
                                     <button type="button" wire:click="fillFull">Full due · {{ $full($inv->due_amount) }}</button>
@@ -209,6 +269,7 @@
                                 />
                             </div>
                         </div>
+                        @endif
                     </section>
                 @endif
 
@@ -287,7 +348,11 @@
             <footer class="modal-foot">
                 <span class="note">
                     @if ($isDue)
-                        Payment request goes to Banking for approval → release → completion
+                        @if ($payMode === 'advance')
+                            Applying an advance settles the invoice immediately — no banking approval needed
+                        @else
+                            Payment request goes to Banking for approval → release → completion
+                        @endif
                     @else
                         This invoice is fully settled
                     @endif
@@ -295,10 +360,18 @@
                 <div class="right">
                     <button class="btn" wire:click="closePay">{{ $isDue ? 'Cancel' : 'Close' }}</button>
                     @if ($isDue)
-                        <button class="btn btn-primary" wire:click="recordPayment" wire:loading.attr="disabled" wire:target="recordPayment">
-                            <span wire:loading.remove wire:target="recordPayment">Send payment request</span>
-                            <span wire:loading wire:target="recordPayment">Sending…</span>
-                        </button>
+                        @if ($payMode === 'advance')
+                            <button class="btn btn-primary" wire:click="applyAdvancePayment" wire:loading.attr="disabled" wire:target="applyAdvancePayment"
+                                @disabled(! $payFundId)>
+                                <span wire:loading.remove wire:target="applyAdvancePayment">Apply advance</span>
+                                <span wire:loading wire:target="applyAdvancePayment">Applying…</span>
+                            </button>
+                        @else
+                            <button class="btn btn-primary" wire:click="recordPayment" wire:loading.attr="disabled" wire:target="recordPayment">
+                                <span wire:loading.remove wire:target="recordPayment">Send payment request</span>
+                                <span wire:loading wire:target="recordPayment">Sending…</span>
+                            </button>
+                        @endif
                     @endif
                 </div>
             </footer>

@@ -13,16 +13,20 @@ class ScheduleGeneratorService
      * Generate all schedules for a property sale immediately after creation.
      * Called explicitly from Livewire – NOT from observer – to avoid double fire.
      */
-    public function generateForSale(PropertySale $sale, ?float $serviceChargeOverride = null): void
-    {
+    public function generateForSale(
+        PropertySale $sale,
+        ?float $serviceChargeOverride = null,
+        ?float $utilityChargeOverride = null,
+    ): void {
         if (!$sale->relationLoaded('propertyUnit')) {
             $sale->load('propertyUnit');
         }
 
         $serviceCharge = $serviceChargeOverride ?? (float) ($sale->propertyUnit?->service_charge ?? 0);
+        $utilityCharge = $utilityChargeOverride ?? (float) ($sale->propertyUnit?->utility_charge ?? 0);
 
         if ($sale->sale_type === 'sale') {
-            $this->generateSaleSchedules($sale, $serviceCharge);
+            $this->generateSaleSchedules($sale, $serviceCharge, $utilityCharge);
         } elseif ($sale->sale_type === 'rent') {
             $this->generateRentSchedules($sale, $serviceCharge);
         }
@@ -43,7 +47,7 @@ class ScheduleGeneratorService
 
     // ── Sale type generation ──────────────────────────────────────────────────
 
-    private function generateSaleSchedules(PropertySale $sale, float $serviceCharge): void
+    private function generateSaleSchedules(PropertySale $sale, float $serviceCharge, float $utilityCharge = 0): void
     {
         // Down payment
         if ($sale->down_payment_amount > 0) {
@@ -74,6 +78,22 @@ class ScheduleGeneratorService
                 'status'            => 'pending',
                 'is_auto_generated' => true,
                 'remarks'           => 'Service charge',
+            ]);
+        }
+
+        // Utility charge
+        if ($utilityCharge > 0) {
+            PaymentSchedule::create([
+                'property_sale_id'  => $sale->id,
+                'payment_category'  => PaymentCategory::EXTRA_CHARGE->value,
+                'sequence_no'       => null,
+                'due_date'          => $sale->sale_date ?? $sale->contract_date ?? today(),
+                'amount'            => $utilityCharge,
+                'paid_amount'       => 0,
+                'due_amount'        => $utilityCharge,
+                'status'            => 'pending',
+                'is_auto_generated' => true,
+                'remarks'           => 'Utility charge',
             ]);
         }
 

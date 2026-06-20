@@ -7,8 +7,8 @@
     <div class="mini-stats">
         <div class="mini-stat"><div class="l">Advances paid</div><div class="v">{{ $this->stats['total'] }}</div></div>
         <div class="mini-stat"><div class="l">Total advanced</div><div class="v">{{ $full($this->stats['total_amount']) }}</div></div>
-        <div class="mini-stat"><div class="l">Status</div><div class="v green">All recorded</div></div>
-        <div class="mini-stat"><div class="l">Open advance</div><div class="v">৳ 0</div></div>
+        <div class="mini-stat"><div class="l">Adjusted</div><div class="v">{{ $full(($this->stats['total_amount'] ?? 0) - ($this->stats['available_amount'] ?? 0)) }}</div></div>
+        <div class="mini-stat"><div class="l">Open advance</div><div class="v {{ ($this->stats['available_amount'] ?? 0) > 0 ? 'green' : '' }}">{{ $full($this->stats['available_amount'] ?? 0) }}</div></div>
     </div>
 
     <div class="card">
@@ -24,24 +24,26 @@
                 <thead>
                     <tr>
                         <th>Advance ref</th><th>Date</th><th>Against PO</th>
-                        <th class="num">Amount</th><th>Method</th><th>Released by</th>
+                        <th class="num">Amount</th><th class="num">Adjusted</th><th class="num">Available</th>
+                        <th>Method</th><th>Released by</th>
                         <th>Status</th><th class="num">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($this->advances as $r)
                         @php
-                            $pillClass = match($r->status) {
-                                'completed' => 'adjusted',
-                                'pending'   => 'ordered',
-                                'rejected'  => 'cancelled',
-                                default     => 'draft',
-                            };
-                            $statusLabel = match($r->status) {
-                                'completed' => 'Completed',
-                                'pending'   => 'Pending',
-                                'rejected'  => 'Rejected',
-                                default     => ucfirst($r->status ?? '—'),
+                            $remaining = $r->remaining;          // 0 unless completed
+                            $adjusted  = $r->adjusted;           // amount already consumed
+                            $isUsed    = $r->status === 'completed' && $remaining <= 0;
+                            $isPartial = $r->status === 'completed' && $adjusted > 0 && $remaining > 0;
+
+                            [$pillClass, $statusLabel] = match (true) {
+                                $r->status === 'pending'  => ['ordered',   'Pending'],
+                                $r->status === 'rejected' => ['cancelled', 'Rejected'],
+                                $isUsed                   => ['adjusted',  'Fully used'],
+                                $isPartial                => ['partial',   'Partly used'],
+                                $r->status === 'completed'=> ['paid',      'Available'],
+                                default                   => ['draft',     ucfirst($r->status ?? '—')],
                             };
                         @endphp
                         <tr wire:key="adv-{{ $r->id }}">
@@ -49,6 +51,10 @@
                             <td style="text-align:left;">{{ $r->release_date?->format('Y-m-d') }}</td>
                             <td><span class="t-sub">{{ $r->purchaseOrder?->po_no ?? '—' }}</span></td>
                             <td class="num t-strong">{{ $full($r->amount) }}</td>
+                            <td class="num">{{ $r->status === 'completed' && $adjusted > 0 ? $full($adjusted) : '—' }}</td>
+                            <td class="num {{ $r->status === 'completed' && $remaining > 0 ? 'amt-paid' : '' }}">
+                                {{ $r->status === 'completed' ? $full($remaining) : '—' }}
+                            </td>
                             <td>{{ $r->method ? ucfirst(str_replace('_', ' ', $r->method)) : '—' }}</td>
                             <td>{{ $r->releaser?->name ?? '—' }}</td>
                             <td><span class="pill {{ $pillClass }}"><span class="dot"></span>{{ $statusLabel }}</span></td>
@@ -61,7 +67,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" style="text-align:center; padding:32px; color:var(--ink-3);">No advance payments found.</td></tr>
+                        <tr><td colspan="10" style="text-align:center; padding:32px; color:var(--ink-3);">No advance payments found.</td></tr>
                     @endforelse
                 </tbody>
             </table>

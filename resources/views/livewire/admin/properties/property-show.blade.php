@@ -690,22 +690,31 @@
             </div>
         </div>
 
-        {{-- area + price --}}
-        <div class="grid grid-cols-2 gap-3">
+        {{-- area + rate/sqft + price (price ⇄ rate auto-calc with area) --}}
+        <div class="grid grid-cols-3 gap-3">
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color:var(--ink-3)">Area (sft)</label>
-                <input wire:model="dArea" :disabled="!editMode" type="number" step="0.01" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)" placeholder="0.00">
+                <input wire:model.live.debounce.400ms="dArea" :disabled="!editMode" type="number" step="0.01" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)" placeholder="0.00">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color:var(--ink-3)">Rate / sft (৳)</label>
+                <input wire:model.live.debounce.400ms="dRatePerSqft" :disabled="!editMode" type="number" step="0.001" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)" placeholder="0">
             </div>
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color:var(--ink-3)">Price (৳)</label>
-                <input wire:model="dPrice" :disabled="!editMode" type="number" step="0.001" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)" placeholder="0">
+                <input wire:model.live.debounce.400ms="dPrice" :disabled="!editMode" type="number" step="0.001" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)" placeholder="0">
             </div>
         </div>
+        <p class="text-xs" style="color:var(--ink-3); margin-top:-6px;">Set area, then enter rate/sft or price — the other fills automatically.</p>
 
         <div class="grid grid-cols-2 gap-3">
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color:var(--ink-3)">Service Charge/mo</label>
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color:var(--ink-3)">Service Charge</label>
                 <input wire:model="dServiceCharge" :disabled="!editMode" type="number" step="0.001" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)" placeholder="0">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color:var(--ink-3)">Utility Charge</label>
+                <input wire:model="dUtilityCharge" :disabled="!editMode" type="number" step="0.001" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)" placeholder="0">
             </div>
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color:var(--ink-3)">Facing</label>

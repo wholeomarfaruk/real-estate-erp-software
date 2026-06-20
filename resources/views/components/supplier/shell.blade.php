@@ -12,7 +12,14 @@
 
     $totalPurchased = (float) $supplier->purchaseInvoices()->sum('total_amount');
     $totalDue       = (float) $supplier->purchaseInvoices()->sum('due_amount');
-    $totalAdvance   = (float) $supplier->purchaseFunds()->whereIn('status', ['pending', 'completed'])->sum('amount');
+    // Advance still "held" = completed funds' remaining balance, net of anything
+    // already applied to invoices or refunded (a fully-used advance counts as 0).
+    $totalAdvance   = (float) $supplier->purchaseFunds()
+        ->where('status', 'completed')
+        ->whereNotNull('transaction_id')
+        ->with(['transaction:id,type', 'transaction.lines:id,transaction_id,debit,credit', 'transaction.advanceAdjustmentsGiven:id,advance_transaction_id,amount'])
+        ->get()
+        ->sum(fn ($fund) => $fund->remaining);
     $invoiceCount   = $supplier->purchase_invoices_count ?? $supplier->purchaseInvoices()->count();
     $orderCount     = $supplier->purchase_orders_count  ?? $supplier->purchaseOrders()->count();
     $advanceCount   = $supplier->purchase_funds_count   ?? $supplier->purchaseFunds()->count();

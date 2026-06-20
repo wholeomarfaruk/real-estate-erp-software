@@ -74,4 +74,32 @@ class PurchaseFund extends Model
     {
         return $this->morphOne(BankingPaymentRequest::class, 'sourceable');
     }
+
+    /**
+     * Remaining (unadjusted) advance still available to apply against invoices.
+     *
+     * Only a completed advance has real money out; its remaining balance is the
+     * advance debit minus everything already adjusted (invoice settlements,
+     * refunds). Non-completed funds hold nothing.
+     */
+    public function getRemainingAttribute(): float
+    {
+        if ($this->status !== 'completed') {
+            return 0.0;
+        }
+
+        return $this->transaction
+            ? round($this->transaction->remainingAdvance(), 2)
+            : round((float) $this->amount, 2);
+    }
+
+    /** Amount of this advance already adjusted/consumed (0 if fully available). */
+    public function getAdjustedAttribute(): float
+    {
+        if ($this->status !== 'completed') {
+            return 0.0;
+        }
+
+        return round((float) $this->amount - $this->remaining, 2);
+    }
 }

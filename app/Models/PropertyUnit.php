@@ -38,7 +38,9 @@ class PropertyUnit extends Model
         'status',
         'area',
         'price',
+        'rate_per_sqft',
         'service_charge',
+        'utility_charge',
         'sort_order',
         'extra_data',
     ];
@@ -51,7 +53,9 @@ class PropertyUnit extends Model
         'rent_amount'    => 'decimal:2',
         'area'           => 'decimal:2',
         'price'          => 'decimal:3',
+        'rate_per_sqft'  => 'decimal:3',
         'service_charge' => 'decimal:3',
+        'utility_charge' => 'decimal:3',
         'sort_order'     => 'integer',
         'extra_data'     => 'array',
     ];

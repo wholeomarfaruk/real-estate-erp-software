@@ -3,6 +3,12 @@
 
     $navItems = [
         [
+            'key'   => 'chart-of-accounts',
+            'route' => 'admin.accounts.chart-of-accounts.index',
+            'label' => 'Chart of Accounts',
+            'icon'  => '<path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>',
+        ],
+        [
             'key'   => 'payment-requests',
             'route' => 'admin.accounts.banking.index',
             'label' => 'Payment Requests',

@@ -57,7 +57,25 @@
       "Bash(php -l app/Livewire/Suppliers/Show/Invoices.php)",
       "Bash(php -l app/Services/Inventory/PurchaseInvoicePaymentService.php)",
       "Bash(php -l app/Models/BankingPaymentRequest.php)",
-      "Bash(grep -n '\\\\$isDue\\\\|@endif\\\\|openPay\\\\|Pay now\\\\|Pay Now\\\\|paynow\\\\|@if \\(\\\\$isDue\\)\\\\|This invoice is\\\\|fully paid\\\\|@else' resources/views/livewire/suppliers/show/invoices.blade.php)"
+      "Bash(grep -n '\\\\$isDue\\\\|@endif\\\\|openPay\\\\|Pay now\\\\|Pay Now\\\\|paynow\\\\|@if \\(\\\\$isDue\\)\\\\|This invoice is\\\\|fully paid\\\\|@else' resources/views/livewire/suppliers/show/invoices.blade.php)",
+      "Bash(grep -n \"use App\\\\\\\\\\\\\\\\Services\\\\\\\\\\\\\\\\Inventory\\\\\\\\\\\\\\\\PurchaseInvoiceService\\\\|PurchaseInvoiceService\" app/Services/Inventory/PurchaseInvoicePaymentService.php)",
+      "Bash(php -l app/Models/PurchaseFund.php)",
+      "Bash(php -l app/Livewire/Suppliers/Show/Advances.php)",
+      "Bash(php -l app/Livewire/Admin/Properties/PropertySaleCreate.php)",
+      "Bash(php -l app/Models/PropertySaleUnit.php)",
+      "Bash(php -l app/Models/PropertySale.php)",
+      "Bash(php -l database/migrations/2026_06_21_000001_create_property_sale_units_table.php)",
+      "Bash(grep -rln \"Barryvdh\\\\\\\\\\\\\\\\DomPDF\\\\|Pdf::loadView\\\\|PDF::loadView\\\\|->stream\\(\\\\|->download\\(\" app/)",
+      "Bash(php -l app/Http/Controllers/Admin/Property/PropertySaleInvoiceController.php)",
+      "Bash(php -d memory_limit=512M artisan tinker '--execute= *)",
+      "Bash(php -l app/Services/Property/ScheduleGeneratorService.php)",
+      "Bash(php -l app/Livewire/Admin/Properties/PropertyShow.php)",
+      "Bash(php -l app/Models/PropertyUnit.php)",
+      "Bash(sed -n '/public function openEditModal/,/^    }/p' app/Livewire/Admin/Accounts/Account/AccountList.php)",
+      "Bash(sed -n '/protected function resetForm/,/^    }/p' app/Livewire/Admin/Accounts/Account/AccountList.php)",
+      "Bash(sed -n '/public static function options/,/^    }/p' app/Enums/Accounts/AccountGroupType.php)",
+      "Bash(grep -n 'as $group\\\\|$group' resources/views/livewire/admin/accounts/account/account-list.blade.php)",
+      "Bash(grep -nE \"as \\\\\\\\\\\\$[a-z]+\\\\\\)|@php \\\\\\\\\\\\$[a-z]\" resources/views/livewire/admin/accounts/account/account-list.blade.php)"
     ]
   }
 }

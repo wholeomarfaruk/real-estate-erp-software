@@ -98,6 +98,12 @@ class PropertySale extends Model
         return $this->belongsTo(PropertyUnit::class);
     }
 
+    /** All units covered by this sale invoice (multi-unit sales). */
+    public function saleUnits(): HasMany
+    {
+        return $this->hasMany(PropertySaleUnit::class)->orderBy('sort_order')->orderBy('id');
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);

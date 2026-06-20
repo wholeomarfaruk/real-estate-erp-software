@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Accounts\Account;
 
+use App\Enums\Accounts\AccountGroupType;
 use App\Enums\Accounts\AccountType;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Models\Account;
@@ -32,6 +33,8 @@ class AccountList extends Component
     public string $name = '';
 
     public string $type = '';
+
+    public ?string $group = null;
 
     public ?int $parent_id = null;
 
@@ -94,6 +97,7 @@ class AccountList extends Component
         $this->code = $account->code;
         $this->name = $account->name;
         $this->type = $account->type?->value ?? AccountType::CASH->value;
+        $this->group = $account->group?->value;
         $this->parent_id = $account->parent_id ? (int) $account->parent_id : null;
         $this->is_active = (bool) $account->is_active;
         $this->sub_type = $account->sub_type;
@@ -269,6 +273,7 @@ class AccountList extends Component
         return view('livewire.admin.accounts.account.account-list', [
             'tree' => $tree,
             'types' => AccountType::cases(),
+            'groupOptions' => AccountGroupType::options(),
             'parentOptions' => $parentOptions,
             'referenceOptions' => collect(account_reference_config())
                 ->mapWithKeys(static fn (array $reference, string $key): array => [$key => (string) ($reference['label'] ?? $key)])
@@ -379,6 +384,7 @@ class AccountList extends Component
             ],
             'name' => ['required', 'string', 'max:150'],
             'type' => ['required', Rule::in(array_map(static fn (AccountType $type): string => $type->value, AccountType::cases()))],
+            'group' => ['required', Rule::in(array_map(static fn (AccountGroupType $g): string => $g->value, AccountGroupType::cases()))],
             'parent_id' => ['nullable', 'exists:accounts,id'],
             'is_active' => ['required', 'boolean'],
             'sub_type' => ['nullable', 'string'],
@@ -394,6 +400,8 @@ class AccountList extends Component
         return [
             'name.required' => 'Account name is required.',
             'type.required' => 'Account type is required.',
+            'group.required' => 'Account group is required.',
+            'group.in' => 'Select a valid account group.',
             'code.unique' => 'Account code must be unique.',
             'sub_type.string' => 'Account sub type must be a string.',
         ];
@@ -401,7 +409,7 @@ class AccountList extends Component
 
     protected function resetForm(): void
     {
-        $this->reset(['editingId', 'code', 'name', 'parent_id', 'sub_type']);
+        $this->reset(['editingId', 'code', 'name', 'parent_id', 'sub_type', 'group', 'allowed_reference_keys']);
         $this->type = AccountType::CASH->value;
         $this->is_active = true;
     }

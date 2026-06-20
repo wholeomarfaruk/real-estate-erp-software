@@ -98,7 +98,8 @@
                 </div>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-                <div>
+                {{-- RENT: single property + unit. SALE uses per-row property+unit below. --}}
+                <div x-show="saleType === 'rent'" x-cloak>
                     <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">
                         Property <span style="color:var(--rj-fg)">*</span>
                     </label>
@@ -112,7 +113,7 @@
                     </select>
                     @error('dPropertyId') <p style="margin-top:5px; font-size:11.5px; color:var(--rj-fg);">{{ $message }}</p> @enderror
                 </div>
-                <div>
+                <div x-show="saleType === 'rent'" x-cloak>
                     <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">
                         Unit <span style="color:var(--rj-fg)">*</span>
                     </label>
@@ -132,8 +133,8 @@
                                         'rent' => ' · For Rent',
                                         default => '',
                                     };
-                                    $isDisabled = ($dSaleType === 'sale' && $unit->purpose === 'rent')
-                                               || ($dSaleType === 'rent' && $unit->purpose === 'sell');
+                                    // Rent invoice → hide sale-only units.
+                                    $isDisabled = $unit->purpose === 'sell';
                                 @endphp
                                 <option value="{{ $unit->id }}" @disabled($isDisabled)>
                                     {{ $unit->code }}
@@ -146,6 +147,12 @@
                         </span>
                     </div>
                     @error('dPropertyUnitId') <p style="margin-top:5px; font-size:11.5px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                </div>
+                {{-- SALE: hint (property + units chosen per row below) --}}
+                <div x-show="saleType === 'sale'" x-cloak style="grid-column:span 2;">
+                    <p style="margin:0; font:11.5px 'Inter', sans-serif; color:var(--ink-3); padding:4px 0;">
+                        Add one or more units in the <strong style="color:var(--ink-2);">Units</strong> section below — each row picks its own property &amp; unit, is priced separately, and is combined into one invoice.
+                    </p>
                 </div>
                 <div style="grid-column:span 2;">
                     <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">
@@ -163,44 +170,141 @@
             </div>
         </div>
 
+        {{-- ══ 2b. UNITS (sale only — multiple units, priced separately) ══ --}}
+        <div x-show="saleType === 'sale'" x-cloak
+            style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:20px 24px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <div>
+                    <h3 style="margin:0; font-size:14px; font-weight:600;">Units</h3>
+                    <div style="margin-top:3px; font:12px 'Inter', sans-serif; color:var(--ink-3);">Each unit is priced separately and combined into the invoice summary.</div>
+                </div>
+                <span wire:loading.flex wire:target="dUnits" style="align-items:center; gap:5px; font:500 11px 'Inter', sans-serif; color:var(--ink-3);">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                    Calculating…
+                </span>
+            </div>
+
+            @error('dUnits') <p style="margin:0 0 10px; font-size:11.5px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                @foreach($dUnits as $i => $row)
+                    <div wire:key="unit-row-{{ $i }}"
+                        style="border:1px solid var(--rule); border-radius:9px; padding:14px; background:var(--canvas);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <span style="font:600 11px 'Inter', sans-serif; color:var(--ink-2);">Unit #{{ $i + 1 }}</span>
+                            <button type="button" wire:click="removeUnitRow({{ $i }})"
+                                style="appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--rj-fg); padding:4px 9px; border-radius:6px; font:500 11px 'Inter', sans-serif; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                Remove
+                            </button>
+                        </div>
+
+                        @php $rowPropertyId = $row['property_id'] ?? ''; $rowUnits = $this->unitsForProperty($rowPropertyId); @endphp
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+                            {{-- Per-row property --}}
+                            <div>
+                                <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Property <span style="color:var(--rj-fg)">*</span></label>
+                                <select wire:model.live="dUnits.{{ $i }}.property_id"
+                                    style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font:13px 'Inter', sans-serif;">
+                                    <option value="">— Select property —</option>
+                                    @foreach($properties as $property)
+                                        <option value="{{ $property->id }}">{{ $property->name }} ({{ $property->code }})</option>
+                                    @endforeach
+                                </select>
+                                @error("dUnits.{$i}.property_id") <p style="margin-top:4px; font-size:11.5px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                            </div>
+                            {{-- Per-row unit (filtered by the row's property) --}}
+                            <div>
+                                <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Unit <span style="color:var(--rj-fg)">*</span></label>
+                                <select wire:model.live="dUnits.{{ $i }}.property_unit_id"
+                                    @if(!$rowPropertyId) disabled @endif
+                                    style="width:100%; appearance:none; outline:none; border:1px solid var(--rule);
+                                           background:{{ $rowPropertyId ? 'var(--paper)' : 'var(--canvas)' }};
+                                           color:var(--ink-1); padding:10px 14px; border-radius:7px; font:13px 'Inter', sans-serif;
+                                           opacity:{{ $rowPropertyId ? '1' : '.5' }};">
+                                    <option value="">{{ $rowPropertyId ? '— Select unit —' : '— Select property first —' }}</option>
+                                    @foreach($rowUnits as $unit)
+                                        @php $isRentOnly = $unit->purpose === 'rent'; @endphp
+                                        <option value="{{ $unit->id }}" @disabled($isRentOnly)>
+                                            {{ $unit->code }} ({{ ucfirst($unit->type ?? '') }}, {{ ucfirst($unit->status ?? '') }}){{ $isRentOnly ? ' · For Rent' : '' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error("dUnits.{$i}.property_unit_id") <p style="margin-top:4px; font-size:11.5px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:10px;">
+                            <div>
+                                <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Sale Amount <span style="color:var(--rj-fg)">*</span></label>
+                                <input wire:model.blur.live="dUnits.{{ $i }}.sale_amount" type="number" min="0" step="0.01" placeholder="0.00"
+                                    style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                                @error("dUnits.{$i}.sale_amount") <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Discount</label>
+                                <input wire:model.blur.live="dUnits.{{ $i }}.discount_amount" type="number" min="0" step="0.01" placeholder="0.00"
+                                    style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                            </div>
+                            <div>
+                                <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Tax</label>
+                                <input wire:model.blur.live="dUnits.{{ $i }}.tax_amount" type="number" min="0" step="0.01" placeholder="0.00"
+                                    style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                            </div>
+                            <div>
+                                <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Service Charge</label>
+                                <input wire:model.blur.live="dUnits.{{ $i }}.service_charge" type="number" min="0" step="0.01" placeholder="0.00"
+                                    style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                            </div>
+                            <div>
+                                <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Utility Charge</label>
+                                <input wire:model.blur.live="dUnits.{{ $i }}.utility_charge" type="number" min="0" step="0.01" placeholder="0.00"
+                                    style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                            </div>
+                        </div>
+
+                        <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--rule); display:flex; justify-content:flex-end; gap:6px; align-items:baseline;">
+                            <span style="font:600 10px 'Inter', sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3);">Unit Net</span>
+                            <span style="font:700 15px var(--mono); color:var(--accent); font-variant-numeric:tabular-nums;">৳ {{ number_format((float) ($row['net_amount'] ?? 0), 2) }}</span>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <button type="button" wire:click="addUnitRow"
+                style="margin-top:12px; appearance:none; border:1px dashed var(--accent); background:rgba(31,58,104,.04); color:var(--accent); padding:9px 16px; border-radius:7px; font:600 12px 'Inter', sans-serif; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add unit
+            </button>
+        </div>
+
         {{-- ══ 3a. SALE FINANCIAL (sale only) ══ --}}
         <div x-show="saleType === 'sale'" x-cloak
             style="background:#F5F2E8; border:1px solid var(--rule); border-radius:10px; padding:20px 24px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                <h3 style="margin:0; font-size:14px; font-weight:600;">Financial Details</h3>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <span wire:loading.flex wire:target="dPropertyUnitId,dSaleType" style="align-items:center; gap:5px; font:500 11px 'Inter', sans-serif; color:var(--ink-3);">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                        Resolving…
-                    </span>
-                    <span style="font:11px var(--mono); color:var(--ink-3);">BDT (৳)</span>
-                </div>
+                <h3 style="margin:0; font-size:14px; font-weight:600;">Invoice Summary</h3>
+                <span style="font:11px var(--mono); color:var(--ink-3);">BDT (৳)</span>
             </div>
+            {{-- Combined totals (read-only — summed from units above) --}}
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:14px;">
                 <div>
-                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">
-                        Sale Amount <span style="color:var(--rj-fg)">*</span>
-                    </label>
-                    <input wire:model.blur="dSaleAmount" type="number" min="0" step="0.01" placeholder="0.00"
-                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
-                    @error('dSaleAmount') <p style="margin-top:4px; font-size:11.5px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Total Sale Amount</label>
+                    <div style="width:100%; border:1px solid var(--rule); background:var(--canvas); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;">৳ {{ number_format((float) $dSaleAmount, 2) }}</div>
                 </div>
                 <div>
-                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Discount</label>
-                    <input wire:model.blur="dDiscountAmount" type="number" min="0" step="0.01" placeholder="0.00"
-                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Total Discount</label>
+                    <div style="width:100%; border:1px solid var(--rule); background:var(--canvas); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;">৳ {{ number_format((float) $dDiscountAmount, 2) }}</div>
                 </div>
                 <div>
-                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Tax</label>
-                    <input wire:model.blur="dTaxAmount" type="number" min="0" step="0.01" placeholder="0.00"
-                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Total Tax</label>
+                    <div style="width:100%; border:1px solid var(--rule); background:var(--canvas); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;">৳ {{ number_format((float) $dTaxAmount, 2) }}</div>
                 </div>
             </div>
             {{-- Net Amount display --}}
             <div style="padding:14px 18px; background:var(--paper); border:2px solid var(--accent); border-radius:9px; display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
                 <div>
                     <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:2px;">Net Amount</div>
-                    <div style="font:11.5px 'Inter', sans-serif; color:var(--ink-3);">Sale − Discount + Tax</div>
+                    <div style="font:11.5px 'Inter', sans-serif; color:var(--ink-3);">Σ (Sale − Discount + Tax) across all units</div>
                 </div>
                 <div style="font:700 26px var(--mono); color:var(--accent); font-variant-numeric:tabular-nums;">
                     ৳ <span x-text="parseFloat(dNetAmount || 0).toLocaleString('en-BD', {minimumFractionDigits:2})"></span>
@@ -227,10 +331,16 @@
                         style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
                 </div>
                 <div>
-                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Service Charge (৳)</label>
+                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Service Charge (৳) — combined</label>
                     <input wire:model="dServiceCharge" type="number" min="0" step="0.01" placeholder="0.00"
                         style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
-                    <p style="margin-top:4px; font:11px 'Inter', sans-serif; color:var(--ink-3);">Auto-filled from unit — editable</p>
+                    <p style="margin-top:4px; font:11px 'Inter', sans-serif; color:var(--ink-3);">Auto-summed from all units — editable</p>
+                </div>
+                <div>
+                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Utility Charge (৳) — combined</label>
+                    <input wire:model="dUtilityCharge" type="number" min="0" step="0.01" placeholder="0.00"
+                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:10px 14px; border-radius:7px; font-family:var(--mono); font-size:13px;" />
+                    <p style="margin-top:4px; font:11px 'Inter', sans-serif; color:var(--ink-3);">Auto-summed from all units — editable</p>
                 </div>
             </div>
         </div>
