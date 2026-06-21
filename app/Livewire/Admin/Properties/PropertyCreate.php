@@ -27,6 +27,7 @@ class PropertyCreate extends Component
     public $property_id_param;
 
     public $projects = [];
+    public $selectedProject = null;
 
     public function mount(Request $request)
     {
@@ -74,6 +75,39 @@ class PropertyCreate extends Component
     {
         if (in_array($propertyName, ['name', 'code', 'address', 'total_floors'])) {
             $this->validateOnly($propertyName, $this->rules());
+        }
+
+        // Auto-populate property data when project is selected
+        if ($propertyName === 'project_id' && $this->project_id && !$this->editMode) {
+            $this->autoPopulateFromProject();
+        }
+    }
+
+    public function autoPopulateFromProject()
+    {
+        $project = Project::find($this->project_id);
+
+        if (!$project) {
+            return;
+        }
+
+        $this->selectedProject = $project;
+
+        // Auto-fill address from project location
+        if (!$this->address) {
+            $this->address = $project->location;
+        }
+
+        // Auto-fill property_type from first project type
+        if (!$this->property_type && !empty($project->project_type)) {
+            // Map project types to property types (use first type as default)
+            $projectTypes = is_array($project->project_type) ? $project->project_type : [$project->project_type];
+            $this->property_type = $projectTypes[0] ?? null;
+        }
+
+        // Auto-fill description if empty
+        if (!$this->description) {
+            $this->description = $project->description;
         }
     }
 

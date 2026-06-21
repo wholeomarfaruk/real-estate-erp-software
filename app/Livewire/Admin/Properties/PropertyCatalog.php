@@ -28,6 +28,7 @@ class PropertyCatalog extends Component
     public ?int   $fEngineerId = null;
     public string $fRegisteredAt = '';
     public string $fRemarks = '';
+    public ?object $selectedProject = null;
 
     public function mount(): void
     {
@@ -36,6 +37,57 @@ class PropertyCatalog extends Component
 
     public function updatedSearch(): void {}
     public function updatedStatusFilter(): void {}
+
+    public function updatedFProjectId(): void
+    {
+        // Auto-populate property data when project is selected (create mode only)
+        if ($this->fProjectId && !$this->editingId) {
+            $this->autoPopulateFromProject();
+        }
+    }
+
+    private function autoPopulateFromProject(): void
+    {
+        $project = Project::find($this->fProjectId);
+
+        if (!$project) {
+            $this->selectedProject = null;
+            return;
+        }
+
+        $this->selectedProject = $project;
+
+        // Auto-fill name from project name
+        if (!$this->fName) {
+            $this->fName = $project->name ?? '';
+        }
+
+        // Auto-fill code from project code
+        if (!$this->fCode) {
+            $this->fCode = $project->code ?? '';
+        }
+
+        // Auto-fill address from project location
+        if (!$this->fAddress) {
+            $this->fAddress = $project->location ?? '';
+        }
+
+        // Auto-fill type from first project type
+        if (!$this->fType && !empty($project->project_type)) {
+            $projectTypes = is_array($project->project_type) ? $project->project_type : [$project->project_type];
+            $this->fType = $projectTypes[0] ?? '';
+        }
+
+        // Auto-fill land size from project land_area
+        if (!$this->fLandSize) {
+            $this->fLandSize = $project->land_area ?? '';
+        }
+
+        // Auto-fill remarks from project description
+        if (!$this->fRemarks) {
+            $this->fRemarks = $project->description ?? '';
+        }
+    }
 
     // ── CRUD ─────────────────────────────────────────────────────────────────
 
@@ -143,6 +195,7 @@ class PropertyCatalog extends Component
         $this->fProjectId  = null;
         $this->fEngineerId = null;
         $this->editingId   = null;
+        $this->selectedProject = null;
     }
 
     // ── render ───────────────────────────────────────────────────────────────
@@ -197,13 +250,8 @@ class PropertyCatalog extends Component
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        // Projects not yet linked to any property (or linked to the one being edited)
-        $usedProjectIds = Property::whereNotNull('project_id')
-            ->when($this->editingId, fn ($q) => $q->where('id', '!=', $this->editingId))
-            ->pluck('project_id');
-
+        // Show all projects (allow multiple properties per project)
         $projects = Project::query()
-            ->whereNotIn('id', $usedProjectIds)
             ->orderBy('name')
             ->get(['id', 'name', 'code']);
 

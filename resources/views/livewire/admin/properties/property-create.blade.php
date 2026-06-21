@@ -10,11 +10,20 @@
     </div>
 
     <div class="bg-white rounded-lg p-6">
+        {{-- Auto-populate notification --}}
+        @if($selectedProject)
+            <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p class="text-sm text-blue-800">
+                    <strong>✓ Project Selected:</strong> Data from <strong>{{ $selectedProject->name }}</strong> has been auto-filled. You can edit these fields if needed.
+                </p>
+            </div>
+        @endif
+
         <form wire:submit.prevent="save">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm text-gray-600">Project</label>
-                    <select wire:model="project_id" class="w-full rounded border px-3 py-2">
+                    <label class="block text-sm text-gray-600">Project <span class="text-red-500">*</span></label>
+                    <select wire:model.live="project_id" class="w-full rounded border px-3 py-2">
                         <option value="">-- Select Project --</option>
                         @foreach($projects as $proj)
                             <option value="{{ $proj->id }}">{{ $proj->name }}</option>
@@ -37,12 +46,15 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm text-gray-600">Type</label>
-                    <select wire:model="property_type" class="w-full rounded border px-3 py-2">
+                    <label class="block text-sm text-gray-600">
+                        Type
+                        @if($selectedProject && $property_type) <span class="text-green-600 text-xs">(auto-filled)</span> @endif
+                    </label>
+                    <select wire:model="property_type" class="w-full rounded border px-3 py-2 {{ $selectedProject && $property_type ? 'bg-blue-50' : '' }}">
                         <option value="">-- Select --</option>
                         @foreach (\App\Enums\Property\Type::cases() as $type)
                             <option value="{{ $type->value }}">{{ $type->label() }}</option>
-                            
+
                         @endforeach
                     </select>
                     @error('property_type') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
@@ -65,13 +77,19 @@
                 </div>
 
                 <div class="md:col-span-2">
-                    <label class="block text-sm text-gray-600">Address</label>
-                    <textarea wire:model.defer="address" class="w-full rounded border px-3 py-2" rows="3"></textarea>
+                    <label class="block text-sm text-gray-600">
+                        Address
+                        @if($selectedProject && $address) <span class="text-green-600 text-xs">(auto-filled from project location)</span> @endif
+                    </label>
+                    <textarea wire:model.defer="address" class="w-full rounded border px-3 py-2 {{ $selectedProject && $address ? 'bg-blue-50' : '' }}" rows="3"></textarea>
                 </div>
 
                 <div class="md:col-span-2">
-                    <label class="block text-sm text-gray-600">Description / Notes</label>
-                    <textarea wire:model.defer="description" class="w-full rounded border px-3 py-2" rows="4"></textarea>
+                    <label class="block text-sm text-gray-600">
+                        Description / Notes
+                        @if($selectedProject && $description) <span class="text-green-600 text-xs">(auto-filled from project)</span> @endif
+                    </label>
+                    <textarea wire:model.defer="description" class="w-full rounded border px-3 py-2 {{ $selectedProject && $description ? 'bg-blue-50' : '' }}" rows="4"></textarea>
                 </div>
             </div>
 

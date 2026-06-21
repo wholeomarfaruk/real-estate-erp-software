@@ -221,9 +221,18 @@
             </button>
         </div>
         <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            {{-- Auto-populate notification --}}
+            @if($selectedProject)
+                <div class="p-3 rounded-lg" style="background:rgba(59, 130, 246, 0.1);border:1px solid rgba(59, 130, 246, 0.3)">
+                    <p class="text-xs" style="color:#1e40af">
+                        <strong>✓ Data auto-filled</strong> from <strong>{{ $selectedProject->name }}</strong>. You can edit any field.
+                    </p>
+                </div>
+            @endif
+
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">Project</label>
-                <select wire:model="fProjectId" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule);background:var(--paper);color:var(--ink-1)">
+                <select wire:model.live="fProjectId" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule);background:var(--paper);color:var(--ink-1)">
                     <option value="">— Not linked to a project —</option>
                     @foreach($projects as $project)
                     <option value="{{ $project->id }}">{{ $project->name }}{{ $project->code ? ' ('.$project->code.')' : '' }}</option>
@@ -240,20 +249,29 @@
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">Name *</label>
-                    <input wire:model="fName" type="text" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule);background:var(--paper);color:var(--ink-1)" placeholder="Shyamnagar Complex">
+                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">
+                        Name *
+                        @if($selectedProject && $fName) <span style="color:#16a34a;font-weight:normal">(auto-filled)</span> @endif
+                    </label>
+                    <input wire:model="fName" type="text" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule);background:var(--paper);color:var(--ink-1);{{ $selectedProject && $fName ? 'background:rgba(59, 130, 246, 0.08)' : '' }}" placeholder="Shyamnagar Complex">
                     @error('fName')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">Code</label>
-                    <input wire:model="fCode" type="text" class="w-full rounded-lg border px-3 py-2 text-sm font-mono" style="border-color:var(--rule);background:var(--paper);color:var(--ink-1)" placeholder="P-101">
+                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">
+                        Code
+                        @if($selectedProject && $fCode) <span style="color:#16a34a;font-weight:normal">(auto-filled)</span> @endif
+                    </label>
+                    <input wire:model="fCode" type="text" class="w-full rounded-lg border px-3 py-2 text-sm font-mono" style="border-color:var(--rule);background:var(--paper);color:var(--ink-1);{{ $selectedProject && $fCode ? 'background:rgba(59, 130, 246, 0.08)' : '' }}" placeholder="P-101">
                     @error('fCode')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">Type</label>
-                    <input wire:model="fType" type="text" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)" placeholder="Residential / Commercial">
+                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">
+                        Type
+                        @if($selectedProject && $fType) <span style="color:#16a34a;font-weight:normal">(auto-filled)</span> @endif
+                    </label>
+                    <input wire:model="fType" type="text" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule);{{ $selectedProject && $fType ? 'background:rgba(59, 130, 246, 0.08)' : '' }}" placeholder="Residential / Commercial">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">Status</label>
@@ -264,8 +282,11 @@
                 </div>
             </div>
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">Address</label>
-                <textarea wire:model="fAddress" class="w-full rounded-lg border px-3 py-2 text-sm" rows="2" style="border-color:var(--rule)"></textarea>
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">
+                    Address
+                    @if($selectedProject && $fAddress) <span style="color:#16a34a;font-weight:normal">(auto-filled from project)</span> @endif
+                </label>
+                <textarea wire:model="fAddress" class="w-full rounded-lg border px-3 py-2 text-sm" rows="2" style="border-color:var(--rule);{{ $selectedProject && $fAddress ? 'background:rgba(59, 130, 246, 0.08)' : '' }}"></textarea>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -273,8 +294,11 @@
                     <input wire:model="fTotalArea" type="number" step="0.01" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">Land Size (katha)</label>
-                    <input wire:model="fLandSize" type="number" step="0.01" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)">
+                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">
+                        Land Size (katha)
+                        @if($selectedProject && $fLandSize) <span style="color:#16a34a;font-weight:normal">(auto-filled)</span> @endif
+                    </label>
+                    <input wire:model="fLandSize" type="number" step="0.01" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule);{{ $selectedProject && $fLandSize ? 'background:rgba(59, 130, 246, 0.08)' : '' }}">
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
@@ -293,8 +317,11 @@
                 </div>
             </div>
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">Remarks</label>
-                <textarea wire:model="fRemarks" class="w-full rounded-lg border px-3 py-2 text-sm" rows="2" style="border-color:var(--rule)"></textarea>
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">
+                    Remarks
+                    @if($selectedProject && $fRemarks) <span style="color:#16a34a;font-weight:normal">(auto-filled from project)</span> @endif
+                </label>
+                <textarea wire:model="fRemarks" class="w-full rounded-lg border px-3 py-2 text-sm" rows="2" style="border-color:var(--rule);{{ $selectedProject && $fRemarks ? 'background:rgba(59, 130, 246, 0.08)' : '' }}"></textarea>
             </div>
         </div>
         <div class="flex justify-end gap-3 px-6 py-4 border-t" style="border-color:var(--rule);background:rgba(0,0,0,.012)">
