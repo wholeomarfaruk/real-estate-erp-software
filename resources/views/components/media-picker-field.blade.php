@@ -42,7 +42,7 @@
     <input wire:model.live="{{ $field }}" id="{{ $field }}" type="hidden" />
 
     {{-- Trigger re-render when value changes --}}
-    <div wire:key="{{ $field }}-{{ $value }}"></div>
+    <div wire:key="{{ $field }}-{{ is_array($value) ? json_encode($value) : $value }}"></div>
 
     @if($isEmpty)
         {{-- ── Empty drop-zone ──────────────────────────────────────────────── --}}
