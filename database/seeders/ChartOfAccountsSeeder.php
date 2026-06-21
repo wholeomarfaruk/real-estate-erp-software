@@ -51,6 +51,7 @@ class ChartOfAccountsSeeder extends Seeder
                 'children' => [
                     ['code' => 'EXP-OFFICE', 'name' => 'Office Expense', 'type' => AccountType::LEDGER],
                     ['code' => 'EXP-SALARY', 'name' => 'Salary Expense', 'type' => AccountType::LEDGER],
+                    ['code' => 'EXP-PROJ',   'name' => 'Project Expenses', 'type' => AccountType::LEDGER],
                 ],
             ],
             'EQTY' => [
