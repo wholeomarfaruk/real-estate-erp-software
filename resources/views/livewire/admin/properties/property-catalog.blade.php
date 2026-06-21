@@ -267,19 +267,32 @@
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">
-                        Type
-                        @if($selectedProject && $fType) <span style="color:#16a34a;font-weight:normal">(auto-filled)</span> @endif
-                    </label>
-                    <input wire:model="fType" type="text" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule);{{ $selectedProject && $fType ? 'background:rgba(59, 130, 246, 0.08)' : '' }}" placeholder="Residential / Commercial">
-                </div>
-                <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">Status</label>
                     <select wire:model="fStatus" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </select>
                 </div>
+                <div></div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-2" style="color:var(--ink-3)">
+                    Type
+                    @if($selectedProject && !empty($fType)) <span style="color:#16a34a;font-weight:normal">(auto-filled)</span> @endif
+                </label>
+                <div class="grid grid-cols-3 gap-2">
+                    @foreach(\App\Enums\Property\Type::cases() as $type)
+                        <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                            <input type="checkbox"
+                                wire:model="fType"
+                                value="{{ $type->value }}"
+                                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" />
+                            <span class="text-sm" style="color:var(--ink-1)">{{ $type->label() }}</span>
+                        </label>
+                    @endforeach
+                </div>
+                @error('fType')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
             </div>
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">
@@ -297,11 +310,8 @@
                     <input wire:model="fTotalArea" type="number" step="0.01" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule);{{ $selectedProject && $fTotalArea ? 'background:rgba(59, 130, 246, 0.08)' : '' }}">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">
-                        Land Size (katha)
-                        @if($selectedProject && $fLandSize) <span style="color:#16a34a;font-weight:normal">(auto-filled)</span> @endif
-                    </label>
-                    <input wire:model="fLandSize" type="number" step="0.01" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule);{{ $selectedProject && $fLandSize ? 'background:rgba(59, 130, 246, 0.08)' : '' }}">
+                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">Land Size (katha)</label>
+                    <input wire:model="fLandSize" type="number" step="0.01" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)">
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">

@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Properties;
 use App\Models\Employee;
 use App\Models\Project;
 use App\Models\Property;
+use App\Enums\Property\Type as PropertyType;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
@@ -19,7 +20,7 @@ class PropertyCatalog extends Component
     public ?int $editingId = null;
     public string $fName = '';
     public string $fCode = '';
-    public string $fType = '';
+    public array $fType = [];
     public string $fStatus = 'active';
     public string $fAddress = '';
     public string $fTotalArea = '';
@@ -72,10 +73,10 @@ class PropertyCatalog extends Component
             $this->fAddress = $project->location ?? '';
         }
 
-        // Auto-fill type from first project type
-        if (!$this->fType && !empty($project->project_type)) {
+        // Auto-fill type from project types (as array for checkboxes)
+        if (empty($this->fType) && !empty($project->project_type)) {
             $projectTypes = is_array($project->project_type) ? $project->project_type : [$project->project_type];
-            $this->fType = $projectTypes[0] ?? '';
+            $this->fType = $projectTypes;
         }
 
         // Auto-fill total area from project land_area (sft)
@@ -83,10 +84,7 @@ class PropertyCatalog extends Component
             $this->fTotalArea = $project->land_area ?? '';
         }
 
-        // Auto-fill land size from project building_area (katha)
-        if (!$this->fLandSize) {
-            $this->fLandSize = $project->building_area ?? '';
-        }
+        // Land size (katha) is not auto-filled - user enters manually
 
         // Auto-fill remarks from project description
         if (!$this->fRemarks) {
@@ -112,7 +110,7 @@ class PropertyCatalog extends Component
         $this->fProjectId   = $property->project_id;
         $this->fName        = $property->name ?? '';
         $this->fCode        = $property->code ?? '';
-        $this->fType        = $property->type ?? '';
+        $this->fType        = is_array($property->type) ? $property->type : ($property->type ? [$property->type] : []);
         $this->fStatus      = $property->status ?? 'active';
         $this->fAddress     = $property->address ?? '';
         $this->fTotalArea   = $property->total_area ?? '';
@@ -125,11 +123,14 @@ class PropertyCatalog extends Component
 
     public function save(): void
     {
+        $validTypeValues = implode(',', array_map(fn ($type) => $type->value, PropertyType::cases()));
+
         $rules = [
             'fProjectId'    => 'nullable|integer|exists:projects,id',
             'fName'         => 'required|string|max:255',
             'fCode'         => 'nullable|string|max:50',
-            'fType'         => 'nullable|string|max:100',
+            'fType'         => 'nullable|array',
+            'fType.*'       => "string|in:{$validTypeValues}",
             'fStatus'       => 'required|in:active,inactive',
             'fAddress'      => 'nullable|string',
             'fTotalArea'    => 'nullable|numeric|min:0',
@@ -151,7 +152,7 @@ class PropertyCatalog extends Component
             'project_id'    => $this->fProjectId ?: null,
             'name'          => $this->fName,
             'code'          => $this->fCode ?: null,
-            'type'          => $this->fType ?: null,
+            'type'          => !empty($this->fType) ? $this->fType : null,
             'status'        => $this->fStatus,
             'address'       => $this->fAddress ?: null,
             'total_area'    => $this->fTotalArea !== '' ? $this->fTotalArea : null,
@@ -195,7 +196,8 @@ class PropertyCatalog extends Component
 
     private function resetForm(): void
     {
-        $this->fName = $this->fCode = $this->fType = $this->fAddress = $this->fTotalArea = $this->fLandSize = $this->fRegisteredAt = $this->fRemarks = '';
+        $this->fName = $this->fCode = $this->fAddress = $this->fTotalArea = $this->fLandSize = $this->fRegisteredAt = $this->fRemarks = '';
+        $this->fType = [];
         $this->fStatus = 'active';
         $this->fProjectId  = null;
         $this->fEngineerId = null;
