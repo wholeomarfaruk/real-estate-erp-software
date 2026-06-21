@@ -6,7 +6,7 @@
     $vidExts = ['mp4','mov','avi','mkv'];
 
     $isEmpty = !$value || (is_array($value) && count($value) === 0);
-$fancyGallery = null;
+    $fancyGallery = null;
     if (!$isEmpty) {
         if (!$multiple) {
             $singleId    = is_array($value) ? ($value['id'] ?? null) : $value;
@@ -30,7 +30,8 @@ $fancyGallery = null;
     }
 @endphp
 
-<div class="flex flex-col gap-1.5">
+<div class="flex flex-col gap-1.5" wire:key="{{ $field }}"
+    @mediaPickerSaved.window="$wire.call('$refresh')">
 
     {{-- Label --}}
     <label class="block text-xs font-semibold tracking-wide uppercase text-gray-500" for="{{ $field }}">
@@ -38,8 +39,8 @@ $fancyGallery = null;
         @if($required)<span class="text-red-500 ml-0.5">*</span>@endif
     </label>
 
-    {{-- Hidden binding --}}
-    <input wire:model="{{ $field }}" id="{{ $field }}" type="hidden" />
+    {{-- Hidden binding with reactive key to force re-render --}}
+    <input wire:model.live="{{ $field }}" id="{{ $field }}" type="hidden" />
 
     @if($isEmpty)
         {{-- ── Empty drop-zone ──────────────────────────────────────────────── --}}
@@ -249,5 +250,5 @@ $fancyGallery = null;
     @enderror
 
     {{-- Media picker modal (embedded once per field) --}}
-    @livewire('admin.file.media-picker', ['mediapickerModal' => false], key('media-picker-' . $field))
+    <livewire:admin.file.media-picker :key="'media-picker-' . $field" />
 </div>
