@@ -117,13 +117,14 @@ class ProjectList extends Component
 
         $this->validate([
             'create_name'            => 'required|string|max:255',
+            'create_code'            => 'nullable|string|max:100|unique:projects,code',
             'create_project_type'    => 'required|array|min:1',
             'create_project_type.*'  => 'string|in:residential,commercial,luxury,classic',
             'create_status'          => 'required',
             'create_location'        => 'required|string|max:500',
             'create_start_date'      => 'required|date',
             'create_end_date'        => 'required|date|after_or_equal:create_start_date',
-            'create_handover_date'   => 'nullable|date',
+            'create_handover_date'   => 'nullable|date|after_or_equal:create_start_date',
             'create_budget'          => 'nullable|numeric|min:0',
             'create_land_area'       => 'nullable|numeric|min:0',
             'create_building_area'   => 'nullable|numeric|min:0',
@@ -195,13 +196,14 @@ class ProjectList extends Component
 
         $this->validate([
             'edit_name'            => 'required|string|max:255',
+            'edit_code'            => 'nullable|string|max:100|unique:projects,code,' . $this->editProjectId,
             'edit_project_type'    => 'required|array|min:1',
             'edit_project_type.*'  => 'string|in:residential,commercial,luxury,classic',
             'edit_status'          => 'required',
             'edit_location'        => 'required|string|max:500',
             'edit_start_date'      => 'required|date',
             'edit_end_date'        => 'required|date|after_or_equal:edit_start_date',
-            'edit_handover_date'   => 'nullable|date',
+            'edit_handover_date'   => 'nullable|date|after_or_equal:edit_start_date',
             'edit_budget'          => 'nullable|numeric|min:0',
             'edit_progress_pct'    => 'nullable|integer|min:0|max:100',
             'edit_land_area'       => 'nullable|numeric|min:0',

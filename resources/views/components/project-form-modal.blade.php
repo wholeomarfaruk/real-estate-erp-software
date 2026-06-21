@@ -193,7 +193,7 @@
 
                 {{-- Handover Date --}}
                 <div>
-                    <x-label for="{{ $prefix }}_handover_date" value="Handover Date" />
+                    <x-label for="{{ $prefix }}_handover_date" value="Handover Date (must be on or after start date)" />
                     <x-input wire:model="{{ $prefix }}_handover_date" id="{{ $prefix }}_handover_date" type="date"
                         class="mt-1 block w-full flatpickr-only-date" />
                     <x-input-error for="{{ $prefix }}_handover_date" class="mt-1" />
