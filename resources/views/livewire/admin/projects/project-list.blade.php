@@ -52,7 +52,7 @@
         {{-- Projects Grid --}}
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 overflow-visible">
             @forelse ($projects as $project)
-                <div class="group bg-white dark:bg-white/[0.03] rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                <div class="group bg-white dark:bg-white/[0.03] rounded-xl border border-gray-200 dark:border-gray-800 overflow-visible shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                     {{-- Image Section --}}
                     <div class="relative h-48 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
                         <img src="{{ $project->image ? file_path($project->image) : 'https://ui-avatars.com/api/?name=' . urlencode($project->name) . '&background=3b82f6&color=fff&size=400&bold=true' }}"
