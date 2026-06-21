@@ -96,19 +96,11 @@ class MediaPicker extends Component
     }
     public function save()
     {
-        // Dispatch with default behavior (broadcasts to all listeners)
         if ($this->multiple) {
             $this->dispatch('mediaSelected', $this->target, $this->selected);
         } else {
             $this->dispatch('mediaSelected', $this->target, $this->selected[0]);
         }
-
-        // Also dispatch a custom event that parent can listen to
-        $this->dispatchBrowserEvent('mediaPickerSaved', [
-            'target' => $this->target,
-            'selected' => $this->multiple ? $this->selected : $this->selected[0] ?? null
-        ]);
-
         $this->mediapickerModal = false;
     }
     public function removeSelect($id)

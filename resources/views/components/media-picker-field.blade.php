@@ -30,8 +30,7 @@
     }
 @endphp
 
-<div class="flex flex-col gap-1.5" wire:key="{{ $field }}"
-    @mediaPickerSaved.window="$wire.call('$refresh')">
+<div class="flex flex-col gap-1.5" wire:key="{{ $field }}">
 
     {{-- Label --}}
     <label class="block text-xs font-semibold tracking-wide uppercase text-gray-500" for="{{ $field }}">
@@ -41,6 +40,9 @@
 
     {{-- Hidden binding with reactive key to force re-render --}}
     <input wire:model.live="{{ $field }}" id="{{ $field }}" type="hidden" />
+
+    {{-- Trigger re-render when value changes --}}
+    <div wire:key="{{ $field }}-{{ $value }}"></div>
 
     @if($isEmpty)
         {{-- ── Empty drop-zone ──────────────────────────────────────────────── --}}
