@@ -117,7 +117,7 @@ class ProjectList extends Component
 
         $this->validate([
             'create_name'            => 'required|string|max:255',
-            'create_code'            => 'nullable|string|max:100|unique:projects,code',
+            'create_code'            => 'required|string|max:100|unique:projects,code',
             'create_project_type'    => 'required|array|min:1',
             'create_project_type.*'  => 'string|in:residential,commercial,luxury,classic',
             'create_status'          => 'required',
@@ -196,7 +196,7 @@ class ProjectList extends Component
 
         $this->validate([
             'edit_name'            => 'required|string|max:255',
-            'edit_code'            => 'nullable|string|max:100|unique:projects,code,' . $this->editProjectId,
+            'edit_code'            => 'required|string|max:100|unique:projects,code,' . $this->editProjectId,
             'edit_project_type'    => 'required|array|min:1',
             'edit_project_type.*'  => 'string|in:residential,commercial,luxury,classic',
             'edit_status'          => 'required',
