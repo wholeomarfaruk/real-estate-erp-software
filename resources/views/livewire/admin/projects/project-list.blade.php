@@ -159,7 +159,7 @@
                                         <td class="px-5 py-4 sm:px-6">
                                             <p class="text-sm text-gray-800 dark:text-white/90">
                                                 @if ($project->budget)
-                                                    ${{ number_format($project->budget, 2) }}
+                                                    ৳{{ number_format($project->budget, 2) }}
                                                 @else
                                                     -
                                                 @endif
