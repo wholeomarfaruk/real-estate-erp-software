@@ -78,9 +78,14 @@ class PropertyCatalog extends Component
             $this->fType = $projectTypes[0] ?? '';
         }
 
-        // Auto-fill land size from project land_area
+        // Auto-fill total area from project land_area (sft)
+        if (!$this->fTotalArea) {
+            $this->fTotalArea = $project->land_area ?? '';
+        }
+
+        // Auto-fill land size from project building_area (katha)
         if (!$this->fLandSize) {
-            $this->fLandSize = $project->land_area ?? '';
+            $this->fLandSize = $project->building_area ?? '';
         }
 
         // Auto-fill remarks from project description

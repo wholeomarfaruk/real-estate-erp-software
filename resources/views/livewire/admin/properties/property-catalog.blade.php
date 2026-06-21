@@ -290,8 +290,11 @@
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">Total Area (sft)</label>
-                    <input wire:model="fTotalArea" type="number" step="0.01" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule)">
+                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">
+                        Total Area (sft)
+                        @if($selectedProject && $fTotalArea) <span style="color:#16a34a;font-weight:normal">(auto-filled)</span> @endif
+                    </label>
+                    <input wire:model="fTotalArea" type="number" step="0.01" class="w-full rounded-lg border px-3 py-2 text-sm" style="border-color:var(--rule);{{ $selectedProject && $fTotalArea ? 'background:rgba(59, 130, 246, 0.08)' : '' }}">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--ink-3)">
