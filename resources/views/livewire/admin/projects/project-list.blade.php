@@ -50,7 +50,7 @@
         </div>
 
         {{-- Projects Grid --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 overflow-visible">
             @forelse ($projects as $project)
                 <div class="group bg-white dark:bg-white/[0.03] rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                     {{-- Image Section --}}
@@ -143,7 +143,7 @@
                             </a>
 
                             {{-- More actions dropdown --}}
-                            <div class="relative">
+                            <div class="relative z-50">
                                 <button type="button" @click="open = !open"
                                     class="inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 px-3 py-2.5 transition">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -157,7 +157,7 @@
                                     x-transition:leave="transition ease-in duration-100"
                                     x-transition:leave-start="opacity-100 scale-100"
                                     x-transition:leave-end="opacity-0 scale-95"
-                                    class="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg"
+                                    class="absolute right-0 bottom-full z-50 mb-2 w-48 origin-bottom-right rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl"
                                     style="display: none;">
                                     @can('project.edit')
                                         <button type="button"
