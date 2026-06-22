@@ -6,7 +6,6 @@ use App\Accounting\PostingContext;
 use App\Enums\Accounts\PaymentRequestSourceType;
 use App\Enums\Accounts\TransactionType;
 use App\Models\Account;
-use App\Models\BankAccount;
 use App\Models\BankingPaymentRequest;
 use App\Models\PayrollPayment;
 use App\Models\PurchaseFund;
@@ -130,10 +129,10 @@ class BankingTransactionService
     }
 
     /**
-     * Post a payroll payment:
+     * Post a payroll payment using stored double-entry data:
      *   Dr Salary Payable / Cr Payment Account
      *
-     * Uses the payroll.payment accounting event.
+     * Uses debit/credit accounts and amounts pre-stored on the request.
      */
     private function postPayrollPayment(
         BankingPaymentRequest $request,
@@ -146,44 +145,69 @@ class BankingTransactionService
             throw new \DomainException('Payroll request must be linked to a PayrollPayment.');
         }
 
-        $bankAccount = BankAccount::query()->findOrFail($request->bank_account_id);
-        $paymentAccountId = (int) $bankAccount->account_id;
+        // Use stored double-entry data
+        if (!$request->debit_account_id || !$request->credit_account_id) {
+            throw new \DomainException('Double-entry accounts not configured for this payroll request.');
+        }
 
-        if ($paymentAccountId <= 0) {
-            throw new \DomainException('Bank account has no linked Chart of Accounts entry.');
+        // Validate accounts exist and are active
+        $debitAccount = Account::findOrFail($request->debit_account_id);
+        $creditAccount = Account::findOrFail($request->credit_account_id);
+
+        if (!$debitAccount->is_active || !$creditAccount->is_active) {
+            throw new \DomainException('One or more double-entry accounts are inactive.');
         }
 
         $payment = PayrollPayment::query()
             ->with(['payroll.employee:id,name'])
             ->findOrFail($request->sourceable_id);
 
-        try {
-            return $this->engine->record(
-                'payroll.payment',
-                new PostingContext(
-                    amount: (float) $request->amount,
-                    datetime: now()->format('Y-m-d H:i:s'),
-                    paymentAccountId: $paymentAccountId,
-                    referenceType: 'payroll_payment',
-                    referenceId: $payment->id,
-                    method: $payment->payment_method,
-                    name: $payment->payroll?->employee?->name,
-                    notes: $request->notes ?? $request->description,
-                    actorId: $userId,
-                ),
-            );
-        } catch (\DomainException $e) {
-            throw new \DomainException(
-                "Cannot post payroll payment: {$e->getMessage()} (ensure 'payroll.payment' event is configured)"
-            );
-        }
+        // Create balanced double-entry using stored amounts
+        $transaction = $this->ledger->post(
+            [
+                'datetime' => now()->format('Y-m-d H:i:s'),
+                'type' => $request->source_type,
+                'reference_type' => 'banking_payment_request',
+                'reference_id' => $request->id,
+                'reference_no' => $request->reference_no,
+                'name' => $request->name ?? $payment->payroll?->employee?->name,
+                'phone' => $request->phone,
+                'method' => $request->method ?? $payment->payment_method ?? 'bank',
+                'notes' => $request->notes ?? $request->description,
+                'created_by' => $userId,
+            ],
+            [
+                [
+                    'account_id' => (int) $debitAccount->id,
+                    'debit' => (float) $request->debit_amount,
+                    'credit' => 0,
+                    'notes' => $debitAccount->name,
+                ],
+                [
+                    'account_id' => (int) $creditAccount->id,
+                    'debit' => 0,
+                    'credit' => (float) $request->credit_amount,
+                    'notes' => $creditAccount->name,
+                ],
+            ],
+        );
+
+        // Update banking request with transaction and completion info
+        $request->update([
+            'transaction_id' => $transaction->id,
+            'status' => 'completed',
+            'completed_by' => $userId,
+            'completed_at' => now(),
+        ]);
+
+        return $transaction;
     }
 
     /**
-     * Post a supplier invoice payment:
+     * Post a supplier invoice payment using stored double-entry data:
      *   Dr Accounts Payable / Cr Payment Account
      *
-     * Uses the purchase.supplier_payment accounting event.
+     * Uses debit/credit accounts and amounts pre-stored on the request.
      */
     private function postSupplierPayment(
         BankingPaymentRequest $request,
@@ -196,44 +220,69 @@ class BankingTransactionService
             throw new \DomainException('Supplier payment must be linked to a PurchaseInvoice.');
         }
 
-        $bankAccount = BankAccount::query()->findOrFail($request->bank_account_id);
-        $paymentAccountId = (int) $bankAccount->account_id;
+        // Use stored double-entry data
+        if (!$request->debit_account_id || !$request->credit_account_id) {
+            throw new \DomainException('Double-entry accounts not configured for this supplier payment request.');
+        }
 
-        if ($paymentAccountId <= 0) {
-            throw new \DomainException('Bank account has no linked Chart of Accounts entry.');
+        // Validate accounts exist and are active
+        $debitAccount = Account::findOrFail($request->debit_account_id);
+        $creditAccount = Account::findOrFail($request->credit_account_id);
+
+        if (!$debitAccount->is_active || !$creditAccount->is_active) {
+            throw new \DomainException('One or more double-entry accounts are inactive.');
         }
 
         $invoice = PurchaseInvoice::query()
             ->with(['supplier:id,name'])
             ->findOrFail($request->sourceable_id);
 
-        try {
-            return $this->engine->record(
-                'purchase.supplier_payment',
-                new PostingContext(
-                    amount: (float) $request->amount,
-                    datetime: now()->format('Y-m-d H:i:s'),
-                    paymentAccountId: $paymentAccountId,
-                    referenceType: 'purchase_invoice',
-                    referenceId: $invoice->id,
-                    referenceNo: $invoice->invoice_no,
-                    name: $invoice->supplier?->name,
-                    notes: $request->notes ?? $request->description,
-                    actorId: $userId,
-                ),
-            );
-        } catch (\DomainException $e) {
-            throw new \DomainException(
-                "Cannot post supplier payment: {$e->getMessage()} (ensure 'purchase.supplier_payment' event is configured)"
-            );
-        }
+        // Create balanced double-entry using stored amounts
+        $transaction = $this->ledger->post(
+            [
+                'datetime' => now()->format('Y-m-d H:i:s'),
+                'type' => $request->source_type,
+                'reference_type' => 'banking_payment_request',
+                'reference_id' => $request->id,
+                'reference_no' => $request->reference_no ?? $invoice->invoice_no,
+                'name' => $request->name ?? $invoice->supplier?->name,
+                'phone' => $request->phone,
+                'method' => $request->method ?? 'bank',
+                'notes' => $request->notes ?? $request->description,
+                'created_by' => $userId,
+            ],
+            [
+                [
+                    'account_id' => (int) $debitAccount->id,
+                    'debit' => (float) $request->debit_amount,
+                    'credit' => 0,
+                    'notes' => $debitAccount->name,
+                ],
+                [
+                    'account_id' => (int) $creditAccount->id,
+                    'debit' => 0,
+                    'credit' => (float) $request->credit_amount,
+                    'notes' => $creditAccount->name,
+                ],
+            ],
+        );
+
+        // Update banking request with transaction and completion info
+        $request->update([
+            'transaction_id' => $transaction->id,
+            'status' => 'completed',
+            'completed_by' => $userId,
+            'completed_at' => now(),
+        ]);
+
+        return $transaction;
     }
 
     /**
-     * Post an advance fund (purchase order):
+     * Post an advance fund (purchase order) using stored double-entry data:
      *   Dr Supplier Advance (asset) / Cr Payment Account
      *
-     * Uses the purchase.supplier_advance accounting event.
+     * Uses debit/credit accounts and amounts pre-stored on the request.
      */
     private function postAdvanceFund(
         BankingPaymentRequest $request,
@@ -246,39 +295,62 @@ class BankingTransactionService
             throw new \DomainException('Advance fund must be linked to a PurchaseFund.');
         }
 
+        // Use stored double-entry data
+        if (!$request->debit_account_id || !$request->credit_account_id) {
+            throw new \DomainException('Double-entry accounts not configured for this advance fund request.');
+        }
+
+        // Validate accounts exist and are active
+        $debitAccount = Account::findOrFail($request->debit_account_id);
+        $creditAccount = Account::findOrFail($request->credit_account_id);
+
+        if (!$debitAccount->is_active || !$creditAccount->is_active) {
+            throw new \DomainException('One or more double-entry accounts are inactive.');
+        }
+
         $fund = PurchaseFund::query()
             ->with(['receiver', 'purchaseOrder:id,po_no'])
             ->findOrFail($request->sourceable_id);
 
-        // Resolve payment account: prefer from fund, fallback to request
-        $paymentAccountId = (int) ($fund->payment_account_id ?: $request->account_id);
+        // Create balanced double-entry using stored amounts
+        $transaction = $this->ledger->post(
+            [
+                'datetime' => now()->format('Y-m-d H:i:s'),
+                'type' => $request->source_type,
+                'reference_type' => 'banking_payment_request',
+                'reference_id' => $request->id,
+                'reference_no' => $request->reference_no ?? $fund->reference_no,
+                'name' => $request->name ?? $fund->receiver?->name,
+                'phone' => $request->phone ?? $fund->receiver?->phone,
+                'method' => $request->method ?? $fund->method ?? 'bank',
+                'notes' => $request->notes ?? $request->description,
+                'created_by' => $userId,
+            ],
+            [
+                [
+                    'account_id' => (int) $debitAccount->id,
+                    'debit' => (float) $request->debit_amount,
+                    'credit' => 0,
+                    'notes' => $debitAccount->name,
+                ],
+                [
+                    'account_id' => (int) $creditAccount->id,
+                    'debit' => 0,
+                    'credit' => (float) $request->credit_amount,
+                    'notes' => $creditAccount->name,
+                ],
+            ],
+        );
 
-        if ($paymentAccountId <= 0) {
-            throw new \DomainException('Fund release has no source account to pay from.');
-        }
+        // Update banking request with transaction and completion info
+        $request->update([
+            'transaction_id' => $transaction->id,
+            'status' => 'completed',
+            'completed_by' => $userId,
+            'completed_at' => now(),
+        ]);
 
-        try {
-            return $this->engine->record(
-                'purchase.supplier_advance',
-                new PostingContext(
-                    amount: (float) $request->amount,
-                    datetime: now()->format('Y-m-d H:i:s'),
-                    paymentAccountId: $paymentAccountId,
-                    referenceType: 'purchase_order',
-                    referenceId: (int) $fund->purchase_order_id,
-                    referenceNo: $fund->reference_no,
-                    method: $fund->method,
-                    name: $fund->receiver?->name,
-                    phone: $fund->receiver?->phone,
-                    notes: $request->notes ?? $request->description,
-                    actorId: $userId,
-                ),
-            );
-        } catch (\DomainException $e) {
-            throw new \DomainException(
-                "Cannot post advance fund: {$e->getMessage()} (ensure 'purchase.supplier_advance' event is configured)"
-            );
-        }
+        return $transaction;
     }
 
     /**
@@ -368,28 +440,35 @@ class BankingTransactionService
             throw new \DomainException('Payment amount must be greater than zero.');
         }
 
-        // Ensure either account_id or (bank_account_id linked to account) is set
-        $hasPaymentAccount = false;
-
-        if ($request->account_id) {
-            $account = Account::query()->find($request->account_id);
-            if ($account && $account->is_active) {
-                $hasPaymentAccount = true;
-            }
-        } elseif ($request->bank_account_id) {
-            $bankAccount = BankAccount::query()->find($request->bank_account_id);
-            if ($bankAccount && $bankAccount->account_id) {
-                $account = Account::query()->find($bankAccount->account_id);
-                if ($account && $account->is_active) {
-                    $hasPaymentAccount = true;
-                }
-            }
+        // Ensure double-entry accounts are configured
+        if (!$request->debit_account_id || !$request->credit_account_id) {
+            throw new \DomainException(
+                'Double-entry accounts not configured. Ensure debit_account_id and credit_account_id are set.'
+            );
         }
 
-        if (! $hasPaymentAccount) {
+        // Validate both accounts exist and are active
+        $debitAccount = Account::query()->find($request->debit_account_id);
+        $creditAccount = Account::query()->find($request->credit_account_id);
+
+        if (!$debitAccount) {
             throw new \DomainException(
-                'No valid payment account found. Bank account must be linked to Chart of Accounts.'
+                'Debit account not found (ID: ' . $request->debit_account_id . ').'
             );
+        }
+
+        if (!$creditAccount) {
+            throw new \DomainException(
+                'Credit account not found (ID: ' . $request->credit_account_id . ').'
+            );
+        }
+
+        if (!$debitAccount->is_active) {
+            throw new \DomainException('Debit account is inactive.');
+        }
+
+        if (!$creditAccount->is_active) {
+            throw new \DomainException('Credit account is inactive.');
         }
     }
 }
