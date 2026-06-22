@@ -122,4 +122,38 @@ class BankingPaymentRequest extends Model
         $seq  = $last ? ((int) substr($last, -5)) + 1 : 1;
         return 'BPR-' . now()->format('ymd') . '-' . str_pad($seq, 5, '0', STR_PAD_LEFT);
     }
+
+    public function getPaymentAccount(): ?Account
+    {
+        if ($this->account_id) {
+            return $this->account;
+        }
+
+        if ($this->bank_account_id) {
+            $bankAccount = $this->bankAccount;
+            if ($bankAccount?->account_id) {
+                return Account::find($bankAccount->account_id);
+            }
+        }
+
+        return null;
+    }
+
+    public function isCompleted(): bool
+    {
+        return $this->status === 'completed' && $this->transaction_id !== null;
+    }
+
+    public function canBeCompleted(): bool
+    {
+        if ($this->status !== 'released') {
+            return false;
+        }
+
+        if ((float) $this->amount <= 0) {
+            return false;
+        }
+
+        return $this->getPaymentAccount() !== null;
+    }
 }

@@ -342,6 +342,28 @@
                     </ol>
                 </div>
 
+                {{-- Linked Transaction --}}
+                @if($r->transaction_id)
+                    <div>
+                        <h4 class="mb-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Ledger Transaction</h4>
+                        <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">Transaction ID</p>
+                            <p class="font-mono text-sm font-semibold text-emerald-700">{{ $r->transaction_id }}</p>
+                            @if($r->transaction)
+                                <p class="mt-2 text-xs text-gray-600">
+                                    <span class="font-semibold">Type:</span> {{ $r->transaction->type->label() }} &nbsp;
+                                    <span class="font-semibold">Posted:</span> {{ $r->transaction->created_at->format('d M Y, H:i') }}
+                                </p>
+                                <p class="mt-1 text-xs text-gray-600">
+                                    <span class="font-semibold">Lines:</span> {{ $r->transaction->lines->count() }} entries
+                                    (DR: {{ number_format($r->transaction->lines->sum('debit'), 2) }} /
+                                    CR: {{ number_format($r->transaction->lines->sum('credit'), 2) }})
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Action buttons --}}
                 @if(in_array($r->status, ['pending', 'approved', 'released']))
                     <div class="flex flex-wrap gap-2 border-t border-gray-100 pt-4">
