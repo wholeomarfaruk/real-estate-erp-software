@@ -167,8 +167,8 @@ class BankingTransactionService
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
                 'type' => TransactionType::PURCHASE->value,
-                'reference_type' => 'banking_payment_request',
-                'reference_id' => $request->id,
+                'reference_type' => 'payroll_payment',
+                'reference_id' => $payment->id,
                 'reference_no' => $request->reference_no,
                 'name' => $request->name ?? $payment->payroll?->employee?->name,
                 'phone' => $request->phone,
@@ -242,8 +242,8 @@ class BankingTransactionService
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
                 'type' => TransactionType::SUPPLIER_PAYMENT->value,
-                'reference_type' => 'banking_payment_request',
-                'reference_id' => $request->id,
+                'reference_type' => 'purchase_invoice',
+                'reference_id' => $invoice->id,
                 'reference_no' => $request->reference_no ?? $invoice->invoice_no,
                 'name' => $request->name ?? $invoice->supplier?->name,
                 'phone' => $request->phone,
@@ -317,8 +317,8 @@ class BankingTransactionService
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
                 'type' => TransactionType::ADVANCE->value,
-                'reference_type' => 'banking_payment_request',
-                'reference_id' => $request->id,
+                'reference_type' => 'purchase_fund',
+                'reference_id' => $fund->id,
                 'reference_no' => $request->reference_no ?? $fund->reference_no,
                 'name' => $request->name ?? $fund->receiver?->name,
                 'phone' => $request->phone ?? $fund->receiver?->phone,
