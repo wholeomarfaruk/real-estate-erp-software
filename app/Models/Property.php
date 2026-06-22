@@ -38,10 +38,11 @@ class Property extends Model
     protected $casts = [
         'documents'       => 'array',
         'property_images' => 'array',
-        'total_floors'  => 'integer',
-        'total_area'    => 'decimal:2',
-        'land_size'     => 'decimal:2',
-        'registered_at' => 'date',
+        'type'            => 'array',
+        'total_floors'    => 'integer',
+        'total_area'      => 'decimal:2',
+        'land_size'       => 'decimal:2',
+        'registered_at'   => 'date',
     ];
 
     public function project(): BelongsTo

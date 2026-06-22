@@ -20,7 +20,7 @@ return new class extends Migration
         
             //new added
                         // New columns — existing project_id / property_type / etc. stay intact
-            $table->string('type')->nullable();
+            $table->json('type')->nullable();
             $table->decimal('total_area', 12, 2)->nullable();
             $table->decimal('land_size', 10, 2)->nullable();
             $table->unsignedBigInteger('engineer_id')->nullable();

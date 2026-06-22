@@ -152,7 +152,7 @@ class PropertyCatalog extends Component
             'project_id'    => $this->fProjectId ?: null,
             'name'          => $this->fName,
             'code'          => $this->fCode ?: null,
-            'type'          => !empty($this->fType) ? $this->fType : null,
+            'type'          => !empty($this->fType) ? array_values($this->fType) : null,
             'status'        => $this->fStatus,
             'address'       => $this->fAddress ?: null,
             'total_area'    => $this->fTotalArea !== '' ? $this->fTotalArea : null,
