@@ -301,7 +301,7 @@ class BankingTransactionService
         }
 
         // Create balanced double-entry directly
-        return $this->ledger->post(
+        $transaction = $this->ledger->post(
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
                 'type' => $request->source_type,
@@ -325,6 +325,16 @@ class BankingTransactionService
                 ],
             ],
         );
+
+        // Update banking request with transaction and completion info
+        $request->update([
+            'transaction_id' => $transaction->id,
+            'status' => 'completed',
+            'completed_by' => $userId,
+            'completed_at' => now(),
+        ]);
+
+        return $transaction;
     }
 
     /**
