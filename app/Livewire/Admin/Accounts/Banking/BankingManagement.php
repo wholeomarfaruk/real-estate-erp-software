@@ -139,7 +139,7 @@ class BankingManagement extends Component
             'notes'                   => ['nullable', 'string', 'max:500'],
         ]);
 
-        BankingPaymentRequest::create([
+        $request = BankingPaymentRequest::create([
             'request_no'              => BankingPaymentRequest::generateRequestNo(),
             'source_type'             => $this->source_type,
             'transaction_category_id' => $this->transaction_category_id ?: null,
@@ -151,7 +151,16 @@ class BankingManagement extends Component
             'requested_by'            => Auth::id(),
         ]);
 
-        $this->dispatch('toast', ['type' => 'success', 'message' => 'Payment request created.']);
+        // Build and store double-entry details
+        try {
+            $builder = app(\App\Services\Accounts\BankingDoubleEntryBuilderService::class);
+            $builder->buildDoubleEntry($request);
+        } catch (\Exception $e) {
+            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Request created, but double-entry setup failed: ' . $e->getMessage()]);
+            return;
+        }
+
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Payment request created with double-entry accounts.']);
         $this->closeCreateModal();
     }
 

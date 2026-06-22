@@ -22,6 +22,14 @@ class BankingPaymentRequest extends Model
         'description',
         'bank_account_id',
         'account_id',
+        'debit_account_id',
+        'debit_amount',
+        'credit_account_id',
+        'credit_amount',
+        'reference_no',
+        'name',
+        'phone',
+        'method',
         'status',
         'notes',
         'rejection_reason',
@@ -56,6 +64,16 @@ class BankingPaymentRequest extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(\App\Models\Account::class, 'account_id');
+    }
+
+    public function debitAccount(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Account::class, 'debit_account_id');
+    }
+
+    public function creditAccount(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Account::class, 'credit_account_id');
     }
 
     public function sourceable(): MorphTo

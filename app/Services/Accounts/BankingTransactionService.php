@@ -259,69 +259,54 @@ class BankingTransactionService
     }
 
     /**
-     * Post an income or opening balance deposit:
+     * Post an income or opening balance deposit using stored double-entry data.
      *   Dr Payment Account / Cr Income/Opening Balance Account
      *
-     * For generic income deposits or opening balances where no specific
-     * accounting event applies. Creates balancing entry directly via LedgerService.
+     * Uses debit/credit accounts and amounts pre-stored on the request.
      */
     private function postIncome(
         BankingPaymentRequest $request,
         int $userId
     ): Transaction {
-        // Resolve payment account (bank/cash)
-        $paymentAccountId = $request->account_id;
-
-        if ($paymentAccountId <= 0 && $request->bank_account_id) {
-            $bankAccount = BankAccount::query()->find($request->bank_account_id);
-            $paymentAccountId = (int) ($bankAccount?->account_id ?? 0);
+        // Use stored double-entry data
+        if (!$request->debit_account_id || !$request->credit_account_id) {
+            throw new \DomainException('Double-entry accounts not configured for this payment request.');
         }
 
-        if ($paymentAccountId <= 0) {
-            throw new \DomainException(
-                'Payment account not found. Bank account must be linked to Chart of Accounts.'
-            );
+        // Validate accounts exist and are active
+        $debitAccount = Account::findOrFail($request->debit_account_id);
+        $creditAccount = Account::findOrFail($request->credit_account_id);
+
+        if (!$debitAccount->is_active || !$creditAccount->is_active) {
+            throw new \DomainException('One or more double-entry accounts are inactive.');
         }
 
-        // Resolve or create contra account for income/opening balance
-        $contraAccount = Account::query()->firstOrCreate(
-            [
-                'name' => 'Opening Balance / Income',
-                'type' => 'ledger',
-                'parent_id' => null,
-            ],
-            [
-                'code' => 'OBI-001',
-                'is_active' => true,
-            ]
-        );
-
-        if (! $contraAccount->is_active) {
-            throw new \DomainException('Contra account for income/opening balance is inactive.');
-        }
-
-        // Create balanced double-entry directly
+        // Create balanced double-entry using stored amounts
         $transaction = $this->ledger->post(
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
                 'type' => $request->source_type,
                 'reference_type' => 'banking_payment_request',
                 'reference_id' => $request->id,
+                'reference_no' => $request->reference_no,
+                'name' => $request->name,
+                'phone' => $request->phone,
+                'method' => $request->method ?? 'bank',
                 'notes' => $request->notes ?? $request->description,
                 'created_by' => $userId,
             ],
             [
                 [
-                    'account_id' => $paymentAccountId,
-                    'debit' => (float) $request->amount,
+                    'account_id' => (int) $debitAccount->id,
+                    'debit' => (float) $request->debit_amount,
                     'credit' => 0,
-                    'notes' => 'Bank/Cash Receipt',
+                    'notes' => $debitAccount->name,
                 ],
                 [
-                    'account_id' => (int) $contraAccount->id,
+                    'account_id' => (int) $creditAccount->id,
                     'debit' => 0,
-                    'credit' => (float) $request->amount,
-                    'notes' => 'Opening Balance / Income',
+                    'credit' => (float) $request->credit_amount,
+                    'notes' => $creditAccount->name,
                 ],
             ],
         );

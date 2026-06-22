@@ -82,12 +82,11 @@
                 <thead>
                     <tr class="border-b border-gray-100 bg-gray-50">
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Request No</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Source</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Type</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Description</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Account</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Amount</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Double-Entry</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Status</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Requested By</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Actions</th>
                     </tr>
                 </thead>
@@ -119,24 +118,45 @@
                                     <p class="mt-0.5 text-[10px] text-gray-400">{{ $req->transactionCategory->name }}</p>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-gray-700 max-w-[180px]">
+                            <td class="px-4 py-3 text-gray-700 max-w-[200px]">
                                 <p class="truncate">{{ $req->description ?: '—' }}</p>
                             </td>
-                            <td class="px-4 py-3">
-                                <p class="text-xs font-medium text-gray-700">{{ $req->bankAccount?->bank_name ?? '—' }}</p>
-                                @if($req->bankAccount?->code)
-                                    <p class="font-mono text-[10px] text-gray-400 mt-0.5">{{ $req->bankAccount->code }}</p>
-                                @endif
-                            </td>
                             <td class="px-4 py-3 text-right font-mono text-sm font-semibold text-gray-800">
-                                {{ number_format($req->amount, 2) }}
+                                {{ number_format($req->amount, 2) }} BDT
+                            </td>
+                            <td class="px-4 py-3">
+                                @if($req->isCompleted())
+                                    <div class="space-y-1.5">
+                                        <p class="text-[10px] font-mono font-bold text-emerald-700">TXN-{{ str_pad($req->transaction_id, 6, '0', STR_PAD_LEFT) }}</p>
+                                        <p class="text-[10px] text-emerald-600">
+                                            <span class="font-mono">DR:</span> {{ $req->debitAccount?->code }}
+                                        </p>
+                                        <p class="text-[10px] text-emerald-600">
+                                            <span class="font-mono">CR:</span> {{ $req->creditAccount?->code }}
+                                        </p>
+                                    </div>
+                                @elseif($req->debit_account_id && $req->credit_account_id)
+                                    <div class="space-y-1">
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+                                            Configured
+                                        </span>
+                                        <p class="text-[10px] text-gray-500">
+                                            <span class="font-mono">DR:</span> {{ $req->debitAccount?->code }}
+                                        </p>
+                                        <p class="text-[10px] text-gray-500">
+                                            <span class="font-mono">CR:</span> {{ $req->creditAccount?->code }}
+                                        </p>
+                                    </div>
+                                @else
+                                    <p class="text-[10px] text-gray-400">—</p>
+                                @endif
                             </td>
                             <td class="px-4 py-3">
                                 <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide {{ $statusClass }}">
                                     {{ ucfirst($req->status) }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-xs text-gray-600">{{ $req->requestedBy?->name ?? '—' }}</td>
                             <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
                                 <div class="flex items-center justify-end gap-1">
                                     @if($req->status === 'pending')
@@ -302,6 +322,62 @@
                     </dl>
                 </div>
 
+                {{-- Double-Entry Structure --}}
+                <div>
+                    <h4 class="mb-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Double-Entry Configuration</h4>
+                    @if($r->debit_account_id && $r->credit_account_id)
+                        <div class="space-y-2">
+                            <div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                                <p class="text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-2">Debit</p>
+                                <p class="text-xs font-medium text-gray-800">{{ $r->debitAccount?->name }}</p>
+                                <p class="text-xs text-gray-600 font-mono">{{ $r->debitAccount?->code }}</p>
+                                <p class="text-sm font-bold text-blue-700 mt-2">{{ number_format($r->debit_amount, 2) }} BDT</p>
+                            </div>
+                            <div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                                <p class="text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-2">Credit</p>
+                                <p class="text-xs font-medium text-gray-800">{{ $r->creditAccount?->name }}</p>
+                                <p class="text-xs text-gray-600 font-mono">{{ $r->creditAccount?->code }}</p>
+                                <p class="text-sm font-bold text-amber-700 mt-2">{{ number_format($r->credit_amount, 2) }} BDT</p>
+                            </div>
+                        </div>
+                    @else
+                        <p class="text-xs text-gray-500">No double-entry configuration yet.</p>
+                    @endif
+                </div>
+
+                {{-- Transaction Details --}}
+                @if($r->reference_no || $r->name || $r->phone || $r->method)
+                    <div>
+                        <h4 class="mb-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Transaction Details</h4>
+                        <dl class="space-y-2 text-sm">
+                            @if($r->reference_no)
+                                <div class="flex gap-3">
+                                    <dt class="w-28 shrink-0 text-xs text-gray-400">Reference No</dt>
+                                    <dd class="font-mono text-gray-700">{{ $r->reference_no }}</dd>
+                                </div>
+                            @endif
+                            @if($r->name)
+                                <div class="flex gap-3">
+                                    <dt class="w-28 shrink-0 text-xs text-gray-400">Name</dt>
+                                    <dd class="text-gray-700">{{ $r->name }}</dd>
+                                </div>
+                            @endif
+                            @if($r->phone)
+                                <div class="flex gap-3">
+                                    <dt class="w-28 shrink-0 text-xs text-gray-400">Phone</dt>
+                                    <dd class="font-mono text-gray-700">{{ $r->phone }}</dd>
+                                </div>
+                            @endif
+                            @if($r->method)
+                                <div class="flex gap-3">
+                                    <dt class="w-28 shrink-0 text-xs text-gray-400">Method</dt>
+                                    <dd class="text-gray-700">{{ ucfirst($r->method) }}</dd>
+                                </div>
+                            @endif
+                        </dl>
+                    </div>
+                @endif
+
                 {{-- Approval Timeline --}}
                 <div>
                     <h4 class="mb-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Approval Timeline</h4>
@@ -342,23 +418,61 @@
                     </ol>
                 </div>
 
-                {{-- Linked Transaction --}}
+                {{-- Linked Transaction & Double-Entry --}}
                 @if($r->transaction_id)
                     <div>
-                        <h4 class="mb-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Ledger Transaction</h4>
-                        <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
-                            <p class="text-xs text-gray-500 uppercase tracking-wide">Transaction ID</p>
-                            <p class="font-mono text-sm font-semibold text-emerald-700">{{ $r->transaction_id }}</p>
+                        <h4 class="mb-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Ledger Transaction - Double-Entry</h4>
+                        <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-[10px] text-gray-500 uppercase tracking-wide font-semibold">Transaction ID</p>
+                                    <p class="font-mono text-sm font-semibold text-emerald-700 mt-1">TXN-{{ str_pad($r->transaction_id, 6, '0', STR_PAD_LEFT) }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[10px] text-gray-500 uppercase tracking-wide font-semibold">Type</p>
+                                    <p class="text-sm font-semibold text-emerald-700 mt-1">{{ $r->transaction->type->label() }}</p>
+                                </div>
+                            </div>
+
                             @if($r->transaction)
-                                <p class="mt-2 text-xs text-gray-600">
-                                    <span class="font-semibold">Type:</span> {{ $r->transaction->type->label() }} &nbsp;
-                                    <span class="font-semibold">Posted:</span> {{ $r->transaction->created_at->format('d M Y, H:i') }}
-                                </p>
-                                <p class="mt-1 text-xs text-gray-600">
-                                    <span class="font-semibold">Lines:</span> {{ $r->transaction->lines->count() }} entries
-                                    (DR: {{ number_format($r->transaction->lines->sum('debit'), 2) }} /
-                                    CR: {{ number_format($r->transaction->lines->sum('credit'), 2) }})
-                                </p>
+                                <div class="border-t border-emerald-200 pt-3">
+                                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Ledger Entries</p>
+                                    <div class="space-y-2">
+                                        @foreach($r->transaction->lines as $line)
+                                            <div class="flex items-center justify-between rounded bg-white px-3 py-2.5 border border-emerald-100">
+                                                <div class="flex items-center gap-3 flex-1">
+                                                    <span class="inline-flex h-6 w-10 items-center justify-center rounded bg-gray-100 text-[11px] font-bold uppercase text-gray-700">
+                                                        {{ $line->debit > 0 ? 'DR' : 'CR' }}
+                                                    </span>
+                                                    <span class="text-xs font-medium text-gray-700 truncate max-w-[180px]">{{ $line->account->name }}</span>
+                                                </div>
+                                                <span class="font-mono text-sm font-semibold text-gray-900">
+                                                    {{ number_format($line->debit > 0 ? $line->debit : $line->credit, 2) }}
+                                                </span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+
+                                    <div class="border-t border-emerald-200 mt-2 pt-2 flex items-center justify-between">
+                                        <p class="text-[10px] font-bold text-gray-600">TOTAL</p>
+                                        <div class="flex gap-8">
+                                            <div class="text-right">
+                                                <p class="text-[10px] text-gray-500">DR</p>
+                                                <p class="font-mono text-sm font-bold text-gray-900">{{ number_format($r->transaction->lines->sum('debit'), 2) }}</p>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-[10px] text-gray-500">CR</p>
+                                                <p class="font-mono text-sm font-bold text-gray-900">{{ number_format($r->transaction->lines->sum('credit'), 2) }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="border-t border-emerald-200 pt-2">
+                                    <p class="text-[10px] text-gray-600">
+                                        <span class="font-semibold">Posted:</span> {{ $r->transaction->created_at->format('d M Y, H:i:s') }}
+                                    </p>
+                                </div>
                             @endif
                         </div>
                     </div>
