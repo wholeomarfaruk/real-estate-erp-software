@@ -186,11 +186,17 @@
                 <span class="w-1.5 h-1.5 rounded-full" style="{{ $property->status === 'active' ? 'background:var(--av-fg)' : 'background:var(--in-fg)' }}"></span>
                 {{ ucfirst($property->status) }}
             </span>
-            @if($property->type ?? $property->property_type)
+            @php
+                $types = $property->type ?? ($property->property_type ? [$property->property_type] : []);
+                $typeArray = is_array($types) ? $types : [$types];
+            @endphp
+            @foreach($typeArray as $type)
+            @if($type)
             <span class="px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider" style="background:var(--in-bg);color:var(--in-fg)">
-                {{ $property->type ?? $property->property_type }}
+                {{ $type }}
             </span>
             @endif
+            @endforeach
         </div>
 
         {{-- facts grid --}}

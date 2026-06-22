@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('status')->default('active');
             $table->string('image')->nullable();
             $table->json('documents')->nullable();
-        
+
             //new added
                         // New columns — existing project_id / property_type / etc. stay intact
             $table->json('type')->nullable();
@@ -34,8 +34,8 @@ return new class extends Migration
 
            //foreign key constraint for engineer_id referencing employees table
             $table->foreign('engineer_id')->references('id')->on('employees')->nullOnDelete();
-           $table->index('type');
-            
+;
+
         });
     }
 

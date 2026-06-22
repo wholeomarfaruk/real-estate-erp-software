@@ -129,7 +129,7 @@
         <header class="flex justify-between items-start gap-3 px-5 py-4 border-b" style="border-color:var(--rule)">
             <div class="flex-1 min-w-0">
                 <div class="text-xs font-medium uppercase tracking-wider" style="color:var(--ink-3);font-family:'IBM Plex Mono',monospace">
-                    {{ $prop->code }} · {{ $prop->type ?? $prop->property_type ?? '—' }}
+                    {{ $prop->code }} · {{ is_array($prop->type) ? implode(', ', $prop->type) : ($prop->type ?? '—') }}
                 </div>
                 <div class="text-base font-semibold mt-1" style="color:var(--ink-1)">{{ $prop->name }}</div>
                 @if($prop->address)

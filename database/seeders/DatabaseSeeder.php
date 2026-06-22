@@ -12,29 +12,18 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PermissionSeeder::class,
             PanelSeeder::class,
-            StoreSeeder::class,
             ProductUnitSeeder::class,
             UnitTypeSeeder::class,
-
-            ProductSeeder::class,
-            SupplierSeeder::class,
             ChartOfAccountsSeeder::class,
             ProjectExpenseChartOfAccountsSeeder::class,
             AccountingEventSeeder::class,
-            PropertySeeder::class,
             TransactionCategorySeeder::class,
             NumberSequenceSeeder::class,
             ExpenseTypesSeeder::class,
-            //last one
             UserSeeder::class,
-            EmployeeSeeder::class,
-            CustomerSeeder::class,
-            LeadSeeder::class,
             MarketingSeeder::class,
             SmsGatewaySeeder::class,
-            DemoTestDataSeeder::class,
             AssignPermissionSeeder::class,
-
         ]);
     }
 }
