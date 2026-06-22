@@ -135,9 +135,20 @@
 
 <div class="expense-dashboard">
   {{-- Page Header --}}
-  <div class="page-header">
-    <h1>Expenses</h1>
-    <p>Quick expense entry by category. Select a category below to add a new expense.</p>
+  <div class="page-header flex items-center justify-between">
+    <div>
+      <h1>Expenses</h1>
+      <p>Quick expense entry by category. Select a category below to add a new expense.</p>
+    </div>
+    <button
+      wire:click="openCreateModal"
+      class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Add Category
+    </button>
   </div>
 
   {{-- Category Cards Grid --}}
@@ -187,5 +198,26 @@
     @endforelse
   </div>
 </div>
+
+{{-- Create Category Modal --}}
+@if ($showCreateModal)
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="@this.call('closeCreateModal')">
+    <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-900">Create Expense Category</h3>
+        <button
+          wire:click="closeCreateModal"
+          class="text-gray-400 hover:text-gray-500"
+        >
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <livewire:admin.accounts.expense.expense-category-form lazy :key="'category-form-' . now()" />
+    </div>
+  </div>
+@endif
 
 </div>

@@ -11,9 +11,22 @@ class ExpenseList extends Component
 {
     use InteractsWithAccountsAccess;
 
+    public bool $showCreateModal = false;
+
     public function mount(): void
     {
         $this->authorizePermission('accounts.expense.list');
+    }
+
+    public function openCreateModal(): void
+    {
+        $this->showCreateModal = true;
+    }
+
+    public function closeCreateModal(): void
+    {
+        $this->showCreateModal = false;
+        $this->dispatch('categoryCreated');
     }
 
     public function render(): View
