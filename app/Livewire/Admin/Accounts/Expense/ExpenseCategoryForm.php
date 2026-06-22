@@ -69,7 +69,6 @@ class ExpenseCategoryForm extends Component
     public function closeModal(): void
     {
         $this->reset();
-        $this->dispatch('closeExpenseCategoryModal');
     }
 
     public function render(): View

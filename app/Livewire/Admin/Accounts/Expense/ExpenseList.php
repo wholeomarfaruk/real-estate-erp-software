@@ -13,6 +13,10 @@ class ExpenseList extends Component
 
     public bool $showCreateModal = false;
 
+    protected $listeners = [
+        'expenseCategoryCreated' => 'handleCategoryCreated',
+    ];
+
     public function mount(): void
     {
         $this->authorizePermission('accounts.expense.list');
@@ -26,7 +30,11 @@ class ExpenseList extends Component
     public function closeCreateModal(): void
     {
         $this->showCreateModal = false;
-        $this->dispatch('categoryCreated');
+    }
+
+    public function handleCategoryCreated(): void
+    {
+        $this->closeCreateModal();
     }
 
     public function render(): View
