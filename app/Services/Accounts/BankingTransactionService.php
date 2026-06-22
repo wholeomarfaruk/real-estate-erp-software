@@ -66,44 +66,67 @@ class BankingTransactionService
     }
 
     /**
-     * Post an expense payment:
+     * Post an expense payment using stored double-entry data:
      *   Dr Expense Account / Cr Payment Account
      *
-     * Uses the expense.payment accounting event if configured, falls back to direct
-     * double-entry if event not found. Event is the preferred path as it allows
-     * dynamic account configuration.
+     * Uses debit/credit accounts and amounts pre-stored on the request.
      */
     private function postExpensePayment(
         BankingPaymentRequest $request,
         int $userId
     ): Transaction {
-        $bankAccount = BankAccount::query()->findOrFail($request->bank_account_id);
-        $paymentAccountId = (int) $bankAccount->account_id;
-
-        if ($paymentAccountId <= 0) {
-            throw new \DomainException('Bank account has no linked Chart of Accounts entry.');
+        // Use stored double-entry data
+        if (!$request->debit_account_id || !$request->credit_account_id) {
+            throw new \DomainException('Double-entry accounts not configured for this expense request.');
         }
 
-        try {
-            return $this->engine->record(
-                'expense.payment',
-                new PostingContext(
-                    amount: (float) $request->amount,
-                    datetime: now()->format('Y-m-d H:i:s'),
-                    paymentAccountId: $paymentAccountId,
-                    referenceType: $request->sourceable_type,
-                    referenceId: $request->sourceable_id,
-                    name: 'Expense Payment',
-                    notes: $request->notes ?? $request->description,
-                    actorId: $userId,
-                ),
-            );
-        } catch (\DomainException $e) {
-            // If event is not configured, raise a clear error
-            throw new \DomainException(
-                "Cannot post expense payment: {$e->getMessage()} (ensure 'expense.payment' event is configured)"
-            );
+        // Validate accounts exist and are active
+        $debitAccount = Account::findOrFail($request->debit_account_id);
+        $creditAccount = Account::findOrFail($request->credit_account_id);
+
+        if (!$debitAccount->is_active || !$creditAccount->is_active) {
+            throw new \DomainException('One or more double-entry accounts are inactive.');
         }
+
+        // Create balanced double-entry using stored amounts
+        $transaction = $this->ledger->post(
+            [
+                'datetime' => now()->format('Y-m-d H:i:s'),
+                'type' => $request->source_type,
+                'reference_type' => 'banking_payment_request',
+                'reference_id' => $request->id,
+                'reference_no' => $request->reference_no,
+                'name' => $request->name,
+                'phone' => $request->phone,
+                'method' => $request->method ?? 'bank',
+                'notes' => $request->notes ?? $request->description,
+                'created_by' => $userId,
+            ],
+            [
+                [
+                    'account_id' => (int) $debitAccount->id,
+                    'debit' => (float) $request->debit_amount,
+                    'credit' => 0,
+                    'notes' => $debitAccount->name,
+                ],
+                [
+                    'account_id' => (int) $creditAccount->id,
+                    'debit' => 0,
+                    'credit' => (float) $request->credit_amount,
+                    'notes' => $creditAccount->name,
+                ],
+            ],
+        );
+
+        // Update banking request with transaction and completion info
+        $request->update([
+            'transaction_id' => $transaction->id,
+            'status' => 'completed',
+            'completed_by' => $userId,
+            'completed_at' => now(),
+        ]);
+
+        return $transaction;
     }
 
     /**
