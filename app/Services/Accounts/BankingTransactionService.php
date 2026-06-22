@@ -166,7 +166,7 @@ class BankingTransactionService
         $transaction = $this->ledger->post(
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
-                'type' => $request->source_type,
+                'type' => TransactionType::PURCHASE->value,
                 'reference_type' => 'banking_payment_request',
                 'reference_id' => $request->id,
                 'reference_no' => $request->reference_no,
@@ -241,7 +241,7 @@ class BankingTransactionService
         $transaction = $this->ledger->post(
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
-                'type' => $request->source_type,
+                'type' => TransactionType::PURCHASE->value,
                 'reference_type' => 'banking_payment_request',
                 'reference_id' => $request->id,
                 'reference_no' => $request->reference_no ?? $invoice->invoice_no,
@@ -316,7 +316,7 @@ class BankingTransactionService
         $transaction = $this->ledger->post(
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
-                'type' => $request->source_type,
+                'type' => TransactionType::ADVANCE->value,
                 'reference_type' => 'banking_payment_request',
                 'reference_id' => $request->id,
                 'reference_no' => $request->reference_no ?? $fund->reference_no,
@@ -380,7 +380,7 @@ class BankingTransactionService
         $transaction = $this->ledger->post(
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
-                'type' => $request->source_type,
+                'type' => TransactionType::INCOME->value,
                 'reference_type' => 'banking_payment_request',
                 'reference_id' => $request->id,
                 'reference_no' => $request->reference_no,

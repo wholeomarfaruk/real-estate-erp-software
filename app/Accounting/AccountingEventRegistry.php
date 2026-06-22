@@ -72,7 +72,7 @@ class AccountingEventRegistry
                 'module'           => 'purchase',
                 'name'             => 'Purchase — Invoice Approval',
                 'description'      => 'On approving a purchase invoice the payable is booked. Dr Inventory (asset), Cr Accounts Payable (liability) for the invoice total.',
-                'transaction_type' => TransactionType::PURCHASE_INVOICE->value,
+                'transaction_type' => TransactionType::PURCHASE->value,
                 'runtime_slots'    => [],
                 'default_rules'    => [
                     ['leg' => 'debit',  'account_source' => 'fixed', 'account_code' => 'ASSET-INV', 'description' => 'Inventory / purchase'],

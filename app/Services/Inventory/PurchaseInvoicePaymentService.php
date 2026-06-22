@@ -166,7 +166,7 @@ class PurchaseInvoicePaymentService
             $txn = $this->ledger->post(
                 [
                     'datetime'       => $datetime,
-                    'type'           => TransactionType::PURCHASE_INVOICE->value,
+                    'type'           => TransactionType::PURCHASE->value,
                     'reference_type' => 'purchase_invoice',
                     'reference_id'   => $locked->id,
                     'notes'          => $notes,
@@ -246,7 +246,7 @@ class PurchaseInvoicePaymentService
             $txn = $this->ledger->post(
                 array_filter([
                     'datetime'       => $datetime,
-                    'type'           => TransactionType::PURCHASE_INVOICE->value,
+                    'type'           => TransactionType::PURCHASE->value,
                     'reference_type' => 'banking_payment_request',
                     'reference_id'   => $request->id,
                     'reference_no'   => $reference,

@@ -10,7 +10,7 @@ enum TransactionType: string
     case TRANSFER         = 'transfer';
     case ADJUSTMENT       = 'adjustment';
     case OPENING_BALANCE  = 'opening_balance';
-    case PURCHASE_INVOICE = 'purchase_invoice';
+    case PURCHASE         = 'purchase';
 
     public function label(): string
     {
@@ -21,7 +21,7 @@ enum TransactionType: string
             self::TRANSFER         => 'Transfer',
             self::ADJUSTMENT       => 'Adjustment',
             self::OPENING_BALANCE  => 'Opening Balance',
-            self::PURCHASE_INVOICE => 'Purchase Invoice',
+            self::PURCHASE         => 'Purchase',
         };
     }
 
@@ -34,7 +34,7 @@ enum TransactionType: string
             self::TRANSFER         => 'bg-blue-50 text-blue-700 border-blue-200',
             self::ADJUSTMENT       => 'bg-amber-50 text-amber-700 border-amber-200',
             self::OPENING_BALANCE  => 'bg-gray-100 text-gray-600 border-gray-200',
-            self::PURCHASE_INVOICE => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+            self::PURCHASE         => 'bg-indigo-50 text-indigo-700 border-indigo-200',
         };
     }
 }
