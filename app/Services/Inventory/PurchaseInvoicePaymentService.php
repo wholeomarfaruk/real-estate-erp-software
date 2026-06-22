@@ -6,7 +6,6 @@ use App\Enums\Accounts\PaymentRequestSourceType;
 use App\Enums\Accounts\TransactionType;
 use App\Models\Account;
 use App\Models\AdvanceAdjustment;
-use App\Models\BankAccount;
 use App\Models\BankingPaymentRequest;
 use App\Models\PurchaseFund;
 use App\Models\PurchaseInvoice;
@@ -19,8 +18,13 @@ class PurchaseInvoicePaymentService
     public function __construct(private readonly LedgerService $ledger) {}
 
     /**
-     * Create a BankingPaymentRequest for a purchase invoice payment.
-     * Validates amount does not exceed due_amount.
+     * Create a BankingPaymentRequest for a purchase invoice payment with pre-configured double-entry.
+     *
+     * Stores debit/credit accounts at creation time:
+     * DR = Accounts Payable (from invoice)
+     * CR = Payment Account (cash/bank)
+     *
+     * Also stores transaction details (reference_no, name, phone, method) for use at completion time.
      */
     public function requestPayment(PurchaseInvoice $invoice, array $payload, int $userId): BankingPaymentRequest
     {
@@ -35,39 +39,56 @@ class PurchaseInvoicePaymentService
             throw new \DomainException("Payment amount (৳ {$amount}) exceeds due amount (৳ {$due}).");
         }
 
-        // Source is a chart-of-accounts money account; a BankAccount (if one is
-        // attached to it) is just descriptive info for the banking screen.
-        $accountId           = (int) ($payload['payment_account_id'] ?? 0);
-        $linkedBankAccountId = $accountId > 0
-            ? BankAccount::query()->where('account_id', $accountId)->value('id')
-            : null;
+        // Resolve payment account (CR account for payment)
+        $paymentAccountId = (int) ($payload['payment_account_id'] ?? 0);
+        if ($paymentAccountId <= 0) {
+            throw new \DomainException('No payment account selected.');
+        }
+
+        $paymentAccount = Account::findOrFail($paymentAccountId);
+        if (!$paymentAccount->is_active) {
+            throw new \DomainException('Selected payment account is inactive.');
+        }
+
+        // Get debit account (AP account from invoice)
+        $payableAccountId = (int) $invoice->accounts_payable_account_id;
+        if ($payableAccountId <= 0) {
+            throw new \DomainException('Invoice has no accounts payable account configured.');
+        }
+
+        $payableAccount = Account::findOrFail($payableAccountId);
+        if (!$payableAccount->is_active) {
+            throw new \DomainException('Invoice accounts payable account is inactive.');
+        }
 
         $attachmentIds = collect($payload['attachment_ids'] ?? [])
             ->map(fn ($id): int => (int) $id)->filter()->unique()->values()->all();
 
-        $externalData = array_filter([
-            'method'      => $payload['method'] ?? null,
-            'reference'   => $payload['reference'] ?? null,
-            'name'        => $payload['name'] ?? null,   // blank ⇒ paid directly to supplier
-            'phone'       => $payload['phone'] ?? null,
-            'attachments' => $attachmentIds ?: null,
-        ], fn ($v) => $v !== null && $v !== '');
-
+        // Create request with pre-configured double-entry
         return BankingPaymentRequest::create([
-            'request_no'      => BankingPaymentRequest::generateRequestNo(),
-            'source_type'     => PaymentRequestSourceType::SUPPLIER->value,
-            'sourceable_type' => PurchaseInvoice::class,
-            'sourceable_id'   => $invoice->id,
-            'amount'          => $amount,
-            'payment_date'    => $payload['payment_date'] ?? null,
-            'description'     => 'Payment for Purchase Invoice #' . $invoice->invoice_no
+            'request_no'              => BankingPaymentRequest::generateRequestNo(),
+            'source_type'             => PaymentRequestSourceType::SUPPLIER->value,
+            'sourceable_type'         => PurchaseInvoice::class,
+            'sourceable_id'           => $invoice->id,
+            'amount'                  => $amount,
+            'payment_date'            => $payload['payment_date'] ?? null,
+            'description'             => 'Payment for Purchase Invoice #' . $invoice->invoice_no
                 . ' — ' . $invoice->supplier->name,
-            'account_id'      => $accountId ?: null,
-            'bank_account_id' => $linkedBankAccountId,
-            'notes'           => $payload['notes'] ?? null,
-            'external_data'   => $externalData ?: null,
-            'status'          => 'pending',
-            'requested_by'    => $userId,
+            'account_id'              => $paymentAccountId,
+            'bank_account_id'         => null,
+            'notes'                   => $payload['notes'] ?? null,
+            // Double-entry configuration
+            'debit_account_id'        => $payableAccountId,
+            'debit_amount'            => $amount,
+            'credit_account_id'       => $paymentAccountId,
+            'credit_amount'           => $amount,
+            // Transaction details (for use at completion)
+            'reference_no'            => $payload['reference'] ?? null,
+            'name'                    => trim($payload['name'] ?? '') ?: null,
+            'phone'                   => trim($payload['phone'] ?? '') ?: null,
+            'method'                  => $payload['method'] ?? 'bank',
+            'status'                  => 'pending',
+            'requested_by'            => $userId,
         ]);
     }
 
@@ -178,12 +199,14 @@ class PurchaseInvoicePaymentService
     }
 
     /**
-     * Called by BankingManagement::markCompleted() when source_type = 'supplier'
-     * and sourceable is a PurchaseInvoice.
+     * Complete supplier payment using stored double-entry configuration.
      *
-     * Posts a balanced double-entry transaction:
-     *   DR accounts payable  [payment amount]   (liability settled)
-     *   CR cash/bank account [payment amount]   (money leaves)
+     * Uses debit/credit accounts and amounts pre-stored on the request.
+     * Also uses pre-stored transaction details (reference_no, name, phone, method).
+     *
+     * Posts a balanced transaction:
+     *   DR accounts payable  [from request->debit_account_id]
+     *   CR cash/bank account [from request->credit_account_id]
      *
      * Then syncs invoice paid_amount + status via the existing syncPaymentStatus().
      */
@@ -196,40 +219,36 @@ class PurchaseInvoicePaymentService
                 throw new \DomainException('Invoice is not in a posted state.');
             }
 
-            // The payment (Cr) account is the chart-of-accounts money account stored on
-            // the request. Fall back to the linked BankAccount for legacy requests.
-            $cashAccountId = (int) ($request->account_id ?: 0);
-            if ($cashAccountId <= 0 && $request->bank_account_id) {
-                $cashAccountId = (int) (BankAccount::find($request->bank_account_id)?->account_id ?? 0);
-            }
-            if ($cashAccountId <= 0) {
-                throw new \DomainException('Payment request has no source account to pay from.');
+            // Use stored double-entry accounts
+            if (!$request->debit_account_id || !$request->credit_account_id) {
+                throw new \DomainException('Double-entry accounts not configured for this supplier payment request.');
             }
 
-            $payableAccountId = (int) $invoice->accounts_payable_account_id;
+            // Validate both accounts exist and are active
+            $debitAccount = Account::findOrFail($request->debit_account_id);
+            $creditAccount = Account::findOrFail($request->credit_account_id);
 
-            if ($payableAccountId <= 0) {
-                throw new \DomainException('Invoice has no accounts payable account to settle against.');
+            if (!$debitAccount->is_active || !$creditAccount->is_active) {
+                throw new \DomainException('One or more double-entry accounts are inactive.');
             }
 
             $amount   = round((float) $request->amount, 3);
             $notes    = 'Purchase Invoice #' . $invoice->invoice_no . ' – supplier payment';
             $datetime = now()->format('Y-m-d H:i:s');
 
-            // Receiver details — blank name/phone means paid directly to the supplier.
-            $ext        = (array) ($request->external_data ?? []);
-            $payeeName  = $ext['name'] ?? null ?: $invoice->supplier?->name;
-            $payeePhone = $ext['phone'] ?? null;
-            $method     = $ext['method'] ?? null;
-            $reference  = $ext['reference'] ?? null;
+            // Use stored transaction details; blank name means paid directly to supplier
+            $payeeName  = $request->name ?: $invoice->supplier?->name;
+            $payeePhone = $request->phone;
+            $method     = $request->method ?? 'bank';
+            $reference  = $request->reference_no;
 
             // DR payable (settle liability) / CR cash-bank (money leaves)
             $txn = $this->ledger->post(
                 array_filter([
                     'datetime'       => $datetime,
                     'type'           => TransactionType::PURCHASE_INVOICE->value,
-                    'reference_type' => 'purchase_invoice',
-                    'reference_id'   => $invoice->id,
+                    'reference_type' => 'banking_payment_request',
+                    'reference_id'   => $request->id,
                     'reference_no'   => $reference,
                     'method'         => $method,
                     'name'           => $payeeName,
@@ -238,15 +257,10 @@ class PurchaseInvoicePaymentService
                     'created_by'     => $userId,
                 ], fn ($v) => $v !== null),
                 [
-                    ['account_id' => $payableAccountId, 'debit' => $amount, 'credit' => 0,       'notes' => 'Accounts payable'],
-                    ['account_id' => $cashAccountId,    'debit' => 0,       'credit' => $amount, 'notes' => 'Bank/Cash'],
+                    ['account_id' => (int) $debitAccount->id, 'debit' => $amount, 'credit' => 0, 'notes' => $debitAccount->name],
+                    ['account_id' => (int) $creditAccount->id, 'debit' => 0, 'credit' => $amount, 'notes' => $creditAccount->name],
                 ],
             );
-
-            // Carry uploaded attachments onto the posted transaction.
-            if (! empty($ext['attachments'])) {
-                $txn->update(['attachments' => $ext['attachments']]);
-            }
 
             // Mark request completed
             $request->update([
