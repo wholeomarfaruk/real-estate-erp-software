@@ -21,7 +21,7 @@ enum TransactionType: string
             self::TRANSFER         => 'Transfer',
             self::ADJUSTMENT       => 'Adjustment',
             self::OPENING_BALANCE  => 'Opening Balance',
-            self::PURCHASE         => 'Purchase',
+            self::PURCHASE         => 'Purchase Bill',
         };
     }
 
