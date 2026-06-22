@@ -14,7 +14,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
-class OfficeExpenseForm extends Component
+class MarketingExpenseForm extends Component
 {
     use InteractsWithAccountsAccess, InteractsWithFeatureAccounts, WithMediaPicker;
 
@@ -106,7 +106,7 @@ class OfficeExpenseForm extends Component
                 $this->dispatch('toast', type: 'warning', message: 'Request created but double-entry setup failed: ' . $e->getMessage());
             }
 
-            $this->dispatch('toast', type: 'success', message: 'Office expense request created successfully. It is now pending approval.');
+            $this->dispatch('toast', type: 'success', message: 'Marketing expense request created successfully. It is now pending approval.');
             $this->redirectRoute('admin.accounts.expenses.index', navigate: true);
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->dispatch('toast', type: 'error', message: $e->validator->errors()->first());
@@ -130,10 +130,10 @@ class OfficeExpenseForm extends Component
 
     public function render(): View
     {
-        $officeAccounts = $this->getAllEnabledChildrenForFeature(FeatureType::OFFICE_EXPENSE);
-        if ($officeAccounts->isEmpty()) {
-            $officeAccounts = Account::query()
-                ->where('code', 'EXP-OFFICE')
+        $marketingAccounts = $this->getAllEnabledChildrenForFeature(FeatureType::MARKETING_EXPENSE);
+        if ($marketingAccounts->isEmpty()) {
+            $marketingAccounts = Account::query()
+                ->where('code', 'EXP-MKTG')
                 ->first()
                 ?->children()
                 ->where('is_active', true)
@@ -156,10 +156,10 @@ class OfficeExpenseForm extends Component
             'mobile_banking' => 'Mobile Banking',
         ];
 
-        return view('livewire.admin.accounts.expense.office-expense-form', [
-            'officeAccounts'  => $officeAccounts,
-            'paymentAccounts' => $paymentAccounts,
-            'paymentMethods'  => $paymentMethods,
+        return view('livewire.admin.accounts.expense.marketing-expense-form', [
+            'marketingAccounts' => $marketingAccounts,
+            'paymentAccounts'   => $paymentAccounts,
+            'paymentMethods'    => $paymentMethods,
         ])->layout('layouts.admin.admin');
     }
 }

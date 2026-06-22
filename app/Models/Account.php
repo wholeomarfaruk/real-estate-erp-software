@@ -105,6 +105,16 @@ class Account extends Model
         return $this->hasMany(TransactionLine::class);
     }
 
+    public function enabledForFeatures(): HasMany
+    {
+        return $this->hasMany(FeatureAccountMapping::class, 'parent_account_id');
+    }
+
+    public function featureMappings(): HasMany
+    {
+        return $this->hasMany(FeatureAccountMapping::class, 'child_account_id');
+    }
+
     public function getBalanceAttribute(): float
     {
         // Balance is computed from the per-account ledger lines (double-entry),

@@ -158,16 +158,17 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
         ->middleware('can:accounts.settings.manage')
         ->name('settings');
 
+    Route::get('/settings/features', App\Livewire\Admin\Accounts\Features\FeatureAccountConfigurator::class)
+        ->middleware('can:accounts.settings.manage')
+        ->name('settings.features');
+
     Route::prefix('expenses')->name('expenses.')->group(function (): void {
         Route::get('/', App\Livewire\Admin\Accounts\Expense\ExpenseList::class)
             ->middleware('can:accounts.expense.list')
             ->name('index');
-        Route::get('/create', App\Livewire\Admin\Accounts\Expense\ExpenseForm::class)
+        Route::get('/new', App\Livewire\Admin\Accounts\Expense\DynamicExpenseForm::class)
             ->middleware('can:accounts.expense.create')
             ->name('create');
-        Route::get('/office', App\Livewire\Admin\Accounts\Expense\OfficeExpenseForm::class)
-            ->middleware('can:accounts.expense.create')
-            ->name('office');
         Route::get('/{expense}', App\Livewire\Admin\Accounts\Expense\ExpenseForm::class)
             ->middleware('can:accounts.expense.list')
             ->name('show');

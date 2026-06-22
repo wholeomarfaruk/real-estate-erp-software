@@ -1,5 +1,5 @@
-{{-- Office Expense Form — focused entry for office-only expenses with payment tracking --}}
-<div class="prj-page" x-data x-init="$store.pageName = { name: 'New Office Expense', slug: 'accounts' }">
+{{-- Marketing Expense Form — focused entry for marketing expenses with payment tracking --}}
+<div class="prj-page" x-data x-init="$store.pageName = { name: 'New Marketing Expense', slug: 'accounts' }">
 <style>
 :root{
   --ink:#14181f; --ink-2:#2a2f3a; --muted:#6b7280; --muted-2:#9aa0a6;
@@ -35,8 +35,8 @@
   {{-- Header --}}
   <div class="exp-head">
     <div>
-      <h2>New Office Expense</h2>
-      <div class="sub">Record an office-related expense and route it through banking approval.</div>
+      <h2>New Marketing Expense</h2>
+      <div class="sub">Record a marketing-related expense and route it through banking approval.</div>
     </div>
     <a href="{{ route('admin.accounts.expenses.index') }}" class="btn">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
@@ -55,7 +55,7 @@
           <label class="lbl">Expense Head *</label>
           <select wire:model="expense_account_id" class="inp @error('expense_account_id') err @enderror">
             <option value="">— Select head —</option>
-            @foreach($officeAccounts as $acc)
+            @foreach($marketingAccounts as $acc)
               <option value="{{ $acc->id }}">{{ $acc->name }}</option>
             @endforeach
           </select>
@@ -65,7 +65,7 @@
         {{-- Title --}}
         <div>
           <label class="lbl">Title / Description *</label>
-          <input type="text" wire:model="title" class="inp @error('title') err @enderror" placeholder="e.g. Office rent payment" />
+          <input type="text" wire:model="title" class="inp @error('title') err @enderror" placeholder="e.g. Social media advertising campaign" />
           @error('title') <div class="err-msg">{{ $message }}</div> @enderror
         </div>
 
@@ -128,7 +128,7 @@
         {{-- Paid To Name --}}
         <div>
           <label class="lbl">Paid To - Name (Optional)</label>
-          <input type="text" wire:model="paid_to_name" class="inp @error('paid_to_name') err @enderror" placeholder="e.g. Ahmed Hassan" />
+          <input type="text" wire:model="paid_to_name" class="inp @error('paid_to_name') err @enderror" placeholder="e.g. Digital Marketing Agency" />
           @error('paid_to_name') <div class="err-msg">{{ $message }}</div> @enderror
         </div>
 
@@ -162,7 +162,7 @@
             field="attachments"
             :value="$attachments"
             label="Attachments (Optional)"
-            placeholder="Click to add receipts or supporting documents"
+            placeholder="Click to add invoices or supporting documents"
             :multiple="true"
             type="all"
             :required="false"

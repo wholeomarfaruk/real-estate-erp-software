@@ -142,33 +142,37 @@
 
   {{-- Category Cards Grid --}}
   <div class="category-grid">
-    @foreach($expenseCategories as $category)
+    @forelse($expenseCategories as $category)
     <div class="category-card">
       {{-- Icon --}}
-      <div class="card-icon {{ $category['slug'] }}">
-        @if($category['slug'] === 'project')
+      <div class="card-icon {{ $category->slug }}">
+        @if($category->slug === 'project')
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 21h18M3 7v11a2 2 0 002 2h14a2 2 0 002-2V7M3 7V5a2 2 0 012-2h14a2 2 0 012 2v2"/><rect x="7" y="3" width="10" height="4"/>
           </svg>
-        @elseif($category['slug'] === 'office')
+        @elseif($category->slug === 'office')
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><path d="M16 3v4M8 3v4M3 11h18"/>
           </svg>
-        @elseif($category['slug'] === 'marketing')
+        @elseif($category->slug === 'marketing')
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M1 9c0-1.657 1.343-3 3-3h2.5M23 9c0-1.657-1.343-3-3-3h-2.5M10 6.5v11m4-11v11M4 13v-2m12 2v-2"/>
+          </svg>
+        @else
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
           </svg>
         @endif
       </div>
 
       {{-- Title --}}
-      <h3 class="card-title">{{ $category['name'] }}</h3>
+      <h3 class="card-title">{{ $category->name }}</h3>
 
       {{-- Description --}}
-      <p class="card-description">{{ $category['description'] }}</p>
+      <p class="card-description">{{ $category->description }}</p>
 
       {{-- Action Button --}}
-      <a href="{{ route($category['route']) }}" class="card-action">
+      <a href="{{ route('admin.accounts.expenses.create', ['category' => $category->slug]) }}" class="card-action">
         <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"/>
           <line x1="5" y1="12" x2="19" y2="12"/>
@@ -176,7 +180,11 @@
         Add Expense
       </a>
     </div>
-    @endforeach
+    @empty
+    <div class="text-center py-12">
+      <p class="text-gray-500">No expense categories available</p>
+    </div>
+    @endforelse
   </div>
 </div>
 

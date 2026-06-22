@@ -1,5 +1,5 @@
-{{-- Office Expense Form — focused entry for office-only expenses with payment tracking --}}
-<div class="prj-page" x-data x-init="$store.pageName = { name: 'New Office Expense', slug: 'accounts' }">
+{{-- Project Expense Form — focused entry for project expenses with payment tracking --}}
+<div class="prj-page" x-data x-init="$store.pageName = { name: 'New Project Expense', slug: 'accounts' }">
 <style>
 :root{
   --ink:#14181f; --ink-2:#2a2f3a; --muted:#6b7280; --muted-2:#9aa0a6;
@@ -35,8 +35,8 @@
   {{-- Header --}}
   <div class="exp-head">
     <div>
-      <h2>New Office Expense</h2>
-      <div class="sub">Record an office-related expense and route it through banking approval.</div>
+      <h2>New Project Expense</h2>
+      <div class="sub">Record a project-related expense and route it through banking approval.</div>
     </div>
     <a href="{{ route('admin.accounts.expenses.index') }}" class="btn">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
@@ -50,22 +50,46 @@
     <div class="card-body">
       <div class="grid">
 
+        {{-- Project --}}
+        <div>
+          <label class="lbl">Project *</label>
+          <select wire:model="project_id" class="inp @error('project_id') err @enderror">
+            <option value="">— Select project —</option>
+            @foreach($projects as $proj)
+              <option value="{{ $proj->id }}">{{ $proj->name }}</option>
+            @endforeach
+          </select>
+          @error('project_id') <div class="err-msg">{{ $message }}</div> @enderror
+        </div>
+
         {{-- Expense Head --}}
         <div>
           <label class="lbl">Expense Head *</label>
           <select wire:model="expense_account_id" class="inp @error('expense_account_id') err @enderror">
             <option value="">— Select head —</option>
-            @foreach($officeAccounts as $acc)
+            @foreach($expenseAccounts as $acc)
               <option value="{{ $acc->id }}">{{ $acc->name }}</option>
             @endforeach
           </select>
           @error('expense_account_id') <div class="err-msg">{{ $message }}</div> @enderror
         </div>
 
+        {{-- Work Phase --}}
+        <div>
+          <label class="lbl">Work Phase (Optional)</label>
+          <select wire:model="project_work_phase" class="inp @error('project_work_phase') err @enderror">
+            <option value="">— No phase / Others —</option>
+            @foreach($workPhases as $phase)
+              <option value="{{ $phase['value'] }}">{{ $phase['label'] }}</option>
+            @endforeach
+          </select>
+          @error('project_work_phase') <div class="err-msg">{{ $message }}</div> @enderror
+        </div>
+
         {{-- Title --}}
         <div>
           <label class="lbl">Title / Description *</label>
-          <input type="text" wire:model="title" class="inp @error('title') err @enderror" placeholder="e.g. Office rent payment" />
+          <input type="text" wire:model="title" class="inp @error('title') err @enderror" placeholder="e.g. Labor cost for foundation work" />
           @error('title') <div class="err-msg">{{ $message }}</div> @enderror
         </div>
 
