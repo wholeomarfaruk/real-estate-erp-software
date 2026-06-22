@@ -90,6 +90,17 @@ class AccountingEventRegistry
                     ['leg' => 'credit', 'account_source' => 'runtime', 'runtime_slot' => 'payment_account', 'description' => 'Cash/Bank paid'],
                 ],
             ],
+            'purchase.supplier_payment' => [
+                'module'           => 'purchase',
+                'name'             => 'Purchase — Supplier Payment',
+                'description'      => 'Payment against a supplier invoice. Dr Accounts Payable (liability settled), Cr Payment Account (cash/bank/mfs money leaves).',
+                'transaction_type' => TransactionType::SUPPLIER_PAYMENT->value,
+                'runtime_slots'    => ['payment_account' => 'Payment Account (Cash/Bank/MFS)'],
+                'default_rules'    => [
+                    ['leg' => 'debit',  'account_source' => 'fixed',   'account_code' => 'LIAB-AP',         'description' => 'Accounts payable'],
+                    ['leg' => 'credit', 'account_source' => 'runtime', 'runtime_slot' => 'payment_account', 'description' => 'Cash/Bank paid'],
+                ],
+            ],
         ];
     }
 

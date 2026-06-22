@@ -241,7 +241,7 @@ class BankingTransactionService
         $transaction = $this->ledger->post(
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
-                'type' => TransactionType::PURCHASE->value,
+                'type' => TransactionType::SUPPLIER_PAYMENT->value,
                 'reference_type' => 'banking_payment_request',
                 'reference_id' => $request->id,
                 'reference_no' => $request->reference_no ?? $invoice->invoice_no,
