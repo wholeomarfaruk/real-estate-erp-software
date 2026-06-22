@@ -49,9 +49,41 @@ class ChartOfAccountsSeeder extends Seeder
                 'name'     => 'Expenses',
                 'group'    => AccountGroupType::EXPENSE,
                 'children' => [
-                    ['code' => 'EXP-OFFICE', 'name' => 'Office Expense', 'type' => AccountType::LEDGER],
-                    ['code' => 'EXP-SALARY', 'name' => 'Salary Expense', 'type' => AccountType::LEDGER],
-                    ['code' => 'EXP-PROJ',   'name' => 'Project Expenses', 'type' => AccountType::LEDGER],
+                    [
+                        'code' => 'EXP-OFFICE',
+                        'name' => 'Office Expenses',
+                        'type' => AccountType::LEDGER,
+                        'children' => [
+                            ['code' => '2110', 'name' => 'Salary Expense', 'type' => AccountType::LEDGER],
+                            ['code' => '2120', 'name' => 'Office Rent', 'type' => AccountType::LEDGER],
+                            ['code' => '2130', 'name' => 'Internet Expense', 'type' => AccountType::LEDGER],
+                            ['code' => '2140', 'name' => 'Utility Bill', 'type' => AccountType::LEDGER],
+                            ['code' => '2150', 'name' => 'Hardware & Software', 'type' => AccountType::LEDGER],
+                            ['code' => '2160', 'name' => 'Others', 'type' => AccountType::LEDGER],
+                        ],
+                    ],
+                    [
+                        'code' => 'EXP-PROJ',
+                        'name' => 'Project Expenses',
+                        'type' => AccountType::LEDGER,
+                        'children' => [
+                            ['code' => '1110', 'name' => 'Labor Cost', 'type' => AccountType::LEDGER],
+                            ['code' => '1120', 'name' => 'Material Consumption', 'type' => AccountType::LEDGER],
+                            ['code' => '1130', 'name' => 'Utility Bill', 'type' => AccountType::LEDGER],
+                            ['code' => '1140', 'name' => 'Equipment Rent', 'type' => AccountType::LEDGER],
+                            ['code' => '1150', 'name' => 'Transportation', 'type' => AccountType::LEDGER],
+                            ['code' => '1160', 'name' => 'Other Expense', 'type' => AccountType::LEDGER],
+                        ],
+                    ],
+                    [
+                        'code' => 'EXP-MKTG',
+                        'name' => 'Marketing Expenses',
+                        'type' => AccountType::LEDGER,
+                        'children' => [
+                            ['code' => '3110', 'name' => 'Advertising Expense', 'type' => AccountType::LEDGER],
+                            ['code' => '3120', 'name' => 'Promotion Expense', 'type' => AccountType::LEDGER],
+                        ],
+                    ],
                 ],
             ],
             'EQTY' => [
@@ -78,7 +110,7 @@ class ChartOfAccountsSeeder extends Seeder
             );
 
             foreach ($group['children'] as $child) {
-                Account::query()->firstOrCreate(
+                $childAccount = Account::query()->firstOrCreate(
                     ['code' => $child['code']],
                     [
                         'name'      => $child['name'],
@@ -90,6 +122,23 @@ class ChartOfAccountsSeeder extends Seeder
                         'is_locked' => false,
                     ]
                 );
+
+                // Handle nested children (e.g., Project Expenses with sub-accounts)
+                if (isset($child['children'])) {
+                    foreach ($child['children'] as $subchild) {
+                        Account::query()->firstOrCreate(
+                            ['code' => $subchild['code']],
+                            [
+                                'name'      => $subchild['name'],
+                                'type'      => $subchild['type']->value,
+                                'group'     => $group['group']->value,
+                                'parent_id' => $childAccount->id,
+                                'is_active' => true,
+                                'is_locked' => false,
+                            ]
+                        );
+                    }
+                }
             }
         }
     }

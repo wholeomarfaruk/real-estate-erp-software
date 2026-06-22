@@ -15,7 +15,6 @@ class DatabaseSeeder extends Seeder
             ProductUnitSeeder::class,
             UnitTypeSeeder::class,
             ChartOfAccountsSeeder::class,
-            ProjectExpenseChartOfAccountsSeeder::class,
             AccountingEventSeeder::class,
             TransactionCategorySeeder::class,
             NumberSequenceSeeder::class,

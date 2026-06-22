@@ -6,12 +6,7 @@ use App\Enums\Accounts\PaymentRequestSourceType;
 use App\Enums\Accounts\TransactionType;
 use App\Models\BankAccount;
 use App\Models\BankingPaymentRequest;
-use App\Models\PayrollPayment;
-use App\Models\PurchaseFund;
 use App\Models\TransactionCategory;
-use App\Services\Hrm\PayrollService;
-use App\Services\Inventory\FundReleaseService;
-use App\Services\Inventory\PurchaseInvoicePaymentService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -185,120 +180,21 @@ class BankingManagement extends Component
             return;
         }
 
-        // Fund advance from PO flow — create ledger transaction on completion
-        if (
-            $request->source_type === TransactionType::ADVANCE->value
-            && $request->sourceable_type === PurchaseFund::class
-            && $request->sourceable_id
-        ) {
-            try {
-                app(FundReleaseService::class)->completeRelease($request, (int) Auth::id());
-                $this->dispatch('toast', ['type' => 'success', 'message' => 'Fund release completed. Transaction recorded.']);
-            } catch (\Throwable $e) {
-                $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
-            }
-            return;
+        try {
+            $service = app(\App\Services\Accounts\BankingTransactionService::class);
+            $transaction = $service->completePaymentRequest($request, (int) Auth::id());
+
+            $request->refresh();
+            $this->dispatch('toast', [
+                'type' => 'success',
+                'message' => 'Payment completed. Transaction recorded.',
+            ]);
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', [
+                'type' => 'error',
+                'message' => $e->getMessage(),
+            ]);
         }
-
-        // Supplier invoice payment flow
-        if (
-            $request->source_type === PaymentRequestSourceType::SUPPLIER->value
-            && $request->sourceable_type === \App\Models\PurchaseInvoice::class
-            && $request->sourceable_id
-        ) {
-            try {
-                app(PurchaseInvoicePaymentService::class)->completePayment($request, (int) Auth::id());
-                $this->dispatch('toast', ['type' => 'success', 'message' => 'Supplier payment completed. Invoice updated.']);
-            } catch (\Throwable $e) {
-                $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
-            }
-            return;
-        }
-
-        // Expense banking flow — create DR/CR transactions on completion
-        if (
-            $request->source_type === TransactionType::EXPENSE->value
-
-        ) {
-            try {
-                app(\App\Services\Accounts\ExpenseService::class)->completeExpense($request, (int) Auth::id());
-                $this->dispatch('toast', ['type' => 'success', 'message' => 'Expense completed. Transaction recorded.']);
-            } catch (\Throwable $e) {
-                $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
-            }
-            return;
-        }
-
-        if ($request->source_type === PaymentRequestSourceType::PAYROLL->value) {
-            if ($request->sourceable_type !== PayrollPayment::class || ! $request->sourceable_id) {
-                $this->dispatch('toast', ['type' => 'error', 'message' => 'Payroll requests must come from the payroll module.']);
-                return;
-            }
-
-            try {
-                app(PayrollService::class)->completePayrollPayment($request, (int) Auth::id());
-                $this->dispatch('toast', ['type' => 'success', 'message' => 'Payroll payment completed. Transaction recorded.']);
-            } catch (\Throwable $e) {
-                $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
-            }
-            return;
-        }
-
-        // Generic deposit / income / opening-balance — create a single ledger transaction
-        // using the ledger Account linked to the BankAccount (BankAccount.account_id)
-        if ($request->bank_account_id) {
-            $bankAccount = \App\Models\BankAccount::find($request->bank_account_id);
-            $ledgerAccountId = $bankAccount?->account_id ? (int) $bankAccount->account_id : 0;
-
-            if ($ledgerAccountId <= 0) {
-                $this->dispatch('toast', ['type' => 'error', 'message' => 'Bank account has no linked Chart of Accounts entry. Please link it first.']);
-                return;
-            }
-
-            try {
-                // Balanced double-entry: DR bank/cash ledger (money in) and CR a
-                // generic income / opening-balance equity contra ledger so the
-                // entry balances. The bank (DR) line drives the header summary.
-                $contraAccount = \App\Models\Account::query()->firstOrCreate(
-                    ['name' => 'Opening Balance / Income', 'type' => \App\Enums\Accounts\AccountType::LEDGER->value, 'parent_id' => null],
-                    ['is_active' => true]
-                );
-
-                $transaction = app(\App\Services\Accounts\LedgerService::class)->post(
-                    [
-                        'datetime'                => now()->format('Y-m-d H:i:s'),
-                        'type'                    => $request->source_type,
-                        'transaction_category_id' => $request->transaction_category_id,
-                        'reference_type'          => 'banking_payment_request',
-                        'reference_id'            => $request->id,
-                        'notes'                   => $request->description,
-                        'created_by'              => (int) Auth::id(),
-                    ],
-                    [
-                        ['account_id' => $ledgerAccountId,          'debit' => (float) $request->amount, 'credit' => 0,                    'notes' => 'Bank/Cash'],
-                        ['account_id' => (int) $contraAccount->id,  'debit' => 0,                        'credit' => (float) $request->amount, 'notes' => 'Income / opening balance'],
-                    ],
-                );
-
-                $request->update([
-                    'transaction_id' => $transaction->id,
-                    'status'       => 'completed',
-                    'completed_by' => Auth::id(),
-                    'completed_at' => now(),
-                ]);
-
-                $this->dispatch('toast', ['type' => 'success', 'message' => 'Completed. Transaction recorded.']);
-            } catch (\Throwable $e) {
-                $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
-            }
-            return;
-        }
-
-        // Fallback — no bank account linked, just update status
-        $this->transition($id, 'released', 'completed', [
-            'completed_by' => Auth::id(),
-            'completed_at' => now(),
-        ]);
     }
 
     public function openRejectModal(int $id): void

@@ -165,6 +165,9 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
         Route::get('/create', App\Livewire\Admin\Accounts\Expense\ExpenseForm::class)
             ->middleware('can:accounts.expense.create')
             ->name('create');
+        Route::get('/office', App\Livewire\Admin\Accounts\Expense\OfficeExpenseForm::class)
+            ->middleware('can:accounts.expense.create')
+            ->name('office');
         Route::get('/{expense}', App\Livewire\Admin\Accounts\Expense\ExpenseForm::class)
             ->middleware('can:accounts.expense.list')
             ->name('show');

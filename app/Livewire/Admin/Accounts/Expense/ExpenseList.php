@@ -15,79 +15,43 @@ use Livewire\WithPagination;
 class ExpenseList extends Component
 {
     use InteractsWithAccountsAccess;
-    use WithPagination;
-
-    public string $search        = '';
-    public string $dateFrom      = '';
-    public string $dateTo        = '';
-    public string $categoryFilter = '';
-
-    protected string $paginationTheme = 'tailwind';
 
     public function mount(): void
     {
         $this->authorizePermission('accounts.expense.list');
     }
 
-    public function updatedSearch(): void         { $this->resetPage(); }
-    public function updatedDateFrom(): void       { $this->resetPage(); }
-    public function updatedDateTo(): void         { $this->resetPage(); }
-    public function updatedCategoryFilter(): void { $this->resetPage(); }
-
     public function render(): View
     {
-        // Expenses are recorded as a single entry: the cash CR side (credit > 0)
-        // so each expense appears once.
-        $expenses = Transaction::query()
-            ->where('type', TransactionType::EXPENSE->value)
-            ->whereHas('lines', fn ($l) => $l->where('credit', '>', 0))
-            ->with([
-                'lines.account:id,name,code',
-                'creator:id,name',
-            ])
-            ->when($this->search, fn ($q, $s) =>
-                $q->where(fn ($q2) =>
-                    $q2->where('name', 'like', "%{$s}%")
-                       ->orWhere('notes', 'like', "%{$s}%")
-                )
-            )
-            ->when($this->dateFrom, fn ($q, $d) => $q->whereDate('datetime', '>=', $d))
-            ->when($this->dateTo,   fn ($q, $d) => $q->whereDate('datetime', '<=', $d))
-            ->latest('datetime')
-            ->latest('id')
-            ->paginate(20);
-
-        // Resolve project/supplier reference via the linked banking payment request's sourceable.
-        $bprIds = $expenses->getCollection()
-            ->where('reference_type', 'banking_payment_request')
-            ->pluck('reference_id')
-            ->filter()
-            ->unique();
-
-        $bprs = $bprIds->isNotEmpty()
-            ? BankingPaymentRequest::with('sourceable')->whereIn('id', $bprIds)->get()->keyBy('id')
-            : collect();
-
-        $expenseCategories = TransactionCategory::query()
-            ->where('type', 'expense')
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        $kpiCount = Transaction::query()
-            ->where('type', TransactionType::EXPENSE->value)
-            ->whereHas('lines', fn ($l) => $l->where('credit', '>', 0))
-            ->count();
-
-        $kpiTotal = (float) DB::table('transaction_lines as tl')
-            ->join('transactions as t', 't.id', '=', 'tl.transaction_id')
-            ->where('t.type', TransactionType::EXPENSE->value)
-            ->sum('tl.credit');
-
-        $kpi = (object) ['cnt' => $kpiCount, 'total' => $kpiTotal];
+        $expenseCategories = [
+            [
+                'slug' => 'project',
+                'name' => 'Project Expense',
+                'description' => 'Labor, Material, Utility, Equipment Rent, Transportation, and other project-related costs.',
+                'icon' => 'building',
+                'color' => 'bg-blue-50 border-blue-200 text-blue-700',
+                'route' => 'admin.accounts.expenses.create',
+            ],
+            [
+                'slug' => 'office',
+                'name' => 'Office Expense',
+                'description' => 'Office Rent, Salary, Internet, Electricity, Maintenance, and Administrative expenses.',
+                'icon' => 'briefcase',
+                'color' => 'bg-purple-50 border-purple-200 text-purple-700',
+                'route' => 'admin.accounts.expenses.office',
+            ],
+            [
+                'slug' => 'marketing',
+                'name' => 'Marketing Expense',
+                'description' => 'Advertising, Promotion, Campaign, Commission, and Branding expenses.',
+                'icon' => 'megaphone',
+                'color' => 'bg-orange-50 border-orange-200 text-orange-700',
+                'route' => 'admin.accounts.expenses.create',
+            ],
+        ];
 
         return view('livewire.admin.accounts.expense.expense-list', compact(
-            'expenses', 'bprs', 'expenseCategories', 'kpi'
+            'expenseCategories'
         ))->layout('layouts.admin.admin');
     }
 }
