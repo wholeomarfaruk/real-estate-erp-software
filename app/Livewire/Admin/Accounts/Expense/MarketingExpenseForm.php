@@ -130,7 +130,7 @@ class MarketingExpenseForm extends Component
 
     public function render(): View
     {
-        $marketingAccounts = $this->getAllEnabledChildrenForFeature(FeatureType::MARKETING_EXPENSE);
+        $marketingAccounts = $this->getAllEnabledChildrenForFeature(FeatureType::MARKETING_EXPENSE->value);
         if ($marketingAccounts->isEmpty()) {
             $marketingAccounts = Account::query()
                 ->where('code', 'EXP-MKTG')

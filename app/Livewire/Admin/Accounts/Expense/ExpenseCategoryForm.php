@@ -3,40 +3,95 @@
 namespace App\Livewire\Admin\Accounts\Expense;
 
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
+use App\Livewire\Admin\Accounts\Concerns\InteractsWithFeatureAccounts;
 use App\Models\ExpenseCategory;
-use App\Models\TransactionCategory;
+use App\Models\Feature;
+use App\Models\FeatureAccountMapping;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class ExpenseCategoryForm extends Component
 {
-    use InteractsWithAccountsAccess;
+    use InteractsWithAccountsAccess, InteractsWithFeatureAccounts;
 
+    public ?int $categoryId = null;
     public string $slug = '';
     public string $name = '';
     public string $description = '';
     public string $icon = 'folder';
     public string $color = 'bg-gray-50 border-gray-200 text-gray-700';
-    public ?int $transaction_category_id = null;
+    public string $feature_type = '';
+    public bool $slugManuallyEdited = false;
 
-    protected $rules = [
-        'slug' => 'required|string|lowercase|max:80|unique:expense_categories,slug',
-        'name' => 'required|string|max:120',
-        'description' => 'nullable|string|max:500',
-        'icon' => 'required|string|max:50',
-        'color' => 'required|string|max:100',
-        'transaction_category_id' => 'nullable|integer|exists:transaction_categories,id',
-    ];
-
-    public function mount(): void
+    public function isEditing(): bool
     {
+        return $this->categoryId !== null;
+    }
+
+    protected function rules(): array
+    {
+        $slugUnique = 'unique:expense_categories,slug';
+        if ($this->categoryId) {
+            $slugUnique .= ',' . $this->categoryId;
+        }
+
+        return [
+            'slug' => 'required|string|lowercase|max:80|' . $slugUnique,
+            'name' => 'required|string|max:120',
+            'description' => 'nullable|string|max:500',
+            'icon' => 'required|string|max:50',
+            'color' => 'required|string|max:100',
+            'feature_type' => 'nullable|string|exists:features,key',
+        ];
+    }
+
+    public function mount(?int $category = null): void
+    {
+        if ($category !== null) {
+            $this->authorizePermission('accounts.expense.edit');
+
+            $model = ExpenseCategory::findOrFail($category);
+
+            abort_if($model->isLocked(), 403, 'Locked categories cannot be edited.');
+
+            $this->categoryId = $model->id;
+            $this->slug = $model->slug;
+            $this->name = $model->name;
+            $this->description = (string) $model->description;
+            $this->icon = $model->icon;
+            $this->color = $model->color;
+            $this->feature_type = (string) $model->feature_type;
+            $this->slugManuallyEdited = true; // existing slug — treat as manual
+
+            return;
+        }
+
         $this->authorizePermission('accounts.expense.create');
+    }
+
+    public function updatedName(string $value): void
+    {
+        if (! $this->slugManuallyEdited) {
+            $this->slug = \Illuminate\Support\Str::slug($value);
+        }
+    }
+
+    public function updatedSlug(string $value): void
+    {
+        // Sanitize: force lowercase slug format
+        $this->slug = \Illuminate\Support\Str::slug($value);
+        $this->slugManuallyEdited = $value !== '';
     }
 
     public function save(): void
     {
         try {
+            if ($this->isEditing()) {
+                $this->updateCategory();
+                return;
+            }
+
             $this->authorizePermission('accounts.expense.create');
 
             $this->validate();
@@ -47,7 +102,7 @@ class ExpenseCategoryForm extends Component
                 'description' => $this->description,
                 'icon' => $this->icon,
                 'color' => $this->color,
-                'transaction_category_id' => $this->transaction_category_id,
+                'feature_type' => $this->feature_type ?: null,
                 'is_locked' => false,
                 'is_active' => true,
                 'sort_order' => ExpenseCategory::max('sort_order') + 1 ?? 1,
@@ -66,9 +121,47 @@ class ExpenseCategoryForm extends Component
         }
     }
 
+    protected function updateCategory(): void
+    {
+        try {
+            $this->authorizePermission('accounts.expense.edit');
+
+            $category = ExpenseCategory::findOrFail($this->categoryId);
+
+            abort_if($category->isLocked(), 403, 'Locked categories cannot be edited.');
+
+            $this->validate();
+
+            $category->update([
+                'slug' => $this->slug,
+                'name' => $this->name,
+                'description' => $this->description,
+                'icon' => $this->icon,
+                'color' => $this->color,
+                'feature_type' => $this->feature_type ?: null,
+                'updated_by' => Auth::id(),
+            ]);
+
+            $this->dispatch('toast', type: 'success', message: 'Expense category updated successfully');
+            $this->dispatch('expenseCategoryUpdated');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->dispatch('toast', type: 'error', message: $e->validator->errors()->first());
+            throw $e;
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', type: 'error', message: $e->getMessage());
+        }
+    }
+
     public function closeModal(): void
     {
+        // Check BEFORE reset() — reset() clears $categoryId making isEditing() always false
+        $isEditing = $this->isEditing();
         $this->reset();
+        if ($isEditing) {
+            $this->dispatch('expenseCategoryUpdated');
+        } else {
+            $this->dispatch('expenseCategoryCreated');
+        }
     }
 
     public function render(): View
@@ -98,15 +191,13 @@ class ExpenseCategoryForm extends Component
             'bg-gray-50 border-gray-200 text-gray-700' => 'Gray',
         ];
 
-        $transactionCategories = TransactionCategory::where('type', 'expense')
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
+        $featureLabels = Feature::active()->ordered()->pluck('label', 'key');
+
 
         return view('livewire.admin.accounts.expense.expense-category-form', [
             'iconOptions' => $iconOptions,
             'colorOptions' => $colorOptions,
-            'transactionCategories' => $transactionCategories,
+            'featureAccounts' => $featureLabels,
         ]);
     }
 }

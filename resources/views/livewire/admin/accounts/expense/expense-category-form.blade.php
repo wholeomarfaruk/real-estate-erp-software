@@ -2,15 +2,20 @@
     <form wire:submit="save" class="space-y-5">
         {{-- Slug --}}
         <div>
-            <label for="slug" class="block text-sm font-medium text-gray-700">Category Slug *</label>
+            <div class="flex items-center justify-between">
+                <label for="slug" class="block text-sm font-medium text-gray-700">Category Slug *</label>
+                @if(! $slugManuallyEdited && $slug)
+                    <span class="text-xs text-indigo-500 font-medium">✦ auto-generated</span>
+                @endif
+            </div>
             <input
                 type="text"
                 id="slug"
-                wire:model="slug"
+                wire:model.blur="slug"
                 required
                 maxlength="80"
                 placeholder="e.g., utilities, maintenance"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono text-sm"
             />
             @error('slug')
                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -23,7 +28,7 @@
             <input
                 type="text"
                 id="name"
-                wire:model="name"
+                wire:model.blur="name"
                 required
                 maxlength="120"
                 placeholder="e.g., Utilities & Maintenance"
@@ -90,20 +95,20 @@
             </div>
         </div>
 
-        {{-- Transaction Category (Optional) --}}
+        {{-- Feature Account (Optional) --}}
         <div>
-            <label for="transaction_category_id" class="block text-sm font-medium text-gray-700">Transaction Category (Optional)</label>
+            <label for="feature_type" class="block text-sm font-medium text-gray-700">Feature Account (Optional)</label>
             <select
-                id="transaction_category_id"
-                wire:model="transaction_category_id"
+                id="feature_type"
+                wire:model="feature_type"
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             >
-                <option value="">-- Select a transaction category --</option>
-                @foreach ($transactionCategories as $category)
-                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                <option value="">-- Select a feature account --</option>
+                @foreach ($featureAccounts as $key => $label)
+                    <option value="{{ $key }}">{{ $label }}</option>
                 @endforeach
             </select>
-            @error('transaction_category_id')
+            @error('feature_type')
                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
             @enderror
         </div>
@@ -112,18 +117,18 @@
         <div class="border-t border-gray-200 pt-4 flex items-center justify-end gap-3">
             <button
                 type="button"
-                wire:click="closeModal"
+                @click="$dispatch('close-expense-category-modal')"
                 class="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
                 Cancel
             </button>
             <button
                 type="submit"
-                wire:loading.attr="disabled"
+                wire:loading.attr="disabled" wire:target="save"
                 class="px-4 py-2 rounded-md bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
             >
-                <span wire:loading.remove>Create Category</span>
-                <span wire:loading>Creating...</span>
+                <span wire:loading.remove wire:target="save">{{ $categoryId ? 'Update Category' : 'Create Category' }}</span>
+                <span wire:loading wire:target="save">{{ $categoryId ? 'Updating...' : 'Creating...' }}</span>
             </button>
         </div>
     </form>

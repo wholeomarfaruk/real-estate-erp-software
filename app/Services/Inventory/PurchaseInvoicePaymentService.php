@@ -243,12 +243,15 @@ class PurchaseInvoicePaymentService
             $reference  = $request->reference_no;
 
             // DR payable (settle liability) / CR cash-bank (money leaves)
+            // Reference the invoice (not the request) so syncPaymentStatus() — which
+            // sums payment CR lines by reference_type='purchase_invoice' — picks this
+            // up. The request stays linked to the txn via request->transaction_id.
             $txn = $this->ledger->post(
                 array_filter([
                     'datetime'       => $datetime,
                     'type'           => TransactionType::SUPPLIER_PAYMENT->value,
-                    'reference_type' => 'banking_payment_request',
-                    'reference_id'   => $request->id,
+                    'reference_type' => 'purchase_invoice',
+                    'reference_id'   => $invoice->id,
                     'reference_no'   => $reference,
                     'method'         => $method,
                     'name'           => $payeeName,

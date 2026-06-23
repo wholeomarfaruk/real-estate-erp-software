@@ -154,7 +154,38 @@
   {{-- Category Cards Grid --}}
   <div class="category-grid">
     @forelse($expenseCategories as $category)
-    <div class="category-card">
+    <div class="category-card relative">
+      {{-- Top-right controls --}}
+      <div class="absolute top-3 right-3 flex items-center gap-1">
+        @if($category->is_locked)
+          <span title="System category — locked" class="text-gray-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+          </span>
+        @else
+          @can('accounts.expense.edit')
+            <button type="button" wire:click="openEditModal({{ $category->id }})"
+              title="Edit category"
+              class="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+              </svg>
+            </button>
+          @endcan
+          @can('accounts.expense.delete')
+            <button type="button" wire:click="deleteCategory({{ $category->id }})"
+              wire:confirm="Delete this expense category? This cannot be undone."
+              title="Delete category"
+              class="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+          @endcan
+        @endif
+      </div>
+
       {{-- Icon --}}
       <div class="card-icon {{ $category->slug }}">
         @if($category->slug === 'project')
@@ -201,7 +232,9 @@
 
 {{-- Create Category Modal --}}
 @if ($showCreateModal)
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="@this.call('closeCreateModal')">
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+       @click.self="@this.call('closeCreateModal')"
+       @close-expense-category-modal.window="@this.call('closeCreateModal')">
     <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
       <div class="mb-4 flex items-center justify-between">
         <h3 class="text-lg font-semibold text-gray-900">Create Expense Category</h3>
@@ -216,6 +249,29 @@
       </div>
 
       <livewire:admin.accounts.expense.expense-category-form lazy :key="'category-form-' . now()" />
+    </div>
+  </div>
+@endif
+
+{{-- Edit Category Modal --}}
+@if ($showEditModal && $editingCategoryId)
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+       @click.self="@this.call('closeEditModal')"
+       @close-expense-category-modal.window="@this.call('closeEditModal')">
+    <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-900">Edit Expense Category</h3>
+        <button
+          wire:click="closeEditModal"
+          class="text-gray-400 hover:text-gray-500"
+        >
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <livewire:admin.accounts.expense.expense-category-form :category="$editingCategoryId" :key="'category-edit-' . $editingCategoryId" />
     </div>
   </div>
 @endif

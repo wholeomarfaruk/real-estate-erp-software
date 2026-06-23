@@ -130,7 +130,7 @@ class OfficeExpenseForm extends Component
 
     public function render(): View
     {
-        $officeAccounts = $this->getAllEnabledChildrenForFeature(FeatureType::OFFICE_EXPENSE);
+        $officeAccounts = $this->getAllEnabledChildrenForFeature(FeatureType::OFFICE_EXPENSE->value);
         if ($officeAccounts->isEmpty()) {
             $officeAccounts = Account::query()
                 ->where('code', 'EXP-OFFICE')

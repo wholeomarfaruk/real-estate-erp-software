@@ -377,13 +377,14 @@ class BankingTransactionServiceTest extends TestCase
             'status' => 'released',
             'bank_account_id' => $this->bankAccount->id,
             'account_id' => $this->paymentAccount->id,
-            'sourceable_type' => PurchaseFund::class,
+            // Sourced to a Supplier but missing the external_data fund link.
+            'sourceable_type' => Supplier::class,
             'sourceable_id' => null,
             'amount' => 1000.00,
         ]);
 
         $this->expectException(\DomainException::class);
-        $this->expectExceptionMessage('Advance fund must be linked to a PurchaseFund');
+        $this->expectExceptionMessage('Advance fund must be linked to a Supplier and a PurchaseFund');
 
         $this->service->completePaymentRequest($request, $this->user->id);
     }

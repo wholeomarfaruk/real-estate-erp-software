@@ -75,10 +75,10 @@ class TransactionReferenceFormatter
      */
     private static function getConfigKeyForType(string $type): string
     {
-        // If it's a full class name, extract the model name
+        // If it's a full class name, extract the model name and convert it to the
+        // snake_case config key (App\Models\PaymentSchedule => payment_schedule).
         if (str_contains($type, '\\')) {
-            $classname = class_basename($type);
-            return strtolower($classname);
+            return \Illuminate\Support\Str::snake(class_basename($type));
         }
         return $type;
     }
@@ -108,6 +108,7 @@ class TransactionReferenceFormatter
             'transaction' => self::formatTransaction($model, $label),
             'payroll' => self::formatPayroll($model, $label),
             'advance_salary' => self::formatAdvanceSalary($model, $label),
+            'payment_schedule' => self::formatPaymentSchedule($model, $label),
             default => [
                 'label' => "{$label} #{$model->id}",
                 'details' => self::getPrimaryAttribute($model),
@@ -210,6 +211,35 @@ class TransactionReferenceFormatter
                 'remaining' => $model->remaining_amount ? "৳ " . number_format((float)$model->remaining_amount, 2) : null,
             ],
             'icon' => '💸',
+        ];
+    }
+
+    private static function formatPaymentSchedule($model, string $label): array
+    {
+        $sale     = $model->propertySale;
+        $customer = $sale?->customer;
+        $property = $sale?->property;
+
+        $details = [
+            'schedule' => method_exists($model, 'label') ? $model->label() : ('#' . $model->id),
+            'sale'     => $sale?->sale_number ?? ($sale ? ('Sale #' . $sale->id) : null),
+            'customer' => $customer?->name ?? null,
+            'property' => $property?->title ?? $property?->name ?? null,
+            'amount'   => isset($model->amount) ? '৳ ' . number_format((float) $model->amount, 2) : null,
+        ];
+
+        // Link straight to the property sale (opened in a new tab by the card).
+        $url = null;
+        if ($sale && \Illuminate\Support\Facades\Route::has('admin.properties.sales.show')) {
+            $url = route('admin.properties.sales.show', $sale->id);
+        }
+
+        return [
+            'label'   => $label,
+            'details' => $details,
+            'icon'    => '🏠',
+            'url'     => $url,
+            'url_label' => 'Open sale',
         ];
     }
 

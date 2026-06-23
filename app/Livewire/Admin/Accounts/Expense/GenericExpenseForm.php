@@ -7,6 +7,7 @@ use App\Models\BankingPaymentRequest;
 use App\Models\ExpenseCategory;
 use App\Enums\Accounts\TransactionType;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
+use App\Livewire\Admin\Accounts\Concerns\InteractsWithFeatureAccounts;
 use App\Livewire\Traits\WithMediaPicker;
 use App\Services\Accounts\BankingDoubleEntryBuilderService;
 use Illuminate\Contracts\View\View;
@@ -15,7 +16,7 @@ use Livewire\Component;
 
 class GenericExpenseForm extends Component
 {
-    use InteractsWithAccountsAccess, WithMediaPicker;
+    use InteractsWithAccountsAccess, InteractsWithFeatureAccounts, WithMediaPicker;
 
     public ?ExpenseCategory $category = null;
     public ?int $expense_account_id = null;
@@ -80,7 +81,7 @@ class GenericExpenseForm extends Component
             $bpr = BankingPaymentRequest::create([
                 'request_no' => BankingPaymentRequest::generateRequestNo(),
                 'source_type' => TransactionType::EXPENSE->value,
-                'transaction_category_id' => $this->category->transaction_category_id,
+                'transaction_category_id' => null,
                 'amount' => round((float) $this->amount, 3),
                 'description' => $this->title,
                 'account_id' => $this->payment_account_id,
@@ -138,10 +139,17 @@ class GenericExpenseForm extends Component
 
     public function render(): View
     {
-        $expenseAccounts = Account::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'code', 'name']);
+        $expenseAccounts = collect();
+        if ($this->category && $this->category->feature_type) {
+            $expenseAccounts = $this->getAllEnabledChildrenForFeature($this->category->feature_type);
+        }
+
+        if ($expenseAccounts->isEmpty()) {
+            $expenseAccounts = Account::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'code', 'name']);
+        }
 
         $paymentAccounts = Account::query()
             ->whereIn('type', ['cash', 'bank', 'mfs', 'wallet'])

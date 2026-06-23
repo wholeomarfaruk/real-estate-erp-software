@@ -86,4 +86,10 @@ return [
         'multiple' => false,
     ],
 
+    'payment_schedule' => [
+        'label' => 'Payment Schedule',
+        'model' => App\Models\PaymentSchedule::class,
+        'multiple' => false,
+    ],
+
 ];

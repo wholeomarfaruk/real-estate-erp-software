@@ -34,6 +34,16 @@
                     {{ $reference['details'] }}
                 </p>
             @endif
+
+            @if (!empty($reference['url']))
+                <a href="{{ $reference['url'] }}" target="_blank" rel="noopener noreferrer"
+                    class="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">
+                    {{ $reference['url_label'] ?? 'Open' }}
+                    <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                </a>
+            @endif
         </div>
     </div>
 @endif

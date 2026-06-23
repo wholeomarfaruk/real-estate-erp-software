@@ -41,7 +41,7 @@
                     >
                         <option value="">Select a payment account</option>
                         @foreach ($paymentAccounts as $account)
-                            <option value="{{ $account->id }}">{{ $account->name }} ({{ ucfirst($account->type) }})</option>
+                            <option value="{{ $account->id }}">{{ $account->name }} ({{ $account->type?->label() ?? '' }})</option>
                         @endforeach
                     </select>
                     @error('payment_account_id')

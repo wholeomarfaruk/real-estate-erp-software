@@ -106,7 +106,7 @@ class ProjectExpenseForm extends Component
     {
         $projects = Project::orderBy('name')->get(['id', 'name']);
 
-        $expenseAccounts = $this->getAllEnabledChildrenForFeature(FeatureType::PROJECT_EXPENSE);
+        $expenseAccounts = $this->getAllEnabledChildrenForFeature(FeatureType::PROJECT_EXPENSE->value);
 
         $paymentAccounts = Account::where('type', 'cash')
             ->orWhere('type', 'bank')

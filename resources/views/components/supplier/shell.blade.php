@@ -12,17 +12,12 @@
 
     $totalPurchased = (float) $supplier->purchaseInvoices()->sum('total_amount');
     $totalDue       = (float) $supplier->purchaseInvoices()->sum('due_amount');
-    // Advance still "held" = completed funds' remaining balance, net of anything
-    // already applied to invoices or refunded (a fully-used advance counts as 0).
-    $totalAdvance   = (float) $supplier->purchaseFunds()
-        ->where('status', 'completed')
-        ->whereNotNull('transaction_id')
-        ->with(['transaction:id,type', 'transaction.lines:id,transaction_id,debit,credit', 'transaction.advanceAdjustmentsGiven:id,advance_transaction_id,amount'])
-        ->get()
-        ->sum(fn ($fund) => $fund->remaining);
+    // Advance still "held" = advance transactions' remaining balance, net of
+    // anything already applied to invoices (the ledger is the source of truth).
+    $totalAdvance   = (float) $supplier->advanceRemaining();
     $invoiceCount   = $supplier->purchase_invoices_count ?? $supplier->purchaseInvoices()->count();
     $orderCount     = $supplier->purchase_orders_count  ?? $supplier->purchaseOrders()->count();
-    $advanceCount   = $supplier->purchase_funds_count   ?? $supplier->purchaseFunds()->count();
+    $advanceCount   = $supplier->advanceFunds()->count();
 
     $tabs = [
         'details'  => ['label' => 'Details',          'route' => 'admin.supplier.suppliers.show.details',  'badge' => null],
@@ -39,7 +34,7 @@
 
     {{-- Breadcrumb --}}
     <div class="crumb">
-        <a href="#">Purchases</a>
+        <a href="{{ route('admin.dashboard') }}" wire:navigate>Dashboard</a>
         <span class="sep">/</span>
         <a href="{{ route('admin.supplier.suppliers.index') }}" wire:navigate>Suppliers</a>
         <span class="sep">/</span>
@@ -92,10 +87,20 @@
 
         <div class="hero-actions">
             <div class="row">
-                <a href="{{ route('admin.supplier.suppliers.edit', $supplier) }}" wire:navigate class="btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Edit
-                </a>
+                @php $editIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'; @endphp
+                @if ($active === 'details')
+                    {{-- Details tab hosts the edit modal — open it in place. --}}
+                    <button type="button" wire:click="edit({{ $supplier->id }})" class="btn">
+                        {!! $editIcon !!}
+                        Edit
+                    </button>
+                @else
+                    {{-- Other tabs have no modal — go to Details where it lives. --}}
+                    <a href="{{ route('admin.supplier.suppliers.show.details', $supplier) }}" wire:navigate class="btn">
+                        {!! $editIcon !!}
+                        Edit
+                    </a>
+                @endif
             </div>
             <div class="row">
                 <a href="{{ route('admin.supplier.suppliers.show.invoices', $supplier) }}" wire:navigate class="btn btn-sm" style="flex:1;">Invoices</a>

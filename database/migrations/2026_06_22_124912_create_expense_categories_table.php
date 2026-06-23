@@ -20,7 +20,6 @@ return new class extends Migration
             $table->string('color', 100);
             $table->string('feature_type', 50)->nullable();
             $table->string('form_component', 255)->nullable();
-            $table->foreignId('transaction_category_id')->nullable()->constrained('transaction_categories')->cascadeOnDelete();
             $table->boolean('is_locked')->default(false);
             $table->boolean('is_active')->default(true);
             $table->integer('sort_order')->default(0);

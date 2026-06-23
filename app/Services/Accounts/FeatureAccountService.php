@@ -2,16 +2,15 @@
 
 namespace App\Services\Accounts;
 
-use App\Enums\Accounts\FeatureType;
 use App\Models\Account;
 use App\Models\FeatureAccountMapping;
 use Illuminate\Support\Collection;
 
 class FeatureAccountService
 {
-    public function getParentAccountsForFeature(FeatureType $feature): Collection
+    public function getParentAccountsForFeature(string $featureKey): Collection
     {
-        return FeatureAccountMapping::where('feature_key', $feature->value)
+        return FeatureAccountMapping::where('feature_key', $featureKey)
             ->where('is_enabled', true)
             ->distinct('parent_account_id')
             ->with('parentAccount')
@@ -20,9 +19,9 @@ class FeatureAccountService
             ->unique('id');
     }
 
-    public function getEnabledChildrenForParent(FeatureType $feature, int $parentAccountId): Collection
+    public function getEnabledChildrenForParent(string $featureKey, int $parentAccountId): Collection
     {
-        return FeatureAccountMapping::where('feature_key', $feature->value)
+        return FeatureAccountMapping::where('feature_key', $featureKey)
             ->where('parent_account_id', $parentAccountId)
             ->where('is_enabled', true)
             ->orderBy('sort_order')
@@ -31,9 +30,9 @@ class FeatureAccountService
             ->pluck('childAccount');
     }
 
-    public function getAllEnabledChildrenForFeature(FeatureType $feature): Collection
+    public function getAllEnabledChildrenForFeature(string $featureKey): Collection
     {
-        return FeatureAccountMapping::where('feature_key', $feature->value)
+        return FeatureAccountMapping::where('feature_key', $featureKey)
             ->where('is_enabled', true)
             ->orderBy('sort_order')
             ->with('childAccount')
@@ -41,32 +40,32 @@ class FeatureAccountService
             ->pluck('childAccount');
     }
 
-    public function toggleChildForFeature(FeatureType $feature, int $parentId, int $childId, bool $enabled): void
+    public function toggleChildForFeature(string $featureKey, int $parentId, int $childId, bool $enabled): void
     {
-        FeatureAccountMapping::where('feature_key', $feature->value)
+        FeatureAccountMapping::where('feature_key', $featureKey)
             ->where('parent_account_id', $parentId)
             ->where('child_account_id', $childId)
             ->update(['is_enabled' => $enabled]);
     }
 
     public function updateEnabledChildrenForFeatureAndParent(
-        FeatureType $feature,
+        string $featureKey,
         int $parentId,
         array $enabledChildIds
     ): void {
-        FeatureAccountMapping::where('feature_key', $feature->value)
+        FeatureAccountMapping::where('feature_key', $featureKey)
             ->where('parent_account_id', $parentId)
             ->update(['is_enabled' => false]);
 
         if (!empty($enabledChildIds)) {
-            FeatureAccountMapping::where('feature_key', $feature->value)
+            FeatureAccountMapping::where('feature_key', $featureKey)
                 ->where('parent_account_id', $parentId)
                 ->whereIn('child_account_id', $enabledChildIds)
                 ->update(['is_enabled' => true]);
         }
     }
 
-    public function initializeFeatureForParentAccount(FeatureType $feature, int $parentAccountId): void
+    public function initializeFeatureForParentAccount(string $featureKey, int $parentAccountId): void
     {
         $parent = Account::findOrFail($parentAccountId);
 
@@ -77,7 +76,7 @@ class FeatureAccountService
         foreach ($parent->children as $child) {
             FeatureAccountMapping::firstOrCreate(
                 [
-                    'feature_key' => $feature->value,
+                    'feature_key' => $featureKey,
                     'parent_account_id' => $parentAccountId,
                     'child_account_id' => $child->id,
                 ],
@@ -86,14 +85,14 @@ class FeatureAccountService
         }
     }
 
-    public function initializeFeatureForAllApplicableParents(FeatureType $feature, string $accountGroup): void
+    public function initializeFeatureForAllApplicableParents(string $featureKey, string $accountGroup): void
     {
         $parents = Account::where('group', $accountGroup)
             ->whereNull('parent_id')
             ->get();
 
         foreach ($parents as $parent) {
-            $this->initializeFeatureForParentAccount($feature, $parent->id);
+            $this->initializeFeatureForParentAccount($featureKey, $parent->id);
         }
     }
 }

@@ -13,6 +13,8 @@ class DynamicExpenseForm extends Component
 
     public function mount(string $category = null): void
     {
+        $category = $category ?: request()->query('category');
+
         if (!$category) {
             abort(404, 'Expense category not specified');
         }
@@ -24,7 +26,15 @@ class DynamicExpenseForm extends Component
         // Determine which form to load
         if ($this->category->is_locked && $this->category->form_component) {
             // Locked category with dedicated form
-            $this->formComponent = $this->category->form_component;
+            $class = $this->category->form_component;
+            if (str_starts_with($class, 'App\\Livewire\\')) {
+                $relative = substr($class, strlen('App\\Livewire\\'));
+                $segments = explode('\\', $relative);
+                $kebabSegments = array_map(fn($seg) => \Illuminate\Support\Str::kebab($seg), $segments);
+                $this->formComponent = implode('.', $kebabSegments);
+            } else {
+                $this->formComponent = $class;
+            }
         } else {
             // Dynamic category - use generic form
             $this->formComponent = 'admin.accounts.expense.generic-expense-form';

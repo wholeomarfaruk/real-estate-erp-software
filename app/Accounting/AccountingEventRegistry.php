@@ -28,7 +28,7 @@ class AccountingEventRegistry
                 'module'           => 'property',
                 'name'             => 'Property — Sale',
                 'description'      => 'Customer pays an advance against a property sale. Dr the received payment account, Cr Customer Advance.',
-                'transaction_type' => TransactionType::INCOME->value,
+                'transaction_type' => TransactionType::CUSTOMER_RECEIPT->value,
                 'runtime_slots'    => ['payment_account' => 'Payment Account (Cash/Bank/MFS)'],
                 'default_rules'    => [
                     ['leg' => 'debit',  'account_source' => 'runtime', 'runtime_slot' => 'payment_account', 'description' => 'Payment received'],

@@ -32,31 +32,32 @@
                 <tbody>
                     @forelse ($this->advances as $r)
                         @php
-                            $remaining = $r->remaining;          // 0 unless completed
-                            $adjusted  = $r->adjusted;           // amount already consumed
-                            $isUsed    = $r->status === 'completed' && $remaining <= 0;
-                            $isPartial = $r->status === 'completed' && $adjusted > 0 && $remaining > 0;
+                            // Each row is a posted advance transaction (ledger source of truth).
+                            $amount    = (float) $r->lines->sum('debit');   // advance (Dr) movement
+                            $remaining = round($r->remainingAdvance(), 2);
+                            $adjusted  = round($amount - $remaining, 2);
+                            $isUsed    = $remaining <= 0;
+                            $isPartial = $adjusted > 0 && $remaining > 0;
 
                             [$pillClass, $statusLabel] = match (true) {
-                                $r->status === 'pending'  => ['ordered',   'Pending'],
-                                $r->status === 'rejected' => ['cancelled', 'Rejected'],
-                                $isUsed                   => ['adjusted',  'Fully used'],
-                                $isPartial                => ['partial',   'Partly used'],
-                                $r->status === 'completed'=> ['paid',      'Available'],
-                                default                   => ['draft',     ucfirst($r->status ?? '—')],
+                                $isUsed    => ['adjusted', 'Fully used'],
+                                $isPartial => ['partial',  'Partly used'],
+                                default    => ['paid',     'Available'],
                             };
+
+                            $poNo = $this->poNumbers[$r->id] ?? null;
                         @endphp
                         <tr wire:key="adv-{{ $r->id }}">
-                            <td><div class="t-ref">ADV-{{ str_pad($r->id, 4, '0', STR_PAD_LEFT) }}</div></td>
-                            <td style="text-align:left;">{{ $r->release_date?->format('Y-m-d') }}</td>
-                            <td><span class="t-sub">{{ $r->purchaseOrder?->po_no ?? '—' }}</span></td>
-                            <td class="num t-strong">{{ $full($r->amount) }}</td>
-                            <td class="num">{{ $r->status === 'completed' && $adjusted > 0 ? $full($adjusted) : '—' }}</td>
-                            <td class="num {{ $r->status === 'completed' && $remaining > 0 ? 'amt-paid' : '' }}">
-                                {{ $r->status === 'completed' ? $full($remaining) : '—' }}
+                            <td><div class="t-ref">{{ $r->reference_no ?: ('ADV-' . str_pad($r->id, 4, '0', STR_PAD_LEFT)) }}</div></td>
+                            <td style="text-align:left;">{{ $r->datetime?->format('Y-m-d') }}</td>
+                            <td><span class="t-sub">{{ $poNo ?? '—' }}</span></td>
+                            <td class="num t-strong">{{ $full($amount) }}</td>
+                            <td class="num">{{ $adjusted > 0 ? $full($adjusted) : '—' }}</td>
+                            <td class="num {{ $remaining > 0 ? 'amt-paid' : '' }}">
+                                {{ $full($remaining) }}
                             </td>
                             <td>{{ $r->method ? ucfirst(str_replace('_', ' ', $r->method)) : '—' }}</td>
-                            <td>{{ $r->releaser?->name ?? '—' }}</td>
+                            <td>{{ $r->creator?->name ?? '—' }}</td>
                             <td><span class="pill {{ $pillClass }}"><span class="dot"></span>{{ $statusLabel }}</span></td>
                             <td class="act-cell">
                                 <div style="display:inline-flex; gap:6px; justify-content:flex-end;">

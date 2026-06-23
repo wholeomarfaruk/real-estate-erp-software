@@ -11,16 +11,63 @@
             {{-- Feature List Sidebar --}}
             <div class="lg:col-span-1">
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden sticky top-4">
-                    <div class="bg-gray-50 border-b border-gray-200 px-4 py-3">
+                    <div class="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
                         <h2 class="font-semibold text-sm text-gray-900">Features</h2>
+                        <button type="button" wire:click="$toggle('showAddFeature')"
+                            class="text-xs font-medium text-indigo-600 hover:text-indigo-800">
+                            {{ $showAddFeature ? 'Cancel' : '+ Add' }}
+                        </button>
                     </div>
-                    <div class="divide-y divide-gray-100">
-                        @foreach ($features as $feature)
-                            <button type="button" wire:click="selectFeature('{{ $feature->value }}')"
-                                class="w-full text-left px-4 py-3 transition hover:bg-gray-50 {{ $this->selectedFeature === $feature->value ? 'bg-indigo-50 border-l-4 border-l-indigo-600 text-indigo-700 font-semibold' : 'text-gray-700' }}">
-                                {{ $feature->label() }}
+
+                    {{-- Add Feature form --}}
+                    @if ($showAddFeature)
+                        <div class="border-b border-gray-200 px-4 py-3 bg-indigo-50/40">
+                            <label for="newFeatureLabel" class="block text-xs font-medium text-gray-700 mb-1">New feature name</label>
+                            <input type="text" id="newFeatureLabel" wire:model="newFeatureLabel"
+                                wire:keydown.enter="createFeature"
+                                placeholder="e.g. Travel Expense"
+                                class="block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                            @error('newFeatureLabel')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                            <button type="button" wire:click="createFeature"
+                                class="mt-2 w-full px-3 py-1.5 bg-indigo-600 text-white rounded-md text-xs font-medium hover:bg-indigo-700">
+                                Add Feature
                             </button>
-                        @endforeach
+                        </div>
+                    @endif
+
+                    <div class="divide-y divide-gray-100">
+                        @forelse ($features as $feature)
+                            <div class="group flex items-center {{ $this->selectedFeature === $feature->key ? 'bg-indigo-50 border-l-4 border-l-indigo-600' : '' }}">
+                                <button type="button" wire:click="selectFeature('{{ $feature->key }}')"
+                                    class="flex-1 text-left px-4 py-3 transition hover:bg-gray-50 {{ $this->selectedFeature === $feature->key ? 'text-indigo-700 font-semibold' : 'text-gray-700' }} {{ $feature->is_active ? '' : 'opacity-50' }}">
+                                    {{ $feature->label }}
+                                    @unless ($feature->is_active)
+                                        <span class="ml-1 text-[10px] uppercase text-gray-400">(inactive)</span>
+                                    @endunless
+                                </button>
+                                @unless ($feature->is_locked)
+                                    <button type="button" wire:click="toggleFeatureActive({{ $feature->id }})"
+                                        title="{{ $feature->is_active ? 'Deactivate' : 'Activate' }}"
+                                        class="px-2 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition">
+                                        @if ($feature->is_active)
+                                            &#9210;
+                                        @else
+                                            &#9211;
+                                        @endif
+                                    </button>
+                                    <button type="button" wire:click="deleteFeature({{ $feature->id }})"
+                                        wire:confirm="Delete this feature and its account mappings?"
+                                        title="Delete"
+                                        class="pr-3 pl-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition">
+                                        &times;
+                                    </button>
+                                @endunless
+                            </div>
+                        @empty
+                            <div class="px-4 py-6 text-center text-xs text-gray-500">No features yet. Click “+ Add”.</div>
+                        @endforelse
                     </div>
                 </div>
             </div>

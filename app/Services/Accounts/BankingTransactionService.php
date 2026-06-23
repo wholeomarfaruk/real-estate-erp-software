@@ -10,6 +10,7 @@ use App\Models\BankingPaymentRequest;
 use App\Models\PayrollPayment;
 use App\Models\PurchaseFund;
 use App\Models\PurchaseInvoice;
+use App\Models\Supplier;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\DB;
 
@@ -275,6 +276,9 @@ class BankingTransactionService
             'completed_at' => now(),
         ]);
 
+        // Recalculate the invoice's paid/due/status from its payment ledger lines.
+        app(\App\Services\Inventory\PurchaseInvoiceService::class)->syncPaymentStatus($invoice);
+
         return $transaction;
     }
 
@@ -288,11 +292,11 @@ class BankingTransactionService
         BankingPaymentRequest $request,
         int $userId
     ): Transaction {
-        if (
-            $request->sourceable_type !== PurchaseFund::class
-            || ! $request->sourceable_id
-        ) {
-            throw new \DomainException('Advance fund must be linked to a PurchaseFund.');
+        // The advance request is sourced to the Supplier; the specific
+        // PurchaseFund it settles is carried in external_data['purchase_fund_id'].
+        $fundId = (int) ($request->external_data['purchase_fund_id'] ?? 0);
+        if ($request->sourceable_type !== Supplier::class || $fundId <= 0) {
+            throw new \DomainException('Advance fund must be linked to a Supplier and a PurchaseFund.');
         }
 
         // Use stored double-entry data
@@ -310,19 +314,21 @@ class BankingTransactionService
 
         $fund = PurchaseFund::query()
             ->with(['receiver', 'purchaseOrder:id,po_no'])
-            ->findOrFail($request->sourceable_id);
+            ->findOrFail($fundId);
 
         // Create balanced double-entry using stored amounts
         $transaction = $this->ledger->post(
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
                 'type' => TransactionType::ADVANCE->value,
-                'reference_type' => 'purchase_fund',
-                'reference_id' => $fund->id,
+                // Reference the request's sourceable (the Supplier the advance
+                // belongs to); the specific fund is on external_data.
+                'reference_type' => $request->sourceable_type,
+                'reference_id' => (int) $request->sourceable_id,
                 'reference_no' => $request->reference_no ?? $fund->reference_no,
                 'name' => $request->name ?? $fund->receiver?->name,
                 'phone' => $request->phone ?? $fund->receiver?->phone,
-                'method' => $request->method ?? $fund->method ?? 'bank',
+                'method' => $request->method ?? $fund->method ?? 'cash',
                 'notes' => $request->notes ?? $request->description,
                 'created_by' => $userId,
             ],
@@ -348,6 +354,12 @@ class BankingTransactionService
             'status' => 'completed',
             'completed_by' => $userId,
             'completed_at' => now(),
+        ]);
+
+        // Finalise the linked PurchaseFund too, so its status reflects completion.
+        $fund->update([
+            'transaction_id' => $transaction->id,
+            'status'         => 'completed',
         ]);
 
         return $transaction;

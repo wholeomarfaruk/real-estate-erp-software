@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Supplier\Supplier;
 
 use App\Livewire\Admin\Supplier\Concerns\InteractsWithSupplierAccess;
+use App\Livewire\Admin\Supplier\Concerns\InteractsWithSupplierForm;
 use App\Livewire\Forms\SupplierForm;
 use App\Livewire\Traits\WithMediaPicker;
 use App\Models\Supplier;
@@ -16,20 +17,14 @@ use Livewire\WithPagination;
 class SupplierList extends Component
 {
     use InteractsWithSupplierAccess;
+    use InteractsWithSupplierForm;
     use WithPagination;
     use WithMediaPicker;
 
     public SupplierForm $form;
 
-    // Modal state — Livewire owns this so edit() can open the modal server-side
-    public bool $modalOpen  = false;
-    public bool $editMode   = false;
-    public ?int $editingId  = null;
-
     // Documents proxy (WithMediaPicker trait writes $this->$field directly)
     public array $documents = [];
-
-    public function updatedDocuments(): void { $this->form->documents = $this->documents; }
 
     // ── Filters ──────────────────────────────────────────────────────────────
     #[Url(as: 'q', history: true)]
@@ -44,12 +39,10 @@ class SupplierList extends Component
     #[Url(history: true)]
     public string $sortBy = 'recent';
 
-    public int $nextCode = 0;
-
     public function mount(): void
     {
         $this->authorizePermission('supplier.list.view');
-        $this->nextCode = (int) (Supplier::withTrashed()->max('id') ?? 0) + 1;
+        $this->refreshNextCode();
     }
 
     public function updatedSearch(): void        { $this->resetPage(); }
@@ -61,53 +54,6 @@ class SupplierList extends Component
     {
         $this->statusFilter = $key;
         $this->resetPage();
-    }
-
-    // ── Open modal for create ─────────────────────────────────────────────────
-    public function openCreate(): void
-    {
-        $this->authorizePermission('supplier.create');
-        $this->resetModal();
-        $this->editMode  = false;
-        $this->editingId = null;
-        $this->modalOpen = true;
-    }
-
-    // ── Open modal for edit — loads data instantly, no spinner needed ─────────
-    public function edit(int $id): void
-    {
-        $this->authorizePermission('supplier.edit');
-
-        $s = Supplier::findOrFail($id);
-
-        $this->resetModal();
-        $this->editMode  = true;
-        $this->editingId = $id;
-
-        // Fill form fields
-        $this->form->name             = $s->name;
-        $this->form->contact_person   = $s->contact_person ?? '';
-        $this->form->email            = $s->email ?? '';
-        $this->form->phone            = $s->phone ?? '';
-        $this->form->alternate_phone  = $s->alternate_phone ?? '';
-        $this->form->address          = $s->address ?? '';
-        $this->form->trade_license_no = $s->trade_license_no ?? '';
-        $this->form->tin_no           = $s->tin_no ?? '';
-        $this->form->bin_no           = $s->bin_no ?? '';
-        $this->form->notes            = $s->notes ?? '';
-        $this->form->status           = $s->status_key; // 'active'|'inactive'|'blocked'
-
-        // Documents proxy → keeps picker in sync
-        $this->documents      = array_values(array_filter((array) ($s->documents ?? [])));
-        $this->form->documents = $this->documents;
-
-        $this->modalOpen = true;
-    }
-
-    private function resetModal(): void
-    {
-        $this->form->reset();
-        $this->documents = [];
     }
 
     /* ───────────────────────────── KPI strip ──────────────────────────────── */
@@ -127,14 +73,26 @@ class SupplierList extends Component
         $advance  = 0.0;
         $invoices = 0;
 
-        if (DB::getSchemaBuilder()->hasTable('purchase_payables')) {
-            $payable = (float) (DB::table('purchase_payables')->sum('due_amount') ?? 0);
-            $advance = (float) (DB::table('purchase_payables')->sum('advance_amount') ?? 0);
-        }
-
+        // Payable (total due) comes from the invoices themselves.
         if (DB::getSchemaBuilder()->hasTable('purchase_invoices')) {
+            $payable  = (float) (DB::table('purchase_invoices')->sum('due_amount') ?? 0);
             $invoices = (int) (DB::table('purchase_invoices')->count() ?? 0);
         }
+
+        // Available advance = advance transaction debits − everything adjusted.
+        $advanceDebit = (float) DB::table('transactions')
+            ->join('transaction_lines', 'transaction_lines.transaction_id', '=', 'transactions.id')
+            ->where('transactions.type', \App\Enums\Accounts\TransactionType::ADVANCE->value)
+            ->where('transactions.reference_type', Supplier::class)
+            ->sum('transaction_lines.debit');
+
+        $advanceAdjusted = (float) DB::table('advance_adjustments')
+            ->join('transactions', 'transactions.id', '=', 'advance_adjustments.advance_transaction_id')
+            ->where('transactions.type', \App\Enums\Accounts\TransactionType::ADVANCE->value)
+            ->where('transactions.reference_type', Supplier::class)
+            ->sum('advance_adjustments.amount');
+
+        $advance = round(max(0, $advanceDebit - $advanceAdjusted), 2);
 
         return [
             'total'    => (int) $counts->total,
@@ -152,7 +110,6 @@ class SupplierList extends Component
     {
         $this->authorizePermission('supplier.list.view');
 
-        $hasPurchasePayables = DB::getSchemaBuilder()->hasTable('purchase_payables');
         $hasPurchaseInvoices = DB::getSchemaBuilder()->hasTable('purchase_invoices');
 
         $query = Supplier::query()
@@ -160,19 +117,39 @@ class SupplierList extends Component
             ->statusKey($this->statusFilter === 'all' ? '' : $this->statusFilter);
 
         if ($hasPurchaseInvoices) {
+            // Per-supplier balance = available advance − outstanding due.
+            //   balance < 0  → net payable (due)
+            //   balance > 0  → net advance held
+            // Built as a single selectRaw (before withCount) so the select-clause
+            // bindings stay correctly ordered ahead of the count bindings.
+            $advanceType = \App\Enums\Accounts\TransactionType::ADVANCE->value;
+
+            $dueSub = DB::table('purchase_invoices')
+                ->selectRaw('COALESCE(SUM(due_amount), 0)')
+                ->whereColumn('purchase_invoices.supplier_id', 'suppliers.id');
+
+            $advDebitSub = DB::table('transactions')
+                ->join('transaction_lines', 'transaction_lines.transaction_id', '=', 'transactions.id')
+                ->selectRaw('COALESCE(SUM(transaction_lines.debit), 0)')
+                ->where('transactions.type', $advanceType)
+                ->where('transactions.reference_type', Supplier::class)
+                ->whereColumn('transactions.reference_id', 'suppliers.id');
+
+            $advAdjustedSub = DB::table('advance_adjustments')
+                ->join('transactions', 'transactions.id', '=', 'advance_adjustments.advance_transaction_id')
+                ->selectRaw('COALESCE(SUM(advance_adjustments.amount), 0)')
+                ->where('transactions.type', $advanceType)
+                ->where('transactions.reference_type', Supplier::class)
+                ->whereColumn('transactions.reference_id', 'suppliers.id');
+
+            $query->select('suppliers.*')->selectRaw(
+                "(({$advDebitSub->toSql()}) - ({$advAdjustedSub->toSql()})) - ({$dueSub->toSql()}) as balance",
+                array_merge($advDebitSub->getBindings(), $advAdjustedSub->getBindings(), $dueSub->getBindings())
+            );
+
             $query->withCount([
                 'purchaseInvoices as purchase_invoices_count',
                 'purchaseInvoices as unpaid_invoices_count' => fn ($q) => $q->where('status', '!=', 'paid'),
-            ]);
-        } else {
-            $query->addSelect(DB::raw('0 as purchase_invoices_count, 0 as unpaid_invoices_count'));
-        }
-
-        if ($hasPurchasePayables) {
-            $query->addSelect([
-                'balance' => DB::table('purchase_payables')
-                    ->selectRaw('COALESCE(SUM(advance_amount) - SUM(due_amount), 0)')
-                    ->whereColumn('purchase_payables.supplier_id', 'suppliers.id'),
             ]);
 
             $query
@@ -182,7 +159,7 @@ class SupplierList extends Component
                 ->when($this->sortBy === 'due',      fn ($q) => $q->orderBy('balance', 'asc'))
                 ->when($this->sortBy === 'invoices', fn ($q) => $q->orderByDesc('purchase_invoices_count'));
         } else {
-            $query->addSelect(DB::raw('0 as balance'));
+            $query->addSelect(DB::raw('0 as purchase_invoices_count, 0 as unpaid_invoices_count, 0 as balance'));
         }
 
         $query
@@ -194,43 +171,6 @@ class SupplierList extends Component
         return view('livewire.admin.supplier.supplier.supplier-list', [
             'suppliers' => $suppliers,
         ])->layout('layouts.admin.admin');
-    }
-
-    /* ───────────────────────────── Save (create or update) ────────────────── */
-    public function save(): void
-    {
-        if ($this->editMode) {
-            $this->authorizePermission('supplier.edit');
-        } else {
-            $this->authorizePermission('supplier.create');
-        }
-
-        $this->form->validate();
-
-        if ($this->editMode && $this->editingId) {
-            $s = Supplier::findOrFail($this->editingId);
-            $s->update($this->form->toAttributes() + ['updated_by' => auth()->id()]);
-            $label = "Supplier \"{$s->name}\" updated.";
-        } else {
-            $s = Supplier::create($this->form->toAttributes() + ['created_by' => auth()->id()]);
-            $this->nextCode = (int) (Supplier::withTrashed()->max('id') ?? 0) + 1;
-            $label = "Supplier \"{$s->name}\" created.";
-        }
-
-        $this->resetModal();
-        $this->modalOpen = false;
-        $this->editMode  = false;
-        $this->editingId = null;
-
-        $this->dispatch('toast', ['type' => 'success', 'message' => $label]);
-    }
-
-    public function closeModal(): void
-    {
-        $this->modalOpen = false;
-        $this->editMode  = false;
-        $this->editingId = null;
-        $this->resetModal();
     }
 
     /* ─────────────────────── Row actions (status) ─────────────────────────── */

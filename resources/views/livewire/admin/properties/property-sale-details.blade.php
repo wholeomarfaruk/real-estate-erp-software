@@ -108,15 +108,44 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 Schedule
             </a>
+            {{-- Edit — locked once handed over (superadmin may still edit) --}}
             @can('property_sale.edit')
-                <button @click="drawerOpen = true"
-                    style="appearance:none; border:1px solid var(--ink-1); background:var(--ink-1); color:var(--paper);
-                           padding:7px 14px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
-                           display:inline-flex; align-items:center; gap:6px;">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Edit
-                </button>
+                @if(! $sale->isHandedOver() || auth()->user()?->hasRole('superadmin'))
+                    <button @click="drawerOpen = true"
+                        style="appearance:none; border:1px solid var(--ink-1); background:var(--ink-1); color:var(--paper);
+                               padding:7px 14px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
+                               display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Edit
+                    </button>
+                @endif
             @endcan
+
+            {{-- Handover — only for fully-paid sales (not rentals) --}}
+            @if($sale->sale_type !== 'rent')
+                @if($sale->isHandedOver())
+                    <span title="Handed over on {{ $sale->handoverInfo()['date'] ?? '' }}"
+                        style="border:1px solid #1F5A2C33; background:#D2E7D5; color:#1F5A2C;
+                               padding:7px 14px; font:600 12px 'Inter', sans-serif; border-radius:6px;
+                               display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Handed over
+                    </span>
+                @elseif($sale->payment_status === 'paid')
+                    @can('property_sale.edit')
+                        <button wire:click="handover"
+                            wire:confirm="Hand over this property? This recognises the collected advance as sales revenue (Dr Customer Advance / Cr Sales Revenue) and marks the sale completed."
+                            wire:loading.attr="disabled" wire:target="handover"
+                            style="appearance:none; border:1px solid #1F5A2C; background:#1F5A2C; color:#fff;
+                                   padding:7px 14px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
+                                   display:inline-flex; align-items:center; gap:6px;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                            <span wire:loading.remove wire:target="handover">Handover</span>
+                            <span wire:loading wire:target="handover">Processing…</span>
+                        </button>
+                    @endcan
+                @endif
+            @endif
             <a href="{{ route('admin.properties.sales.index') }}"
                 style="appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2);
                        padding:7px 14px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;

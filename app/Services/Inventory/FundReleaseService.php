@@ -3,8 +3,10 @@
 namespace App\Services\Inventory;
 
 use App\Accounting\PostingContext;
+use App\Enums\Accounts\PostingLeg;
 use App\Enums\Accounts\TransactionType;
 use App\Models\Account;
+use App\Models\AccountingEvent;
 use App\Models\BankAccount;
 use App\Models\BankingPaymentRequest;
 use App\Models\Employee;
@@ -124,9 +126,11 @@ class FundReleaseService
             }
 
             // ------------------------------------------------------------------
-            // 4. Resolve receiver for description
+            // 4. Resolve receiver for description + the supplier-advance Dr account
             // ------------------------------------------------------------------
-            $receiverName = $this->resolveReceiverName($payeeType, $receiverId, $po);
+            $receiverName  = $this->resolveReceiverName($payeeType, $receiverId, $po);
+            $receiverPhone = $this->resolveReceiverPhone($payeeType, $receiverId, $po);
+            $advanceAccountId = $this->resolveSupplierAdvanceAccountId();
 
             // ------------------------------------------------------------------
             // 5. Create PurchaseFund (status = pending — no transaction yet)
@@ -149,14 +153,28 @@ class FundReleaseService
             ]);
 
             // ------------------------------------------------------------------
-            // 6. Create BankingPaymentRequest — sourceable → PurchaseFund
+            // 6. Create BankingPaymentRequest — sourceable → Supplier.
+            //    (The advance belongs to the supplier and can later be applied to
+            //    any of that supplier's purchase invoices.) The specific
+            //    PurchaseFund this request settles is carried in
+            //    external_data['purchase_fund_id'] so completion can resolve it.
             // ------------------------------------------------------------------
+            $supplierId = (int) ($locked->supplier_id ?? 0);
+            if ($supplierId <= 0) {
+                throw new \DomainException('This purchase order has no supplier to advance to.');
+            }
+
             BankingPaymentRequest::query()->create([
                 'request_no'      => BankingPaymentRequest::generateRequestNo(),
                 'source_type'     => TransactionType::ADVANCE->value,
-                'sourceable_type' => PurchaseFund::class,
-                'sourceable_id'   => $fund->id,
+                'sourceable_type' => Supplier::class,
+                'sourceable_id'   => $supplierId,
+                'external_data'   => [
+                    'purchase_fund_id'  => $fund->id,
+                    'purchase_order_id' => $locked->id,
+                ],
                 'amount'          => $amount,
+                'payment_date'    => $releaseDate,
                 'description'     => sprintf(
                     'Supplier advance – PO# %s → %s',
                     $locked->po_no,
@@ -164,11 +182,21 @@ class FundReleaseService
                 ),
                 'account_id'      => $paymentAccount->id,    // COA money account
                 'bank_account_id' => $linkedBankAccountId,   // info, if attached
+                // Pre-stored double-entry: Dr Supplier Advance / Cr the money account.
+                'debit_account_id'  => $advanceAccountId,
+                'debit_amount'      => $amount,
+                'credit_account_id' => $paymentAccount->id,
+                'credit_amount'     => $amount,
+                'reference_no'    => $referenceNo,
+                'name'            => $receiverName,
+                'phone'           => $receiverPhone,
+                'method'          => $method,
                 'status'          => 'pending',
                 'notes'           => $payload['remarks'] ?? null,
                 'requested_by'    => $userId,
             ]);
 
+            
             return $fund;
         });
     }
@@ -187,14 +215,15 @@ class FundReleaseService
                 throw new \DomainException('Only a released payment request can be completed.');
             }
 
-            if ($bankingRequest->sourceable_type !== PurchaseFund::class || ! $bankingRequest->sourceable_id) {
+            $fundId = (int) ($bankingRequest->external_data['purchase_fund_id'] ?? 0);
+            if ($bankingRequest->sourceable_type !== Supplier::class || $fundId <= 0) {
                 throw new \DomainException('This payment request is not linked to a fund release.');
             }
 
             // Lock the PurchaseFund row
             $fund = PurchaseFund::query()
                 ->lockForUpdate()
-                ->where('id', $bankingRequest->sourceable_id)
+                ->where('id', $fundId)
                 ->where('status', 'pending')
                 ->firstOrFail();
 
@@ -219,8 +248,8 @@ class FundReleaseService
                 amount: (float) $fund->amount,
                 datetime: $fund->release_date->format('Y-m-d') . ' 00:00:00',
                 paymentAccountId: $paymentAccountId,
-                referenceType: 'purchase_order',
-                referenceId: (int) $po->id,
+                referenceType: Supplier::class,
+                referenceId: (int) $bankingRequest->sourceable_id,
                 referenceNo: $fund->reference_no,
                 method: $fund->method,
                 name: $receiverName,
@@ -281,5 +310,45 @@ class FundReleaseService
         }
 
         return $po->supplier?->name ?? Supplier::query()->find($receiverId)?->name;
+    }
+
+    private function resolveReceiverPhone(string $payeeType, int $receiverId, PurchaseOrder $po): ?string
+    {
+        if ($receiverId <= 0) {
+            return null;
+        }
+
+        if ($payeeType === 'employee') {
+            return Employee::query()->find($receiverId)?->phone;
+        }
+
+        return $po->supplier?->phone ?? Supplier::query()->find($receiverId)?->phone;
+    }
+
+    /**
+     * Fixed Supplier Advance (asset) account = the Dr leg, taken from the
+     * configured `purchase.supplier_advance` accounting event so the pre-stored
+     * double-entry matches what the posting engine would resolve at completion.
+     */
+    private function resolveSupplierAdvanceAccountId(): int
+    {
+        $event = AccountingEvent::query()
+            ->active()
+            ->forKey(self::ADVANCE_EVENT)
+            ->with('rules')
+            ->first();
+
+        $debitRule = $event?->rules
+            ->first(fn ($rule) => $rule->leg === PostingLeg::DEBIT && $rule->isFixed());
+
+        $accountId = (int) ($debitRule?->account_id ?? 0);
+
+        if ($accountId <= 0) {
+            throw new \DomainException(
+                "Accounting event '" . self::ADVANCE_EVENT . "' has no fixed Supplier Advance debit account configured."
+            );
+        }
+
+        return $accountId;
     }
 }

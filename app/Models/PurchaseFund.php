@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class PurchaseFund extends Model
 {
@@ -70,9 +69,20 @@ class PurchaseFund extends Model
         return $this->morphTo();
     }
 
-    public function bankingRequest(): MorphOne
+    /**
+     * The banking payment request that settles this fund.
+     *
+     * The request is sourced to the Supplier (the advance belongs to the supplier
+     * and can be applied to any of their invoices); the specific fund it settles is
+     * carried in external_data['purchase_fund_id']. Resolved here as an accessor
+     * since that link isn't expressible as a plain Eloquent morph relation.
+     */
+    public function getBankingRequestAttribute(): ?BankingPaymentRequest
     {
-        return $this->morphOne(BankingPaymentRequest::class, 'sourceable');
+        return BankingPaymentRequest::query()
+            ->where('external_data->purchase_fund_id', $this->id)
+            ->latest('id')
+            ->first();
     }
 
     /**

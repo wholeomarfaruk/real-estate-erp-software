@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Suppliers\Show;
 
+use App\Models\BankingPaymentRequest;
+use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -21,43 +23,68 @@ class Advances extends Component
     #[Computed]
     public function advances()
     {
-        return $this->supplier->purchaseFunds()
+        return $this->supplier->advanceTransactions()
             ->with([
-                'purchaseOrder:id,po_no',
-                'releaser:id,name',
-                // Needed so each row can compute remaining vs adjusted advance.
-                'transaction:id,type',
-                'transaction.lines:id,transaction_id,debit,credit',
-                'transaction.advanceAdjustmentsGiven:id,advance_transaction_id,amount',
+                'lines:id,transaction_id,debit,credit',
+                'advanceAdjustmentsGiven:id,advance_transaction_id,amount',
+                'creator:id,name',
             ])
-            ->latest('release_date')
+            ->latest('datetime')
             ->latest('id')
             ->paginate(15);
+    }
+
+    /**
+     * PO number lookup (transaction_id => po_no) for the rows on the current page.
+     * The PO link lives on the request handler (BankingPaymentRequest.external_data),
+     * resolved here for display only.
+     */
+    #[Computed]
+    public function poNumbers(): array
+    {
+        $txnIds = collect($this->advances->items())->pluck('id')->filter()->values();
+
+        if ($txnIds->isEmpty()) {
+            return [];
+        }
+
+        $requests = BankingPaymentRequest::query()
+            ->whereIn('transaction_id', $txnIds)
+            ->get(['transaction_id', 'external_data']);
+
+        $poIds = $requests
+            ->map(fn ($r) => (int) ($r->external_data['purchase_order_id'] ?? 0))
+            ->filter()->unique()->values();
+
+        $poNoById = $poIds->isEmpty()
+            ? collect()
+            : PurchaseOrder::whereIn('id', $poIds)->pluck('po_no', 'id');
+
+        return $requests->mapWithKeys(fn ($r) => [
+            $r->transaction_id => $poNoById[$r->external_data['purchase_order_id'] ?? null] ?? null,
+        ])->all();
     }
 
     #[Computed]
     public function stats(): array
     {
-        $rows = $this->supplier->purchaseFunds()
-            ->selectRaw('COUNT(*) as total, SUM(amount) as total_amount')
-            ->first();
-
-        // Open/available advance = completed funds' remaining (net of adjustments).
-        $available = $this->supplier->purchaseFunds()
-            ->where('status', 'completed')
-            ->whereNotNull('transaction_id')
+        $txns = $this->supplier->advanceTransactions()
             ->with([
-                'transaction:id,type',
-                'transaction.lines:id,transaction_id,debit,credit',
-                'transaction.advanceAdjustmentsGiven:id,advance_transaction_id,amount',
+                'lines:id,transaction_id,debit,credit',
+                'advanceAdjustmentsGiven:id,advance_transaction_id,amount',
             ])
-            ->get()
-            ->sum(fn ($fund) => $fund->remaining);
+            ->get();
+
+        // Total advanced = sum of the advance (debit) movement across transactions.
+        $totalAmount = (float) $txns->sum(fn ($t) => (float) $t->lines->sum('debit'));
+
+        // Open/available advance = remaining (net of adjustments) across all advances.
+        $available = (float) $txns->sum(fn ($t) => $t->remainingAdvance());
 
         return [
-            'total'            => $rows->total ?? 0,
-            'total_amount'     => $rows->total_amount ?? 0,
-            'available_amount' => round((float) $available, 2),
+            'total'            => $txns->count(),
+            'total_amount'     => round($totalAmount, 2),
+            'available_amount' => round($available, 2),
         ];
     }
 

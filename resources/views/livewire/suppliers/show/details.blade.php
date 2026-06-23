@@ -38,16 +38,25 @@
                         <div class="summary-sub">{{ $supplier->purchase_invoices_count }} invoices</div>
                     </div>
                     <div class="summary-cell">
-                        <div class="summary-lbl">Outstanding</div>
+                        <div class="summary-lbl">Outstanding due</div>
                         <div class="summary-val amber">{{ $bdt($totalDue) }}</div>
                         <div class="summary-sub">unpaid balance</div>
                     </div>
                     <div class="summary-cell">
+                        <div class="summary-lbl">Advance held</div>
+                        <div class="summary-val {{ $advanceHeld > 0 ? 'green' : '' }}">{{ $bdt($advanceHeld) }}</div>
+                        <div class="summary-sub">available to apply</div>
+                    </div>
+                    <div class="summary-cell">
                         <div class="summary-lbl">Net balance</div>
-                        <div class="summary-val {{ $totalDue > 0 ? 'red' : 'green' }}">
-                            {{ $totalDue > 0 ? '−' : '' }}{{ $bdt($totalDue) }}
+                        <div class="summary-val {{ $netBalance < 0 ? 'red' : 'green' }}">
+                            {{ $netBalance < 0 ? '−' : ($netBalance > 0 ? '+' : '') }}{{ $bdt($netBalance) }}
                         </div>
-                        <div class="summary-sub">{{ $totalDue > 0 ? 'we owe supplier' : 'settled' }}</div>
+                        <div class="summary-sub">
+                            @if ($netBalance < 0) we owe supplier
+                            @elseif ($netBalance > 0) supplier holds advance
+                            @else settled @endif
+                        </div>
                     </div>
                 </div>
             </div>
@@ -118,7 +127,9 @@
         <div class="card">
             <div class="card-head">
                 <h3><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>Contact &amp; compliance</h3>
-                <a href="{{ route('admin.supplier.suppliers.edit', $supplier) }}" wire:navigate class="btn btn-sm">Edit</a>
+                @can('supplier.edit')
+                <button type="button" wire:click="edit({{ $supplier->id }})" class="btn btn-sm">Edit</button>
+                @endcan
             </div>
             <div class="card-body">
                 <div class="fact-grid">
@@ -191,6 +202,9 @@
     </div>
 
 </x-supplier.shell>
+
+{{-- Shared supplier create/edit modal (same as the suppliers list page). --}}
+@include('livewire.admin.supplier.supplier.partials.supplier-form-modal')
 
 @script
 <script>

@@ -169,7 +169,16 @@ class PropertySaleList extends Component
     public function deletePropertySale(int $id): void
     {
         abort_unless(Auth::user()?->can('property_sale.delete'), 403);
-        PropertySale::findOrFail($id)->delete();
+
+        $sale = PropertySale::findOrFail($id);
+
+        // A handed-over sale is locked — only a superadmin may still delete it.
+        if ($sale->isHandedOver() && ! Auth::user()?->hasRole('superadmin')) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'This sale has been handed over and can no longer be deleted.']);
+            return;
+        }
+
+        $sale->delete();
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Property sale deleted.']);
     }
 

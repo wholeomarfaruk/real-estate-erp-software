@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Enums\Accounts\FeatureType;
 use App\Models\Account;
 use App\Models\FeatureAccountMapping;
 use Illuminate\Database\Seeder;
@@ -43,7 +42,7 @@ class FeatureAccountMappingSeeder extends Seeder
         // Add all leaf children of Project Expenses
         foreach ($projectExpensesParent->children()->where('is_active', true)->get() as $child) {
             FeatureAccountMapping::create([
-                'feature_key' => FeatureType::PROJECT_EXPENSE->value,
+                'feature_key' => 'project_expense',
                 'parent_account_id' => $rootParent->id,
                 'child_account_id' => $child->id,
                 'is_enabled' => true,
@@ -75,7 +74,7 @@ class FeatureAccountMappingSeeder extends Seeder
         // Add all leaf children of Office Expenses
         foreach ($officeExpensesParent->children()->where('is_active', true)->get() as $child) {
             FeatureAccountMapping::create([
-                'feature_key' => FeatureType::OFFICE_EXPENSE->value,
+                'feature_key' => 'office_expense',
                 'parent_account_id' => $rootParent->id,
                 'child_account_id' => $child->id,
                 'is_enabled' => true,
@@ -107,7 +106,7 @@ class FeatureAccountMappingSeeder extends Seeder
         // Add all leaf children of Marketing Expenses
         foreach ($marketingExpensesParent->children()->where('is_active', true)->get() as $child) {
             FeatureAccountMapping::create([
-                'feature_key' => FeatureType::MARKETING_EXPENSE->value,
+                'feature_key' => 'marketing_expense',
                 'parent_account_id' => $rootParent->id,
                 'child_account_id' => $child->id,
                 'is_enabled' => true,

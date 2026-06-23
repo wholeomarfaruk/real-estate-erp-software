@@ -113,6 +113,12 @@ class PropertySaleDetails extends Component
     {
         abort_unless(Auth::user()?->can('property_sale.edit'), 403);
 
+        // A handed-over sale is locked — only a superadmin may still edit it.
+        if ($this->sale->isHandedOver() && ! Auth::user()?->hasRole('superadmin')) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'This sale has been handed over and can no longer be edited.']);
+            return;
+        }
+
         $validator = Validator::make([
             'dPropertyUnitId' => $this->dPropertyUnitId,
             'dCustomerId'     => $this->dCustomerId,
@@ -415,6 +421,11 @@ class PropertySaleDetails extends Component
     {
         return $schedule->paymentTransactions()
             ->with('lines.account:id,name,code')
+            ->whereNull('adjusted_at')                  // hide reversed originals
+            ->where(function ($q) {                     // hide reversal entries
+                $q->whereNull('relation_type')
+                    ->orWhere('relation_type', '!=', \App\Enums\Accounts\TransactionRelationType::REVERSE->value);
+            })
             ->orderByDesc('created_at')
             ->get()
             ->map(function ($tx): array {
@@ -436,6 +447,86 @@ class PropertySaleDetails extends Component
             ->all();
     }
 
+
+    // ── Handover (revenue recognition) ─────────────────────────────────────────
+
+    /**
+     * Hand over the sold property once it is fully paid. Posts the revenue-
+     * recognition journal (Dr Customer Advance / Cr Property Sales Revenue) via
+     * the configured `property.handover` event and marks the sale completed.
+     */
+    public function handover(): void
+    {
+        abort_unless(Auth::user()?->can('property_sale.edit'), 403);
+
+        $sale = $this->sale->fresh(['paymentSchedules', 'customer']);
+
+        if ($sale->sale_type === 'rent') {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Handover applies to property sales, not rentals.']);
+            return;
+        }
+
+        if ($sale->isHandedOver()) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'This sale has already been handed over.']);
+            return;
+        }
+
+        if ($sale->payment_status !== 'paid') {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Handover requires the sale to be fully paid.']);
+            return;
+        }
+
+        // Recognise the advance actually collected as revenue.
+        $collected = round((float) $sale->paymentSchedules->sum('paid_amount'), 2);
+
+        if ($collected <= 0) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Nothing has been collected to recognise as revenue.']);
+            return;
+        }
+
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($sale, $collected): void {
+                $transaction = app(\App\Services\Accounts\PostingEngine::class)->record(
+                    'property.handover',
+                    new \App\Accounting\PostingContext(
+                        amount: $collected,
+                        datetime: now()->format('Y-m-d H:i:s'),
+                        referenceType: PropertySale::class,
+                        referenceId: (int) $sale->id,
+                        referenceNo: $sale->sale_number,
+                        name: $sale->customer?->name,
+                        notes: 'Handover / revenue recognition for ' . $sale->sale_number,
+                        actorId: Auth::id(),
+                    ),
+                );
+
+                $extra = $sale->extra_data ?? [];
+                $extra['handover'] = [
+                    'date'           => now()->toDateTimeString(),
+                    'by'             => Auth::id(),
+                    'transaction_id' => $transaction->id,
+                    'amount'         => $collected,
+                ];
+
+                $sale->update([
+                    'status'     => 'completed',
+                    'extra_data' => $extra,
+                    'updated_by' => Auth::id(),
+                ]);
+            });
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Handover failed: ' . $e->getMessage()]);
+            return;
+        }
+
+        $this->sale = $this->sale->fresh([
+            'propertyUnit.property', 'saleUnits.propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
+            'paymentSchedules',
+        ]);
+        $this->dStatus = $this->sale->status;
+
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Property handed over. Revenue recognised.']);
+    }
 
     public function closePayNowModal(): void
     {

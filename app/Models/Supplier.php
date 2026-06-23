@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Supplier extends Model
@@ -176,6 +177,67 @@ class Supplier extends Model
     public function purchaseFunds()
     {
         return $this->morphMany(PurchaseFund::class, 'receiver');
+    }
+
+    /**
+     * All advance funds belonging to this supplier — i.e. every fund against one
+     * of the supplier's purchase orders. Unlike purchaseFunds() (receiver morph),
+     * this also includes advances routed through an employee (via_employee), since
+     * the advance still belongs to the PO's supplier.
+     */
+    public function advanceFunds(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            PurchaseFund::class,
+            PurchaseOrder::class,
+            'supplier_id',        // FK on purchase_orders → suppliers
+            'purchase_order_id',  // FK on purchase_funds → purchase_orders
+            'id',                 // local key on suppliers
+            'id'                  // local key on purchase_orders
+        );
+    }
+
+    /** Banking payment requests sourced to this supplier (e.g. advances). */
+    public function bankingRequests()
+    {
+        return $this->morphMany(BankingPaymentRequest::class, 'sourceable');
+    }
+
+    /** Advance payment requests sourced to this supplier. */
+    public function advanceRequests()
+    {
+        return $this->morphMany(BankingPaymentRequest::class, 'sourceable')
+            ->where('source_type', \App\Enums\Accounts\TransactionType::ADVANCE->value);
+    }
+
+    /**
+     * Posted advance transactions for this supplier (the ledger source of truth).
+     * The BankingPaymentRequest is only the request handler; the actual advance
+     * lives in `transactions` keyed by reference_type/reference_id.
+     */
+    public function advanceTransactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class, 'reference_id')
+            ->where('transactions.reference_type', static::class)
+            ->where('transactions.type', \App\Enums\Accounts\TransactionType::ADVANCE->value);
+    }
+
+    /**
+     * Remaining (unadjusted) supplier advance still available to apply to invoices.
+     * = total advance debit movement − everything already adjusted against it.
+     */
+    public function advanceRemaining(): float
+    {
+        return (float) $this->advanceTransactions()
+            ->with(['lines:id,transaction_id,debit', 'advanceAdjustmentsGiven:id,advance_transaction_id,amount'])
+            ->get()
+            ->sum(fn (Transaction $t) => $t->remainingAdvance());
+    }
+
+    /** Total outstanding payable across this supplier's invoices. */
+    public function totalDue(): float
+    {
+        return (float) $this->purchaseInvoices()->sum('due_amount');
     }
 public function getAccountsAttribute()
 {

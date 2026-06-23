@@ -18,7 +18,6 @@ class ExpenseCategory extends Model
         'color',
         'feature_type',
         'form_component',
-        'transaction_category_id',
         'is_locked',
         'is_active',
         'sort_order',
@@ -30,11 +29,6 @@ class ExpenseCategory extends Model
         'is_locked' => 'boolean',
         'is_active' => 'boolean',
     ];
-
-    public function transactionCategory(): BelongsTo
-    {
-        return $this->belongsTo(TransactionCategory::class);
-    }
 
     public function createdBy(): BelongsTo
     {

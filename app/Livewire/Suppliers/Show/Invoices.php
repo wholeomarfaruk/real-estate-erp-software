@@ -3,10 +3,13 @@
 namespace App\Livewire\Suppliers\Show;
 
 use App\Enums\Accounts\EntryMethod;
+use App\Enums\Accounts\TransactionType;
 use App\Models\Account;
+use App\Models\BankingPaymentRequest;
 use App\Models\PurchaseFund;
 use App\Models\PurchaseInvoice;
 use App\Models\Supplier;
+use App\Models\Transaction;
 use App\Services\Inventory\PurchaseInvoicePaymentService;
 use App\Livewire\Traits\WithMediaPicker;
 use Illuminate\Support\Facades\Auth;
@@ -69,11 +72,86 @@ class Invoices extends Component
                 'purchaseOrder:id,po_no',
                 'creator:id,name',
                 'approver:id,name',
-                'bankingPaymentRequests' => fn ($q) => $q
-                    ->with(['bankAccount:id,bank_name,type', 'account:id,name,code', 'requestedBy:id,name', 'completedBy:id,name'])
-                    ->latest(),
             ])->find($this->payInvoiceId)
             : null;
+    }
+
+    /**
+     * Payment history for the active invoice.
+     *
+     * - In-flight requests (not yet completed) come from the BankingPaymentRequest
+     *   table — they are only requests, no ledger entry exists yet.
+     * - Completed payments come from the transactions table (the source of truth).
+     *   This also includes advance applications, which never create a request.
+     *
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    #[Computed]
+    public function paymentHistory()
+    {
+        $invoiceId = $this->payInvoiceId;
+        if (! $invoiceId) {
+            return collect();
+        }
+
+        // Pending/approved/released/rejected requests (everything not yet completed).
+        $requests = BankingPaymentRequest::query()
+            ->where('sourceable_type', PurchaseInvoice::class)
+            ->where('sourceable_id', $invoiceId)
+            ->where('status', '!=', 'completed')
+            ->with(['account:id,name,code', 'requestedBy:id,name'])
+            ->latest()
+            ->get()
+            ->map(fn (BankingPaymentRequest $r) => [
+                'kind'        => 'request',
+                'status'      => $r->status,
+                'amount'      => (float) $r->amount,
+                'account'     => $r->account?->name,
+                'date'        => $r->payment_date?->format('Y-m-d') ?? $r->created_at?->format('Y-m-d'),
+                'method'      => $r->method,
+                'reference'   => $r->reference_no,
+                'by'          => $r->requestedBy?->name,
+                'ref_no'      => $r->request_no,
+                'rejection'   => $r->rejection_reason,
+                'notes'       => $r->notes,
+                'sort'        => $r->created_at?->timestamp ?? 0,
+            ]);
+
+        // Completed payments = posted supplier_payment transactions for this invoice
+        // (covers both completed banking payments and advance applications).
+        $transactions = Transaction::query()
+            ->where('reference_type', 'purchase_invoice')
+            ->where('reference_id', $invoiceId)
+            ->where('type', TransactionType::SUPPLIER_PAYMENT->value)
+            ->with(['lines:id,transaction_id,debit,credit,account_id', 'lines.account:id,name,code', 'creator:id,name'])
+            ->latest('datetime')
+            ->latest('id')
+            ->get()
+            ->map(function (Transaction $t) {
+                // Payment amount = credit side (money out / advance reduced).
+                $amount = (float) $t->lines->sum('credit');
+                // The credited account is the payment source (cash/bank/advance).
+                $creditLine = $t->lines->firstWhere('credit', '>', 0);
+
+                return [
+                    'kind'      => 'transaction',
+                    'status'    => 'completed',
+                    'amount'    => $amount,
+                    'account'   => $creditLine?->account?->name,
+                    'date'      => $t->datetime?->format('Y-m-d'),
+                    'method'    => $t->method,
+                    'reference' => $t->reference_no,
+                    'by'        => $t->creator?->name,
+                    'ref_no'    => 'TXN-' . str_pad((string) $t->id, 5, '0', STR_PAD_LEFT),
+                    'rejection' => null,
+                    'notes'     => $t->notes,
+                    'sort'      => $t->datetime?->timestamp ?? 0,
+                ];
+            });
+
+        return $requests->concat($transactions)
+            ->sortByDesc('sort')
+            ->values();
     }
 
     #[Computed]
@@ -206,7 +284,7 @@ class Invoices extends Component
         $this->payAttachmentIds = [];
         $this->payMode          = 'request';
         $this->payFundId        = null;
-        unset($this->activeInvoice, $this->availableAdvances);
+        unset($this->activeInvoice, $this->availableAdvances, $this->paymentHistory);
         $this->dispatch('pay-modal-open');
     }
 
@@ -215,7 +293,7 @@ class Invoices extends Component
         $this->payInvoiceId = null;
         $this->payMode      = 'request';
         $this->payFundId    = null;
-        unset($this->activeInvoice, $this->availableAdvances);
+        unset($this->activeInvoice, $this->availableAdvances, $this->paymentHistory);
         $this->dispatch('pay-modal-close');
     }
 

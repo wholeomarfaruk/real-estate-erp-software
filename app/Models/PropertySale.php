@@ -51,6 +51,7 @@ class PropertySale extends Model
         'status',
         'sales_representative',
         'notes',
+        'extra_data',
         'created_by',
         'updated_by',
     ];
@@ -72,7 +73,20 @@ class PropertySale extends Model
         'renewal_date'            => 'date',
         'is_scheduled'            => 'boolean',
         'is_renewal'              => 'boolean',
+        'extra_data'              => 'array',
     ];
+
+    // ── Handover helpers ───────────────────────────────────────────────────────
+
+    public function isHandedOver(): bool
+    {
+        return ! empty($this->extra_data['handover']['transaction_id'] ?? null);
+    }
+
+    public function handoverInfo(): ?array
+    {
+        return $this->extra_data['handover'] ?? null;
+    }
 
     protected static function boot(): void
     {

@@ -53,7 +53,7 @@
             <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Total Transactions</p>
             <p class="mt-2 font-serif text-2xl font-normal text-gray-800">
                 {{ number_format((int) ($kpi->total_count ?? 0)) }}</p>
-            <p class="mt-1 font-mono text-[11px] text-gray-400">{{ $kpi->adjusted_count ?? 0 }} adjusted</p>
+            <p class="mt-1 font-mono text-[11px] text-gray-400">{{ $kpi->adjusted_count ?? 0 }} reversed</p>
         </div>
     </div>
 
@@ -259,7 +259,7 @@
                                         @endif
                                         @if ($transaction->adjusted_at)
                                             <span
-                                                class="rounded bg-amber-50 border border-amber-200 px-1 py-px text-[9px] font-semibold uppercase text-amber-700">Adj</span>
+                                                class="rounded bg-amber-50 border border-amber-200 px-1 py-px text-[9px] font-semibold uppercase text-amber-700">Rev</span>
                                         @endif
                                     </div>
                                 </td>
@@ -411,7 +411,7 @@
                         </span>
                         @if ($viewTransaction->adjusted_at)
                             <span
-                                class="rounded bg-amber-50 border border-amber-200 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-700">Adjusted</span>
+                                class="rounded bg-amber-50 border border-amber-200 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-700">Reversed</span>
                         @endif
                     </div>
                 </div>
@@ -432,7 +432,7 @@
                                 <line x1="12" y1="17" x2="12.01" y2="17" />
                             </svg>
                             <p class="text-xs text-amber-800">
-                                <strong class="font-semibold text-gray-800">Adjusted</strong> on
+                                <strong class="font-semibold text-gray-800">Reversed</strong> on
                                 {{ optional($viewTransaction->adjusted_at)->format('d M Y, H:i') }}
                                 by {{ $viewTransaction->adjustedByUser?->name ?? 'N/A' }}
                                 @if ($viewTransaction->adjusted_transaction_id)
@@ -545,13 +545,14 @@
                     </div>
 
                     {{-- Attachments --}}
-                    @if ($viewTransactionFiles->isNotEmpty())
-                        <div class="mt-4">
-                            <p class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
-                                Attachments
-                                <span
-                                    class="ml-1 rounded-full bg-gray-100 px-1.5 py-px font-mono text-[9.5px] text-gray-600">{{ $viewTransactionFiles->count() }}</span>
-                            </p>
+                    <div class="mt-4">
+                        <p class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                            Attachments
+                            <span
+                                class="ml-1 rounded-full bg-gray-100 px-1.5 py-px font-mono text-[9.5px] text-gray-600">{{ $viewTransactionFiles->count() }}</span>
+                        </p>
+
+                        @if ($viewTransactionFiles->isNotEmpty())
                             <div class="flex flex-wrap gap-1.5">
                                 @include('livewire.admin.accounts.partials.attachment-list', [
                                     'attachments' => $viewTransactionFiles,
@@ -561,22 +562,63 @@
                                     'emptyMessage' => '',
                                 ])
                             </div>
-                        </div>
-                    @endif
+                        @else
+                            <p class="text-xs text-gray-400">No attachments yet.</p>
+                        @endif
+
+                        {{-- Upload more attachments --}}
+                        @can('accounts.transaction-attachment.create')
+                            <div class="mt-3 rounded-lg border border-dashed border-gray-200 p-3">
+                                <x-media-picker-field
+                                    field="newAttachments"
+                                    :value="$newAttachments"
+                                    label="Add attachments"
+                                    placeholder="Select files to upload"
+                                    :multiple="true"
+                                    type="all"
+                                    :required="false"
+                                />
+                                @if (!empty($newAttachments))
+                                    <button type="button" wire:click="saveAttachments"
+                                        wire:loading.attr="disabled" wire:target="saveAttachments"
+                                        class="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50">
+                                        <span wire:loading.remove wire:target="saveAttachments">Save attachments</span>
+                                        <span wire:loading wire:target="saveAttachments">Saving…</span>
+                                    </button>
+                                @endif
+                            </div>
+                        @endcan
+                    </div>
 
                 </div>
 
                 {{-- Drawer footer --}}
                 <div class="flex gap-2 border-t border-gray-200 bg-gray-50 px-4 py-3 rounded-br-xl">
-                    <button type="button"
-                        class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 transition hover:bg-gray-50">
-                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="23 4 23 10 17 10" />
-                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />
-                        </svg>
-                        Adjust
-                    </button>
+                    @if ($viewTransaction->adjusted_at)
+                        <button type="button" disabled
+                            class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-400 cursor-not-allowed">
+                            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="23 4 23 10 17 10" />
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />
+                            </svg>
+                            Reversed
+                        </button>
+                    @else
+                        <button type="button"
+                            wire:click="reverse"
+                            wire:confirm="Reverse this transaction? A mirror-image entry will be posted to cancel it out."
+                            wire:loading.attr="disabled" wire:target="reverse"
+                            class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-50">
+                            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="23 4 23 10 17 10" />
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />
+                            </svg>
+                            <span wire:loading.remove wire:target="reverse">Reverse</span>
+                            <span wire:loading wire:target="reverse">Reversing…</span>
+                        </button>
+                    @endif
                     <button type="button"
                         class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 transition hover:bg-gray-50">
                         <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"

@@ -9,6 +9,8 @@ use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Models\Account;
 use App\Models\File;
 use App\Models\Transaction;
+use App\Services\Accounts\TransactionService;
+use App\Livewire\Traits\WithMediaPicker;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
@@ -18,6 +20,10 @@ class TransactionList extends Component
 {
     use InteractsWithAccountsAccess;
     use WithPagination;
+    use WithMediaPicker;
+
+    /** Newly picked attachment file ids awaiting save (media picker writes here). */
+    public array $newAttachments = [];
 
     public string $search = '';
     public string $typeFilter = '';
@@ -54,12 +60,142 @@ class TransactionList extends Component
 
         $this->viewingId = $id;
         $this->showDrawer = true;
+        $this->newAttachments = [];
     }
 
     public function closeDrawer(): void
     {
         $this->showDrawer = false;
         $this->viewingId = null;
+        $this->newAttachments = [];
+    }
+
+    /**
+     * Append the newly picked attachments to the transaction's attachment list.
+     */
+    public function saveAttachments(): void
+    {
+        $this->authorizePermission('accounts.transaction-attachment.create');
+
+        $transaction = $this->viewingId ? Transaction::find($this->viewingId) : null;
+
+        if (! $transaction) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Transaction not found.']);
+            return;
+        }
+
+        $newIds = array_values(array_unique(array_filter(
+            array_map('intval', $this->newAttachments),
+            fn ($id) => $id > 0
+        )));
+
+        if (empty($newIds)) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Please select at least one file to upload.']);
+            return;
+        }
+
+        $existing = array_map('intval', $transaction->attachments ?? []);
+        $merged   = array_values(array_unique(array_merge($existing, $newIds)));
+
+        $transaction->update(['attachments' => $merged]);
+
+        $this->newAttachments = [];
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Attachment(s) added.']);
+    }
+
+    /**
+     * Reverse the currently viewed transaction — posts a mirror-image entry
+     * (debit↔credit swapped) and marks the original as reversed.
+     */
+    public function reverse(): void
+    {
+        $this->authorizePermission('accounts.transaction.view');
+
+        $transaction = $this->viewingId
+            ? Transaction::with('lines')->find($this->viewingId)
+            : null;
+
+        if (! $transaction) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Transaction not found.']);
+            return;
+        }
+
+        try {
+            $reversal = \Illuminate\Support\Facades\DB::transaction(function () use ($transaction) {
+                $service = app(TransactionService::class);
+
+                $reversal = $service->reverse($transaction, (int) auth()->id());
+
+                // Mark the original as reversed so the drawer reflects it immediately.
+                $transaction->update([
+                    'adjusted_at'             => now(),
+                    'adjusted_by'             => (int) auth()->id(),
+                    'adjusted_transaction_id' => $reversal->id,
+                ]);
+
+                // Roll back any source-module bookkeeping the original transaction
+                // updated (e.g. a property payment schedule's paid amount), so the
+                // reversal actually un-does the payment everywhere — not just the ledger.
+                $this->rollBackSourceEffects($transaction);
+
+                return $reversal;
+            });
+
+            $this->dispatch('toast', [
+                'type' => 'success',
+                'message' => 'Transaction reversed. Reversal TXN-' . $reversal->id . ' created.',
+            ]);
+        } catch (\DomainException $e) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Reversal failed: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Undo the source-module side effects a payment transaction applied, so a
+     * reversal cancels the payment fully (not just in the ledger).
+     *
+     * Currently handles property payment schedules: the original posting bumped
+     * the schedule's paid_amount, so reversing must subtract it back and re-sync
+     * the sale's payment status. Other reference types are left untouched.
+     */
+    protected function rollBackSourceEffects(Transaction $transaction): void
+    {
+        $isPaymentSchedule = $transaction->reference_type === \App\Models\PaymentSchedule::class
+            || $transaction->reference_type === 'payment_schedule';
+
+        if (! $isPaymentSchedule || ! $transaction->reference_id) {
+            return;
+        }
+
+        $schedule = \App\Models\PaymentSchedule::with('propertySale')->find($transaction->reference_id);
+
+        if (! $schedule) {
+            return;
+        }
+
+        // Payment amount of the original = its debit (money-in) movement.
+        $transaction->loadMissing('lines');
+        $amount = round((float) $transaction->lines->sum('debit'), 2);
+
+        if ($amount <= 0) {
+            return;
+        }
+
+        $newPaid = round(max(0, (float) $schedule->paid_amount - $amount), 2);
+        $newDue  = round(max(0, (float) $schedule->amount - $newPaid), 2);
+
+        $schedule->update([
+            'paid_amount' => $newPaid,
+            'due_amount'  => $newDue,
+            'status'      => $newPaid <= 0 ? 'pending' : ($newDue <= 0 ? 'paid' : 'partial'),
+        ]);
+
+        if ($schedule->propertySale) {
+            app(\App\Services\Property\PaymentAllocationService::class)
+                ->syncSalePaymentStatus($schedule->propertySale);
+        }
     }
 
     public function render(): View
@@ -95,8 +231,11 @@ class TransactionList extends Component
             ))
             ->when($this->dateFrom, fn (Builder $q) => $q->whereDate('datetime', '>=', $this->dateFrom))
             ->when($this->dateTo,   fn (Builder $q) => $q->whereDate('datetime', '<=', $this->dateTo))
-            ->latest('datetime')
-            ->latest('id')
+            // Order by actual creation order. Some transactions are posted with a
+            // date-only datetime (time 00:00:00), so created_at (with id as a
+            // tie-breaker) reflects true recency reliably.
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->paginate(20);
 
         // Drawer detail

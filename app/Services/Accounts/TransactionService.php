@@ -4,6 +4,7 @@ namespace App\Services\Accounts;
 
 use App\Enums\Accounts\AccountGroupType;
 use App\Enums\Accounts\TransactionRelationType;
+use App\Enums\Accounts\TransactionType;
 use App\Models\Account;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\Auth;
@@ -84,8 +85,14 @@ class TransactionService
         return $this->ledger->post(
             [
                 'datetime'               => now()->format('Y-m-d H:i:s'),
-                'type'                   => $original->type?->value ?? 'journal',
-                'method'                 => $original->method?->value ?? null,
+                'type'                   => TransactionType::REVERSE->value,
+                // method is NOT NULL (defaults to cash); mirror the original or fall back.
+                'method'                 => $original->method ?: 'cash',
+                // Carry the original's source reference so the reversal stays linked
+                // to the same module record (e.g. payment schedule) — the ledger then
+                // nets to zero for that reference.
+                'reference_type'         => $original->reference_type,
+                'reference_id'           => $original->reference_id,
                 'reference_no'           => 'REV-' . $original->id,
                 'notes'                  => $notes ?? ('Reversal of TXN-' . $original->id),
                 'related_transaction_id' => $original->id,

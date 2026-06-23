@@ -100,7 +100,7 @@
                 $statusValue = $inv->status instanceof \App\Enums\Inventory\PurchaseInvoiceStatus
                     ? $inv->status->value : (string) $inv->status;
                 $isDue = (float) $inv->due_amount > 0;
-                $payReqs = $inv->bankingPaymentRequests ?? collect();
+                $payReqs = $this->paymentHistory;
                 $pendingCount = $payReqs->whereIn('status', ['pending','approved','released'])->count();
             @endphp
             <div class="modal-head">
@@ -276,70 +276,61 @@
                 <section class="section">
                     <h4>
                         <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
-                        Payment requests
+                        Payment history
                     </h4>
                     <div class="pmt-list">
-                        @forelse ($payReqs as $pr)
+                        @forelse ($payReqs as $i => $pr)
                             @php
-                                $prPill = match($pr->status) {
+                                $prPill = match($pr['status']) {
                                     'completed' => ['paid',      'Completed'],
                                     'approved'  => ['partial',   'Approved'],
                                     'released'  => ['unpaid',    'Released'],
                                     'pending'   => ['draft',     'Pending'],
                                     'rejected'  => ['cancelled', 'Rejected'],
-                                    default     => ['draft', ucfirst($pr->status ?? '?')],
+                                    default     => ['draft', ucfirst($pr['status'] ?? '?')],
                                 };
-                                $prIcon = match($pr->status) {
+                                $prIcon = match($pr['status']) {
                                     'completed' => '<polyline points="20 6 9 17 4 12"/>',
                                     'rejected'  => '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
                                     default     => '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
                                 };
                             @endphp
-                            <div class="pmt-item" wire:key="pr-{{ $pr->id }}">
-                                <div class="pmt-ic @if($pr->status === 'rejected') style="background:var(--rj-bg,#fef2f2);" @endif">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="@if($pr->status === 'rejected') var(--rj-fg,#ef4444) @elseif($pr->status === 'completed') var(--grn) @else var(--amber) @endif" stroke-width="2">{!! $prIcon !!}</svg>
+                            <div class="pmt-item" wire:key="pr-{{ $pr['kind'] }}-{{ $i }}">
+                                <div class="pmt-ic @if($pr['status'] === 'rejected') style="background:var(--rj-bg,#fef2f2);" @endif">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="@if($pr['status'] === 'rejected') var(--rj-fg,#ef4444) @elseif($pr['status'] === 'completed') var(--grn) @else var(--amber) @endif" stroke-width="2">{!! $prIcon !!}</svg>
                                 </div>
                                 <div class="pmt-main">
                                     <div class="t">
-                                        {{ $full($pr->amount) }}
-                                        @if($pr->account) · {{ $pr->account->name }}@elseif($pr->bankAccount) · {{ $pr->bankAccount->bank_name }}@endif
+                                        {{ $full($pr['amount']) }}
+                                        @if($pr['account']) · {{ $pr['account'] }}@endif
                                         <span class="pill {{ $prPill[0] }}" style="font-size:10px; padding:2px 8px; vertical-align:middle; margin-left:6px;">
                                             <span class="dot"></span>{{ $prPill[1] }}
                                         </span>
                                     </div>
                                     <div class="s">
-                                        Req by {{ $pr->requestedBy?->name ?? '—' }}
-                                        · {{ $pr->created_at?->format('Y-m-d') }}
-                                        @if ($pr->payment_date)
-                                            · Pay date: {{ $pr->payment_date->format('Y-m-d') }}
+                                        {{ $pr['by'] ?? '—' }}
+                                        @if ($pr['date']) · {{ $pr['date'] }}@endif
+                                        @if ($pr['method'])
+                                            · {{ \App\Enums\Accounts\EntryMethod::tryFrom($pr['method'])?->label() ?? ucfirst(str_replace('_',' ', $pr['method'])) }}
                                         @endif
-                                        @if ($pr->external_data['name'] ?? null)
-                                            · To: {{ $pr->external_data['name'] }}@if ($pr->external_data['phone'] ?? null) ({{ $pr->external_data['phone'] }})@endif
+                                        @if ($pr['reference'])
+                                            · Ref: {{ $pr['reference'] }}
                                         @endif
-                                        @if ($pr->external_data['method'] ?? null)
-                                            · {{ \App\Enums\Accounts\EntryMethod::tryFrom($pr->external_data['method'])?->label() ?? $pr->external_data['method'] }}
+                                        @if ($pr['status'] === 'rejected' && $pr['rejection'])
+                                            · Reason: {{ $pr['rejection'] }}
                                         @endif
-                                        @if ($pr->external_data['reference'] ?? null)
-                                            · Ref: {{ $pr->external_data['reference'] }}
-                                        @endif
-                                        @if ($pr->status === 'completed' && $pr->completedBy)
-                                            · Completed by {{ $pr->completedBy->name }} on {{ $pr->completed_at?->format('Y-m-d') }}
-                                        @endif
-                                        @if ($pr->status === 'rejected' && $pr->rejection_reason)
-                                            · Reason: {{ $pr->rejection_reason }}
-                                        @endif
-                                        @if ($pr->notes)
-                                            · {{ $pr->notes }}
+                                        @if ($pr['notes'])
+                                            · {{ $pr['notes'] }}
                                         @endif
                                     </div>
                                 </div>
                                 <div class="pmt-amt">
-                                    <div class="a">{{ $full($pr->amount) }}</div>
-                                    @if($pr->request_no)<div class="ref">{{ $pr->request_no }}</div>@endif
+                                    <div class="a">{{ $full($pr['amount']) }}</div>
+                                    @if($pr['ref_no'])<div class="ref">{{ $pr['ref_no'] }}</div>@endif
                                 </div>
                             </div>
                         @empty
-                            <div class="pmt-empty">No payment requests yet.</div>
+                            <div class="pmt-empty">No payments yet.</div>
                         @endforelse
                     </div>
                 </section>

@@ -688,6 +688,11 @@
                                         'route' => 'admin.accounts.settings',
                                         'permission' => 'accounts.settings.manage',
                                     ],
+                                    [
+                                        'label' => 'Feature Accounts',
+                                        'route' => 'admin.accounts.settings.features',
+                                        'permission' => 'accounts.settings.manage',
+                                    ],
                                 ];
 
                                 $accountsReportRoutes = [

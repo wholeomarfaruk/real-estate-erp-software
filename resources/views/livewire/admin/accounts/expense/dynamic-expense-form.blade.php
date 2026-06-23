@@ -4,10 +4,10 @@
     @if ($category)
         @if ($category->is_locked && $category->form_component)
             {{-- Load locked category form (ProjectExpenseForm, OfficeExpenseForm, MarketingExpenseForm) --}}
-            <livewire:{{ str($category->form_component)->after('\\')->snake() }} :key="'locked-' . $category->id" />
+            @livewire($formComponent, ['key' => 'locked-' . $category->id])
         @else
             {{-- Load generic form for dynamic categories --}}
-            <livewire:admin.accounts.expense.generic-expense-form :category="$category" :key="'dynamic-' . $category->id" />
+            @livewire($formComponent, ['category' => $category, 'key' => 'dynamic-' . $category->id])
         @endif
     @else
         <div class="text-center py-12">

@@ -75,7 +75,19 @@
       "Bash(sed -n '/protected function resetForm/,/^    }/p' app/Livewire/Admin/Accounts/Account/AccountList.php)",
       "Bash(sed -n '/public static function options/,/^    }/p' app/Enums/Accounts/AccountGroupType.php)",
       "Bash(grep -n 'as $group\\\\|$group' resources/views/livewire/admin/accounts/account/account-list.blade.php)",
-      "Bash(grep -nE \"as \\\\\\\\\\\\$[a-z]+\\\\\\)|@php \\\\\\\\\\\\$[a-z]\" resources/views/livewire/admin/accounts/account/account-list.blade.php)"
+      "Bash(grep -nE \"as \\\\\\\\\\\\$[a-z]+\\\\\\)|@php \\\\\\\\\\\\$[a-z]\" resources/views/livewire/admin/accounts/account/account-list.blade.php)",
+      "Bash(git checkout *)",
+      "PowerShell(php artisan tinker --execute=\"echo App\\\\Models\\\\Feature::ordered\\(\\)->get\\(['key','label','is_locked','is_active']\\)->toJson\\(\\);\")",
+      "PowerShell(php artisan tinker --execute=\"echo App\\\\Models\\\\ExpenseCategory::get\\(['id','slug','name','is_active','is_locked','form_component']\\)->toJson\\(JSON_PRETTY_PRINT\\);\")",
+      "Bash(php _tmp_resolve_test.php)",
+      "PowerShell(php -l app\\\\Livewire\\\\Suppliers\\\\Show\\\\Invoices.php)",
+      "Bash(php /f/projects/erp-software/_tmp_cols.php)",
+      "Bash(php /f/projects/erp-software/_tmp_adv.php)",
+      "PowerShell(php -l app\\\\Livewire\\\\Admin\\\\Supplier\\\\Supplier\\\\SupplierList.php)",
+      "PowerShell(php -l app\\\\Livewire\\\\Suppliers\\\\Show\\\\Details.php)",
+      "Bash(php /f/projects/erp-software/_tmp_v.php)",
+      "Bash(php /f/projects/erp-software/_tmp_ref3.php)",
+      "PowerShell(php -l app\\\\Livewire\\\\Admin\\\\Accounts\\\\Transaction\\\\TransactionList.php)"
     ]
   }
 }

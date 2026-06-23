@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Admin\Accounts\Concerns;
 
-use App\Enums\Accounts\FeatureType;
 use App\Services\Accounts\FeatureAccountService;
 use Illuminate\Support\Collection;
 
@@ -13,18 +12,18 @@ trait InteractsWithFeatureAccounts
         return app(FeatureAccountService::class);
     }
 
-    protected function getParentAccountsForFeature(FeatureType $feature): Collection
+    protected function getParentAccountsForFeature(string $featureKey): Collection
     {
-        return $this->featureAccountService()->getParentAccountsForFeature($feature);
+        return $this->featureAccountService()->getParentAccountsForFeature($featureKey);
     }
 
-    protected function getEnabledChildrenForParent(FeatureType $feature, int $parentAccountId): Collection
+    protected function getEnabledChildrenForParent(string $featureKey, int $parentAccountId): Collection
     {
-        return $this->featureAccountService()->getEnabledChildrenForParent($feature, $parentAccountId);
+        return $this->featureAccountService()->getEnabledChildrenForParent($featureKey, $parentAccountId);
     }
 
-    protected function getAllEnabledChildrenForFeature(FeatureType $feature): Collection
+    protected function getAllEnabledChildrenForFeature(string $featureKey): Collection
     {
-        return $this->featureAccountService()->getAllEnabledChildrenForFeature($feature);
+        return $this->featureAccountService()->getAllEnabledChildrenForFeature($featureKey);
     }
 }
