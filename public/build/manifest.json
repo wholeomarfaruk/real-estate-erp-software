@@ -31,7 +31,7 @@
     "src": "node_modules/boxicons/fonts/boxicons.woff2"
   },
   "resources/css/admin.css": {
-    "file": "assets/admin-BMX-Yeaz.css",
+    "file": "assets/admin-CTfai0H_.css",
     "src": "resources/css/admin.css",
     "isEntry": true,
     "name": "admin",
@@ -40,7 +40,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-D8kE4F9y.css",
+    "file": "assets/app-Cs815uB0.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
