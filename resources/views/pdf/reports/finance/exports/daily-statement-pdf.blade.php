@@ -138,9 +138,6 @@
       </tfoot>
     </table>
 
-    {{-- SECTION 2 · DAILY RECEIPT PAYMENT STATEMENT --}}
-    <div class="band">Daily Receipt Payment Statement</div>
-
     <div class="sec-h">Receipts</div>
     <table class="table">
       <colgroup>
@@ -192,7 +189,7 @@
         @foreach ($report['payments'] as $i => $p)
         <tr class="{{ $i % 2 ? 'zebra' : '' }}">
           <td class="sn">{{ $i + 1 }}</td>
-          <td><span class="acct-name">{{ $p['account'] }}</span></td>
+          <td>{{ $p['account'] }}</td>
           <td>{{ $p['particulars'] ?? '' }}</td>
           <td class="c {{ empty($p['proj_no']) ? 'num-zero' : '' }}">{{ $p['proj_no'] ?? '–' }}</td>
           <td class="c {{ empty($p['folio']) ? 'num-zero' : '' }}">{{ $p['folio'] ?? '–' }}</td>

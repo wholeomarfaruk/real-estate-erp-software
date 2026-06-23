@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Accounts\EntryMethod;
 use App\Enums\Accounts\TransactionRelationType;
 use App\Enums\Accounts\TransactionType;
 use Illuminate\Database\Eloquent\Builder;
@@ -39,6 +40,7 @@ class Transaction extends Model
         'datetime'    => 'datetime',
         'adjusted_at' => 'datetime',
         'type'        => TransactionType::class,
+        'method'      => EntryMethod::class,
         'relation_type' => TransactionRelationType::class,
         'attachments' => 'array',
         'external_data' => 'array',

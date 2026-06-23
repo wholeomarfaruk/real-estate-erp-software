@@ -67,14 +67,57 @@ class DailyStatementService
             $opening = $this->calculateOpeningBalance($account->id, $date);
             $closing = $this->calculateClosingBalance($account->id, $date);
 
+            // Get daily movements by entry method
+            $dailyLines = TransactionLine::query()
+                ->where('account_id', $account->id)
+                ->whereHas('transaction', fn($q) =>
+                    $q->whereDate('datetime', '=', $date->toDateString())
+                )
+                ->with('transaction')
+                ->get();
+
+            // Classify movements by entry method
+            $cashDeposit = 0;
+            $onlineDeposit = 0;
+            $cashWithdraw = 0;
+            $onlineTransfer = 0;
+
+            foreach ($dailyLines as $line) {
+                $method = $line->transaction->method;
+
+                if (!$method) {
+                    continue;
+                }
+
+                // Deposits (money in)
+                if ((float) $line->debit > 0) {
+                    $depositGroup = $method->depositGroup();
+                    match ($depositGroup->value) {
+                        'cash_deposit' => $cashDeposit += (int) $line->debit,
+                        'online_deposit' => $onlineDeposit += (int) $line->debit,
+                        default => null,
+                    };
+                }
+
+                // Withdrawals (money out)
+                if ((float) $line->credit > 0) {
+                    $withdrawGroup = $method->withdrawGroup();
+                    match ($withdrawGroup->value) {
+                        'cash_withdraw' => $cashWithdraw += (int) $line->credit,
+                        'online_transfer' => $onlineTransfer += (int) $line->credit,
+                        default => null,
+                    };
+                }
+            }
+
             return [
                 'name' => $account->name,
                 'account' => substr($account->code ?? '', -10),
                 'opening' => $opening,
-                'cash_deposit' => 0,
-                'online_deposit' => 0,
-                'cash_withdraw' => 0,
-                'online_transfer' => 0,
+                'cash_deposit' => $cashDeposit,
+                'online_deposit' => $onlineDeposit,
+                'cash_withdraw' => $cashWithdraw,
+                'online_transfer' => $onlineTransfer,
                 'closing' => $closing,
             ];
         })->toArray();
@@ -125,7 +168,10 @@ class DailyStatementService
                       })
                       ->where('type', '!=', TransactionType::OPENING_BALANCE->value);
             })
-            ->with(['account', 'transaction'])
+            ->with([
+                'account',
+                'transaction',
+            ])
             ->orderBy('id')
             ->get();
 
@@ -139,9 +185,54 @@ class DailyStatementService
             $sourceAccount = $otherLine?->account;
             $sourceName = $sourceAccount?->name ?? $line->transaction->name ?? 'Transfer';
 
+            // Build account column with property details if available
+            $accountDisplay = $sourceName;
+            $enhancedParticulars = $line->transaction->notes ?? '';
+
+            // Check if transaction references a PaymentSchedule (property unit payment)
+            if ($line->transaction->reference_type === 'App\\Models\\PaymentSchedule') {
+                $paymentSchedule = $line->transaction->reference ?? $line->transaction->reference()->with(['propertySale.propertyUnit.property', 'propertySale.customer'])->first();
+                if ($paymentSchedule && $paymentSchedule->propertySale) {
+                    $propertyUnit = $paymentSchedule->propertySale->propertyUnit;
+                    $property = $propertyUnit?->property;
+                    $customer = $paymentSchedule->propertySale->customer;
+                    $scheduleLabel = $paymentSchedule->label();
+
+                    // Build account: Customer Name, Property Name, Floor, Unit Code
+                    $details = [];
+
+                    if ($customer?->name) {
+                        $details[] = $customer->name;
+                    }
+
+                    if ($property?->name) {
+                        $details[] = $property->name;
+                    }
+
+                    if ($propertyUnit && $propertyUnit->floor) {
+                        $floorLabel = is_object($propertyUnit->floor) ? $propertyUnit->floor->label : $propertyUnit->floor;
+                        $details[] = $floorLabel;
+                    }
+
+                    if ($propertyUnit?->code) {
+                        $details[] = $propertyUnit->code;
+                    }
+
+                    if (count($details) > 0) {
+                        $accountDisplay = implode(", ", $details);
+                    }
+
+                    // Use schedule label as particulars
+                    $enhancedParticulars = $scheduleLabel;
+                    if ($line->transaction->notes) {
+                        $enhancedParticulars .= " - " . $line->transaction->notes;
+                    }
+                }
+            }
+
             return [
-                'account' => $sourceName,
-                'particulars' => $line->transaction->notes ?? '',
+                'account' => $accountDisplay,
+                'particulars' => $enhancedParticulars,
                 'mr_no' => $line->transaction->reference_no,
                 'folio' => null,
                 'cash' => $line->account->type->value === 'cash' ? (int) $line->debit : 0,
@@ -194,7 +285,10 @@ class DailyStatementService
                       })
                       ->where('type', '!=', TransactionType::OPENING_BALANCE->value);
             })
-            ->with(['account', 'transaction'])
+            ->with([
+                'account',
+                'transaction',
+            ])
             ->orderBy('id')
             ->get();
 
@@ -208,10 +302,61 @@ class DailyStatementService
             $destinationAccount = $otherLine?->account;
             $destinationName = $destinationAccount?->name ?? '-';
 
+            $accountDisplay = $destinationName;
+            $enhancedParticulars = $line->transaction->notes ?? '';
+            $projNo = null;
+
+            // Check if transaction references a Project
+            if ($line->transaction->reference_type === 'App\\Models\\Project') {
+                $project = $line->transaction->reference ?? $line->transaction->reference()->first();
+                $projNo = $project?->code;
+            }
+
+            // Check if transaction references a PaymentSchedule (property unit payment)
+            if ($line->transaction->reference_type === 'App\\Models\\PaymentSchedule') {
+                $paymentSchedule = $line->transaction->reference ?? $line->transaction->reference()->with(['propertySale.propertyUnit.property', 'propertySale.customer'])->first();
+                if ($paymentSchedule && $paymentSchedule->propertySale) {
+                    $propertyUnit = $paymentSchedule->propertySale->propertyUnit;
+                    $property = $propertyUnit?->property;
+                    $customer = $paymentSchedule->propertySale->customer;
+                    $scheduleLabel = $paymentSchedule->label();
+
+                    // Build account: Customer Name, Property Name, Floor, Unit Code
+                    $details = [];
+
+                    if ($customer?->name) {
+                        $details[] = $customer->name;
+                    }
+
+                    if ($property?->name) {
+                        $details[] = $property->name;
+                    }
+
+                    if ($propertyUnit && $propertyUnit->floor) {
+                        $floorLabel = is_object($propertyUnit->floor) ? $propertyUnit->floor->label : $propertyUnit->floor;
+                        $details[] = $floorLabel;
+                    }
+
+                    if ($propertyUnit?->code) {
+                        $details[] = $propertyUnit->code;
+                    }
+
+                    if (count($details) > 0) {
+                        $accountDisplay = implode(", ", $details);
+                    }
+
+                    // Use schedule label as particulars
+                    $enhancedParticulars = $scheduleLabel;
+                    if ($line->transaction->notes) {
+                        $enhancedParticulars .= " - " . $line->transaction->notes;
+                    }
+                }
+            }
+
             return [
-                'account' => $destinationName,
-                'particulars' => $line->transaction->notes ?? '',
-                'proj_no' => null,
+                'account' => $accountDisplay,
+                'particulars' => $enhancedParticulars,
+                'proj_no' => $projNo,
                 'folio' => null,
                 'cash' => $line->account->type->value === 'cash' ? (int) $line->credit : 0,
             ];
