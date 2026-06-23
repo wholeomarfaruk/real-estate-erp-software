@@ -268,7 +268,7 @@
                                 <td class="px-4 py-3">
                                     <span
                                         class="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-1 text-[10.5px] text-gray-600">
-                                        {{ ucwords(str_replace('_', ' ', $transaction->method ?? '')) ?: '—' }}
+                                        {{ $transaction->method?->label() ?? '—' }}
                                     </span>
                                 </td>
 
@@ -407,7 +407,7 @@
                         {{-- Method pill --}}
                         <span
                             class="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[10.5px] text-gray-600">
-                            {{ ucwords(str_replace('_', ' ', $viewTransaction->method ?? '')) ?: '—' }}
+                            {{ $viewTransaction->method?->label() ?? '—' }}
                         </span>
                         @if ($viewTransaction->adjusted_at)
                             <span

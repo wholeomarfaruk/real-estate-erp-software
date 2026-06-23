@@ -605,7 +605,14 @@ class DailyStatementReportService
 
     protected function usesCheque(Transaction|TransactionLine $transaction): bool
     {
-        return str_contains(strtolower((string) $transaction->method), 'cheque');
+        $method = $transaction->method ?? null;
+
+        // method is an EntryMethod enum on Transaction; normalise to its string value.
+        $methodValue = $method instanceof \App\Enums\Accounts\EntryMethod
+            ? $method->value
+            : (string) $method;
+
+        return str_contains(strtolower($methodValue), 'cheque');
     }
 
     /**

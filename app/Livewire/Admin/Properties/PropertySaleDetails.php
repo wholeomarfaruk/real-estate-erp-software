@@ -434,7 +434,8 @@ class PropertySaleDetails extends Component
                 return [
                     'id'      => $tx->id,
                     'debit'   => (float) $tx->lines->sum('debit'),
-                    'method'  => $tx->method,
+                    // method is an EntryMethod enum — expose its readable label for the view.
+                    'method'  => $tx->method?->label(),
                     'name'    => $tx->name,
                     'notes'   => $tx->notes,
                     'datetime' => optional($tx->datetime)->toDateTimeString(),

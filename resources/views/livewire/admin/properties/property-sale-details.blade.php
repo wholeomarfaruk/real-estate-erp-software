@@ -1291,7 +1291,7 @@
                                         <div style="font:500 10.5px var(--mono); color:var(--ink-3); margin-top:2px; display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
                                             <span>{{ \Carbon\Carbon::parse($tx['datetime'])->format('d M Y h:i A') }}</span>
                                             <span style="opacity:.4">•</span>
-                                            <span>{{ ucfirst(str_replace('_', ' ', $tx['method'])) }}</span>
+                                            <span>{{ $tx['method'] ?? '—' }}</span>
                                             @if(!empty($tx['account']))
                                                 <span style="opacity:.4">•</span>
                                                 <span>{{ $tx['account']['name'] }}</span>

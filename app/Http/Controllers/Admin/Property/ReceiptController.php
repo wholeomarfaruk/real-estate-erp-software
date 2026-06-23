@@ -24,13 +24,10 @@ class ReceiptController extends Controller
 
         // Resolve bank details from the transaction's linked account
         $bankAccount  = $transaction->account?->bankAccount;
-        $isBankMethod = in_array($transaction->method, ['bank_transfer', 'cheque']);
-        $receivedVia  = match($transaction->method) {
-            'bank_transfer' => 'Bank Transfer',
-            'cheque'        => 'Cheque',
-            'cash'          => 'Cash',
-            default         => ucwords(str_replace('_', ' ', $transaction->method ?? 'Cash')),
-        };
+        // $transaction->method is an EntryMethod enum (nullable).
+        $methodValue  = $transaction->method?->value;
+        $isBankMethod = in_array($methodValue, ['bank_transfer', 'cheque'], true);
+        $receivedVia  = $transaction->method?->label() ?? 'Cash';
 
         // All transactions against this exact schedule entry
         $installmentHistory = Transaction::query()
@@ -40,7 +37,7 @@ class ReceiptController extends Controller
             ->get()
             ->map(fn($t) => [
                 'date'    => $t->datetime->format('d M Y'),
-                'method'  => $t->method ?? '—',
+                'method'  => $t->method?->label() ?? '—',
                 'amount'  => (float) $t->debit,
                 'current' => $t->id === $transaction->id,
             ]);
@@ -56,7 +53,7 @@ class ReceiptController extends Controller
                 'issue_date'        => $transaction->created_at->format('d M Y'),
                 'reference_code'    => $sale->sale_number,
                 'txn_date'          => $transaction->datetime->format('d M Y'),
-                'payment_method'    => $transaction->method ?? '—',
+                'payment_method'    => $transaction->method?->label() ?? '—',
                 'reference_no'      => $transaction->reference_no,
                 'amount'            => (float) $transaction->debit,
                 'status'            => 'Received',
