@@ -111,26 +111,13 @@
       <table class="header">
         <tr>
           <td style="width:62%;">
-            <table><tr>
-              <td style="width:86px;">
-                <div class="brand-mark">
-                  @if(!empty($company['logo']) && file_exists(public_path($company['logo'])))
-                    <img src="{{ public_path($company['logo']) }}" alt="" style="width:64px;height:64px;object-fit:contain;margin-top:5px;">
-                  @else
-                    {{ $company['logo_initial'] }}
-                  @endif
-                </div>
-              </td>
-              <td style="vertical-align:top; padding-left:12px;">
-                <div class="brand-name">{{ $company['name'] }}</div>
-                <div class="brand-tag">{{ $company['tag'] }}</div>
-                <div class="brand-meta">
-                  {{ $company['address'] }}<br>
-                  <span>{{ $company['phone'] }}</span><span class="sep">·</span><span>{{ $company['email'] }}</span><br>
-                  <span>{{ $company['website'] }}</span>
-                </div>
-              </td>
-            </tr></table>
+            <div class="brand-name">{{ $company['name'] }}</div>
+            <div class="brand-tag">{{ $company['tag'] }}</div>
+            <div class="brand-meta">
+              {{ $company['address'] }}<br>
+              <span>{{ $company['phone'] }}</span><span class="sep">·</span><span>{{ $company['email'] }}</span><br>
+              <span>{{ $company['website'] }}</span>
+            </div>
           </td>
           <td class="doc-id">
             <div class="doc-label">Schedule</div>
