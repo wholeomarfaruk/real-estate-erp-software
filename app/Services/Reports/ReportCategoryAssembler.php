@@ -19,7 +19,7 @@ final class ReportCategoryAssembler
     public function assemble(ConfigBasedRegistry $registry): array
     {
         $configCategories = $registry->getCategorized();
-        $staticCategories = ['sales', 'crm', 'finance', 'project', 'marketing', 'hr', 'inventory', 'document', 'custom'];
+        $staticCategories = ['sales', 'crm', 'finance', 'project', 'marketing', 'hr', 'inventory'];
         $result = [];
 
         // A static card key may map to a (differently-keyed) config category, e.g.
@@ -136,30 +136,6 @@ final class ReportCategoryAssembler
                         // ['name' => 'Material Usage Reports', 'desc' => 'Material consumed per project vs. estimated with variance.', 'route' => '#'],
                         // ['name' => 'Warehouse Reports', 'desc' => 'Inbound, outbound and current balance by warehouse location.', 'route' => '#'],
                         // ['name' => 'Inventory Valuation', 'desc' => 'Stock value at cost and market price across all warehouses.', 'route' => '#'],
-                    ],
-                ],
-                'document' => [
-                    'key' => 'document',
-                    'name' => 'Document Reports',
-                    'desc' => 'Monitor document compliance, identify missing files and review the full audit trail.',
-                    'icon' => $this->icons['document'],
-                    'items' => [
-                        // ['name' => 'Document Status', 'desc' => 'Status of all uploaded documents by category, entity and date.', 'route' => '#'],
-                        // ['name' => 'Expiry Reports', 'desc' => 'Documents nearing or past their expiry date requiring renewal.', 'route' => '#'],
-                        // ['name' => 'Missing Documents', 'desc' => 'Required documents not yet uploaded per entity or project.', 'route' => '#'],
-                        // ['name' => 'Audit Logs', 'desc' => 'Full history of document access, uploads, edits and deletions.', 'route' => '#'],
-                    ],
-                ],
-                'custom' => [
-                    'key' => 'custom',
-                    'name' => 'Custom Reports',
-                    'desc' => 'Build, save, schedule and share your own reports using any combination of data fields.',
-                    'icon' => $this->icons['custom'],
-                    'items' => [
-                        // ['name' => 'Report Builder', 'desc' => 'Drag-and-drop interface to create custom reports from any data source.', 'route' => '#'],
-                        // ['name' => 'Saved Reports', 'desc' => 'Your saved custom report templates — open, clone or delete.', 'route' => '#'],
-                        // ['name' => 'Scheduled Reports', 'desc' => 'Automated reports delivered by email on a recurring schedule.', 'route' => '#'],
-                        // ['name' => 'Shared Reports', 'desc' => 'Reports shared with your team, department or management.', 'route' => '#'],
                     ],
                 ],
                 default => [],
