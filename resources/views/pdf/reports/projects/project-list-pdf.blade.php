@@ -6,21 +6,15 @@
     <style>
         * { font-family: "DejaVu Sans", sans-serif; box-sizing: border-box; }
 
-        :root {
-            --ink: #161616; --muted: #5f5f5f; --muted-2: #8a8a8a;
-            --rule: #c9c9c9; --zebra: #f4f4f4; --paper: #ffffff;
-        }
+        :root { --ink: #161616; --muted: #5f5f5f; --muted-2: #8a8a8a; --rule: #c9c9c9; --zebra: #f4f4f4; --paper: #ffffff; }
 
-        @page { size: A4 landscape; margin: 5mm; }
+        @page { size: A4 landscape; margin: 6mm; }
 
-        body {
-            font-size: 7px; color: var(--ink); margin: 0; padding: 0;
-            -webkit-print-color-adjust: exact; print-color-adjust: exact; background: var(--paper);
-        }
+        body { font-size: 7.5px; color: var(--ink); margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; background: var(--paper); }
 
         .head { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
         .head td { vertical-align: top; padding: 0; }
-        .co-name { font-size: 14px; font-weight: bold; color: var(--ink); }
+        .co-name { font-size: 14px; font-weight: bold; }
         .co-addr { font-size: 8px; color: var(--muted); margin-top: 2px; }
         .doc-tag { display: inline-block; border: 1px solid var(--ink); font-size: 7.5px; font-weight: bold; letter-spacing: 1.4px; padding: 2px 9px; text-transform: uppercase; }
         .doc-title { font-size: 12px; font-weight: bold; margin-top: 5px; }
@@ -29,23 +23,13 @@
         .divider { height: 2px; background: var(--ink); margin: 6px 0; }
 
         .table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .table thead th {
-            background: var(--zebra); color: var(--ink); font-size: 6px; font-weight: bold;
-            letter-spacing: 0; text-transform: uppercase; padding: 3px 2px; border: 1px solid var(--ink);
-            word-wrap: break-word;
-        }
-        .table tbody td {
-            padding: 3px 2px; font-size: 6.5px; border: 1px solid var(--rule);
-            vertical-align: middle; word-wrap: break-word;
-        }
+        .table thead th { background: var(--zebra); color: var(--ink); font-size: 6.5px; font-weight: bold; text-transform: uppercase; padding: 3px 2px; border: 1px solid var(--ink); word-wrap: break-word; }
+        .table tbody td { padding: 3px 2px; font-size: 6.5px; border: 1px solid var(--rule); vertical-align: middle; word-wrap: break-word; }
         .table tbody tr.zebra td { background: var(--zebra); }
-        .t-left { text-align: left; }
-        .t-right { text-align: right; }
-        .t-center { text-align: center; }
-        .num { font-family: "DejaVu Sans Mono", monospace; white-space: nowrap; }
-        tfoot td { padding: 4px 2px; font-size: 6.5px; font-weight: bold; border: 1px solid var(--ink); background: var(--zebra); }
+        .t-left { text-align: left; } .t-right { text-align: right; } .t-center { text-align: center; }
+        .num { font-family: "DejaVu Sans Mono", monospace; }
+        tfoot td { padding: 4px 2px; font-size: 7px; font-weight: bold; border: 1px solid var(--ink); background: var(--zebra); }
 
-        .badge { font-weight: bold; }
         .note { margin-top: 8px; font-size: 8px; color: var(--muted); }
         .note-h { font-weight: bold; text-transform: uppercase; letter-spacing: .6px; color: var(--muted-2); margin-bottom: 3px; }
         .foot { width: 100%; border-top: 1px solid var(--rule); padding-top: 5px; margin-top: 8px; border-collapse: collapse; }
@@ -74,10 +58,7 @@
             <td style="width:40%; text-align:right;">
                 <span class="doc-tag">Report</span>
                 <div class="doc-title">{{ $report['title'] }}</div>
-                <div class="doc-meta">
-                    <b>Period:</b> {{ $report['meta']['from_date'] }} – {{ $report['meta']['to_date'] }} &nbsp;
-                    <b>Generated:</b> {{ $report['meta']['generated_at'] }} by {{ $report['meta']['generated_by'] }}
-                </div>
+                <div class="doc-meta"><b>Generated:</b> {{ $report['meta']['generated_at'] }} by {{ $report['meta']['generated_by'] }}</div>
             </td>
         </tr>
     </table>
@@ -108,11 +89,11 @@
         @if (count($report['rows']) > 0)
             <tfoot>
                 <tr>
-                    <td class="t-left" colspan="9">Total ({{ $report['summary']['total_clients'] }} clients)</td>
-                    <td class="t-right num">{{ number_format((float) $report['summary']['total_flat_value'], 0) }}</td>
-                    <td colspan="4"></td>
-                    <td class="t-right num">{{ number_format((float) $report['summary']['total_recovery'], 0) }}</td>
-                    <td class="t-right num">{{ number_format((float) $report['summary']['total_outstanding'], 0) }}</td>
+                    <td class="t-left" colspan="7">Total ({{ $report['summary']['total_projects'] }} projects)</td>
+                    <td class="t-right num">{{ number_format((float) $report['summary']['total_budget'], 0) }}</td>
+                    <td></td>
+                    <td class="t-center num">{{ $report['summary']['total_properties'] }}</td>
+                    <td class="t-center num">{{ $report['summary']['total_units'] }}</td>
                     <td colspan="3"></td>
                 </tr>
             </tfoot>
@@ -120,10 +101,7 @@
     </table>
 
     @if (!empty($report['meta']['notes']))
-        <div class="note">
-            <div class="note-h">Notes</div>
-            {{ $report['meta']['notes'] }}
-        </div>
+        <div class="note"><div class="note-h">Notes</div>{{ $report['meta']['notes'] }}</div>
     @endif
 
     <table class="foot">

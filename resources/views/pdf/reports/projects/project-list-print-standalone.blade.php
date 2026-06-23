@@ -10,12 +10,10 @@
 
         :root { --ink: #161616; --muted: #5f5f5f; --muted-2: #8a8a8a; --rule: #c9c9c9; --zebra: #f4f4f4; }
 
-        @page { size: A4 landscape; margin: 5mm; }
+        @page { size: A4 landscape; margin: 6mm; }
 
-        body { font-size: 7px; color: var(--ink); margin: 0; padding: 14px; background: #e9e9ea; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-
+        body { font-size: 8px; color: var(--ink); margin: 0; padding: 14px; background: #e9e9ea; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .sheet { background: #fff; padding: 14px; max-width: 100%; margin: 0 auto; box-shadow: 0 6px 24px -8px rgba(0,0,0,.2); }
-
         .toolbar { max-width: 100%; margin: 0 auto 12px; text-align: right; }
         .toolbar button { font-size: 12px; padding: 7px 16px; border: 1px solid var(--ink); background: var(--ink); color: #fff; border-radius: 5px; cursor: pointer; }
 
@@ -29,13 +27,11 @@
 
         .scroll { overflow-x: auto; }
         .table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .table thead th { background: var(--zebra); font-size: 6.5px; font-weight: bold; text-transform: uppercase; padding: 3px 2px; border: 1px solid var(--ink); word-wrap: break-word; }
-        .table tbody td { padding: 3px 2px; font-size: 6.5px; border: 1px solid var(--rule); word-wrap: break-word; }
+        .table thead th { background: var(--zebra); font-size: 7px; font-weight: bold; text-transform: uppercase; padding: 4px 3px; border: 1px solid var(--ink); word-wrap: break-word; }
+        .table tbody td { padding: 4px 3px; font-size: 7px; border: 1px solid var(--rule); word-wrap: break-word; }
         .table tbody tr:nth-child(even) td { background: var(--zebra); }
         .t-left { text-align: left; } .t-right { text-align: right; } .t-center { text-align: center; }
-        tfoot td { padding: 4px 2px; font-size: 6.5px; font-weight: bold; border: 1px solid var(--ink); background: var(--zebra); }
-        .badge-uc { background: #fde68a; padding: 0 4px; border-radius: 6px; font-weight: bold; }
-        .badge-paid { background: #bbf7d0; padding: 0 4px; border-radius: 6px; font-weight: bold; }
+        tfoot td { padding: 5px 3px; font-size: 7.5px; font-weight: bold; border: 1px solid var(--ink); background: var(--zebra); }
         .foot { width: 100%; border-top: 1px solid var(--rule); padding-top: 6px; margin-top: 10px; font-size: 8.5px; color: var(--muted-2); }
 
         @media print {
@@ -70,10 +66,7 @@
                 </td>
                 <td style="width:40%; text-align:right; vertical-align:top;">
                     <div class="doc-title">{{ $report['title'] }}</div>
-                    <div class="doc-meta">
-                        <b>Period:</b> {{ $report['meta']['from_date'] }} – {{ $report['meta']['to_date'] }}<br>
-                        <b>Generated:</b> {{ $report['meta']['generated_at'] }} by {{ $report['meta']['generated_by'] }}
-                    </div>
+                    <div class="doc-meta"><b>Generated:</b> {{ $report['meta']['generated_at'] }} by {{ $report['meta']['generated_by'] }}</div>
                 </td>
             </tr>
         </table>
@@ -93,13 +86,7 @@
                     @forelse($report['rows'] as $row)
                         <tr>
                             @foreach ($report['columns'] as $column)
-                                <td class="t-{{ $column['align'] }}">
-                                    @if($column['key'] === 'payment_status' && strtolower($row['payment_status'] ?? '') === 'paid')
-                                        <span class="badge-paid">{{ $row['payment_status'] }}</span>
-                                    @else
-                                        {{ $fmt($row[$column['key']] ?? null, $column['type']) }}
-                                    @endif
-                                </td>
+                                <td class="t-{{ $column['align'] }}">{{ $fmt($row[$column['key']] ?? null, $column['type']) }}</td>
                             @endforeach
                         </tr>
                     @empty
@@ -109,11 +96,11 @@
                 @if (count($report['rows']) > 0)
                     <tfoot>
                         <tr>
-                            <td class="t-left" colspan="9">Total ({{ $report['summary']['total_clients'] }} clients)</td>
-                            <td class="t-right">{{ number_format((float) $report['summary']['total_flat_value'], 0) }}</td>
-                            <td colspan="4"></td>
-                            <td class="t-right">{{ number_format((float) $report['summary']['total_recovery'], 0) }}</td>
-                            <td class="t-right">{{ number_format((float) $report['summary']['total_outstanding'], 0) }}</td>
+                            <td class="t-left" colspan="7">Total ({{ $report['summary']['total_projects'] }} projects)</td>
+                            <td class="t-right">{{ number_format((float) $report['summary']['total_budget'], 0) }}</td>
+                            <td></td>
+                            <td class="t-center">{{ $report['summary']['total_properties'] }}</td>
+                            <td class="t-center">{{ $report['summary']['total_units'] }}</td>
                             <td colspan="3"></td>
                         </tr>
                     </tfoot>

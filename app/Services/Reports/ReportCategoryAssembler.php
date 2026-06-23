@@ -22,11 +22,24 @@ final class ReportCategoryAssembler
         $staticCategories = ['sales', 'crm', 'finance', 'project', 'marketing', 'hr', 'inventory', 'document', 'custom'];
         $result = [];
 
+        // A static card key may map to a (differently-keyed) config category, e.g.
+        // the 'project' card is backed by the config's 'projects' category.
+        $configKeyFor = [
+            'project' => 'projects',
+        ];
+
         foreach ($staticCategories as $key) {
-            if (($key === 'sales' || $key === 'finance') && isset($configCategories[$key])) {
+            $configKey = $configKeyFor[$key] ?? $key;
+
+            // Any category defined in config/reports.php gets its real, registered
+            // items merged in (not just sales/finance).
+            if (isset($configCategories[$configKey])) {
                 $cat = array_merge(
-                    $configCategories[$key],
-                    ['icon' => $this->icons[$key]]
+                    $configCategories[$configKey],
+                    [
+                        'key'  => $key,
+                        'icon' => $this->icons[$key] ?? ($configCategories[$configKey]['icon'] ?? ''),
+                    ]
                 );
                 $cat['count'] = count($cat['items']);
                 $result[] = $cat;

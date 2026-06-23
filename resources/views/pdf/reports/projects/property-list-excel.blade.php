@@ -1,0 +1,49 @@
+<table border="1">
+    <thead>
+        <tr>
+            <th colspan="{{ count($report['columns']) }}" style="font-size:16px; font-weight:bold;">
+                {{ $report['meta']['company_name'] }} — {{ $report['title'] }}
+            </th>
+        </tr>
+        <tr>
+            <td colspan="{{ count($report['columns']) }}">Generated: {{ $report['meta']['generated_at'] }} by {{ $report['meta']['generated_by'] }}</td>
+        </tr>
+        <tr></tr>
+        <tr>
+            @foreach ($report['columns'] as $column)
+                <th style="background:#eeeeee; font-weight:bold;">{{ $column['label'] }}</th>
+            @endforeach
+        </tr>
+    </thead>
+    <tbody>
+        @php
+            $fmt = function ($value, $type) {
+                if ($value === null || $value === '') return '';
+                return match ($type) {
+                    'number' => rtrim(rtrim(number_format((float) $value, 2, '.', ''), '0'), '.'),
+                    default  => $value,
+                };
+            };
+        @endphp
+        @forelse($report['rows'] as $row)
+            <tr>
+                @foreach ($report['columns'] as $column)
+                    <td>{{ $fmt($row[$column['key']] ?? null, $column['type']) }}</td>
+                @endforeach
+            </tr>
+        @empty
+            <tr><td colspan="{{ count($report['columns']) }}">No records found.</td></tr>
+        @endforelse
+
+        @if (count($report['rows']) > 0)
+            <tr></tr>
+            <tr>
+                <td colspan="6" style="font-weight:bold;">Total ({{ $report['summary']['total_properties'] }} properties)</td>
+                <td style="font-weight:bold;">{{ number_format((float) $report['summary']['total_area'], 0, '.', '') }}</td>
+                <td colspan="2"></td>
+                <td style="font-weight:bold;">{{ $report['summary']['total_units'] }}</td>
+                <td></td>
+            </tr>
+        @endif
+    </tbody>
+</table>

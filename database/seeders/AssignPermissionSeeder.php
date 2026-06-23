@@ -197,6 +197,13 @@ class AssignPermissionSeeder extends Seeder
                 'reports.finance.daily-statement.view',
                 'reports.finance.company-overview.view',
                 'reports.finance.export',
+                // Projects Reports
+                'reports.projects.project-list.view',
+                'reports.projects.property-list.view',
+                'reports.projects.export',
+                // Inventory Reports
+                'reports.inventory.stocks-report.view',
+                'reports.inventory.export',
             ])
             ->get();
 
@@ -342,6 +349,13 @@ class AssignPermissionSeeder extends Seeder
                 'reports.finance.daily-statement.view',
                 'reports.finance.company-overview.view',
                 'reports.finance.export',
+                // Projects Reports
+                'reports.projects.project-list.view',
+                'reports.projects.property-list.view',
+                'reports.projects.export',
+                // Inventory Reports
+                'reports.inventory.stocks-report.view',
+                'reports.inventory.export',
             ])
             ->get();
 
@@ -480,6 +494,13 @@ class AssignPermissionSeeder extends Seeder
                 'reports.finance.daily-statement.view',
                 'reports.finance.company-overview.view',
                 'reports.finance.export',
+                // Projects Reports
+                'reports.projects.project-list.view',
+                'reports.projects.property-list.view',
+                'reports.projects.export',
+                // Inventory Reports
+                'reports.inventory.stocks-report.view',
+                'reports.inventory.export',
             ])
             ->get();
 
@@ -602,6 +623,13 @@ class AssignPermissionSeeder extends Seeder
                 'reports.finance.daily-statement.view',
                 'reports.finance.company-overview.view',
                 'reports.finance.export',
+                // Projects Reports
+                'reports.projects.project-list.view',
+                'reports.projects.property-list.view',
+                'reports.projects.export',
+                // Inventory Reports
+                'reports.inventory.stocks-report.view',
+                'reports.inventory.export',
             ])
             ->get();
 
@@ -685,6 +713,13 @@ class AssignPermissionSeeder extends Seeder
                 'reports.finance.daily-statement.view',
                 'reports.finance.company-overview.view',
                 'reports.finance.export',
+                // Projects Reports
+                'reports.projects.project-list.view',
+                'reports.projects.property-list.view',
+                'reports.projects.export',
+                // Inventory Reports
+                'reports.inventory.stocks-report.view',
+                'reports.inventory.export',
             ])
             ->get();
 

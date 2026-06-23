@@ -681,3 +681,84 @@ Route::prefix('reports/sales')->name('reports.sales.')->group(function () {
         ->middleware('can:reports.sales.export')
         ->name('all.print-standalone');
 });
+
+// Projects Reports
+Route::prefix('reports/projects')->name('reports.projects.')->group(function () {
+    Route::get('/project-list',
+        App\Livewire\Admin\Reports\Projects\ProjectList::class)
+        ->middleware('can:reports.projects.project-list.view')
+        ->name('project-list');
+
+    Route::get('/project-list/pdf',
+        [App\Http\Controllers\Admin\Reports\ProjectListExportController::class, 'pdf'])
+        ->middleware('can:reports.projects.export')
+        ->name('project-list.pdf');
+
+    Route::get('/project-list/excel',
+        [App\Http\Controllers\Admin\Reports\ProjectListExportController::class, 'excel'])
+        ->middleware('can:reports.projects.export')
+        ->name('project-list.excel');
+
+    Route::get('/project-list/print',
+        [App\Http\Controllers\Admin\Reports\ProjectListExportController::class, 'print'])
+        ->middleware('can:reports.projects.export')
+        ->name('project-list.print');
+
+    Route::get('/project-list/print-standalone',
+        [App\Http\Controllers\Admin\Reports\ProjectListExportController::class, 'printStandalone'])
+        ->middleware('can:reports.projects.export')
+        ->name('project-list.print-standalone');
+
+    Route::get('/property-list',
+        App\Livewire\Admin\Reports\Projects\PropertyList::class)
+        ->middleware('can:reports.projects.property-list.view')
+        ->name('property-list');
+
+    Route::get('/property-list/pdf',
+        [App\Http\Controllers\Admin\Reports\PropertyListExportController::class, 'pdf'])
+        ->middleware('can:reports.projects.export')
+        ->name('property-list.pdf');
+
+    Route::get('/property-list/excel',
+        [App\Http\Controllers\Admin\Reports\PropertyListExportController::class, 'excel'])
+        ->middleware('can:reports.projects.export')
+        ->name('property-list.excel');
+
+    Route::get('/property-list/print',
+        [App\Http\Controllers\Admin\Reports\PropertyListExportController::class, 'print'])
+        ->middleware('can:reports.projects.export')
+        ->name('property-list.print');
+
+    Route::get('/property-list/print-standalone',
+        [App\Http\Controllers\Admin\Reports\PropertyListExportController::class, 'printStandalone'])
+        ->middleware('can:reports.projects.export')
+        ->name('property-list.print-standalone');
+});
+
+// Inventory Reports
+Route::prefix('reports/inventory')->name('reports.inventory.')->group(function () {
+    Route::get('/stocks-report',
+        App\Livewire\Admin\Reports\Inventory\StocksReport::class)
+        ->middleware('can:reports.inventory.stocks-report.view')
+        ->name('stocks-report');
+
+    Route::get('/stocks-report/pdf',
+        [App\Http\Controllers\Admin\Reports\StocksReportExportController::class, 'pdf'])
+        ->middleware('can:reports.inventory.export')
+        ->name('stocks-report.pdf');
+
+    Route::get('/stocks-report/excel',
+        [App\Http\Controllers\Admin\Reports\StocksReportExportController::class, 'excel'])
+        ->middleware('can:reports.inventory.export')
+        ->name('stocks-report.excel');
+
+    Route::get('/stocks-report/print',
+        [App\Http\Controllers\Admin\Reports\StocksReportExportController::class, 'print'])
+        ->middleware('can:reports.inventory.export')
+        ->name('stocks-report.print');
+
+    Route::get('/stocks-report/print-standalone',
+        [App\Http\Controllers\Admin\Reports\StocksReportExportController::class, 'printStandalone'])
+        ->middleware('can:reports.inventory.export')
+        ->name('stocks-report.print-standalone');
+});

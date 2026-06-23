@@ -138,11 +138,11 @@
         {{-- Single wide, horizontally scrollable table --}}
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="min-w-max w-full text-sm whitespace-nowrap">
+                <table class="min-w-max w-full text-xs whitespace-nowrap">
                     <thead>
                         <tr class="bg-slate-50 border-b border-slate-200">
                             @foreach($report['columns'] as $column)
-                                <th class="px-4 py-3 text-{{ $column['align'] }} font-semibold text-slate-900">
+                                <th class="px-2 py-2 text-{{ $column['align'] }} font-semibold text-slate-900">
                                     {{ $column['label'] }}
                                 </th>
                             @endforeach
@@ -152,11 +152,11 @@
                         @forelse($report['rows'] as $row)
                             <tr class="border-b border-slate-100 hover:bg-blue-50/50 transition">
                                 @foreach($report['columns'] as $column)
-                                    <td class="px-4 py-3 text-{{ $column['align'] }} text-slate-700
+                                    <td class="px-2 py-2 text-{{ $column['align'] }} text-slate-700
                                         @if(in_array($column['key'], ['flat_value','total_flat_value','total_recovery','present_outstanding'])) font-medium @endif">
                                         @if($column['key'] === 'payment_status')
                                             @php $pv = strtolower($row['payment_status'] ?? ''); @endphp
-                                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold
+                                            <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold
                                                 @if($pv === 'paid') bg-green-100 text-green-700
                                                 @elseif($pv === 'partial') bg-blue-100 text-blue-700
                                                 @elseif($pv === 'cancelled') bg-slate-200 text-slate-600
@@ -165,7 +165,7 @@
                                             </span>
                                         @elseif($column['key'] === 'status')
                                             @php $sv = strtolower($row['status'] ?? ''); @endphp
-                                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold
+                                            <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold
                                                 @if($sv === 'completed') bg-green-100 text-green-700
                                                 @elseif($sv === 'active') bg-indigo-100 text-indigo-700
                                                 @elseif($sv === 'cancelled') bg-rose-100 text-rose-700
@@ -191,17 +191,17 @@
                         <tfoot>
                             <tr class="bg-slate-50 border-t-2 border-slate-300 font-semibold text-slate-900">
                                 {{-- cols 1-9 --}}
-                                <td class="px-4 py-3 text-left" colspan="9">Total ({{ $report['summary']['total_clients'] }} clients)</td>
+                                <td class="px-2 py-2 text-left" colspan="9">Total ({{ $report['summary']['total_clients'] }} clients)</td>
                                 {{-- col 10: Total Flat Value --}}
-                                <td class="px-4 py-3 text-right">{{ number_format((float)$report['summary']['total_flat_value'], 0) }}</td>
+                                <td class="px-2 py-2 text-right">{{ number_format((float)$report['summary']['total_flat_value'], 0) }}</td>
                                 {{-- cols 11-14 --}}
-                                <td class="px-4 py-3" colspan="4"></td>
+                                <td class="px-2 py-2" colspan="4"></td>
                                 {{-- col 15: Total Recovery --}}
-                                <td class="px-4 py-3 text-right">{{ number_format((float)$report['summary']['total_recovery'], 0) }}</td>
+                                <td class="px-2 py-2 text-right">{{ number_format((float)$report['summary']['total_recovery'], 0) }}</td>
                                 {{-- col 16: Present Outstanding --}}
-                                <td class="px-4 py-3 text-right">{{ number_format((float)$report['summary']['total_outstanding'], 0) }}</td>
+                                <td class="px-2 py-2 text-right">{{ number_format((float)$report['summary']['total_outstanding'], 0) }}</td>
                                 {{-- cols 17-19: Payment Status, Status, Reference --}}
-                                <td class="px-4 py-3" colspan="3"></td>
+                                <td class="px-2 py-2" colspan="3"></td>
                             </tr>
                         </tfoot>
                     @endif
