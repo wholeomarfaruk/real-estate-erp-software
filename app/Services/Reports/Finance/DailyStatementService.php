@@ -89,24 +89,24 @@ class DailyStatementService
                     continue;
                 }
 
+                $accountType = $method->accountType();
+
                 // Deposits (money in)
                 if ((float) $line->debit > 0) {
-                    $depositGroup = $method->depositGroup();
-                    match ($depositGroup->value) {
-                        'cash_deposit' => $cashDeposit += (int) $line->debit,
-                        'online_deposit' => $onlineDeposit += (int) $line->debit,
-                        default => null,
-                    };
+                    if ($accountType->value === 'cash') {
+                        $cashDeposit += (int) $line->debit;
+                    } else {
+                        $onlineDeposit += (int) $line->debit;
+                    }
                 }
 
                 // Withdrawals (money out)
                 if ((float) $line->credit > 0) {
-                    $withdrawGroup = $method->withdrawGroup();
-                    match ($withdrawGroup->value) {
-                        'cash_withdraw' => $cashWithdraw += (int) $line->credit,
-                        'online_transfer' => $onlineTransfer += (int) $line->credit,
-                        default => null,
-                    };
+                    if ($accountType->value === 'cash') {
+                        $cashWithdraw += (int) $line->credit;
+                    } else {
+                        $onlineTransfer += (int) $line->credit;
+                    }
                 }
             }
 
