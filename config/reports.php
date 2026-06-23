@@ -38,6 +38,15 @@ return [
                 'view' => 'livewire.admin.reports.finance.daily-statement',
                 'permission' => 'reports.finance.daily-statement.view',
             ],
+
+            'company-overview' => [
+                'title' => 'Company Overview Report',
+                'description' => 'One wide row per sale — flat, financials, installment plan, recovery & outstanding.',
+                'service' => App\Services\Reports\Finance\CompanyOverviewService::class,
+                'component' => App\Livewire\Admin\Reports\Finance\CompanyOverview::class,
+                'view' => 'livewire.admin.reports.finance.company-overview',
+                'permission' => 'reports.finance.company-overview.view',
+            ],
         ],
     ],
 

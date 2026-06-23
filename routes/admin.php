@@ -491,6 +491,32 @@ Route::prefix('reports/finance')->name('reports.finance.')->group(function () {
         [App\Http\Controllers\Admin\Reports\DailyStatementExportController::class, 'printStandalone'])
         ->middleware('can:reports.finance.export')
         ->name('daily-statement.print-standalone');
+
+    // Company Overview Report
+    Route::get('/company-overview',
+        App\Livewire\Admin\Reports\Finance\CompanyOverview::class)
+        ->middleware('can:reports.finance.company-overview.view')
+        ->name('company-overview');
+
+    Route::get('/company-overview/pdf',
+        [App\Http\Controllers\Admin\Reports\CompanyOverviewExportController::class, 'pdf'])
+        ->middleware('can:reports.finance.export')
+        ->name('company-overview.pdf');
+
+    Route::get('/company-overview/excel',
+        [App\Http\Controllers\Admin\Reports\CompanyOverviewExportController::class, 'excel'])
+        ->middleware('can:reports.finance.export')
+        ->name('company-overview.excel');
+
+    Route::get('/company-overview/print',
+        [App\Http\Controllers\Admin\Reports\CompanyOverviewExportController::class, 'print'])
+        ->middleware('can:reports.finance.export')
+        ->name('company-overview.print');
+
+    Route::get('/company-overview/print-standalone',
+        [App\Http\Controllers\Admin\Reports\CompanyOverviewExportController::class, 'printStandalone'])
+        ->middleware('can:reports.finance.export')
+        ->name('company-overview.print-standalone');
 });
 
 // Sales Reports

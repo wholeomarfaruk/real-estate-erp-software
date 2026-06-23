@@ -87,7 +87,12 @@
       "PowerShell(php -l app\\\\Livewire\\\\Suppliers\\\\Show\\\\Details.php)",
       "Bash(php /f/projects/erp-software/_tmp_v.php)",
       "Bash(php /f/projects/erp-software/_tmp_ref3.php)",
-      "PowerShell(php -l app\\\\Livewire\\\\Admin\\\\Accounts\\\\Transaction\\\\TransactionList.php)"
+      "PowerShell(php -l app\\\\Livewire\\\\Admin\\\\Accounts\\\\Transaction\\\\TransactionList.php)",
+      "Bash(php /f/projects/erp-software/_tmp.php)",
+      "PowerShell(php artisan config:clear)",
+      "PowerShell(php artisan route:clear)",
+      "PowerShell(php artisan db:seed --class=PermissionSeeder --force)",
+      "PowerShell(php artisan db:seed --class=AssignPermissionSeeder --force)"
     ]
   }
 }
