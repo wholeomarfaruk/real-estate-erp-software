@@ -25,6 +25,22 @@
  */
 
 return [
+    'finance' => [
+        'name' => 'Finance Reports',
+        'description' => 'Bank statements, daily reports, cash flows, and financial summaries.',
+        'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>',
+        'reports' => [
+            'daily-statement' => [
+                'title' => 'Daily Statement',
+                'description' => 'Bank accounts ledger, receipts, and payments for a single day.',
+                'service' => App\Services\Reports\Finance\DailyStatementService::class,
+                'component' => App\Livewire\Admin\Reports\Finance\DailyStatement::class,
+                'view' => 'livewire.admin.reports.finance.daily-statement',
+                'permission' => 'reports.finance.daily-statement.view',
+            ],
+        ],
+    ],
+
     'sales' => [
         'name' => 'Sales & Rents Reports',
         'description' => 'Complete picture of bookings, leases, cancellations and salesperson achievement.',

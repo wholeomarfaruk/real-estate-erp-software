@@ -482,7 +482,9 @@
                 <thead>
                     <tr>
                         @foreach ($report['columns'] as $column)
-                            <th style="text-align: {{ $column['align'] ?? 'left' }}">{{ $column['label'] }}</th>
+                            @if ($column['key'] !== 'actions')
+                                <th style="text-align: {{ $column['align'] ?? 'left' }}">{{ $column['label'] }}</th>
+                            @endif
                         @endforeach
                     </tr>
                 </thead>
@@ -490,7 +492,9 @@
                     @forelse($report['rows'] as $row)
                         <tr @if ($loop->even) class="zebra" @endif>
                             @foreach ($report['columns'] as $column)
-                                @if (in_array($column['key'], ['amount', 'total_paid', 'total_due']))
+                                @if ($column['key'] === 'actions')
+                                    {{-- Skip actions column in PDF --}}
+                                @elseif (in_array($column['key'], ['amount', 'total_paid', 'total_due']))
                                     <td class="num @if (($row[$column['key']] ?? 0) > 0) num-due @else num-zero @endif">
                                         {{ number_format((float) ($row[$column['key']] ?? 0), 2) }}
                                     </td>

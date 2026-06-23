@@ -14,7 +14,8 @@ class AllClientStatementService
     public function build(array $filters): array
     {
         $query = PropertySale::with(['customer', 'propertyUnit.property.project', 'paymentSchedules'])
-            ->where('payment_status', '!=', 'cancelled');
+            ->where('payment_status', '!=', 'cancelled')
+            ->where('status', '!=', 'cancelled');
 
         // Apply filters with safe defaults
         $saleType = $filters['sale_type'] ?? 'all';
@@ -88,8 +89,6 @@ class AllClientStatementService
                 'overdue_count' => $overdueCount,
             ];
         })
-            // All clients that still carry an outstanding balance.
-            ->filter(fn ($row) => $row['total_due'] > 0)
             ->values()
             ->toArray();
 

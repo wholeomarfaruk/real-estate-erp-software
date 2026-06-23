@@ -464,6 +464,35 @@ Route::controller(ReportController::class)->prefix('reports')->name('reports.')-
     Route::get('/scheduled', 'scheduled')->name('scheduled');
 });
 
+// Finance Reports
+Route::prefix('reports/finance')->name('reports.finance.')->group(function () {
+    Route::get('/daily-statement',
+        App\Livewire\Admin\Reports\Finance\DailyStatement::class)
+        ->middleware('can:reports.finance.daily-statement.view')
+        ->name('daily-statement');
+
+    // Exports
+    Route::get('/daily-statement/pdf',
+        [App\Http\Controllers\Admin\Reports\DailyStatementExportController::class, 'pdf'])
+        ->middleware('can:reports.finance.export')
+        ->name('daily-statement.pdf');
+
+    Route::get('/daily-statement/excel',
+        [App\Http\Controllers\Admin\Reports\DailyStatementExportController::class, 'excel'])
+        ->middleware('can:reports.finance.export')
+        ->name('daily-statement.excel');
+
+    Route::get('/daily-statement/print',
+        [App\Http\Controllers\Admin\Reports\DailyStatementExportController::class, 'print'])
+        ->middleware('can:reports.finance.export')
+        ->name('daily-statement.print');
+
+    Route::get('/daily-statement/print-standalone',
+        [App\Http\Controllers\Admin\Reports\DailyStatementExportController::class, 'printStandalone'])
+        ->middleware('can:reports.finance.export')
+        ->name('daily-statement.print-standalone');
+});
+
 // Sales Reports
 Route::prefix('reports/sales')->name('reports.sales.')->group(function () {
     Route::get('/regular-client-statement',

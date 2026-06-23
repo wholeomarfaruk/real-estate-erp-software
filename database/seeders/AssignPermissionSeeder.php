@@ -193,6 +193,9 @@ class AssignPermissionSeeder extends Seeder
                 'reports.sales.aging-outstanding.view',
                 'reports.sales.rent-collection.view',
                 'reports.sales.export',
+                // Finance Reports
+                'reports.finance.daily-statement.view',
+                'reports.finance.export',
             ])
             ->get();
 
@@ -334,6 +337,9 @@ class AssignPermissionSeeder extends Seeder
                 'reports.sales.aging-outstanding.view',
                 'reports.sales.rent-collection.view',
                 'reports.sales.export',
+                // Finance Reports
+                'reports.finance.daily-statement.view',
+                'reports.finance.export',
             ])
             ->get();
 
@@ -468,6 +474,9 @@ class AssignPermissionSeeder extends Seeder
                 'reports.sales.aging-outstanding.view',
                 'reports.sales.rent-collection.view',
                 'reports.sales.export',
+                // Finance Reports
+                'reports.finance.daily-statement.view',
+                'reports.finance.export',
             ])
             ->get();
 
@@ -586,6 +595,9 @@ class AssignPermissionSeeder extends Seeder
                 'reports.sales.aging-outstanding.view',
                 'reports.sales.rent-collection.view',
                 'reports.sales.export',
+                // Finance Reports
+                'reports.finance.daily-statement.view',
+                'reports.finance.export',
             ])
             ->get();
 
@@ -665,6 +677,9 @@ class AssignPermissionSeeder extends Seeder
                 'reports.sales.aging-outstanding.view',
                 'reports.sales.rent-collection.view',
                 'reports.sales.export',
+                // Finance Reports
+                'reports.finance.daily-statement.view',
+                'reports.finance.export',
             ])
             ->get();
 

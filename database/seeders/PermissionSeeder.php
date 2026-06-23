@@ -352,6 +352,10 @@ class PermissionSeeder extends Seeder
             ['id' => 279, 'name' => 'reports.sales.aging-outstanding.view'],
             ['id' => 280, 'name' => 'reports.sales.rent-collection.view'],
             ['id' => 281, 'name' => 'reports.sales.export'],
+
+            // Finance Reports (from config/reports.php)
+            ['id' => 283, 'name' => 'reports.finance.daily-statement.view'],
+            ['id' => 284, 'name' => 'reports.finance.export'],
         ];
 
         foreach ($permissions as $permission) {

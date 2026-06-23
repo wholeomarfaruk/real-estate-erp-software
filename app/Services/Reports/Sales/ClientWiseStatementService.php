@@ -13,9 +13,10 @@ class ClientWiseStatementService
     {
         $customerId = $filters['customer_id'] ?? null;
 
-        $query = PropertySale::with(['customer', 'propertyUnit.property.project', 'paymentSchedules'])
+        $query = PropertySale::with(['customer', 'propertyUnit.property.project', 'propertyUnit.floor', 'paymentSchedules'])
             ->where('customer_id', $customerId)
-            ->where('payment_status', '!=', 'cancelled');
+            ->where('payment_status', '!=', 'cancelled')
+            ->where('status', '!=', 'cancelled');
 
         $transactionType = $filters['transaction_type'] ?? 'all';
         if ($transactionType !== 'all' && $transactionType !== '') {
@@ -42,11 +43,24 @@ class ClientWiseStatementService
             $scheduledCount = $sale->paymentSchedules->count();
             $overdueCount = $sale->paymentSchedules->filter(fn ($schedule) => $schedule->isOverdue())->count();
 
+            $propertyUnit = $sale->propertyUnit;
+            $propertyName = $propertyUnit?->property?->name ?? '-';
+            $unitCode = $propertyUnit?->code ?? $propertyUnit?->unit_number ?? '-';
+            $unitType = $propertyUnit?->type ?? $propertyUnit?->unit_type ?? '-';
+            $floorCode = $propertyUnit?->floor?->code ?? $propertyUnit?->floor?->label ?? '-';
+
+            $unitDisplay = collect([
+                $unitCode,
+                $floorCode,
+                $propertyName,
+            ])->filter(fn ($v) => $v !== '-')->implode(', ') ?: '-';
+
             return [
                 'sale_id' => $sale->id,
                 'sale_number' => $sale->sale_number,
-                'type' => ucfirst($sale->sale_type),
-                'property_unit' => ($sale->propertyUnit?->name ?? '-') . ' / ' . ($sale->propertyUnit?->property?->name ?? '-'),
+                'purpose' => ucfirst($sale->sale_type),
+                'unit_type' => ucfirst($unitType),
+                'property_unit' => $unitDisplay,
                 'sale_date' => $sale->sale_date->format('d-M-Y'),
                 'amount' => $sale->net_amount,
                 'total_paid' => $totalPaid,
@@ -56,6 +70,10 @@ class ClientWiseStatementService
                 // Use the sale's actual payment_status (source of truth, matches the
                 // property-sale detail page) rather than re-deriving from amounts.
                 'status' => ucfirst($sale->payment_status),
+                'actions' => [
+                    'schedule_url' => route('admin.properties.sales.schedule', $sale->id),
+                    'invoice_url' => route('admin.properties.sales.invoice', $sale->id),
+                ],
             ];
         })->toArray();
 
@@ -63,10 +81,10 @@ class ClientWiseStatementService
             'customer_name' => $customer?->name ?? 'Unknown',
             'total_transactions' => \count($rows),
             'total_sale_amount' => collect($rows)
-                ->filter(fn ($row) => $row['type'] === 'Sale')
+                ->filter(fn ($row) => strtolower($row['purpose']) === 'sale')
                 ->sum('amount'),
             'total_rent_amount' => collect($rows)
-                ->filter(fn ($row) => $row['type'] === 'Rent')
+                ->filter(fn ($row) => strtolower($row['purpose']) === 'rent')
                 ->sum('amount'),
             'total_paid' => collect($rows)->sum('total_paid'),
             'total_outstanding' => collect($rows)->sum('total_due'),
@@ -111,8 +129,9 @@ class ClientWiseStatementService
             'slug' => 'client-wise-statement',
             'columns' => [
                 ['key' => 'sale_number', 'label' => 'Sale #', 'align' => 'left'],
-                ['key' => 'type', 'label' => 'Type', 'align' => 'center'],
-                ['key' => 'property_unit', 'label' => 'Property / Unit', 'align' => 'left'],
+                ['key' => 'purpose', 'label' => 'Purpose', 'align' => 'center'],
+                ['key' => 'unit_type', 'label' => 'Type', 'align' => 'center'],
+                ['key' => 'property_unit', 'label' => 'Unit/Section/Property', 'align' => 'left'],
                 ['key' => 'sale_date', 'label' => 'Date', 'align' => 'center'],
                 ['key' => 'amount', 'label' => 'Amount', 'align' => 'right'],
                 ['key' => 'total_paid', 'label' => 'Paid', 'align' => 'right'],
@@ -120,6 +139,7 @@ class ClientWiseStatementService
                 ['key' => 'scheduled_count', 'label' => 'Scheduled', 'align' => 'center'],
                 ['key' => 'overdue_count', 'label' => 'Overdue', 'align' => 'center'],
                 ['key' => 'status', 'label' => 'Status', 'align' => 'center'],
+                ['key' => 'actions', 'label' => 'Actions', 'align' => 'center'],
             ],
             'rows' => $rows,
             'summary' => $summary,

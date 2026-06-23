@@ -23,9 +23,9 @@ final class ReportCategoryAssembler
         $result = [];
 
         foreach ($staticCategories as $key) {
-            if ($key === 'sales' && isset($configCategories['sales'])) {
+            if (($key === 'sales' || $key === 'finance') && isset($configCategories[$key])) {
                 $cat = array_merge(
-                    $configCategories['sales'],
+                    $configCategories[$key],
                     ['icon' => $this->icons[$key]]
                 );
                 $cat['count'] = count($cat['items']);

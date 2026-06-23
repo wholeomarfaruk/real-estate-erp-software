@@ -98,8 +98,10 @@
     {{-- ============================ COLUMN HEADERS ============================ --}}
     <tr>
         @foreach($columns as $column)
-            <th style="border:1px solid {{ $ink }}; background:{{ $head }}; text-align:{{ $column['align'] ?? 'left' }};
-                       font-size:9px; font-weight:bold; text-transform:uppercase;">{{ $column['label'] }}</th>
+            @if($column['key'] !== 'actions')
+                <th style="border:1px solid {{ $ink }}; background:{{ $head }}; text-align:{{ $column['align'] ?? 'left' }};
+                           font-size:9px; font-weight:bold; text-transform:uppercase;">{{ $column['label'] }}</th>
+            @endif
         @endforeach
     </tr>
 
@@ -108,7 +110,9 @@
         <tr style="background:{{ $loop->even ? $zebra : '#ffffff' }};">
             @foreach($columns as $column)
                 @php $key = $column['key'] @endphp
-                @if(in_array($key, $moneyKeys))
+                @if($key === 'actions')
+                    {{-- Skip actions column in Excel --}}
+                @elseif(in_array($key, $moneyKeys))
                     <td style="border:1px solid {{ $rule }}; text-align:right; mso-number-format:'#,##0.00';">
                         {{ number_format((float)($row[$key] ?? 0), 2) }}
                     </td>

@@ -14,7 +14,8 @@ class RegularClientStatementService
     public function build(array $filters): array
     {
         $query = PropertySale::with(['customer', 'propertyUnit.property.project', 'paymentSchedules'])
-            ->where('payment_status', '!=', 'cancelled');
+            ->where('payment_status', '!=', 'cancelled')
+            ->where('status', '!=', 'cancelled');
 
         // Apply filters with safe defaults
         $saleType = $filters['sale_type'] ?? 'all';
@@ -59,16 +60,13 @@ class RegularClientStatementService
             $rentPropCount = 0;
 
             foreach ($customerSales as $sale) {
-                $saleTotal = $sale->totalDue();
-                if ($saleTotal > 0) {
-                    $totalPaid += $sale->totalPaid();
-                    $totalDue += $saleTotal;
+                $totalPaid += $sale->totalPaid();
+                $totalDue += $sale->totalDue();
 
-                    if ($sale->sale_type === 'rent') {
-                        $rentPropCount++;
-                    } else {
-                        $salePropCount++;
-                    }
+                if ($sale->sale_type === 'rent') {
+                    $rentPropCount++;
+                } else {
+                    $salePropCount++;
                 }
             }
 
@@ -81,7 +79,7 @@ class RegularClientStatementService
                 'total_paid' => $totalPaid,
                 'total_due' => $totalDue,
             ];
-        })->filter(fn ($row) => $row['total_due'] > 0)->values()->toArray();
+        })->values()->toArray();
 
         $rows = $clientData;
 
