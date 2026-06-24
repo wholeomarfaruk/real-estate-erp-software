@@ -149,9 +149,9 @@ class PayrollService
                 BankingPaymentRequest::query()->create([
                     'request_no' => BankingPaymentRequest::generateRequestNo(),
                     'source_type' => PaymentRequestSourceType::PAYROLL->value,
-                    'sourceable_type' => PayrollPayment::class,
-                    'sourceable_id' => $payment->id,
-                    'transaction_category_id' => $this->payrollCategoryId(),
+                    'sourceable_type' => Employee::class,
+                    'sourceable_id' => $payroll->employee_id,
+                    'transaction_category_id' => null,
                     'transaction_id' => null,
                     'amount' => $amount,
                     'description' => $this->payrollRequestDescription($payroll),
@@ -166,7 +166,10 @@ class PayrollService
 
                     'status' => 'pending',
                     'notes' => $this->payrollRequestNotes($payroll, $payment),
-                    'external_data' => ['advance_id' => $advanceId],
+                    'external_data' => [
+                        'advance_id' => $advanceId,
+                        'payroll_payment_id' => $payment->id,
+                    ],
                     'requested_by' => $actorId,
                 ]);
 

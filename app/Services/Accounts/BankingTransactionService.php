@@ -7,6 +7,7 @@ use App\Enums\Accounts\PaymentRequestSourceType;
 use App\Enums\Accounts\TransactionType;
 use App\Models\Account;
 use App\Models\BankingPaymentRequest;
+use App\Models\Employee;
 use App\Models\EmployeeAdvance;
 use App\Models\EmployeeAdvanceAdjustment;
 use App\Models\PayrollPayment;
@@ -147,19 +148,20 @@ class BankingTransactionService
         BankingPaymentRequest $request,
         int $userId
     ): Transaction {
+        // Check if this is an advance recovery (sourceable is Employee with advance_id in external_data)
+        $externalData = $request->external_data ?? [];
+        $advanceId = (int) ($externalData['advance_id'] ?? 0);
+
+        if ($request->sourceable_type === Employee::class && $advanceId > 0) {
+            return $this->postPayrollAdvanceAdjustment($request, $userId);
+        }
+
+        // Regular payroll payment must be linked to a PayrollPayment
         if (
             $request->sourceable_type !== PayrollPayment::class
             || ! $request->sourceable_id
         ) {
-            throw new \DomainException('Payroll request must be linked to a PayrollPayment.');
-        }
-
-        $externalData = $request->external_data ?? [];
-        $advanceId = (int) ($externalData['advance_id'] ?? 0);
-
-        // Route advance recovery to dedicated method
-        if ($advanceId > 0) {
-            return $this->postPayrollAdvanceAdjustment($request, $userId);
+            throw new \DomainException('Payroll request must be linked to a PayrollPayment or Employee (for advance recovery).');
         }
 
         // Use stored double-entry data
@@ -237,11 +239,13 @@ class BankingTransactionService
         BankingPaymentRequest $request,
         int $userId
     ): Transaction {
-        if (
-            $request->sourceable_type !== PayrollPayment::class
-            || ! $request->sourceable_id
-        ) {
-            throw new \DomainException('Advance adjustment request must be linked to a PayrollPayment.');
+        // Advance adjustment must have PayrollPayment and advance details in external_data
+        $externalData = $request->external_data ?? [];
+        $paymentId = (int) ($externalData['payroll_payment_id'] ?? 0);
+        $advanceId = (int) ($externalData['advance_id'] ?? 0);
+
+        if ($paymentId <= 0 || $advanceId <= 0) {
+            throw new \DomainException('Advance adjustment requires payroll_payment_id and advance_id in external_data.');
         }
 
         // Use stored double-entry data
@@ -259,7 +263,7 @@ class BankingTransactionService
 
         $payment = PayrollPayment::query()
             ->with(['payroll.employee:id,name'])
-            ->findOrFail($request->sourceable_id);
+            ->findOrFail($paymentId);
 
         // Create balanced double-entry using stored amounts
         $transaction = $this->ledger->post(
@@ -304,23 +308,18 @@ class BankingTransactionService
         ]);
 
         // Record the advance adjustment and update advance status
-        $externalData = $request->external_data ?? [];
-        $advanceId = (int) ($externalData['advance_id'] ?? 0);
+        $advance = EmployeeAdvance::query()->lockForUpdate()->findOrFail($advanceId);
 
-        if ($advanceId > 0) {
-            $advance = EmployeeAdvance::query()->lockForUpdate()->findOrFail($advanceId);
+        EmployeeAdvanceAdjustment::query()->create([
+            'employee_advance_id' => $advance->id,
+            'payroll_id' => $payment->payroll_id,
+            'amount' => (float) $request->debit_amount,
+            'adjustment_date' => now()->toDateString(),
+        ]);
 
-            EmployeeAdvanceAdjustment::query()->create([
-                'employee_advance_id' => $advance->id,
-                'payroll_id' => $payment->payroll_id,
-                'amount' => (float) $request->debit_amount,
-                'adjustment_date' => now()->toDateString(),
-            ]);
-
-            $advance->adjusted_amount = round((float) $advance->adjusted_amount + (float) $request->debit_amount, 2);
-            $advance->recalculateStatus();
-            $advance->save();
-        }
+        $advance->adjusted_amount = round((float) $advance->adjusted_amount + (float) $request->debit_amount, 2);
+        $advance->recalculateStatus();
+        $advance->save();
 
         // Recalculate payroll payment status
         app(\App\Services\Hrm\PayrollService::class)->recalculatePayrollPaymentStatus($payment->payroll_id);
