@@ -68,7 +68,7 @@ class BankingTransactionService
                 return $this->postIncome($request, $userId);
             }
 
-            
+
             throw new \DomainException("Unsupported payment source type: {$sourceType}");
         });
     }
@@ -266,8 +266,8 @@ class BankingTransactionService
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
                 'type' => TransactionType::PURCHASE->value,
-                'reference_type' => 'payroll_advance_adjustment',
-                'reference_id' => $payment->id,
+                'reference_type' => $request->sourceable_type,
+                'reference_id' => $request->sourceable_id,
                 'reference_no' => $request->reference_no,
                 'name' => $request->name ?? $payment->payroll?->employee?->name,
                 'phone' => $request->phone,
