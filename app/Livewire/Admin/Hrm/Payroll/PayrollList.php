@@ -50,11 +50,6 @@ class PayrollList extends Component
      */
     public array $deduction_items = [];
 
-    /**
-     * @var array<int|string, float|int|string>
-     */
-    public array $advance_adjustments = [];
-
     protected string $paginationTheme = 'tailwind';
 
     public function mount(): void
@@ -182,19 +177,10 @@ class PayrollList extends Component
 
         $pendingAdvances = collect();
 
-        if ($this->showGenerateModal && $this->employee_id) {
-            $pendingAdvances = EmployeeAdvance::query()
-                ->where('employee_id', $this->employee_id)
-                ->whereIn('status', ['pending', 'partial'])
-                ->where('remaining_amount', '>', 0)
-                ->orderBy('advance_date')
-                ->get(['id', 'advance_date', 'amount', 'adjusted_amount', 'remaining_amount']);
-        }
 
         return view('livewire.admin.hrm.payroll.payroll-list', [
             'payrolls' => $payrolls,
             'employees' => $employees,
-            'pendingAdvances' => $pendingAdvances,
             'statusOptions' => ['pending', 'partial', 'paid'],
             'monthOptions' => range(1, 12),
             'yearOptions' => range((int) now()->year - 3, (int) now()->year + 1),
@@ -218,8 +204,6 @@ class PayrollList extends Component
             'deduction_items' => ['nullable', 'array'],
             'deduction_items.*.label' => ['nullable', 'string', 'max:100'],
             'deduction_items.*.amount' => ['nullable', 'numeric', 'min:0'],
-            'advance_adjustments' => ['nullable', 'array'],
-            'advance_adjustments.*' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 
@@ -241,7 +225,6 @@ class PayrollList extends Component
         $this->reset([
             'employee_id',
             'notes',
-            'advance_adjustments',
         ]);
         $this->month = (int) now()->month;
         $this->year = (int) now()->year;

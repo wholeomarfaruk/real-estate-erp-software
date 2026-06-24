@@ -228,26 +228,6 @@
                     </div>
                 </div>
 
-                <div class="rounded-lg border border-gray-200 p-4">
-                    <h3 class="text-sm font-semibold text-gray-700">Advance Adjustments</h3>
-                    <p class="mt-1 text-xs text-gray-500">Enter amount to adjust from pending employee advances.</p>
-                    <div class="mt-3 space-y-2">
-                        @forelse ($pendingAdvances as $advance)
-                            <div class="grid grid-cols-1 gap-2 rounded-lg border border-gray-200 p-3 md:grid-cols-12">
-                                <div class="md:col-span-7 text-sm text-gray-700">
-                                    <p>Date: {{ optional($advance->advance_date)->format('d M, Y') }}</p>
-                                    <p class="text-xs text-gray-500">Remaining: {{ number_format((float) $advance->remaining_amount, 2) }}</p>
-                                </div>
-                                <div class="md:col-span-5">
-                                    <input type="number" min="0" max="{{ $advance->remaining_amount }}" step="0.01" wire:model.defer="advance_adjustments.{{ $advance->id }}" placeholder="0.00" class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-                                </div>
-                            </div>
-                        @empty
-                            <p class="text-sm text-gray-500">No pending advances for selected employee.</p>
-                        @endforelse
-                    </div>
-                </div>
-
                 <div class="mt-2 flex justify-end gap-2">
                     <button type="button" @click="open = false; $wire.closeGenerateModal()" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
                         Cancel
