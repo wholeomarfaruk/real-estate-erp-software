@@ -126,8 +126,8 @@ class PayrollService
                     throw new \DomainException('Recovery amount exceeds advance remaining balance.');
                 }
 
-                $salaryPayableAccount = Account::query()
-                    ->where('code', 'LIAB-SAL-PAY')
+                $salaryExpenseAccount = Account::query()
+                    ->where('code', '2110')
                     ->where('is_active', true)
                     ->firstOrFail();
 
@@ -145,6 +145,7 @@ class PayrollService
                     'notes' => $payload['notes'] ?? null,
                     'received_by' => $actorId,
                 ]);
+                
 
                 BankingPaymentRequest::query()->create([
                     'request_no' => BankingPaymentRequest::generateRequestNo(),
@@ -159,7 +160,8 @@ class PayrollService
                     'account_id' => null,
 
                     // Double-Entry for Advance Recovery
-                    'debit_account_id' => $salaryPayableAccount->id,
+                    // DR: Salary Expense / CR: Employee Advance
+                    'debit_account_id' => $salaryExpenseAccount->id,
                     'debit_amount' => $amount,
                     'credit_account_id' => $advanceAccount->id,
                     'credit_amount' => $amount,
