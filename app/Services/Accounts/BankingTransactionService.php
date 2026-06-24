@@ -154,6 +154,14 @@ class BankingTransactionService
             throw new \DomainException('Payroll request must be linked to a PayrollPayment.');
         }
 
+        $externalData = $request->external_data ?? [];
+        $advanceId = (int) ($externalData['advance_id'] ?? 0);
+
+        // Route advance recovery to dedicated method
+        if ($advanceId > 0) {
+            return $this->postPayrollAdvanceAdjustment($request, $userId);
+        }
+
         // Use stored double-entry data
         if (!$request->debit_account_id || !$request->credit_account_id) {
             throw new \DomainException('Double-entry accounts not configured for this payroll request.');
@@ -216,9 +224,89 @@ class BankingTransactionService
         // Recalculate payroll payment status
         app(\App\Services\Hrm\PayrollService::class)->recalculatePayrollPaymentStatus($payment->payroll_id);
 
-        // If this is an advance recovery: record the adjustment and update advance status
+        return $transaction;
+    }
+
+    /**
+     * Post a payroll advance adjustment using stored double-entry data:
+     *   Dr Salary Payable / Cr Employee Advance
+     *
+     * Records the advance recovery and updates advance status.
+     */
+    private function postPayrollAdvanceAdjustment(
+        BankingPaymentRequest $request,
+        int $userId
+    ): Transaction {
+        if (
+            $request->sourceable_type !== PayrollPayment::class
+            || ! $request->sourceable_id
+        ) {
+            throw new \DomainException('Advance adjustment request must be linked to a PayrollPayment.');
+        }
+
+        // Use stored double-entry data
+        if (!$request->debit_account_id || !$request->credit_account_id) {
+            throw new \DomainException('Double-entry accounts not configured for this advance adjustment.');
+        }
+
+        // Validate accounts exist and are active
+        $debitAccount = Account::findOrFail($request->debit_account_id);
+        $creditAccount = Account::findOrFail($request->credit_account_id);
+
+        if (!$debitAccount->is_active || !$creditAccount->is_active) {
+            throw new \DomainException('One or more double-entry accounts are inactive.');
+        }
+
+        $payment = PayrollPayment::query()
+            ->with(['payroll.employee:id,name'])
+            ->findOrFail($request->sourceable_id);
+
+        // Create balanced double-entry using stored amounts
+        $transaction = $this->ledger->post(
+            [
+                'datetime' => now()->format('Y-m-d H:i:s'),
+                'type' => TransactionType::PURCHASE->value,
+                'reference_type' => 'payroll_advance_adjustment',
+                'reference_id' => $payment->id,
+                'reference_no' => $request->reference_no,
+                'name' => $request->name ?? $payment->payroll?->employee?->name,
+                'phone' => $request->phone,
+                'method' => 'adjustment',
+                'notes' => $request->notes ?? $request->description,
+                'created_by' => $userId,
+            ],
+            [
+                [
+                    'account_id' => (int) $debitAccount->id,
+                    'debit' => (float) $request->debit_amount,
+                    'credit' => 0,
+                    'notes' => $debitAccount->name,
+                ],
+                [
+                    'account_id' => (int) $creditAccount->id,
+                    'debit' => 0,
+                    'credit' => (float) $request->credit_amount,
+                    'notes' => $creditAccount->name,
+                ],
+            ],
+        );
+
+        // Link transaction to payment record
+        $payment->transaction_id = $transaction->id;
+        $payment->save();
+
+        // Update banking request with transaction and completion info
+        $request->update([
+            'transaction_id' => $transaction->id,
+            'status' => 'completed',
+            'completed_by' => $userId,
+            'completed_at' => now(),
+        ]);
+
+        // Record the advance adjustment and update advance status
         $externalData = $request->external_data ?? [];
         $advanceId = (int) ($externalData['advance_id'] ?? 0);
+
         if ($advanceId > 0) {
             $advance = EmployeeAdvance::query()->lockForUpdate()->findOrFail($advanceId);
 
@@ -233,6 +321,9 @@ class BankingTransactionService
             $advance->recalculateStatus();
             $advance->save();
         }
+
+        // Recalculate payroll payment status
+        app(\App\Services\Hrm\PayrollService::class)->recalculatePayrollPaymentStatus($payment->payroll_id);
 
         return $transaction;
     }
