@@ -22,7 +22,7 @@ class FeatureAccountConfigurator extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()?->can('accounts.settings.manage'), 403);
+        abort_unless(auth()->user()?->can('accounts.chart.list'), 403);
     }
 
     private function service(): FeatureAccountService

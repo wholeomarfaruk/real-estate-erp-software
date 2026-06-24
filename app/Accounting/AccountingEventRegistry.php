@@ -101,6 +101,50 @@ class AccountingEventRegistry
                     ['leg' => 'credit', 'account_source' => 'runtime', 'runtime_slot' => 'payment_account', 'description' => 'Cash/Bank paid'],
                 ],
             ],
+            'hrm.salary_generation' => [
+                'module'           => 'hrm',
+                'name'             => 'HR — Salary Generation',
+                'description'      => 'Payroll is generated. Dr Salary Expense, Cr Salary Payable (liability accrued).',
+                'transaction_type' => TransactionType::EXPENSE->value,
+                'runtime_slots'    => [],
+                'default_rules'    => [
+                    ['leg' => 'debit',  'account_source' => 'fixed', 'account_code' => '2110',         'description' => 'Salary expense'],
+                    ['leg' => 'credit', 'account_source' => 'fixed', 'account_code' => 'LIAB-SAL-PAY', 'description' => 'Salary payable'],
+                ],
+            ],
+            'hrm.salary_payment' => [
+                'module'           => 'hrm',
+                'name'             => 'HR — Salary Payment',
+                'description'      => 'Salary is paid to employee. Dr Salary Payable (liability settled), Cr Payment Account (cash/bank/mfs money leaves).',
+                'transaction_type' => TransactionType::SALARY_PAYMENT->value,
+                'runtime_slots'    => ['payment_account' => 'Payment Account (Cash/Bank/MFS)'],
+                'default_rules'    => [
+                    ['leg' => 'debit',  'account_source' => 'fixed',   'account_code' => 'LIAB-SAL-PAY',    'description' => 'Salary payable settled'],
+                    ['leg' => 'credit', 'account_source' => 'runtime', 'runtime_slot' => 'payment_account', 'description' => 'Cash/Bank paid'],
+                ],
+            ],
+            'hrm.advance_disbursement' => [
+                'module'           => 'hrm',
+                'name'             => 'HR — Employee Advance Disbursement',
+                'description'      => 'Advance is disbursed to employee. Dr Employee Advance (receivable), Cr Payment Account (cash/bank/mfs money leaves).',
+                'transaction_type' => TransactionType::ADVANCE_PAYMENT->value,
+                'runtime_slots'    => ['payment_account' => 'Payment Account (Cash/Bank/MFS)'],
+                'default_rules'    => [
+                    ['leg' => 'debit',  'account_source' => 'fixed',   'account_code' => 'ASSET-EMP-ADV',   'description' => 'Employee advance'],
+                    ['leg' => 'credit', 'account_source' => 'runtime', 'runtime_slot' => 'payment_account', 'description' => 'Cash/Bank paid'],
+                ],
+            ],
+            'hrm.advance_adjustment' => [
+                'module'           => 'hrm',
+                'name'             => 'HR — Advance Recovery via Payroll',
+                'description'      => 'Employee advance is recovered via salary deduction. Dr Salary Expense, Cr Employee Advance (receivable cleared).',
+                'transaction_type' => TransactionType::EXPENSE->value,
+                'runtime_slots'    => [],
+                'default_rules'    => [
+                    ['leg' => 'debit',  'account_source' => 'fixed', 'account_code' => '2110',          'description' => 'Salary expense (advance recovery)'],
+                    ['leg' => 'credit', 'account_source' => 'fixed', 'account_code' => 'ASSET-EMP-ADV', 'description' => 'Employee advance cleared'],
+                ],
+            ],
         ];
     }
 

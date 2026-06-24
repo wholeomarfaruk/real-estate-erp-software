@@ -155,11 +155,11 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
         ->name('transaction-categories');
 
     Route::get('/settings', App\Livewire\Admin\Accounts\Settings\AccountingSettings::class)
-        ->middleware('can:accounts.settings.manage')
+        ->middleware('can:accounts.chart.list')
         ->name('settings');
 
     Route::get('/settings/features', App\Livewire\Admin\Accounts\Features\FeatureAccountConfigurator::class)
-        ->middleware('can:accounts.settings.manage')
+        ->middleware('can:accounts.chart.list')
         ->name('settings.features');
 
     Route::prefix('expenses')->name('expenses.')->group(function (): void {

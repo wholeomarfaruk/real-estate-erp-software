@@ -88,6 +88,7 @@ class BankingManagement extends Component
         $bankAccounts = BankAccount::where('status', 'active')->orderBy('bank_name')->get();
         $filterSourceTypes = collect(TransactionType::cases())
             ->push(PaymentRequestSourceType::PAYROLL)
+            ->push(PaymentRequestSourceType::EMPLOYEE_ADVANCE)
             ->values();
         $createSourceTypes = collect(TransactionType::cases())->values();
         $advanceCategories = TransactionCategory::query()

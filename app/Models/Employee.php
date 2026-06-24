@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Employee extends Model
 {
@@ -83,6 +84,12 @@ class Employee extends Model
     {
         return $this->hasMany(EmployeeAdvance::class)->orderByDesc('advance_date')->orderByDesc('id');
     }
+
+    public function bankingRequests(): MorphMany
+    {
+        return $this->morphMany(BankingPaymentRequest::class, 'sourceable');
+    }
+
     public function purchaseFunds()
     {
         return $this->morphMany(PurchaseFund::class, 'receiver');

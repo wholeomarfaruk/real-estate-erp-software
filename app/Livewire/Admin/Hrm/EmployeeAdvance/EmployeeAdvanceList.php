@@ -2,7 +2,10 @@
 
 namespace App\Livewire\Admin\Hrm\EmployeeAdvance;
 
+use App\Enums\Accounts\AccountType;
+use App\Enums\Accounts\EntryMethod;
 use App\Livewire\Admin\Hrm\Concerns\InteractsWithHrmAccess;
+use App\Models\Account;
 use App\Models\Employee;
 use App\Models\EmployeeAdvance;
 use App\Services\Hrm\EmployeeAdvanceService;
@@ -32,6 +35,8 @@ class EmployeeAdvanceList extends Component
     public float|int|string $amount = '';
 
     public string $payment_method = 'cash';
+
+    public ?int $account_id = null;
 
     public ?string $notes = null;
 
@@ -112,11 +117,24 @@ class EmployeeAdvanceList extends Component
 
         $employees = Employee::query()->where('status', 'active')->orderBy('name')->get(['id', 'name', 'employee_id']);
 
+        $accounts = Account::query()
+            ->where('is_active', true)
+            ->whereIn('type', [
+                AccountType::CASH->value,
+                AccountType::BANK->value,
+                AccountType::MFS->value,
+                AccountType::WALLET->value,
+            ])
+            ->orderBy('type')
+            ->orderBy('name')
+            ->get(['id', 'name', 'code', 'type']);
+
         return view('livewire.admin.hrm.employee-advance.employee-advance-list', [
             'advances' => $advances,
             'employees' => $employees,
+            'accounts' => $accounts,
             'statusOptions' => ['pending', 'partial', 'cleared', 'cancelled'],
-            'paymentMethods' => ['cash', 'bank', 'cheque', 'mobile_banking'],
+            'entryMethods' => EntryMethod::cases(),
         ])->layout('layouts.admin.admin');
     }
 
@@ -129,7 +147,8 @@ class EmployeeAdvanceList extends Component
             'employee_id' => ['required', 'exists:employees,id'],
             'advance_date' => ['required', 'date'],
             'amount' => ['required', 'numeric', 'gt:0'],
-            'payment_method' => ['required', Rule::in(['cash', 'bank', 'cheque', 'mobile_banking'])],
+            'payment_method' => ['required', 'in:' . implode(',', array_column(EntryMethod::cases(), 'value'))],
+            'account_id' => ['required', 'exists:accounts,id'],
             'notes' => ['nullable', 'string'],
         ];
     }
@@ -144,12 +163,14 @@ class EmployeeAdvanceList extends Component
             'amount.required' => 'Amount is required.',
             'amount.gt' => 'Amount must be greater than zero.',
             'advance_date.required' => 'Advance date is required.',
+            'account_id.required' => 'Payment account is required.',
+            'account_id.exists' => 'Selected account not found.',
         ];
     }
 
     protected function resetForm(): void
     {
-        $this->reset(['employee_id', 'amount', 'notes']);
+        $this->reset(['employee_id', 'amount', 'notes', 'account_id']);
         $this->advance_date = now()->toDateString();
         $this->payment_method = 'cash';
     }

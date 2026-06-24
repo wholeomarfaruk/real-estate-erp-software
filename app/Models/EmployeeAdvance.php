@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class EmployeeAdvance extends Model
 {
@@ -54,6 +55,16 @@ class EmployeeAdvance extends Model
     public function adjustments(): HasMany
     {
         return $this->hasMany(EmployeeAdvanceAdjustment::class)->orderByDesc('adjustment_date')->orderByDesc('id');
+    }
+
+    public function getBankingRequestAttribute(): ?BankingPaymentRequest
+    {
+        return BankingPaymentRequest::query()
+            ->where('sourceable_type', Employee::class)
+            ->where('sourceable_id', $this->employee_id)
+            ->whereJsonContains('external_data->employee_advance_id', (string) $this->id)
+            ->latest('id')
+            ->first();
     }
 
     public function recalculateStatus(): void

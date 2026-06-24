@@ -15,9 +15,9 @@ class AssignPermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->callOnce([
-            PermissionSeeder::class,
-        ]);
+        // $this->callOnce([
+        //     PermissionSeeder::class,
+        // ]);
         Role::findByName('superadmin')->syncPermissions(Permission::all());
 
         $adminPermissions = Permission::query()

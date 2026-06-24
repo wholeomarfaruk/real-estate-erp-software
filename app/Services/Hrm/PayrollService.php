@@ -94,7 +94,7 @@ class PayrollService
             $payroll->save();
 
             $this->createPayrollItems($payroll, $salaryStructure, $bonusItems, $deductionItems, array_sum($advanceAdjustments));
-            $this->applyAdvanceAdjustments($payroll, $advanceAdjustments);
+            $this->applyAdvanceAdjustments($payroll, $advanceAdjustments, $actorId);
 
             return $payroll->refresh();
         });
@@ -489,7 +489,7 @@ class PayrollService
     /**
      * @param  array<int, float>  $advanceAdjustments
      */
-    protected function applyAdvanceAdjustments(Payroll $payroll, array $advanceAdjustments): void
+    protected function applyAdvanceAdjustments(Payroll $payroll, array $advanceAdjustments, int $actorId): void
     {
         foreach ($advanceAdjustments as $advanceId => $adjustmentAmount) {
             $advance = EmployeeAdvance::query()
@@ -517,6 +517,16 @@ class PayrollService
             $advance->adjusted_amount = round((float) $advance->adjusted_amount + $adjustmentAmount, 2);
             $advance->recalculateStatus();
             $advance->save();
+
+            if ($advance->transaction_id) {
+                $this->accountingService->createAdvanceAdjustmentEntry(
+                    amount: $adjustmentAmount,
+                    date: $payroll->payroll_date?->format('Y-m-d') ?? now()->toDateString(),
+                    actorId: $actorId,
+                    payrollId: $payroll->id,
+                    notes: 'Advance recovery for '.$payroll->employee?->name.' ('.$payroll->month.'/'.$payroll->year.')',
+                );
+            }
         }
     }
 }

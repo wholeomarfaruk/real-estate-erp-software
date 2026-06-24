@@ -686,12 +686,12 @@
                                     [
                                         'label' => 'Accounting Settings',
                                         'route' => 'admin.accounts.settings',
-                                        'permission' => 'accounts.settings.manage',
+                                        'permission' => 'accounts.chart.list',
                                     ],
                                     [
                                         'label' => 'Feature Accounts',
                                         'route' => 'admin.accounts.settings.features',
-                                        'permission' => 'accounts.settings.manage',
+                                        'permission' => 'accounts.chart.list',
                                     ],
                                 ];
 

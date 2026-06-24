@@ -56,6 +56,11 @@ class BankingTransactionService
                 return $this->postAdvanceFund($request, $userId);
             }
 
+            // Employee advance disbursement
+            if ($sourceType === PaymentRequestSourceType::EMPLOYEE_ADVANCE->value) {
+                return $this->postEmployeeAdvancePayment($request, $userId);
+            }
+
             // Income / deposit / opening balance
             if ($sourceType === TransactionType::INCOME->value) {
                 return $this->postIncome($request, $userId);
@@ -194,6 +199,80 @@ class BankingTransactionService
         );
 
         // Update banking request with transaction and completion info
+        $request->update([
+            'transaction_id' => $transaction->id,
+            'status' => 'completed',
+            'completed_by' => $userId,
+            'completed_at' => now(),
+        ]);
+
+        return $transaction;
+    }
+
+    /**
+     * Post an employee advance disbursement using stored double-entry data:
+     *   Dr Employee Advance / Cr Payment Account
+     *
+     * Uses debit/credit accounts and amounts pre-stored on the request.
+     */
+    private function postEmployeeAdvancePayment(
+        BankingPaymentRequest $request,
+        int $userId
+    ): Transaction {
+        // Must have pre-stored double-entry accounts
+        if (!$request->debit_account_id || !$request->credit_account_id) {
+            throw new \DomainException('Double-entry accounts not configured for this advance request.');
+        }
+
+        $debitAccount = Account::findOrFail($request->debit_account_id);
+        $creditAccount = Account::findOrFail($request->credit_account_id);
+
+        if (!$debitAccount->is_active || !$creditAccount->is_active) {
+            throw new \DomainException('One or more double-entry accounts are inactive.');
+        }
+
+        // Get the EmployeeAdvance record from external_data
+        $advanceId = (int) ($request->external_data['employee_advance_id'] ?? 0);
+        if ($advanceId <= 0) {
+            throw new \DomainException('Employee advance ID missing from request external data.');
+        }
+        $advance = \App\Models\EmployeeAdvance::query()->lockForUpdate()->findOrFail($advanceId);
+
+        // Post balanced double-entry via LedgerService
+        $transaction = $this->ledger->post(
+            [
+                'datetime' => now()->format('Y-m-d H:i:s'),
+                'type' => TransactionType::ADVANCE_PAYMENT->value,
+                'reference_type' => 'hrm_employee_advance',
+                'reference_id' => $advance->id,
+                'reference_no' => $request->reference_no,
+                'name' => $request->name,
+                'phone' => $request->phone,
+                'method' => $request->method ?? 'cash',
+                'notes' => $request->notes ?? $request->description,
+                'created_by' => $userId,
+            ],
+            [
+                [
+                    'account_id' => (int) $debitAccount->id,
+                    'debit' => (float) $request->debit_amount,
+                    'credit' => 0,
+                    'notes' => $debitAccount->name,
+                ],
+                [
+                    'account_id' => (int) $creditAccount->id,
+                    'debit' => 0,
+                    'credit' => (float) $request->credit_amount,
+                    'notes' => $creditAccount->name,
+                ],
+            ],
+        );
+
+        // Link transaction to the advance record
+        $advance->transaction_id = $transaction->id;
+        $advance->save();
+
+        // Complete the banking request
         $request->update([
             'transaction_id' => $transaction->id,
             'status' => 'completed',
@@ -452,35 +531,73 @@ class BankingTransactionService
             throw new \DomainException('Payment amount must be greater than zero.');
         }
 
-        // Ensure double-entry accounts are configured
-        if (!$request->debit_account_id || !$request->credit_account_id) {
-            throw new \DomainException(
-                'Double-entry accounts not configured. Ensure debit_account_id and credit_account_id are set.'
-            );
-        }
+        // Sources that use PostingEngine (not pre-stored debit/credit accounts)
+        $usesPostingEngine = in_array($request->source_type, [
+            PaymentRequestSourceType::PAYROLL->value,
+            // Add other PostingEngine-based sources as needed
+        ], true);
 
-        // Validate both accounts exist and are active
-        $debitAccount = Account::query()->find($request->debit_account_id);
-        $creditAccount = Account::query()->find($request->credit_account_id);
+        if ($usesPostingEngine) {
+            // PostingEngine sources must NOT have pre-stored debit/credit accounts or amounts
+            if ($request->debit_account_id || $request->credit_account_id ||
+                $request->debit_amount || $request->credit_amount) {
+                throw new \DomainException(
+                    'PostingEngine sources must not have pre-stored debit/credit accounts. ' .
+                    'Accounts will be resolved dynamically.'
+                );
+            }
+        } else {
+            // Pre-stored sources REQUIRE debit/credit accounts and amounts
+            if (!$request->debit_account_id || !$request->credit_account_id) {
+                throw new \DomainException(
+                    'Double-entry accounts not configured. Ensure debit_account_id and credit_account_id are set.'
+                );
+            }
 
-        if (!$debitAccount) {
-            throw new \DomainException(
-                'Debit account not found (ID: ' . $request->debit_account_id . ').'
-            );
-        }
+            // Validate amounts are set and match
+            if ($request->debit_amount === null || $request->credit_amount === null) {
+                throw new \DomainException(
+                    'Debit and credit amounts are required for pre-stored account sources.'
+                );
+            }
 
-        if (!$creditAccount) {
-            throw new \DomainException(
-                'Credit account not found (ID: ' . $request->credit_account_id . ').'
-            );
-        }
+            if ((float) $request->debit_amount !== (float) $request->credit_amount) {
+                throw new \DomainException(
+                    'Debit amount must equal credit amount. ' .
+                    'Debit: ' . $request->debit_amount . ', Credit: ' . $request->credit_amount
+                );
+            }
 
-        if (!$debitAccount->is_active) {
-            throw new \DomainException('Debit account is inactive.');
-        }
+            if ((float) $request->amount !== (float) $request->debit_amount) {
+                throw new \DomainException(
+                    'Request amount must match debit/credit amount. ' .
+                    'Request: ' . $request->amount . ', Debit/Credit: ' . $request->debit_amount
+                );
+            }
 
-        if (!$creditAccount->is_active) {
-            throw new \DomainException('Credit account is inactive.');
+            // Validate both accounts exist and are active
+            $debitAccount = Account::query()->find($request->debit_account_id);
+            $creditAccount = Account::query()->find($request->credit_account_id);
+
+            if (!$debitAccount) {
+                throw new \DomainException(
+                    'Debit account not found (ID: ' . $request->debit_account_id . ').'
+                );
+            }
+
+            if (!$creditAccount) {
+                throw new \DomainException(
+                    'Credit account not found (ID: ' . $request->credit_account_id . ').'
+                );
+            }
+
+            if (!$debitAccount->is_active) {
+                throw new \DomainException('Debit account is inactive.');
+            }
+
+            if (!$creditAccount->is_active) {
+                throw new \DomainException('Credit account is inactive.');
+            }
         }
     }
 }

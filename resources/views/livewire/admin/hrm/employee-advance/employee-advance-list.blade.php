@@ -144,11 +144,22 @@
                 <div class="sm:col-span-2">
                     <label class="text-sm font-medium text-gray-700">Payment Method</label>
                     <select wire:model.defer="payment_method" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-                        @foreach ($paymentMethods as $method)
-                            <option value="{{ $method }}">{{ ucfirst(str_replace('_', ' ', $method)) }}</option>
+                        <option value="">Select payment method</option>
+                        @foreach ($entryMethods as $method)
+                            <option value="{{ $method->value }}">{{ $method->label() }}</option>
                         @endforeach
                     </select>
                     @error('payment_method') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="text-sm font-medium text-gray-700">Payment Account</label>
+                    <select wire:model.defer="account_id" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                        <option value="">Select payment account (Cash/Bank/MFS)</option>
+                        @foreach ($accounts as $account)
+                            <option value="{{ $account->id }}">{{ $account->name }} ({{ $account->code }})</option>
+                        @endforeach
+                    </select>
+                    @error('account_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 <div class="sm:col-span-2">
                     <label class="text-sm font-medium text-gray-700">Notes</label>

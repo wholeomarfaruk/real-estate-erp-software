@@ -46,13 +46,15 @@ class BankingPaymentRequest extends Model
     ];
 
     protected $casts = [
-        'amount'       => 'decimal:3',
-        'payment_date' => 'date',
-        'approved_at'  => 'datetime',
-        'released_at'  => 'datetime',
-        'completed_at' => 'datetime',
-        'rejected_at'  => 'datetime',
-        'external_data' => 'array',
+        'amount'           => 'decimal:3',
+        'debit_amount'     => 'decimal:3',
+        'credit_amount'    => 'decimal:3',
+        'payment_date'     => 'date',
+        'approved_at'      => 'datetime',
+        'released_at'      => 'datetime',
+        'completed_at'     => 'datetime',
+        'rejected_at'      => 'datetime',
+        'external_data'    => 'array',
     ];
 
     public function bankAccount(): BelongsTo

@@ -27,7 +27,7 @@ class AccountingSettings extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()?->can('accounts.settings.manage'), 403);
+        abort_unless(auth()->user()?->can('accounts.chart.list'), 403);
     }
 
     public function selectEvent(int $id): void
@@ -73,7 +73,7 @@ class AccountingSettings extends Component
 
     public function save(): void
     {
-        abort_unless(auth()->user()?->can('accounts.settings.manage'), 403);
+        abort_unless(auth()->user()?->can('accounts.chart.list'), 403);
 
         $event = AccountingEvent::query()->findOrFail($this->editingId);
         $slots = array_keys(AccountingEventRegistry::slots($event->key));
