@@ -184,8 +184,8 @@ class BankingTransactionService
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
                 'type' => TransactionType::PURCHASE->value,
-                'reference_type' => 'payroll_payment',
-                'reference_id' => $payment->id,
+                'reference_type' => $request->sourceable_type,
+                'reference_id' => $request->sourceable_id,
                 'reference_no' => $request->reference_no,
                 'name' => $request->name ?? $payment->payroll?->employee?->name,
                 'phone' => $request->phone,
@@ -362,8 +362,8 @@ class BankingTransactionService
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
                 'type' => TransactionType::ADVANCE_PAYMENT->value,
-                'reference_type' => 'hrm_employee_advance',
-                'reference_id' => $advance->id,
+                'reference_type' => $request->sourceable_type,
+                'reference_id' => $request->sourceable_id,
                 'reference_no' => $request->reference_no,
                 'name' => $request->name,
                 'phone' => $request->phone,
@@ -441,8 +441,8 @@ class BankingTransactionService
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
                 'type' => TransactionType::SUPPLIER_PAYMENT->value,
-                'reference_type' => 'purchase_invoice',
-                'reference_id' => $invoice->id,
+                'reference_type' => $request->sourceable_type,
+                'reference_id' => $request->sourceable_id,
                 'reference_no' => $request->reference_no ?? $invoice->invoice_no,
                 'name' => $request->name ?? $invoice->supplier?->name,
                 'phone' => $request->phone,
