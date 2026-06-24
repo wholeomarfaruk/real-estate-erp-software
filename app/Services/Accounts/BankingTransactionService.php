@@ -225,6 +225,7 @@ class BankingTransactionService
                 'payroll_id' => $payment->payroll_id,
                 'amount' => (float) $request->debit_amount,
                 'adjustment_date' => now()->toDateString(),
+                'method' => 'adjustment',
             ]);
 
             $advance->adjusted_amount = round((float) $advance->adjusted_amount + (float) $request->debit_amount, 2);

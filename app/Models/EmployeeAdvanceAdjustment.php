@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Accounts\EntryMethod;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,12 +16,14 @@ class EmployeeAdvanceAdjustment extends Model
         'payroll_id',
         'amount',
         'adjustment_date',
+        'method',
         'notes',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'adjustment_date' => 'date',
+        'method' => EntryMethod::class,
     ];
 
     public function employeeAdvance(): BelongsTo
