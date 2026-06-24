@@ -7,6 +7,8 @@ use App\Enums\Accounts\PaymentRequestSourceType;
 use App\Enums\Accounts\TransactionType;
 use App\Models\Account;
 use App\Models\BankingPaymentRequest;
+use App\Models\EmployeeAdvance;
+use App\Models\EmployeeAdvanceAdjustment;
 use App\Models\PayrollPayment;
 use App\Models\PurchaseFund;
 use App\Models\PurchaseInvoice;
@@ -216,9 +218,9 @@ class BankingTransactionService
         // If this is an advance recovery: record the adjustment and update advance status
         $advanceId = (int) ($request->external_data['advance_id'] ?? 0);
         if ($advanceId > 0) {
-            $advance = \App\Models\EmployeeAdvance::query()->lockForUpdate()->findOrFail($advanceId);
+            $advance = EmployeeAdvance::query()->lockForUpdate()->findOrFail($advanceId);
 
-            \App\Models\EmployeeAdvanceAdjustment::query()->create([
+            EmployeeAdvanceAdjustment::query()->create([
                 'employee_advance_id' => $advance->id,
                 'payroll_id' => $payment->payroll_id,
                 'amount' => (float) $request->debit_amount,

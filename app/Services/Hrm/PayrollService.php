@@ -3,6 +3,7 @@
 namespace App\Services\Hrm;
 
 use App\Enums\Accounts\PaymentRequestSourceType;
+use App\Models\Account;
 use App\Models\BankAccount;
 use App\Models\BankingPaymentRequest;
 use App\Models\Employee;
@@ -116,7 +117,7 @@ class PayrollService
             // Advance Recovery Path
             if ($paymentType === 'advance') {
                 $advanceId = (int) ($payload['advance_id'] ?? 0);
-                $advance = \App\Models\EmployeeAdvance::query()
+                $advance = EmployeeAdvance::query()
                     ->lockForUpdate()
                     ->where('employee_id', $payroll->employee_id)
                     ->findOrFail($advanceId);
@@ -125,7 +126,7 @@ class PayrollService
                     throw new \DomainException('Recovery amount exceeds advance remaining balance.');
                 }
 
-                $salaryPayableAccount = \App\Models\Account::query()
+                $salaryPayableAccount = Account::query()
                     ->where('code', 'LIAB-SAL-PAY')
                     ->where('is_active', true)
                     ->firstOrFail();
