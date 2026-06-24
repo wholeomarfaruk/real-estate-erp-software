@@ -131,7 +131,7 @@ class PayrollService
                     ->where('is_active', true)
                     ->firstOrFail();
 
-                $advanceAccount = \App\Models\Account::query()
+                $advanceAccount = Account::query()
                     ->where('code', 'ASSET-EMP-ADV')
                     ->where('is_active', true)
                     ->firstOrFail();

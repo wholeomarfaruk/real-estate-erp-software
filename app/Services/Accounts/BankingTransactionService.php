@@ -68,6 +68,7 @@ class BankingTransactionService
                 return $this->postIncome($request, $userId);
             }
 
+            
             throw new \DomainException("Unsupported payment source type: {$sourceType}");
         });
     }
@@ -216,7 +217,8 @@ class BankingTransactionService
         app(\App\Services\Hrm\PayrollService::class)->recalculatePayrollPaymentStatus($payment->payroll_id);
 
         // If this is an advance recovery: record the adjustment and update advance status
-        $advanceId = (int) ($request->external_data['advance_id'] ?? 0);
+        $externalData = $request->external_data ?? [];
+        $advanceId = (int) ($externalData['advance_id'] ?? 0);
         if ($advanceId > 0) {
             $advance = EmployeeAdvance::query()->lockForUpdate()->findOrFail($advanceId);
 
