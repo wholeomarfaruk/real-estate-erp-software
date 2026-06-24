@@ -26,6 +26,10 @@ class PayrollView extends Component
 
     public ?string $payment_method = null;
 
+    public string $payment_type = 'bank';
+
+    public ?int $advance_id = null;
+
     public ?string $reference_no = null;
 
     public ?string $notes = null;
@@ -99,12 +103,20 @@ class PayrollView extends Component
             ->orderBy('bank_name')
             ->get(['id', 'bank_name', 'type', 'ac_number']);
 
+        $pendingAdvances = \App\Models\EmployeeAdvance::query()
+            ->where('employee_id', $payroll->employee_id)
+            ->whereIn('status', ['pending', 'partial'])
+            ->where('remaining_amount', '>', 0)
+            ->orderBy('advance_date')
+            ->get(['id', 'advance_date', 'amount', 'remaining_amount']);
+
         return view('livewire.admin.hrm.payroll.payroll-view', [
             'payroll' => $payroll,
             'itemsByType' => $payroll->items->groupBy('type'),
             'totalPaid' => $totalPaid,
             'dueAmount' => $dueAmount,
             'bankAccounts' => $bankAccounts,
+            'pendingAdvances' => $pendingAdvances,
             'paymentMethods' => ['cash', 'bank', 'cheque', 'mobile_banking'],
         ])->layout('layouts.admin.admin');
     }
@@ -114,14 +126,22 @@ class PayrollView extends Component
      */
     protected function paymentRules(): array
     {
-        return [
+        $rules = [
             'payment_date' => ['required', 'date'],
             'amount' => ['required', 'numeric', 'gt:0'],
-            'bank_account_id' => ['required', 'exists:bank_accounts,id'],
-            'payment_method' => ['nullable', Rule::in(['cash', 'bank', 'cheque', 'mobile_banking'])],
+            'payment_type' => ['required', Rule::in(['bank', 'advance'])],
             'reference_no' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string'],
         ];
+
+        if ($this->payment_type === 'bank') {
+            $rules['bank_account_id'] = ['required', 'exists:bank_accounts,id'];
+            $rules['payment_method'] = ['nullable', Rule::in(['cash', 'bank', 'cheque', 'mobile_banking'])];
+        } else {
+            $rules['advance_id'] = ['required', 'exists:employee_advances,id'];
+        }
+
+        return $rules;
     }
 
     /**
@@ -139,7 +159,8 @@ class PayrollView extends Component
 
     protected function resetPaymentForm(): void
     {
-        $this->reset(['amount', 'bank_account_id', 'payment_method', 'reference_no', 'notes']);
+        $this->reset(['amount', 'bank_account_id', 'payment_method', 'reference_no', 'notes', 'payment_type', 'advance_id']);
         $this->payment_date = now()->toDateString();
+        $this->payment_type = 'bank';
     }
 }

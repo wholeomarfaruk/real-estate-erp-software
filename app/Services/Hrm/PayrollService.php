@@ -48,7 +48,6 @@ class PayrollService
 
             $bonusItems = $this->normalizeItems($payload['bonus_items'] ?? []);
             $deductionItems = $this->normalizeItems($payload['deduction_items'] ?? []);
-            $advanceAdjustments = $this->normalizeAdvanceAdjustments($payload['advance_adjustments'] ?? []);
 
             $basicSalary = round((float) $salaryStructure->basic_salary, 2);
             $allowanceTotal = round(
@@ -61,7 +60,7 @@ class PayrollService
             );
             $grossSalary = round((float) $salaryStructure->gross_salary, 2);
             $bonusTotal = round($this->sumItemAmounts($bonusItems), 2);
-            $deductionTotal = round($this->sumItemAmounts($deductionItems) + array_sum($advanceAdjustments), 2);
+            $deductionTotal = round($this->sumItemAmounts($deductionItems), 2);
             $netSalary = round(max(0, $grossSalary + $bonusTotal - $deductionTotal), 2);
 
             $payroll = Payroll::query()->create([
@@ -93,8 +92,7 @@ class PayrollService
             $payroll->transaction_id = $transaction->id;
             $payroll->save();
 
-            $this->createPayrollItems($payroll, $salaryStructure, $bonusItems, $deductionItems, array_sum($advanceAdjustments));
-            $this->applyAdvanceAdjustments($payroll, $advanceAdjustments, $actorId);
+            $this->createPayrollItems($payroll, $salaryStructure, $bonusItems, $deductionItems, 0);
 
             return $payroll->refresh();
         });
@@ -107,13 +105,75 @@ class PayrollService
     {
         return DB::transaction(function () use ($payroll, $payload, $actorId): PayrollPayment {
             $payroll = Payroll::query()->lockForUpdate()->findOrFail($payroll->id);
-            $bankAccount = BankAccount::query()->findOrFail((int) $payload['bank_account_id']);
-
             $amount = round((float) $payload['amount'], 2);
 
             if ($amount <= 0) {
                 throw new \DomainException('Payment amount must be greater than zero.');
             }
+
+            $paymentType = $payload['payment_type'] ?? 'bank';
+
+            // Advance Recovery Path
+            if ($paymentType === 'advance') {
+                $advanceId = (int) ($payload['advance_id'] ?? 0);
+                $advance = \App\Models\EmployeeAdvance::query()
+                    ->lockForUpdate()
+                    ->where('employee_id', $payroll->employee_id)
+                    ->findOrFail($advanceId);
+
+                if ($amount > round((float) $advance->remaining_amount, 2)) {
+                    throw new \DomainException('Recovery amount exceeds advance remaining balance.');
+                }
+
+                $salaryPayableAccount = \App\Models\Account::query()
+                    ->where('code', 'LIAB-SAL-PAY')
+                    ->where('is_active', true)
+                    ->firstOrFail();
+
+                $advanceAccount = \App\Models\Account::query()
+                    ->where('code', 'ASSET-EMP-ADV')
+                    ->where('is_active', true)
+                    ->firstOrFail();
+
+                $payment = PayrollPayment::query()->create([
+                    'payroll_id' => $payroll->id,
+                    'payment_date' => $payload['payment_date'],
+                    'amount' => $amount,
+                    'payment_method' => 'advance',
+                    'reference_no' => $payload['reference_no'] ?? null,
+                    'notes' => $payload['notes'] ?? null,
+                    'received_by' => $actorId,
+                ]);
+
+                BankingPaymentRequest::query()->create([
+                    'request_no' => BankingPaymentRequest::generateRequestNo(),
+                    'source_type' => PaymentRequestSourceType::PAYROLL->value,
+                    'sourceable_type' => PayrollPayment::class,
+                    'sourceable_id' => $payment->id,
+                    'transaction_category_id' => $this->payrollCategoryId(),
+                    'transaction_id' => null,
+                    'amount' => $amount,
+                    'description' => $this->payrollRequestDescription($payroll),
+                    'bank_account_id' => null,
+                    'account_id' => null,
+
+                    // Double-Entry for Advance Recovery
+                    'debit_account_id' => $salaryPayableAccount->id,
+                    'debit_amount' => $amount,
+                    'credit_account_id' => $advanceAccount->id,
+                    'credit_amount' => $amount,
+
+                    'status' => 'pending',
+                    'notes' => $this->payrollRequestNotes($payroll, $payment),
+                    'external_data' => ['advance_id' => $advanceId],
+                    'requested_by' => $actorId,
+                ]);
+
+                return $payment->refresh()->load('bankingRequest');
+            }
+
+            // Bank/Cash Payment Path
+            $bankAccount = BankAccount::query()->findOrFail((int) $payload['bank_account_id']);
 
             if (! $bankAccount->account_id) {
                 throw new \DomainException('Selected bank/cash account is not linked to the chart of accounts.');

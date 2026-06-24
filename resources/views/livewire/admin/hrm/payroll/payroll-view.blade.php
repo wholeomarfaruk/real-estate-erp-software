@@ -228,6 +228,22 @@
             </div>
 
             <form wire:submit.prevent="addPayment" class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {{-- Payment Type Toggle --}}
+                <div class="sm:col-span-2">
+                    <label class="text-sm font-medium text-gray-700">Payment Type</label>
+                    <div class="mt-1 flex gap-4">
+                        <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="radio" wire:model.live="payment_type" value="bank">
+                            Bank / Cash Payment
+                        </label>
+                        <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="radio" wire:model.live="payment_type" value="advance">
+                            Advance Recovery
+                        </label>
+                    </div>
+                    @error('payment_type') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
                 <div>
                     <label class="text-sm font-medium text-gray-700">Payment Date</label>
                     <input type="date" wire:model.defer="payment_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none flatpickr-only-date">
@@ -236,29 +252,56 @@
                 <div>
                     <label class="text-sm font-medium text-gray-700">Amount</label>
                     <input type="number" min="0" step="0.01" wire:model.defer="amount" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-                    <p class="mt-1 text-xs text-gray-500">Due Amount: {{ number_format($dueAmount, 2) }}</p>
+                    @if ($payment_type === 'bank')
+                        <p class="mt-1 text-xs text-gray-500">Due Amount: {{ number_format($dueAmount, 2) }}</p>
+                    @endif
                     @error('amount') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
-                <div>
-                    <label class="text-sm font-medium text-gray-700">Bank / Cash Account</label>
-                    <select wire:model.defer="bank_account_id" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-                        <option value="">Select account</option>
-                        @foreach ($bankAccounts as $bankAccount)
-                            <option value="{{ $bankAccount->id }}">{{ $bankAccount->bank_name }} ({{ ucfirst($bankAccount->type) }})</option>
-                        @endforeach
-                    </select>
-                    @error('bank_account_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                </div>
-                <div>
-                    <label class="text-sm font-medium text-gray-700">Payment Method</label>
-                    <select wire:model.defer="payment_method" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-                        <option value="">Select method</option>
-                        @foreach ($paymentMethods as $method)
-                            <option value="{{ $method }}">{{ ucfirst(str_replace('_', ' ', $method)) }}</option>
-                        @endforeach
-                    </select>
-                    @error('payment_method') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                </div>
+
+                {{-- Bank/Cash Account (show only for bank payment type) --}}
+                @if ($payment_type === 'bank')
+                    <div>
+                        <label class="text-sm font-medium text-gray-700">Bank / Cash Account</label>
+                        <select wire:model.defer="bank_account_id" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                            <option value="">Select account</option>
+                            @foreach ($bankAccounts as $bankAccount)
+                                <option value="{{ $bankAccount->id }}">{{ $bankAccount->bank_name }} ({{ ucfirst($bankAccount->type) }})</option>
+                            @endforeach
+                        </select>
+                        @error('bank_account_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-700">Payment Method</label>
+                        <select wire:model.defer="payment_method" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                            <option value="">Select method</option>
+                            @foreach ($paymentMethods as $method)
+                                <option value="{{ $method }}">{{ ucfirst(str_replace('_', ' ', $method)) }}</option>
+                            @endforeach
+                        </select>
+                        @error('payment_method') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                @endif
+
+                {{-- Advance Selection (show only for advance recovery type) --}}
+                @if ($payment_type === 'advance')
+                    <div class="sm:col-span-2">
+                        <label class="text-sm font-medium text-gray-700">Select Advance to Recover</label>
+                        <select wire:model.live="advance_id" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                            <option value="">-- Select advance --</option>
+                            @foreach ($pendingAdvances as $adv)
+                                <option value="{{ $adv->id }}">
+                                    {{ $adv->advance_date->format('d M Y') }} — Remaining: {{ number_format((float) $adv->remaining_amount, 2) }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @if ($advance_id)
+                            <p class="mt-1 text-xs text-gray-500">
+                                Advance amount: {{ number_format((float) $pendingAdvances->firstWhere('id', $advance_id)->amount ?? 0, 2) }}
+                            </p>
+                        @endif
+                        @error('advance_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                @endif
                 <div>
                     <label class="text-sm font-medium text-gray-700">Reference No</label>
                     <input type="text" wire:model.defer="reference_no" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">

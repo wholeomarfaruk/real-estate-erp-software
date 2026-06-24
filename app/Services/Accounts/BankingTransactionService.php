@@ -213,6 +213,23 @@ class BankingTransactionService
         // Recalculate payroll payment status
         app(\App\Services\Hrm\PayrollService::class)->recalculatePayrollPaymentStatus($payment->payroll_id);
 
+        // If this is an advance recovery: record the adjustment and update advance status
+        $advanceId = (int) ($request->external_data['advance_id'] ?? 0);
+        if ($advanceId > 0) {
+            $advance = \App\Models\EmployeeAdvance::query()->lockForUpdate()->findOrFail($advanceId);
+
+            \App\Models\EmployeeAdvanceAdjustment::query()->create([
+                'employee_advance_id' => $advance->id,
+                'payroll_id' => $payment->payroll_id,
+                'amount' => (float) $request->debit_amount,
+                'adjustment_date' => now()->toDateString(),
+            ]);
+
+            $advance->adjusted_amount = round((float) $advance->adjusted_amount + (float) $request->debit_amount, 2);
+            $advance->recalculateStatus();
+            $advance->save();
+        }
+
         return $transaction;
     }
 
