@@ -198,6 +198,10 @@ class BankingTransactionService
             ],
         );
 
+        // Link transaction to payment record
+        $payment->transaction_id = $transaction->id;
+        $payment->save();
+
         // Update banking request with transaction and completion info
         $request->update([
             'transaction_id' => $transaction->id,
@@ -205,6 +209,9 @@ class BankingTransactionService
             'completed_by' => $userId,
             'completed_at' => now(),
         ]);
+
+        // Recalculate payroll payment status
+        app(\App\Services\Hrm\PayrollService::class)->recalculatePayrollPaymentStatus($payment->payroll_id);
 
         return $transaction;
     }
@@ -533,7 +540,7 @@ class BankingTransactionService
 
         // Sources that use PostingEngine (not pre-stored debit/credit accounts)
         $usesPostingEngine = in_array($request->source_type, [
-            PaymentRequestSourceType::PAYROLL->value,
+            // Payroll now uses pre-stored debit/credit (not PostingEngine)
             // Add other PostingEngine-based sources as needed
         ], true);
 

@@ -131,6 +131,15 @@ class PayrollService
                 $bankAccount->type
             );
 
+            // Resolve salary payable account (debit account for payment)
+            $salaryPayableAccount = \App\Models\Account::query()
+                ->where('code', 'LIAB-SAL-PAY')
+                ->where('is_active', true)
+                ->firstOrFail();
+
+            // Payment account (credit account - cash/bank)
+            $paymentAccountId = (int) $bankAccount->account_id;
+
             $payment = PayrollPayment::query()->create([
                 'payroll_id' => $payroll->id,
                 'payment_date' => $payload['payment_date'],
@@ -151,6 +160,14 @@ class PayrollService
                 'amount' => $amount,
                 'description' => $this->payrollRequestDescription($payroll),
                 'bank_account_id' => $bankAccount->id,
+                'account_id' => $paymentAccountId,
+
+                // Double-Entry (pre-stored for direct LedgerService posting)
+                'debit_account_id' => $salaryPayableAccount->id,
+                'debit_amount' => $amount,
+                'credit_account_id' => $paymentAccountId,
+                'credit_amount' => $amount,
+
                 'status' => 'pending',
                 'notes' => $this->payrollRequestNotes($payroll, $payment),
                 'requested_by' => $actorId,
@@ -160,71 +177,8 @@ class PayrollService
         });
     }
 
-    public function completePayrollPayment(BankingPaymentRequest $bankingRequest, int $actorId): PayrollPayment
-    {
-        return DB::transaction(function () use ($bankingRequest, $actorId): PayrollPayment {
-            if ($bankingRequest->status !== 'released') {
-                throw new \DomainException('Only a released payroll request can be completed.');
-            }
 
-            if ($bankingRequest->sourceable_type !== PayrollPayment::class || ! $bankingRequest->sourceable_id) {
-                throw new \DomainException('This banking request is not linked to a payroll payment.');
-            }
-
-            $payment = PayrollPayment::query()
-                ->lockForUpdate()
-                ->with(['payroll.employee:id,name'])
-                ->findOrFail($bankingRequest->sourceable_id);
-
-            if ($payment->transaction_id) {
-                throw new \DomainException('This payroll payment is already completed.');
-            }
-
-            $payroll = Payroll::query()
-                ->lockForUpdate()
-                ->with('employee:id,name')
-                ->findOrFail($payment->payroll_id);
-
-            $bankAccount = BankAccount::query()->findOrFail($bankingRequest->bank_account_id);
-            $paymentAccountId = (int) $bankAccount->account_id;
-
-            if ($paymentAccountId <= 0) {
-                throw new \DomainException('Selected bank/cash account is not linked to the chart of accounts.');
-            }
-
-            $paymentMethod = $this->normalizePaymentMethod($payment->payment_method, $bankAccount->type);
-
-            $transaction = $this->accountingService->createPayrollPaymentTransaction(
-                amount: (float) $payment->amount,
-                date: $payment->payment_date->format('Y-m-d'),
-                paymentMethod: $paymentMethod,
-                notes: $this->payrollCompletionNotes($payroll, $payment),
-                actorId: $actorId,
-                referenceType: 'hrm_payroll_payment',
-                referenceId: $payment->id,
-                paymentAccountId: $paymentAccountId,
-                transactionCategoryId: $bankingRequest->transaction_category_id ?: $this->payrollCategoryId(),
-                name: $payroll->employee?->name
-            );
-
-            $payment->transaction_id = $transaction->id;
-            $payment->payment_method = $paymentMethod;
-            $payment->save();
-
-            $bankingRequest->update([
-                'transaction_id' => $transaction->related_transaction_id,
-                'status' => 'completed',
-                'completed_by' => $actorId,
-                'completed_at' => now(),
-            ]);
-
-            $this->recalculatePayrollPaymentStatus($payroll->id);
-
-            return $payment->refresh()->load('bankingRequest');
-        });
-    }
-
-    protected function recalculatePayrollPaymentStatus(int $payrollId): void
+    public function recalculatePayrollPaymentStatus(int $payrollId): void
     {
         $payroll = Payroll::query()->lockForUpdate()->findOrFail($payrollId);
 
