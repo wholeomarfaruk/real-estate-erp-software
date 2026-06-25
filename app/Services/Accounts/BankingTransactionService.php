@@ -102,14 +102,15 @@ class BankingTransactionService
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
                 'type' => $request->source_type,
-                'reference_type' => 'banking_payment_request',
-                'reference_id' => $request->id,
+                'reference_type' => $request->sourceable_type,
+                'reference_id' => $request->sourceable_id,
                 'reference_no' => $request->reference_no,
                 'name' => $request->name,
                 'phone' => $request->phone,
                 'method' => $request->method ?? 'bank',
                 'notes' => $request->notes ?? $request->description,
                 'created_by' => $userId,
+                'external_data' => $request->external_data,
             ],
             [
                 [
