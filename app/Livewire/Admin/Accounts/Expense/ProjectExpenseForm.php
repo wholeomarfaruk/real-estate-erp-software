@@ -97,8 +97,12 @@ class ProjectExpenseForm extends Component
             $this->redirect(route('admin.accounts.expenses.index'));
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->setErrorBag($e->validator->errors());
+            $errors = $e->validator->errors()->all();
+            $errorMsg = count($errors) === 1 ? $errors[0] : implode(', ', $errors);
+            $this->dispatch('notify', type: 'error', message: 'Validation Error: ' . $errorMsg);
         } catch (\Exception $e) {
             session()->flash('error', 'Failed to create expense: ' . $e->getMessage());
+            $this->dispatch('notify', type: 'error', message: 'Failed to create expense: ' . $e->getMessage());
         }
     }
 

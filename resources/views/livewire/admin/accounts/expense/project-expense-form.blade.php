@@ -1,5 +1,8 @@
 {{-- Project Expense Form — focused entry for project expenses with payment tracking --}}
-<div class="prj-page" x-data x-init="$store.pageName = { name: 'New Project Expense', slug: 'accounts' }">
+<div class="prj-page" x-data x-init="
+  $store.pageName = { name: 'New Project Expense', slug: 'accounts' };
+  console.log('ProjectExpenseForm loaded', @this);
+">
 <style>
 :root{
   --ink:#14181f; --ink-2:#2a2f3a; --muted:#6b7280; --muted-2:#9aa0a6;
@@ -197,14 +200,38 @@
     </div>
   </div>
 
+  {{-- Error Summary --}}
+  @if ($errors->any())
+  <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:12px;margin-bottom:16px;color:#dc2626;">
+    <strong>Please fix the following errors:</strong>
+    <ul style="margin:8px 0 0 20px;padding:0;">
+      @foreach ($errors->all() as $error)
+        <li style="margin:4px 0;">{{ $error }}</li>
+      @endforeach
+    </ul>
+  </div>
+  @endif
+
   {{-- Footer --}}
   <div class="foot">
     <a href="{{ route('admin.accounts.expenses.index') }}" class="btn">Cancel</a>
-    <button type="button" wire:click="save" class="btn primary" wire:loading.attr="disabled" wire:target="save">
-      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-      Create Request
+    <button type="button" wire:click="save" class="btn primary" wire:loading.attr="disabled" wire:target="save" style="min-width:140px;">
+      <span wire:loading.remove wire:target="save">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Create Request
+      </span>
+      <span wire:loading wire:target="save">
+        <svg class="ic" style="animation:spin 1s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><path d="M12 1v6m0 6v6"/><path d="M4.22 4.22l4.24 4.24m3.08 3.08l4.24 4.24"/><path d="M1 12h6m6 0h6"/><path d="M4.22 19.78l4.24-4.24m3.08-3.08l4.24-4.24"/></svg>
+        Submitting...
+      </span>
     </button>
   </div>
+
+  <style>
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
 
 </div>
 </div>
