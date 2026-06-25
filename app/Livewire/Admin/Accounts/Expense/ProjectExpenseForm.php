@@ -65,7 +65,7 @@ class ProjectExpenseForm extends Component
                 'expense_account_id' => 'required|integer|exists:accounts,id',
                 'payment_account_id' => 'required|integer|exists:accounts,id',
                 'payment_method'     => 'required|string|in:cash,bank,cheque,mobile_banking',
-                'transaction_type'   => 'required|string|in:' . implode(',', array_keys(TransactionType::payments())),
+                'transaction_type'   => 'required|string|in:' . implode(',', TransactionType::payments()),
                 'title'              => 'required|string|max:200',
                 'date'               => 'required|date',
                 'amount'             => 'required|numeric|gt:0',
