@@ -46,17 +46,21 @@ class RequestEngine
             $externalData['attachments'] = $attachmentIds;
         }
 
+        $roundedAmount = round($amount, 2);
+
         return BankingPaymentRequest::create([
-            'request_no'       => BankingPaymentRequest::generateRequestNo(),
-            'source_type'      => 'project_expense',
-            'sourceable_type'  => Project::class,
-            'sourceable_id'    => $projectId,
-            'amount'           => round($amount, 2),
-            'description'      => $title,
-            'requested_by'     => $userId,
-            'external_data'    => $externalData,
-            'debit_account_id' => $expenseAccountId,
+            'request_no'        => BankingPaymentRequest::generateRequestNo(),
+            'source_type'       => 'project_expense',
+            'sourceable_type'   => Project::class,
+            'sourceable_id'     => $projectId,
+            'amount'            => $roundedAmount,
+            'description'       => $title,
+            'requested_by'      => $userId,
+            'external_data'     => $externalData,
+            'debit_account_id'  => $expenseAccountId,
+            'debit_amount'      => $roundedAmount,
             'credit_account_id' => $paymentAccountId,
+            'credit_amount'     => $roundedAmount,
         ]);
     }
 
@@ -93,15 +97,19 @@ class RequestEngine
             $externalData['attachments'] = $attachmentIds;
         }
 
+        $roundedAmount = round($amount, 2);
+
         return BankingPaymentRequest::create([
             'request_no'        => BankingPaymentRequest::generateRequestNo(),
             'source_type'       => $expenseType,
-            'amount'            => round($amount, 2),
+            'amount'            => $roundedAmount,
             'description'       => $title,
             'requested_by'      => $userId,
             'external_data'     => $externalData,
             'debit_account_id'  => $expenseAccountId,
+            'debit_amount'      => $roundedAmount,
             'credit_account_id' => $paymentAccountId,
+            'credit_amount'     => $roundedAmount,
         ]);
     }
 }
