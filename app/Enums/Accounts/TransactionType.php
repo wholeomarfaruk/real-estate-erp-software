@@ -20,6 +20,7 @@ enum TransactionType: string
     case LOAN_RECEIVED       = 'loan_received';
     case LOAN_REPAYMENT      = 'loan_repayment';
     case SALARY_PAYMENT      = 'salary_payment';
+    case MATERIAL_CONSUMPTION = 'material_consumption';
     case ADVANCE             = 'advance';
 
     public function label(): string
@@ -41,6 +42,7 @@ enum TransactionType: string
             self::LOAN_RECEIVED       => 'Loan Received',
             self::LOAN_REPAYMENT      => 'Loan Repayment',
             self::SALARY_PAYMENT      => 'Salary Payment',
+            self::MATERIAL_CONSUMPTION => 'Material Consumption',
             self::ADVANCE             => 'Advance (Legacy)',
         };
     }
@@ -64,6 +66,7 @@ enum TransactionType: string
             self::LOAN_RECEIVED       => 'bg-cyan-50 text-cyan-700 border-cyan-200',
             self::LOAN_REPAYMENT      => 'bg-cyan-100 text-cyan-800 border-cyan-300',
             self::SALARY_PAYMENT      => 'bg-pink-50 text-pink-700 border-pink-200',
+            self::MATERIAL_CONSUMPTION => 'bg-orange-50 text-orange-700 border-orange-200',
             self::ADVANCE             => 'bg-gray-100 text-gray-600 border-gray-200',
         };
     }
@@ -84,6 +87,7 @@ enum TransactionType: string
             self::OWNER_WITHDRAWAL,
             self::LOAN_REPAYMENT,
             self::SALARY_PAYMENT,
+            self::MATERIAL_CONSUMPTION,
             self::ADVANCE_PAYMENT
             => ReportGroup::PAYMENT,
 

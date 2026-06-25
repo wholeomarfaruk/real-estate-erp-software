@@ -49,6 +49,25 @@ class StockConsumptionView extends Component
         }
     }
 
+    public function cancelConsumption(): void
+    {
+        $this->authorizePermission('inventory.stock.consumption.cancel');
+
+        if ($this->stockConsumption->status !== StockConsumptionStatus::POSTED) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Only posted consumption can be cancelled.']);
+
+            return;
+        }
+
+        try {
+            app(StockConsumptionService::class)->cancelConsumption($this->stockConsumption, (int) auth()->id());
+            $this->stockConsumption = $this->stockConsumption->refresh()->load(['store', 'project', 'creator', 'poster', 'items.product']);
+            $this->dispatch('toast', ['type' => 'success', 'message' => 'Consumption cancelled successfully.']);
+        } catch (\Throwable $throwable) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
+        }
+    }
+
     public function render(): View
     {
         return view('livewire.admin.inventory.stock-consumption.stock-consumption-view')

@@ -375,6 +375,7 @@ class AssignPermissionSeeder extends Seeder
                 'inventory.stock.consumption.create',
                 'inventory.stock.consumption.update',
                 'inventory.stock.consumption.post',
+                'inventory.stock.consumption.cancel',
                 'inventory.stock.ledger.view',
                 'inventory.purchase_order.view',
                 'inventory.purchase_order.create',

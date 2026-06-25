@@ -157,6 +157,22 @@
                                                     @endif
                                                 @endcan
 
+                                                @can('inventory.stock.consumption.cancel')
+                                                    @if ($consumption->status?->value === 'posted')
+                                                        <button type="button" x-data="livewireConfirm"
+                                                            @click="confirmAction({
+                                                                id: {{ $consumption->id }},
+                                                                method: 'cancelConsumption',
+                                                                title: 'Cancel this consumption?',
+                                                                text: 'Stock balance will be restored and accounting entry reversed.',
+                                                                confirmText: 'Yes, cancel consumption'
+                                                            })"
+                                                            class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50">
+                                                            Cancel
+                                                        </button>
+                                                    @endif
+                                                @endcan
+
                                                 @can('inventory.stock.consumption.delete')
                                                     @if ($consumption->status?->value === 'draft')
                                                         <button type="button" x-data="livewireConfirm"

@@ -98,6 +98,7 @@ class PermissionSeeder extends Seeder
             ['id' => 54, 'name' => 'inventory.stock.consumption.update'],
             ['id' => 55, 'name' => 'inventory.stock.consumption.post'],
             ['id' => 56, 'name' => 'inventory.stock.consumption.delete'],
+            ['id' => 291, 'name' => 'inventory.stock.consumption.cancel'],
 
             ['id' => 57, 'name' => 'inventory.stock.ledger.view'],
             ['id' => 58, 'name' => 'inventory.stock.report.view'],

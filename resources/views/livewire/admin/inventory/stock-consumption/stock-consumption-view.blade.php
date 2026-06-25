@@ -110,6 +110,21 @@
                         </button>
                     @endif
                 @endcan
+
+                @can('inventory.stock.consumption.cancel')
+                    @if ($stockConsumption->status?->value === 'posted')
+                        <button type="button" x-data="livewireConfirm"
+                            @click="confirmAction({
+                                method: 'cancelConsumption',
+                                title: 'Cancel this consumption?',
+                                text: 'Stock balance will be restored and accounting entry reversed.',
+                                confirmText: 'Yes, cancel consumption'
+                            })"
+                            class="inline-flex w-full items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700">
+                            Cancel Consumption
+                        </button>
+                    @endif
+                @endcan
             </div>
         </div>
     </div>

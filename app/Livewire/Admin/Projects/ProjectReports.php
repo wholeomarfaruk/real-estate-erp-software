@@ -3,7 +3,6 @@
 namespace App\Livewire\Admin\Projects;
 
 use App\Enums\Projects\EstimateStatus;
-use App\Models\Expense;
 use App\Models\Project;
 use App\Models\StockConsumption;
 use Livewire\Component;
@@ -50,17 +49,33 @@ class ProjectReports extends Component
         }
         $approvedBudget = $estMaterial + $estLabour + $estOther;
 
-        // Actual: material from stock consumptions
-        $consumptions = StockConsumption::with('items.product')
+        // Actual: material from stock consumptions (with phase info from transaction)
+        $consumptions = StockConsumption::with('items.product', 'transaction')
             ->where('project_id', $this->project->id)
             ->where('status', 'posted')
             ->get();
 
         $actualMaterialCost = 0;
+        $materialByPhase = []; // phase => total cost
+
         foreach ($consumptions as $con) {
-            foreach ($con->items as $item) {
-                $actualMaterialCost += (float)($item->total_price ?? ($item->quantity * ($item->unit_price ?? 0)));
+            $phase = null;
+            if ($con->transaction) {
+                $phase = $con->transaction->external_data['project_work_phase'] ?? null;
             }
+            $phase = $phase && in_array($phase, array_map(fn($c) => $c->value, \App\Enums\Projects\WorkPhase::cases())) ? $phase : 'others';
+
+            if (!isset($materialByPhase[$phase])) {
+                $materialByPhase[$phase] = 0;
+            }
+
+            $itemCost = 0;
+            foreach ($con->items as $item) {
+                $itemCost += (float)($item->total_price ?? ($item->quantity * ($item->unit_price ?? 0)));
+            }
+
+            $actualMaterialCost += $itemCost;
+            $materialByPhase[$phase] += $itemCost;
         }
 
         // Actual: labour + other from posted expense transactions (ledger)
@@ -68,41 +83,40 @@ class ProjectReports extends Component
             ->with('lines')
             ->get();
 
-        $actualLabour = 0;
         $actualOther  = 0;
-        $actualByPhase = []; // phase => ['labour' => X, 'other' => Y]
+        $actualByPhase = []; // phase => ['other' => Y]
 
         foreach ($expenses as $exp) {
-            // Categories were removed from transactions; labour vs other can no longer
-            // be derived from a category, so all spend falls under "other".
-            $isLabour = false;
-            $type = 'other';
+            // All expense transactions fall under "other" (categories removed)
             $amount = (float) $exp->lines->sum('credit');
-
-            if ($isLabour) {
-                $actualLabour += $amount;
-            } else {
-                $actualOther += $amount;
-            }
+            $actualOther += $amount;
 
             // Get phase from external_data
             $phase = $exp->external_data['project_work_phase'] ?? null;
             $phase = $phase && in_array($phase, array_map(fn($c) => $c->value, \App\Enums\Projects\WorkPhase::cases())) ? $phase : 'others';
 
             if (!isset($actualByPhase[$phase])) {
-                $actualByPhase[$phase] = ['labour' => 0, 'other' => 0];
+                $actualByPhase[$phase] = ['other' => 0];
             }
-            $actualByPhase[$phase][$type] += $amount;
+            $actualByPhase[$phase]['other'] += $amount;
         }
 
-        $totalSpent    = $actualMaterialCost + $actualLabour + $actualOther;
+        $totalSpent    = $actualMaterialCost + $actualOther;
         $remaining     = $approvedBudget - $totalSpent;
         $budgetDiff    = $totalSpent - $approvedBudget;
 
-        // Monthly spend trend (last 12 months)
-        $monthlySpend = $expenses
+        // Monthly spend trend (last 12 months) — merge expenses + materials
+        $expenseByMonth = $expenses
             ->groupBy(fn($e) => $e->datetime?->format('Y-m') ?? 'unknown')
-            ->map(fn($group) => (float) $group->sum(fn($e) => $e->lines->sum('credit')))
+            ->map(fn($group) => (float) $group->sum(fn($e) => $e->lines->sum('credit')));
+
+        $materialByMonth = $consumptions
+            ->groupBy(fn($c) => $c->consumption_date?->format('Y-m') ?? 'unknown')
+            ->map(fn($group) => (float) $group->sum(fn($c) => $c->items->sum('total_price')));
+
+        $monthlySpend = $expenseByMonth
+            ->mergeRecursive($materialByMonth)
+            ->map(fn($v) => is_array($v) ? array_sum($v) : $v)
             ->sortKeys()
             ->take(-12);
 
@@ -127,44 +141,37 @@ class ProjectReports extends Component
 
             // Estimated totals for this phase by type
             $phaseMaterialEst = $phaseEstimates['material'] ?? 0;
-            $phaseLabourEst   = $phaseEstimates['labour'] ?? 0;
             $phaseOtherEst    = $phaseEstimates['indirect'] ?? 0;
-            $phaseEstTotal    = $phaseMaterialEst + $phaseLabourEst + $phaseOtherEst;
+            $phaseEstTotal    = $phaseMaterialEst + $phaseOtherEst;
 
-            // Actual: from stock consumptions (material) and from phase-tagged transactions (labour/other)
-            $phaseMaterialActual = 0;
-            $phaseLabourActual   = $actualByPhase[$key]['labour'] ?? 0;
+            // Actual: material is now allocated to phases via transaction external_data
+            $phaseMaterialActual = $materialByPhase[$key] ?? 0;
             $phaseOtherActual    = $actualByPhase[$key]['other'] ?? 0;
-            $phaseActualTotal    = $phaseMaterialActual + $phaseLabourActual + $phaseOtherActual;
+            $phaseActualTotal    = $phaseMaterialActual + $phaseOtherActual;
 
             $phaseRows[] = [
                 'phase'            => $phase->label(),
                 'estimated'        => $phaseEstTotal,
                 'material_est'     => $phaseMaterialEst,
-                'labour_est'       => $phaseLabourEst,
                 'other_est'        => $phaseOtherEst,
                 'material_actual'  => $phaseMaterialActual,
-                'labour_actual'    => $phaseLabourActual,
                 'other_actual'     => $phaseOtherActual,
                 'actual'           => $phaseActualTotal,
             ];
         }
 
-        // Add "Others" row for unassigned expenses
-        $othersMaterialActual = 0;
-        $othersLabourActual   = $actualByPhase['others']['labour'] ?? 0;
+        // Add "Others" row for unassigned expenses + unphased material consumptions
+        $othersMaterialActual = $materialByPhase['others'] ?? 0;
         $othersOtherActual    = $actualByPhase['others']['other'] ?? 0;
-        $othersActualTotal    = $othersMaterialActual + $othersLabourActual + $othersOtherActual;
+        $othersActualTotal    = $othersMaterialActual + $othersOtherActual;
 
         if ($othersActualTotal > 0) {
             $phaseRows[] = [
                 'phase'            => 'Others',
                 'estimated'        => 0,
                 'material_est'     => 0,
-                'labour_est'       => 0,
                 'other_est'        => 0,
                 'material_actual'  => $othersMaterialActual,
-                'labour_actual'    => $othersLabourActual,
                 'other_actual'     => $othersOtherActual,
                 'actual'           => $othersActualTotal,
             ];
@@ -175,7 +182,6 @@ class ProjectReports extends Component
         if ($totalSpent > 0) {
             $composition = [
                 'material' => round(($actualMaterialCost / $totalSpent) * 100, 1),
-                'labour'   => round(($actualLabour / $totalSpent) * 100, 1),
                 'other'    => round(($actualOther / $totalSpent) * 100, 1),
             ];
         }
@@ -185,7 +191,7 @@ class ProjectReports extends Component
         return view('livewire.admin.projects.project-reports', compact(
             'project', 'approvedBudget', 'totalSpent', 'remaining', 'budgetDiff',
             'estMaterial', 'estLabour', 'estOther',
-            'actualMaterialCost', 'actualLabour', 'actualOther',
+            'actualMaterialCost', 'actualOther',
             'monthlySpend', 'phaseRows', 'composition', 'showEditButton'
         ))->layout('layouts.admin.admin');
     }

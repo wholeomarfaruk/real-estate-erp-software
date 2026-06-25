@@ -83,6 +83,7 @@ trait InteractsWithInventoryAccess
             'inventory.stock.consumption.update',
             'inventory.stock.consumption.post',
             'inventory.stock.consumption.delete',
+            'inventory.stock.consumption.cancel',
         ];
     }
 

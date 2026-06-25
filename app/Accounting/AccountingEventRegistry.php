@@ -145,6 +145,17 @@ class AccountingEventRegistry
                     ['leg' => 'credit', 'account_source' => 'fixed', 'account_code' => 'ASSET-EMP-ADV', 'description' => 'Employee advance cleared'],
                 ],
             ],
+            'inventory.material_consumption' => [
+                'module'           => 'inventory',
+                'name'             => 'Inventory — Material Consumption',
+                'description'      => 'Materials consumed from stock. Dr Material Consumption expense, Cr Inventory asset reduced.',
+                'transaction_type' => TransactionType::MATERIAL_CONSUMPTION->value,
+                'runtime_slots'    => [],
+                'default_rules'    => [
+                    ['leg' => 'debit',  'account_source' => 'fixed', 'account_code' => '1120',      'description' => 'Material consumption expense'],
+                    ['leg' => 'credit', 'account_source' => 'fixed', 'account_code' => 'ASSET-INV', 'description' => 'Inventory reduced'],
+                ],
+            ],
         ];
     }
 

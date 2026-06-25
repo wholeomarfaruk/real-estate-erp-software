@@ -23,6 +23,7 @@ class StockConsumption extends Model
         'created_by',
         'posted_by',
         'posted_at',
+        'transaction_id',
     ];
 
     protected $casts = [
@@ -54,6 +55,11 @@ class StockConsumption extends Model
     public function items(): HasMany
     {
         return $this->hasMany(StockConsumptionItem::class);
+    }
+
+    public function transaction(): BelongsTo
+    {
+        return $this->belongsTo(Transaction::class);
     }
 
     public function scopePosted(Builder $query): Builder

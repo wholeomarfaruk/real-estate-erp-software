@@ -112,76 +112,13 @@ td.amt { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12.5px; 
       <div class="value"><span class="cur">BDT</span>{{ number_format($thisMonth, 2) }}</div>
       <div class="meta">{{ now()->format('F Y') }}</div>
     </div>
-    <div class="kpi labour">
-      <div class="label">Labour Expense</div>
-      <div class="value"><span class="cur">BDT</span>{{ number_format($labourTotal, 2) }}</div>
-      <div class="meta">{{ $totalAmount > 0 ? round(($labourTotal/$totalAmount)*100, 1) : 0 }}% of total</div>
-    </div>
     <div class="kpi other">
-      <div class="label">Other Expense</div>
-      <div class="value"><span class="cur">BDT</span>{{ number_format($otherTotal, 2) }}</div>
-      <div class="meta">{{ $totalAmount > 0 ? round(($otherTotal/$totalAmount)*100, 1) : 0 }}% of total</div>
+      <div class="label">Pending Approval</div>
+      <div class="value"><span class="cur">BDT</span>{{ number_format($pendingTotal, 2) }}</div>
+      <div class="meta">Awaiting payment</div>
     </div>
   </div>
 
-  {{-- Estimate vs Actual widget --}}
-  @if($categories->isNotEmpty())
-  <div class="eva">
-    <div class="eva-head">
-      <h3>Estimate vs Actual — by Category</h3>
-      <span class="sub">Against approved estimate</span>
-    </div>
-    <table class="eva-tbl">
-      <thead>
-        <tr>
-          <th style="width:30%">Category</th>
-          <th class="right" style="width:18%">Estimate</th>
-          <th class="right" style="width:18%">Actual</th>
-          <th class="right" style="width:18%">Remaining</th>
-          <th class="right" style="width:16%">Utilisation</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach($categories as $cat)
-          @php
-            $isLabour = str_contains(strtolower($cat->name), 'labour') || str_contains(strtolower($cat->name), 'labor');
-            $catType = $isLabour ? 'labour' : 'other';
-            $actual = (float) ($actualByCategory[$cat->id] ?? 0);
-            $est = 0;
-            $rem = -$actual;
-            $util = 0;
-            $isOver = $actual > $est && $est > 0;
-          @endphp
-          @if($actual > 0)
-          <tr>
-            <td><div class="cat"><span class="type-tag {{ $catType }}">{{ ucfirst($catType) }}</span>{{ $cat->name }}</div></td>
-            <td class="right mono">{{ $est > 0 ? number_format($est, 2) : '—' }}</td>
-            <td class="right mono">{{ number_format($actual, 2) }}</td>
-            <td class="right">
-              @if($est > 0)
-                <span class="{{ $rem >= 0 ? 'remain-pos' : 'remain-neg' }} mono">{{ $rem >= 0 ? '+' : '−' }}{{ number_format(abs($rem), 2) }}</span>
-              @else
-                <span style="color:var(--muted-2)">—</span>
-              @endif
-            </td>
-            <td class="right">
-              @if($est > 0)
-                @php $util = min(100, round(($actual/$est)*100)); @endphp
-                <div class="util">
-                  <div class="util-track"><div class="util-fill" style="width:{{ $util }}%;background:{{ $isOver ? 'var(--danger)' : 'var(--labour)' }}"></div></div>
-                  <span class="util-pct" style="{{ $isOver ? 'color:var(--danger)' : '' }}">{{ $util }}%</span>
-                </div>
-              @else
-                <span style="color:var(--muted-2)">—</span>
-              @endif
-            </td>
-          </tr>
-          @endif
-        @endforeach
-      </tbody>
-    </table>
-  </div>
-  @endif
 
   {{-- Filter bar --}}
   <div class="filterbar" x-data="{ tab: 'all' }">

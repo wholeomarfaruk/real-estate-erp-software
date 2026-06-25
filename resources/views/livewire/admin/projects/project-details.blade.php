@@ -129,6 +129,9 @@
     <div class="kpi spent">
       <div class="label">Spent to date</div>
       <div class="value"><span class="cur">BDT</span>{{ number_format($totalSpent, 2) }}</div>
+      <div class="meta" style="font-size: 10px; color: var(--muted-2); margin-top: 4px;">
+        Material: {{ number_format($materialCost, 2) }} | Expenses: {{ number_format($expenseCost, 2) }}
+      </div>
       <div class="meta">
         @if($project->budget && $project->budget > 0)
           @php $spentPct = round(($totalSpent / $project->budget) * 100, 1); @endphp

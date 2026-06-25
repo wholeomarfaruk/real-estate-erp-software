@@ -34,6 +34,8 @@ class StockConsumptionForm extends Component
 
     public ?string $remarks = null;
 
+    public ?string $work_phase = null;
+
     public string $status = 'draft';
 
     /**
@@ -141,7 +143,7 @@ class StockConsumptionForm extends Component
         $saved = $this->save(StockConsumptionStatus::DRAFT);
 
         try {
-            app(StockConsumptionService::class)->postConsumption($saved, (int) auth()->id());
+            app(StockConsumptionService::class)->postConsumption($saved, (int) auth()->id(), $this->work_phase);
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Stock consumption posted successfully.']);
         } catch (\Throwable $throwable) {
             $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
@@ -169,6 +171,7 @@ class StockConsumptionForm extends Component
             'stores' => $storesQuery->get(['id', 'name', 'code', 'type', 'project_id']),
             'projects' => \App\Models\Project::query()->orderBy('name')->get(['id', 'name', 'code']),
             'products' => \App\Models\Product::query()->active()->orderBy('name')->get(['id', 'name', 'sku']),
+            'workPhases' => \App\Enums\Projects\WorkPhase::cases(),
             'statuses' => StockConsumptionStatus::cases(),
         ])->layout('layouts.admin.admin');
     }

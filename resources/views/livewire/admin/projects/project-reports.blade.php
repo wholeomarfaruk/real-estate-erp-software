@@ -138,14 +138,12 @@ table.rep tfoot td { padding:12px 18px; border-top:2px solid var(--ink); font-we
 
   {{-- Cost composition + Estimate vs Actual --}}
   @php
-    $total = $actualMaterialCost + $actualLabour + $actualOther;
+    $total = $actualMaterialCost + $actualOther;
     $matPct = $total > 0 ? round(($actualMaterialCost/$total)*100, 1) : 0;
-    $labPct = $total > 0 ? round(($actualLabour/$total)*100, 1) : 0;
     $othPct = $total > 0 ? round(($actualOther/$total)*100, 1) : 0;
-    $donutGradient = "conic-gradient(var(--material) 0% {$matPct}%, var(--labour) {$matPct}% " . ($matPct+$labPct) . "%, var(--other) " . ($matPct+$labPct) . "% 100%)";
+    $donutGradient = "conic-gradient(var(--material) 0% {$matPct}%, var(--other) {$matPct}% 100%)";
 
     $matActPct = $estMaterial > 0 ? round(($actualMaterialCost/$estMaterial)*100) : 0;
-    $labActPct = $estLabour > 0 ? round(($actualLabour/$estLabour)*100) : 0;
     $othActPct = $estOther > 0 ? round(($actualOther/$estOther)*100) : 0;
   @endphp
   <div class="grid-2">
@@ -168,14 +166,8 @@ table.rep tfoot td { padding:12px 18px; border-top:2px solid var(--ink); font-we
               <span class="leg-pct">{{ $matPct }}%</span>
             </div>
             <div class="leg-row">
-              <span class="leg-dot" style="background:var(--labour)"></span>
-              <span class="leg-name">Labour</span>
-              <span class="leg-val">{{ number_format($actualLabour, 2) }}</span>
-              <span class="leg-pct">{{ $labPct }}%</span>
-            </div>
-            <div class="leg-row">
               <span class="leg-dot" style="background:var(--other)"></span>
-              <span class="leg-name">Other</span>
+              <span class="leg-name">Expenses</span>
               <span class="leg-val">{{ number_format($actualOther, 2) }}</span>
               <span class="leg-pct">{{ $othPct }}%</span>
             </div>
@@ -197,8 +189,7 @@ table.rep tfoot td { padding:12px 18px; border-top:2px solid var(--ink); font-we
         <div class="eva-bars">
           @foreach([
             ['label'=>'Material','color'=>'var(--material)','actual'=>$actualMaterialCost,'est'=>$estMaterial],
-            ['label'=>'Labour','color'=>'var(--labour)','actual'=>$actualLabour,'est'=>$estLabour],
-            ['label'=>'Other / Overhead','color'=>'var(--other)','actual'=>$actualOther,'est'=>$estOther],
+            ['label'=>'Expenses','color'=>'var(--other)','actual'=>$actualOther,'est'=>$estOther],
           ] as $row)
             @php
               $w = $row['est'] > 0 ? round(($row['actual']/$row['est'])*100) : 0;
@@ -235,7 +226,6 @@ table.rep tfoot td { padding:12px 18px; border-top:2px solid var(--ink); font-we
           <th style="width:24%">Phase</th>
           <th class="right">Estimate</th>
           <th class="right">Material</th>
-          <th class="right">Labour</th>
           <th class="right">Other</th>
           <th class="right">Actual Total</th>
           <th class="right" style="width:14%">Utilisation</th>
@@ -248,12 +238,11 @@ table.rep tfoot td { padding:12px 18px; border-top:2px solid var(--ink); font-we
             <td class="ph-name">{{ $row['phase'] }}</td>
             <td class="right mono">{{ $row['estimated'] > 0 ? number_format($row['estimated'], 2) : '—' }}</td>
             <td class="right mono">{{ $row['material_actual'] > 0 ? number_format($row['material_actual'], 2) : '—' }}</td>
-            <td class="right mono">{{ $row['labour_actual'] > 0 ? number_format($row['labour_actual'], 2) : '—' }}</td>
             <td class="right mono">{{ $row['other_actual'] > 0 ? number_format($row['other_actual'], 2) : '—' }}</td>
             <td class="right mono">{{ $row['actual'] > 0 ? number_format($row['actual'], 2) : '—' }}</td>
             <td class="right">
               <span class="mini-util">
-                <span class="mini-track"><span class="mini-fill" style="width:{{ min(100,$util) }}%;background:{{ $util > 90 ? 'var(--danger)' : ($util > 60 ? 'var(--labour)' : 'var(--muted-2)') }}"></span></span>
+                <span class="mini-track"><span class="mini-fill" style="width:{{ min(100,$util) }}%;background:{{ $util > 90 ? 'var(--danger)' : ($util > 60 ? 'var(--accent)' : 'var(--muted-2)') }}"></span></span>
                 <span class="util-num">{{ $util }}%</span>
               </span>
             </td>
@@ -265,7 +254,6 @@ table.rep tfoot td { padding:12px 18px; border-top:2px solid var(--ink); font-we
           <td>Total</td>
           <td class="right mono">{{ number_format($approvedBudget, 2) }}</td>
           <td class="right mono">{{ number_format($actualMaterialCost, 2) }}</td>
-          <td class="right mono">{{ number_format($actualLabour, 2) }}</td>
           <td class="right mono">{{ number_format($actualOther, 2) }}</td>
           <td class="right mono">{{ number_format($totalSpent, 2) }}</td>
           <td class="right"><span class="util-num" style="min-width:auto">{{ $spentPct }}%</span></td>
@@ -312,11 +300,10 @@ table.rep tfoot td { padding:12px 18px; border-top:2px solid var(--ink); font-we
     <div class="panel">
       <div class="panel-head"><h3>Budget Difference</h3></div>
       <div style="display:flex;flex-direction:column;gap:0;">
-        @if($actualMaterialCost > 0 || $actualLabour > 0 || $actualOther > 0)
+        @if($actualMaterialCost > 0 || $actualOther > 0)
           @foreach([
             ['label'=>'Material Cost','detail'=>'From inventory issues','amount'=>$actualMaterialCost,'type'=>'under'],
-            ['label'=>'Labour Expenses','detail'=>'From expense records','amount'=>$actualLabour,'type'=>'under'],
-            ['label'=>'Other Expenses','detail'=>'From expense records','amount'=>$actualOther,'type'=>'under'],
+            ['label'=>'Expenses','detail'=>'From expense records','amount'=>$actualOther,'type'=>'under'],
           ] as $vr)
           <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--rule-soft);">
             <div style="width:32px;height:32px;border-radius:8px;display:grid;place-items:center;flex-shrink:0;background:var(--ok-bg);color:var(--ok);">

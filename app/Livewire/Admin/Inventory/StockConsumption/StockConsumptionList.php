@@ -112,6 +112,26 @@ class StockConsumptionList extends Component
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Stock consumption deleted successfully.']);
     }
 
+    public function cancelConsumption(int $consumptionId): void
+    {
+        $this->authorizePermission('inventory.stock.consumption.cancel');
+
+        $consumption = StockConsumption::query()->find($consumptionId);
+
+        if (! $consumption) {
+            return;
+        }
+
+        $this->ensureStoreAccessible((int) $consumption->store_id);
+
+        try {
+            app(StockConsumptionService::class)->cancelConsumption($consumption, (int) auth()->id());
+            $this->dispatch('toast', ['type' => 'success', 'message' => 'Consumption cancelled successfully.']);
+        } catch (\Throwable $throwable) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => $throwable->getMessage()]);
+        }
+    }
+
     public function render(): View
     {
         $query = StockConsumption::query()

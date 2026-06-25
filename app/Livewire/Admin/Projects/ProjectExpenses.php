@@ -6,7 +6,6 @@ use App\Enums\Accounts\TransactionType;
 use App\Models\BankingPaymentRequest;
 use App\Models\Project;
 use App\Models\Transaction;
-use App\Models\TransactionCategory;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -83,16 +82,11 @@ class ProjectExpenses extends Component
         $showEditButton = false;
 
         // KPIs from all posted expense transactions for this project
-        $all = $this->baseQuery()->with('lines')->get();
+        $all = $this->baseQuery()->with('lines.account')->get();
 
         $totalAmount = (float) $all->sum(fn($t) => $this->lineCredit($t));
         $thisMonth   = (float) $all->filter(fn($t) => $t->datetime?->isCurrentMonth())
             ->sum(fn($t) => $this->lineCredit($t));
-
-        // Categories were removed from transactions; labour split is no longer
-        // derivable from a category, so it collapses into the total.
-        $labourTotal = 0.0;
-        $otherTotal = $totalAmount - $labourTotal;
 
         // Pending (requested but not yet posted to ledger) — informational
         $pendingTotal = (float) BankingPaymentRequest::query()
@@ -102,18 +96,10 @@ class ProjectExpenses extends Component
             ->whereIn('status', ['pending', 'approved', 'released'])
             ->sum('amount');
 
-        // Estimate vs actual — categories were removed from transactions, so there is
-        // no per-category actual to group by anymore.
-        $actualByCategory = collect();
-
-        $categories = TransactionCategory::active()
-            ->where('type', 'expense')
-            ->get();
-
         $project = $this->project;
         return view('livewire.admin.projects.project-expenses', compact(
             'project', 'expenses', 'totalAmount', 'thisMonth',
-            'labourTotal', 'otherTotal', 'pendingTotal', 'categories', 'actualByCategory', 'showEditButton'
+            'pendingTotal', 'showEditButton'
         ))->layout('layouts.admin.admin');
     }
 }

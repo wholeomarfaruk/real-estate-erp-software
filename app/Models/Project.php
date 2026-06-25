@@ -149,14 +149,31 @@ class Project extends Model
         return max(0, now()->startOfDay()->diffInDays($this->handover_date->startOfDay(), false));
     }
 
-    /** Actual money spent = posted expense transactions (not pending requests). */
+    /** Actual money spent = posted expense transactions + material consumptions. */
     public function totalSpent(): float
     {
-        return (float) \App\Models\TransactionLine::query()
+        $expenseSpent = (float) \App\Models\TransactionLine::query()
             ->whereHas('transaction', fn ($t) => $t->where('type', 'expense')
                 ->where('reference_type', self::class)
                 ->where('reference_id', $this->id))
             ->sum('credit');
+
+        $materialSpent = (float) \App\Models\StockConsumptionItem::query()
+            ->whereHas('stockConsumption', fn ($q) => $q
+                ->where('project_id', $this->id)
+                ->where('status', 'posted'))
+            ->sum('total_price');
+
+        return $expenseSpent + $materialSpent;
+    }
+
+    public function materialConsumptionCost(): float
+    {
+        return (float) \App\Models\StockConsumptionItem::query()
+            ->whereHas('stockConsumption', fn ($q) => $q
+                ->where('project_id', $this->id)
+                ->where('status', 'posted'))
+            ->sum('total_price');
     }
 
     public function approvedEstimate(): ?ProjectEstimate

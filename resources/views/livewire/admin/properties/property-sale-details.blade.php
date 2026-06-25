@@ -290,7 +290,7 @@
                             <span style="font:600 14px var(--mono); color:var(--ink-2); font-variant-numeric:tabular-nums;">৳ {{ number_format(($sale->down_payment_amount ?? 0) + $serviceTotal + $utilityTotal, 2) }}</span>
                         </div>
                         <div style="padding:12px 20px; background:#F5F2E8; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2);">Final Amount (Net + Service + Utility)</span>
+                            <span style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2);">Final Amount</span>
                             <span style="font:700 20px var(--mono); color:var(--accent); font-variant-numeric:tabular-nums;">৳ {{ number_format($finalTotal, 2) }}</span>
                         </div>
                     </div>

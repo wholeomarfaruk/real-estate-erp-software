@@ -67,6 +67,17 @@
                     <x-input-error for="project_id" class="mt-1" />
                 </div>
 
+                <div>
+                    <label for="work_phase" class="text-xs font-medium text-gray-600">Work Phase</label>
+                    <select id="work_phase" wire:model="work_phase" class="mt-1 h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
+                        <option value="">Select phase</option>
+                        @foreach ($workPhases as $phase)
+                            <option value="{{ $phase->value }}">{{ $phase->label() }}</option>
+                        @endforeach
+                    </select>
+                    <x-input-error for="work_phase" class="mt-1" />
+                </div>
+
                 <div class="md:col-span-2 xl:col-span-4">
                     <label for="remarks" class="text-xs font-medium text-gray-600">Remarks</label>
                     <textarea id="remarks" wire:model="remarks" rows="2" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none" placeholder="Optional usage note"></textarea>

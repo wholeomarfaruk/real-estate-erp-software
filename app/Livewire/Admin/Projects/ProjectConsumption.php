@@ -38,7 +38,7 @@ class ProjectConsumption extends Component
         }
 
         // Actual consumption from inventory (posted consumptions only)
-        $consumptions = StockConsumption::with(['items.product'])
+        $consumptions = StockConsumption::with(['items.product', 'transaction.lines.account'])
             ->where('project_id', $this->project->id)
             ->where('status', 'posted')
             ->get();
@@ -149,7 +149,7 @@ class ProjectConsumption extends Component
         $project = $this->project;
         $showEditButton = false;
         return view('livewire.admin.projects.project-consumption', compact(
-            'project', 'rowsByPhase', 'totalEstimated', 'totalConsumed', 'totalOver', 'overCount',
+            'project', 'consumptions', 'rowsByPhase', 'totalEstimated', 'totalConsumed', 'totalOver', 'overCount',
             'totalEstimatedValue', 'totalConsumedValue', 'totalRemainingValue', 'totalOverValue', 'showEditButton'
         ))->layout('layouts.admin.admin');
     }

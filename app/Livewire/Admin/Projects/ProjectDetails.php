@@ -285,6 +285,8 @@ class ProjectDetails extends Component
     public function render()
     {
         $totalSpent = $this->project->totalSpent();
+        $materialCost = $this->project->materialConsumptionCost();
+        $expenseCost = $totalSpent - $materialCost;
         $budget     = (float) ($this->project->budget ?? 0);
         $remaining  = $budget - $totalSpent;
         $daysLeft   = $this->project->daysToHandover();
@@ -295,6 +297,8 @@ class ProjectDetails extends Component
         return view('livewire.admin.projects.project-details', [
             'project'    => $this->project,
             'totalSpent' => $totalSpent,
+            'materialCost' => $materialCost,
+            'expenseCost' => $expenseCost,
             'remaining'  => $remaining,
             'daysLeft'   => $daysLeft,
             'engineers'  => $engineers,

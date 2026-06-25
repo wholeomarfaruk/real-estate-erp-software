@@ -9,6 +9,7 @@ enum StockMovementType: string
     case TRANSFER_IN = 'transfer_in';
     case TRANSFER_OUT = 'transfer_out';
     case CONSUMPTION = 'consumption';
+    case CONSUMPTION_REVERSAL = 'consumption_reversal';
     case ADJUSTMENT_IN = 'adjustment_in';
     case ADJUSTMENT_OUT = 'adjustment_out';
     case RETURN = 'return';
@@ -21,6 +22,7 @@ enum StockMovementType: string
             self::TRANSFER_IN => 'Transfer In',
             self::TRANSFER_OUT => 'Transfer Out',
             self::CONSUMPTION => 'Consumption',
+            self::CONSUMPTION_REVERSAL => 'Consumption Reversal',
             self::ADJUSTMENT_IN => 'Adjustment In',
             self::ADJUSTMENT_OUT => 'Adjustment Out',
             self::RETURN => 'Return',
