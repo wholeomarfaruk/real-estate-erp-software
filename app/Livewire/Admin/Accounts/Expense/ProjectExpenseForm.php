@@ -3,14 +3,13 @@
 namespace App\Livewire\Admin\Accounts\Expense;
 
 use App\Enums\Accounts\FeatureType;
-use App\Enums\Accounts\TransactionType;
 use App\Enums\Projects\WorkPhase;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithFeatureAccounts;
 use App\Livewire\Traits\WithMediaPicker;
 use App\Models\Account;
-use App\Models\BankingPaymentRequest;
 use App\Models\Project;
+use App\Services\Accounts\RequestEngine;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -80,34 +79,23 @@ class ProjectExpenseForm extends Component
 
             $normalizedAttachmentIds = $this->normalizedAttachmentIds();
 
-            $externalData = [
-                'project_id'         => $this->project_id,
-                'expense_account_id' => $this->expense_account_id,
-                'payment_account_id' => $this->payment_account_id,
-                'payment_method'     => $this->payment_method,
-                'reference_no'       => $this->reference_no ?: null,
-                'paid_to_name'       => $this->paid_to_name ?: null,
-                'paid_to_phone'      => $this->paid_to_phone ?: null,
-                'project_work_phase' => $this->project_work_phase ?: null,
-            ];
-
-            if (! empty($normalizedAttachmentIds)) {
-                $externalData['attachments'] = $normalizedAttachmentIds;
-            }
-
-            // Create banking payment request
-            $bpr = BankingPaymentRequest::create([
-                'request_no'              => BankingPaymentRequest::generateRequestNo(),
-                'source_type'             => TransactionType::EXPENSE->value,
-                'sourceable_type'         => Project::class,
-                'sourceable_id'           => $this->project_id,
-                'transaction_category_id' => null,
-                'amount'                  => round((float) $this->amount, 3),
-                'description'             => $this->title,
-                'notes'                   => $this->notes ?: null,
-                'requested_by'            => Auth::id(),
-                'external_data'           => $externalData,
-            ]);
+            // Create expense request via RequestEngine
+            $requestEngine = app(RequestEngine::class);
+            $bpr = $requestEngine->createProjectExpenseRequest(
+                projectId: (int) $this->project_id,
+                expenseAccountId: (int) $this->expense_account_id,
+                paymentAccountId: (int) $this->payment_account_id,
+                paymentMethod: $this->payment_method,
+                amount: (float) $this->amount,
+                title: $this->title,
+                date: $this->date,
+                referenceNo: $this->reference_no,
+                paidToName: $this->paid_to_name,
+                paidToPhone: $this->paid_to_phone,
+                workPhase: $this->project_work_phase,
+                attachmentIds: !empty($normalizedAttachmentIds) ? $normalizedAttachmentIds : null,
+                userId: Auth::id()
+            );
 
             session()->flash('success', "Project expense request #{$bpr->request_no} created successfully!");
             $this->redirect(route('admin.accounts.expenses.index'));
