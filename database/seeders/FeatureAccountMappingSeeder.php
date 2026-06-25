@@ -39,8 +39,13 @@ class FeatureAccountMappingSeeder extends Seeder
             return;
         }
 
-        // Add all leaf children of Project Expenses
-        foreach ($projectExpensesParent->children()->where('is_active', true)->get() as $child) {
+        // Add only leaf children (accounts with no children) of Project Expenses
+        $leafChildren = $projectExpensesParent->children()
+            ->where('is_active', true)
+            ->whereDoesntHave('children')
+            ->get();
+
+        foreach ($leafChildren as $child) {
             FeatureAccountMapping::create([
                 'feature_key' => 'project_expense',
                 'parent_account_id' => $rootParent->id,
@@ -71,8 +76,13 @@ class FeatureAccountMappingSeeder extends Seeder
             return;
         }
 
-        // Add all leaf children of Office Expenses
-        foreach ($officeExpensesParent->children()->where('is_active', true)->get() as $child) {
+        // Add only leaf children (accounts with no children) of Office Expenses
+        $leafChildren = $officeExpensesParent->children()
+            ->where('is_active', true)
+            ->whereDoesntHave('children')
+            ->get();
+
+        foreach ($leafChildren as $child) {
             FeatureAccountMapping::create([
                 'feature_key' => 'office_expense',
                 'parent_account_id' => $rootParent->id,
@@ -103,8 +113,13 @@ class FeatureAccountMappingSeeder extends Seeder
             return;
         }
 
-        // Add all leaf children of Marketing Expenses
-        foreach ($marketingExpensesParent->children()->where('is_active', true)->get() as $child) {
+        // Add only leaf children (accounts with no children) of Marketing Expenses
+        $leafChildren = $marketingExpensesParent->children()
+            ->where('is_active', true)
+            ->whereDoesntHave('children')
+            ->get();
+
+        foreach ($leafChildren as $child) {
             FeatureAccountMapping::create([
                 'feature_key' => 'marketing_expense',
                 'parent_account_id' => $rootParent->id,
