@@ -2,9 +2,9 @@
 
 namespace App\Services\Hrm;
 
+use App\Enums\Accounts\EntryMethod;
 use App\Enums\Accounts\PaymentRequestSourceType;
 use App\Models\Account;
-use App\Models\BankAccount;
 use App\Models\BankingPaymentRequest;
 use App\Models\Employee;
 use App\Models\EmployeeAdvance;
@@ -178,11 +178,7 @@ class PayrollService
             }
 
             // Bank/Cash Payment Path
-            $bankAccount = BankAccount::query()->findOrFail((int) $payload['bank_account_id']);
-
-            if (! $bankAccount->account_id) {
-                throw new \DomainException('Selected bank/cash account is not linked to the chart of accounts.');
-            }
+            $paymentAccount = Account::query()->findOrFail((int) $payload['bank_account_id']);
 
             $alreadyCommitted = $this->committedPayrollAmount($payroll->id);
             $remaining = round(max(0, (float) $payroll->net_salary - $alreadyCommitted), 2);
@@ -191,19 +187,19 @@ class PayrollService
                 throw new \DomainException('Payment amount cannot exceed unpaid salary amount.');
             }
 
-            $paymentMethod = $this->normalizePaymentMethod(
+            $paymentMethod = $this->validatePaymentMethod(
                 $payload['payment_method'] ?? null,
-                $bankAccount->type
+                $paymentAccount->type
             );
 
             // Resolve salary payable account (debit account for payment)
-            $salaryPayableAccount = \App\Models\Account::query()
+            $salaryPayableAccount = Account::query()
                 ->where('code', 'LIAB-SAL-PAY')
                 ->where('is_active', true)
                 ->firstOrFail();
 
             // Payment account (credit account - cash/bank)
-            $paymentAccountId = (int) $bankAccount->account_id;
+            $paymentAccountId = (int) $paymentAccount->id;
 
             $payment = PayrollPayment::query()->create([
                 'payroll_id' => $payroll->id,
@@ -224,7 +220,7 @@ class PayrollService
                 'transaction_id' => null,
                 'amount' => $amount,
                 'description' => $this->payrollRequestDescription($payroll),
-                'bank_account_id' => $bankAccount->id,
+                'bank_account_id' => null,
                 'account_id' => $paymentAccountId,
 
                 // Double-Entry (pre-stored for direct LedgerService posting)
@@ -418,20 +414,27 @@ class PayrollService
             : 'Payroll payment for '.$payroll->employee?->name.' ('.$payroll->month.'/'.$payroll->year.')';
     }
 
-    protected function normalizePaymentMethod(?string $paymentMethod, ?string $bankAccountType = null): ?string
+    protected function validatePaymentMethod(?string $paymentMethod, ?\App\Enums\Accounts\AccountType $accountType = null): ?string
     {
-        $normalized = strtolower(trim((string) $paymentMethod));
-
-        if (in_array($normalized, ['cash', 'bank', 'cheque', 'mobile_banking'], true)) {
-            return $normalized;
+        if (!$paymentMethod) {
+            return null;
         }
 
-        return match (strtolower(trim((string) $bankAccountType))) {
-            'cash' => 'cash',
-            'bank' => 'bank',
-            'mfs', 'wallet' => 'mobile_banking',
-            default => null,
-        };
+        try {
+            $method = EntryMethod::tryFrom(strtolower(trim($paymentMethod)));
+            if (!$method || !$accountType) {
+                return $method?->value;
+            }
+
+            // Verify the payment method matches the account type
+            if ($method->accountType() === $accountType) {
+                return $method->value;
+            }
+        } catch (\Throwable) {
+            // Invalid enum value
+        }
+
+        return null;
     }
 
     /**

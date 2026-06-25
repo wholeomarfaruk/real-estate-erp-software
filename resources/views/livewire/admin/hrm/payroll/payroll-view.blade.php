@@ -160,7 +160,7 @@
                             <tr>
                                 <td class="px-3 py-2 text-sm text-gray-700">{{ optional($payment->payment_date)->format('d M, Y') }}</td>
                                 <td class="px-3 py-2 text-sm text-gray-700">
-                                    <p>{{ $payment->bankingRequest?->bankAccount?->bank_name ?: 'N/A' }}</p>
+                                    <p>{{ $payment->bankingRequest?->account?->code }} — {{ $payment->bankingRequest?->account?->name ?: 'N/A' }}</p>
                                     <p class="text-xs text-gray-500">{{ $payment->payment_method ? ucfirst(str_replace('_', ' ', $payment->payment_method)) : 'N/A' }}</p>
                                 </td>
                                 <td class="px-3 py-2 text-sm text-gray-700">
@@ -234,7 +234,7 @@
                     <div class="mt-1 flex gap-4">
                         <label class="flex items-center gap-2 text-sm cursor-pointer">
                             <input type="radio" wire:model.live="payment_type" value="bank">
-                            Bank / Cash Payment
+                            Account Payment
                         </label>
                         <label class="flex items-center gap-2 text-sm cursor-pointer">
                             <input type="radio" wire:model.live="payment_type" value="advance">
@@ -261,11 +261,11 @@
                 {{-- Bank/Cash Account (show only for bank payment type) --}}
                 @if ($payment_type === 'bank')
                     <div>
-                        <label class="text-sm font-medium text-gray-700">Bank / Cash Account</label>
+                        <label class="text-sm font-medium text-gray-700">Account</label>
                         <select wire:model.defer="bank_account_id" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
                             <option value="">Select account</option>
-                            @foreach ($bankAccounts as $bankAccount)
-                                <option value="{{ $bankAccount->id }}">{{ $bankAccount->bank_name }} ({{ ucfirst($bankAccount->type) }})</option>
+                            @foreach ($bankAccounts as $account)
+                                <option value="{{ $account->id }}">{{ $account->code }} - {{ $account->name }} ({{ ucfirst($account->type?->value ?? 'N/A') }})</option>
                             @endforeach
                         </select>
                         @error('bank_account_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
@@ -274,8 +274,14 @@
                         <label class="text-sm font-medium text-gray-700">Payment Method</label>
                         <select wire:model.defer="payment_method" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
                             <option value="">Select method</option>
-                            @foreach ($paymentMethods as $method)
-                                <option value="{{ $method }}">{{ ucfirst(str_replace('_', ' ', $method)) }}</option>
+                            @php
+                                $selectedAccount = $bankAccounts->firstWhere('id', $bank_account_id);
+                                $selectedAccountType = $selectedAccount?->type?->value;
+                            @endphp
+                            @foreach ($entryMethods as $method)
+                                @if (!$selectedAccountType || $method->accountType()->value === $selectedAccountType)
+                                    <option value="{{ $method->value }}">{{ $method->label() }}</option>
+                                @endif
                             @endforeach
                         </select>
                         @error('payment_method') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror

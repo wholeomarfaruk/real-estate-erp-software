@@ -2,8 +2,9 @@
 
 namespace App\Livewire\Admin\Hrm\Payroll;
 
+use App\Enums\Accounts\EntryMethod;
 use App\Livewire\Admin\Hrm\Concerns\InteractsWithHrmAccess;
-use App\Models\BankAccount;
+use App\Models\Account;
 use App\Models\Payroll;
 use App\Services\Hrm\PayrollService;
 use Illuminate\Contracts\View\View;
@@ -87,8 +88,8 @@ class PayrollView extends Component
                 'items:id,payroll_id,type,label,amount,sort_order',
                 'payments:id,payroll_id,transaction_id,payment_date,amount,payment_method,reference_no,notes,received_by',
                 'payments.receiver:id,name',
-                'payments.bankingRequest:id,sourceable_type,sourceable_id,bank_account_id,status,request_no',
-                'payments.bankingRequest.bankAccount:id,bank_name,type',
+                'payments.bankingRequest:id,sourceable_type,sourceable_id,account_id,status,request_no',
+                'payments.bankingRequest.account:id,code,name,type',
                 'advanceAdjustments:id,payroll_id,employee_advance_id,amount,adjustment_date',
                 'advanceAdjustments.employeeAdvance:id,employee_id,amount,remaining_amount,status',
             ])
@@ -97,11 +98,11 @@ class PayrollView extends Component
 
         $totalPaid = round((float) ($payroll->total_paid ?? 0), 2);
         $dueAmount = round(max(0, (float) $payroll->net_salary - $totalPaid), 2);
-        $bankAccounts = BankAccount::query()
-            ->where('status', 'active')
-            ->whereNotNull('account_id')
-            ->orderBy('bank_name')
-            ->get(['id', 'bank_name', 'type', 'ac_number']);
+        $bankAccounts = Account::query()
+            ->where('is_active', true)
+            ->whereIn('type', ['cash', 'bank', 'mfs', 'wallet'])
+            ->orderBy('code')
+            ->get(['id', 'code', 'name', 'type']);
 
         $pendingAdvances = \App\Models\EmployeeAdvance::query()
             ->where('employee_id', $payroll->employee_id)
@@ -110,6 +111,10 @@ class PayrollView extends Component
             ->orderBy('advance_date')
             ->get(['id', 'advance_date', 'amount', 'remaining_amount']);
 
+        $paymentMethods = collect(EntryMethod::cases())
+            ->filter(fn(EntryMethod $method) => $method->isPaymentMethod())
+            ->values();
+
         return view('livewire.admin.hrm.payroll.payroll-view', [
             'payroll' => $payroll,
             'itemsByType' => $payroll->items->groupBy('type'),
@@ -117,7 +122,7 @@ class PayrollView extends Component
             'dueAmount' => $dueAmount,
             'bankAccounts' => $bankAccounts,
             'pendingAdvances' => $pendingAdvances,
-            'paymentMethods' => ['cash', 'bank', 'cheque', 'mobile_banking'],
+            'entryMethods' => $paymentMethods,
         ])->layout('layouts.admin.admin');
     }
 
@@ -135,8 +140,12 @@ class PayrollView extends Component
         ];
 
         if ($this->payment_type === 'bank') {
-            $rules['bank_account_id'] = ['required', 'exists:bank_accounts,id'];
-            $rules['payment_method'] = ['nullable', Rule::in(['cash', 'bank', 'cheque', 'mobile_banking'])];
+            $rules['bank_account_id'] = ['required', 'exists:accounts,id'];
+            $paymentMethodValues = collect(EntryMethod::cases())
+                ->filter(fn(EntryMethod $m) => $m->isPaymentMethod())
+                ->map(fn(EntryMethod $m) => $m->value)
+                ->all();
+            $rules['payment_method'] = ['nullable', Rule::in($paymentMethodValues)];
         } else {
             $rules['advance_id'] = ['required', 'exists:employee_advances,id'];
         }
@@ -152,7 +161,7 @@ class PayrollView extends Component
         return [
             'amount.required' => 'Payment amount is required.',
             'amount.gt' => 'Payment amount must be greater than zero.',
-            'bank_account_id.required' => 'Bank or cash account is required.',
+            'bank_account_id.required' => 'Account is required.',
             'payment_date.required' => 'Payment date is required.',
         ];
     }

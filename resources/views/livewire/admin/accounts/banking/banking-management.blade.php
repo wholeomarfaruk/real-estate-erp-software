@@ -296,7 +296,7 @@
                             <dd class="text-gray-700 break-words">{{ $r->description ?: '—' }}</dd>
                         </div>
                         <div class="flex gap-3">
-                            <dt class="w-28 shrink-0 text-xs text-gray-400">Bank Account</dt>
+                            <dt class="w-28 shrink-0 text-xs text-gray-400">Account</dt>
                             <dd class="text-gray-700">{{ $r->bankAccount?->bank_name ?? '—' }}</dd>
                         </div>
                         @if($r->bankAccount?->account)
@@ -552,7 +552,7 @@
                 @endif
 
                 <div>
-                    <label class="text-sm font-medium text-gray-700">Bank Account <span class="text-rose-500">*</span></label>
+                    <label class="text-sm font-medium text-gray-700">Account <span class="text-rose-500">*</span></label>
                     <select wire:model.defer="bank_account_id"
                         class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
                         <option value="">— Select Account —</option>

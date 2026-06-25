@@ -79,6 +79,13 @@ enum EntryMethod: string
         return $this === self::ADJUSTMENT;
     }
 
+    // ─── Payment Method Classification ──────────────────────────────────────
+
+    public function isPaymentMethod(): bool
+    {
+        return !\in_array($this, [self::BANK, self::JOURNAL, self::ADJUSTMENT]);
+    }
+
     // ─── Account Type ────────────────────────────────────────────────────────
 
     /**
