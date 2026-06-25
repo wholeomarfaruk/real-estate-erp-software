@@ -39,9 +39,24 @@ class ProjectExpenseForm extends Component
         $this->date = now()->toDateString();
     }
 
+    /**
+     * Extract attachment IDs from the attachments array.
+     */
+    private function normalizedAttachmentIds(): array
+    {
+        return array_map(function ($item) {
+            if (is_array($item)) {
+                return $item['id'] ?? $item;
+            }
+            return (int) $item;
+        }, $this->attachments);
+    }
+
     public function save(): void
     {
         try {
+            \Log::info('ProjectExpenseForm::save() called', ['project_id' => $this->project_id]);
+
             $this->authorizePermission('accounts.expense.create');
 
             $rules = [
@@ -60,6 +75,7 @@ class ProjectExpenseForm extends Component
                 'attachments.*'      => 'integer|exists:files,id',
             ];
 
+            \Log::info('Validating form', $rules);
             $this->validate($rules);
 
             $normalizedAttachmentIds = $this->normalizedAttachmentIds();
@@ -96,11 +112,13 @@ class ProjectExpenseForm extends Component
             session()->flash('success', "Project expense request #{$bpr->request_no} created successfully!");
             $this->redirect(route('admin.accounts.expenses.index'));
         } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::warning('ProjectExpenseForm validation failed', ['errors' => $e->validator->errors()->all()]);
             $this->setErrorBag($e->validator->errors());
             $errors = $e->validator->errors()->all();
             $errorMsg = count($errors) === 1 ? $errors[0] : implode(', ', $errors);
             $this->dispatch('notify', type: 'error', message: 'Validation Error: ' . $errorMsg);
         } catch (\Exception $e) {
+            \Log::error('ProjectExpenseForm save failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             session()->flash('error', 'Failed to create expense: ' . $e->getMessage());
             $this->dispatch('notify', type: 'error', message: 'Failed to create expense: ' . $e->getMessage());
         }
