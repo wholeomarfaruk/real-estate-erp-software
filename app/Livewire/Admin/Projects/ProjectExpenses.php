@@ -27,15 +27,16 @@ class ProjectExpenses extends Component
     }
 
     /**
-     * Actual project expenses live in the transactions ledger as a single
-     * expense entry (type=expense) that references the Project directly via
-     * reference_type/reference_id, with the amount recorded on the credit side
-     * (money leaving the account).
+     * Actual project expenses live in the transactions ledger as either:
+     * - expense entries (type=expense) for labour/other costs
+     * - material_consumption entries for material costs
+     * Both reference the Project directly via reference_type/reference_id,
+     * with amounts recorded on the credit side (money leaving the account).
      */
     private function baseQuery()
     {
         return Transaction::query()
-            ->where('type', TransactionType::EXPENSE->value)
+            ->whereIn('type', [TransactionType::EXPENSE->value, TransactionType::MATERIAL_CONSUMPTION->value])
             ->whereHas('lines', fn ($l) => $l->where('credit', '>', 0))
             ->where('reference_type', Project::class)
             ->where('reference_id', $this->project->id);
