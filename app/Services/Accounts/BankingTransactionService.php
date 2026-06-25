@@ -39,8 +39,9 @@ class BankingTransactionService
 
             $sourceType = $request->source_type;
 
-            // Expense payment
-            if ($sourceType === TransactionType::EXPENSE->value) {
+            // Expense payments (all PAYMENT group transaction types)
+            $paymentTypes = TransactionType::payments();
+            if (in_array($sourceType, $paymentTypes)) {
                 return $this->postExpensePayment($request, $userId);
             }
 
