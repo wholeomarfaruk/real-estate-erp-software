@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Accounts\Expense;
 
 use App\Enums\Accounts\FeatureType;
+use App\Enums\Accounts\TransactionType;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithFeatureAccounts;
 use App\Livewire\Traits\WithMediaPicker;
@@ -19,6 +20,7 @@ class MarketingExpenseForm extends Component
     public ?int   $expense_account_id  = null;
     public ?int   $payment_account_id  = null;
     public string $payment_method      = 'cash';
+    public string $transaction_type    = 'expense';
     public string $title               = '';
     public string $date                = '';
     public string $amount              = '';
