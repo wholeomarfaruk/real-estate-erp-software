@@ -78,6 +78,8 @@ class RequestEngine
         ?string $paidToName = null,
         ?string $paidToPhone = null,
         ?array $attachmentIds = null,
+        ?string $sourceableType = null,
+        ?int $sourceableId = null,
         int $userId = null
     ): BankingPaymentRequest {
         $userId = $userId ?: auth()->id();
@@ -99,7 +101,7 @@ class RequestEngine
 
         $roundedAmount = round($amount, 2);
 
-        return BankingPaymentRequest::create([
+        $data = [
             'request_no'        => BankingPaymentRequest::generateRequestNo(),
             'source_type'       => $expenseType,
             'amount'            => $roundedAmount,
@@ -110,6 +112,14 @@ class RequestEngine
             'debit_amount'      => $roundedAmount,
             'credit_account_id' => $paymentAccountId,
             'credit_amount'     => $roundedAmount,
-        ]);
+        ];
+
+        // Add sourceable relationship if provided (for polymorphic associations)
+        if ($sourceableType && $sourceableId) {
+            $data['sourceable_type'] = $sourceableType;
+            $data['sourceable_id'] = $sourceableId;
+        }
+
+        return BankingPaymentRequest::create($data);
     }
 }
