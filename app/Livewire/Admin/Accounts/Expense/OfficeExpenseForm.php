@@ -3,13 +3,11 @@
 namespace App\Livewire\Admin\Accounts\Expense;
 
 use App\Enums\Accounts\FeatureType;
-use App\Enums\Accounts\TransactionType;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithFeatureAccounts;
 use App\Livewire\Traits\WithMediaPicker;
 use App\Models\Account;
-use App\Models\BankingPaymentRequest;
-use App\Services\Accounts\BankingDoubleEntryBuilderService;
+use App\Services\Accounts\RequestEngine;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -60,51 +58,21 @@ class OfficeExpenseForm extends Component
 
             $normalizedAttachmentIds = $this->normalizedAttachmentIds();
 
-            $externalData = [
-                'expense_account_id' => $this->expense_account_id,
-                'payment_account_id' => $this->payment_account_id,
-                'payment_method'     => $this->payment_method,
-                'reference_no'       => $this->reference_no ?: null,
-                'paid_to_name'       => $this->paid_to_name ?: null,
-                'paid_to_phone'      => $this->paid_to_phone ?: null,
-            ];
-
-            if (! empty($normalizedAttachmentIds)) {
-                $externalData['attachments'] = $normalizedAttachmentIds;
-            }
-
-            // Create banking payment request
-            $bpr = BankingPaymentRequest::create([
-                'request_no'              => BankingPaymentRequest::generateRequestNo(),
-                'source_type'             => TransactionType::EXPENSE->value,
-                'transaction_category_id' => null,
-                'amount'                  => round((float) $this->amount, 3),
-                'description'             => $this->title,
-                'account_id'              => $this->payment_account_id,
-                'status'                  => 'pending',
-                'notes'                   => $this->notes ?: null,
-                'reference_no'            => $this->reference_no ?: null,
-                'name'                    => $this->paid_to_name ?: null,
-                'phone'                   => $this->paid_to_phone ?: null,
-                'method'                  => $this->payment_method,
-                'requested_by'            => Auth::id(),
-                'external_data'           => $externalData,
-            ]);
-
-            // Configure double-entry accounts
-            try {
-                $builder = app(BankingDoubleEntryBuilderService::class);
-
-                // For expense, manually set the debit account since builder uses defaults
-                $bpr->update([
-                    'debit_account_id' => $this->expense_account_id,
-                    'debit_amount' => round((float) $this->amount, 3),
-                    'credit_account_id' => $this->payment_account_id,
-                    'credit_amount' => round((float) $this->amount, 3),
-                ]);
-            } catch (\Exception $e) {
-                $this->dispatch('toast', type: 'warning', message: 'Request created but double-entry setup failed: ' . $e->getMessage());
-            }
+            // Create expense request via RequestEngine
+            $requestEngine = app(RequestEngine::class);
+            $bpr = $requestEngine->createExpenseRequest(
+                expenseType: 'office_expense',
+                expenseAccountId: (int) $this->expense_account_id,
+                paymentAccountId: (int) $this->payment_account_id,
+                paymentMethod: $this->payment_method,
+                amount: (float) $this->amount,
+                title: $this->title,
+                referenceNo: $this->reference_no,
+                paidToName: $this->paid_to_name,
+                paidToPhone: $this->paid_to_phone,
+                attachmentIds: !empty($normalizedAttachmentIds) ? $normalizedAttachmentIds : null,
+                userId: Auth::id()
+            );
 
             $this->dispatch('toast', type: 'success', message: 'Office expense request created successfully. It is now pending approval.');
             $this->redirectRoute('admin.accounts.expenses.index', navigate: true);
