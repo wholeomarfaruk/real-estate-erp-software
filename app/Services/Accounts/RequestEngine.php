@@ -26,6 +26,7 @@ class RequestEngine
         ?string $paidToName = null,
         ?string $paidToPhone = null,
         ?string $workPhase = null,
+        ?string $transactionType = null,
         ?array $attachmentIds = null,
         int $userId = null
     ): BankingPaymentRequest {
@@ -35,6 +36,7 @@ class RequestEngine
             'expense_account_id' => $expenseAccountId,
             'payment_account_id' => $paymentAccountId,
             'payment_method'     => $paymentMethod,
+            'transaction_type'   => $transactionType ?: 'expense',
             'reference_no'       => $referenceNo ?: null,
             'paid_to_name'       => $paidToName ?: null,
             'paid_to_phone'      => $paidToPhone ?: null,

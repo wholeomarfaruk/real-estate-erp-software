@@ -77,6 +77,17 @@
           @error('expense_account_id') <div class="err-msg">{{ $message }}</div> @enderror
         </div>
 
+        {{-- Transaction Type --}}
+        <div>
+          <label class="lbl">Transaction Type *</label>
+          <select wire:model="transaction_type" class="inp @error('transaction_type') err @enderror">
+            @foreach($transactionTypes as $value => $label)
+              <option value="{{ $value }}">{{ $label }}</option>
+            @endforeach
+          </select>
+          @error('transaction_type') <div class="err-msg">{{ $message }}</div> @enderror
+        </div>
+
         {{-- Work Phase --}}
         <div>
           <label class="lbl">Work Phase (Optional)</label>

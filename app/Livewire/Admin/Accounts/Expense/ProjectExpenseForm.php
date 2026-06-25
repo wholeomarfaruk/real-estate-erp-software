@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Accounts\Expense;
 
 use App\Enums\Accounts\FeatureType;
+use App\Enums\Accounts\TransactionType;
 use App\Enums\Projects\WorkPhase;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithFeatureAccounts;
@@ -22,6 +23,7 @@ class ProjectExpenseForm extends Component
     public ?int   $expense_account_id   = null;
     public ?int   $payment_account_id   = null;
     public string $payment_method       = 'cash';
+    public string $transaction_type     = 'expense';
     public string $title                = '';
     public string $date                 = '';
     public string $amount               = '';
@@ -63,6 +65,7 @@ class ProjectExpenseForm extends Component
                 'expense_account_id' => 'required|integer|exists:accounts,id',
                 'payment_account_id' => 'required|integer|exists:accounts,id',
                 'payment_method'     => 'required|string|in:cash,bank,cheque,mobile_banking',
+                'transaction_type'   => 'required|string|in:' . implode(',', array_keys(TransactionType::payments())),
                 'title'              => 'required|string|max:200',
                 'date'               => 'required|date',
                 'amount'             => 'required|numeric|gt:0',
@@ -93,6 +96,7 @@ class ProjectExpenseForm extends Component
                 paidToName: $this->paid_to_name,
                 paidToPhone: $this->paid_to_phone,
                 workPhase: $this->project_work_phase,
+                transactionType: $this->transaction_type,
                 attachmentIds: !empty($normalizedAttachmentIds) ? $normalizedAttachmentIds : null,
                 userId: Auth::id()
             );
@@ -135,8 +139,14 @@ class ProjectExpenseForm extends Component
 
         $workPhases = WorkPhase::options();
 
+        // Get PAYMENT group transaction types
+        $transactionTypes = collect(TransactionType::cases())
+            ->filter(fn($type) => $type->reportGroup()->value === 'payment')
+            ->mapWithKeys(fn($type) => [$type->value => $type->label()])
+            ->toArray();
+
         return view('livewire.admin.accounts.expense.project-expense-form', compact(
-            'projects', 'expenseAccounts', 'paymentAccounts', 'paymentMethods', 'workPhases'
+            'projects', 'expenseAccounts', 'paymentAccounts', 'paymentMethods', 'workPhases', 'transactionTypes'
         ))->layout('layouts.admin.admin');
     }
 }
