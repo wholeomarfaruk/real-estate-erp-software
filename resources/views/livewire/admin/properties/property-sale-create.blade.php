@@ -303,8 +303,8 @@
             {{-- Net Amount display --}}
             <div style="padding:14px 18px; background:var(--paper); border:2px solid var(--accent); border-radius:9px; display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
                 <div>
-                    <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:2px;">Net Amount</div>
-                    <div style="font:11.5px 'Inter', sans-serif; color:var(--ink-3);">Σ (Sale − Discount + Tax) across all units</div>
+                    <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:2px;">Final Amount</div>
+                    <div style="font:11.5px 'Inter', sans-serif; color:var(--ink-3);">Σ (Sale − Discount + Tax + Service + Utility) across all units</div>
                 </div>
                 <div style="font:700 26px var(--mono); color:var(--accent); font-variant-numeric:tabular-nums;">
                     ৳ <span x-text="parseFloat(dNetAmount || 0).toLocaleString('en-BD', {minimumFractionDigits:2})"></span>

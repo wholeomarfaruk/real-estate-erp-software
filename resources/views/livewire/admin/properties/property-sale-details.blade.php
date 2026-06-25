@@ -162,32 +162,6 @@
         {{-- ── LEFT COLUMN ── --}}
         <div style="display:flex; flex-direction:column; gap:16px;">
 
-            {{-- Financial Breakdown --}}
-            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; overflow:hidden;">
-                <div style="padding:14px 20px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
-                    <h3 style="margin:0; font-size:13px; font-weight:600;">Financial Summary</h3>
-                    <span style="font:11px var(--mono); color:var(--ink-3);">BDT (৳)</span>
-                </div>
-                <div style="padding:20px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:var(--rule);">
-                    <div style="background:var(--paper); padding:16px 18px;">
-                        <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Sale Amount</div>
-                        <div style="font:600 20px var(--mono); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->sale_amount, 2) }}</div>
-                    </div>
-                    <div style="background:var(--paper); padding:16px 18px;">
-                        <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--rj-fg); margin-bottom:6px;">Discount</div>
-                        <div style="font:600 20px var(--mono); color:var(--rj-fg); font-variant-numeric:tabular-nums;">− ৳ {{ number_format($sale->discount_amount, 2) }}</div>
-                    </div>
-                    <div style="background:var(--paper); padding:16px 18px;">
-                        <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Tax</div>
-                        <div style="font:600 20px var(--mono); font-variant-numeric:tabular-nums;">+ ৳ {{ number_format($sale->tax_amount, 2) }}</div>
-                    </div>
-                </div>
-                <div style="padding:16px 20px; background:#F5F2E8; display:flex; justify-content:space-between; align-items:center; border-top:1.5px solid var(--accent);">
-                    <span style="font:600 11px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2);">Net Amount (Sale − Discount + Tax)</span>
-                    <span style="font:700 26px var(--mono); color:var(--accent); font-variant-numeric:tabular-nums;">৳ {{ number_format($sale->net_amount, 2) }}</span>
-                </div>
-            </div>
-
             {{-- Sale Details --}}
             <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; overflow:hidden;">
                 <div style="padding:14px 20px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
@@ -243,7 +217,7 @@
                         }
                         $serviceTotal = (float) $units->sum('service_charge');
                         $utilityTotal = (float) $units->sum('utility_charge');
-                        $finalTotal   = (float) $sale->net_amount + $serviceTotal + $utilityTotal;
+                        $finalTotal   = (float) $sale->net_amount;
                     @endphp
 
                     {{-- Per-unit breakdown --}}
