@@ -65,6 +65,58 @@ class PropertySaleList extends Component
         );
     }
 
+    // ── Delete validation ──────────────────────────────────────────────────────
+    #[\Livewire\Attributes\Computed]
+    public function canDeleteSale(int $id): bool
+    {
+        $sale = PropertySale::findOrFail($id);
+
+        // Cannot delete if handed over (unless superadmin)
+        if ($sale->isHandedOver() && ! Auth::user()?->hasRole('superadmin')) {
+            return false;
+        }
+
+        // Cannot delete if any payment has been made
+        $totalPaidAmount = (float) $sale->paymentSchedules()->sum('paid_amount');
+        return $totalPaidAmount <= 0;
+    }
+
+    public function getDeleteValidation(int $id): array
+    {
+        abort_unless(Auth::user()?->can('property_sale.delete'), 403);
+
+        $sale = PropertySale::findOrFail($id);
+
+        // Check if handed over
+        if ($sale->isHandedOver() && ! Auth::user()?->hasRole('superadmin')) {
+            return [
+                'canDelete' => false,
+                'type'      => 'error',
+                'title'     => 'Cannot Delete',
+                'text'      => 'This sale has been handed over and can no longer be deleted.',
+            ];
+        }
+
+        // Check if any payment has been made
+        $totalPaidAmount = (float) $sale->paymentSchedules()->sum('paid_amount');
+
+        if ($totalPaidAmount > 0) {
+            return [
+                'canDelete' => false,
+                'type'      => 'error',
+                'title'     => 'Cannot Delete',
+                'text'      => "This sale cannot be deleted because ৳ " . number_format($totalPaidAmount, 2) . " has already been paid. Please reverse the payment first.",
+            ];
+        }
+
+        return [
+            'canDelete' => true,
+            'type'      => 'warning',
+            'title'     => 'Delete Property Sale?',
+            'text'      => 'Are you sure you want to delete this property sale? This action cannot be undone.',
+        ];
+    }
+
     // ── Edit drawer ───────────────────────────────────────────────────────────
     public function openEdit(int $id): void
     {
@@ -166,6 +218,38 @@ class PropertySaleList extends Component
     }
 
     // ── Delete ────────────────────────────────────────────────────────────────
+    public function confirmDelete(int $id): void
+    {
+        abort_unless(Auth::user()?->can('property_sale.delete'), 403);
+
+        $validation = $this->getDeleteValidation($id);
+
+        if (!$validation['canDelete']) {
+            // Cannot delete - dispatch error alert
+            $this->dispatch('swal-error', [
+                'title' => $validation['title'],
+                'text'  => $validation['text'],
+            ]);
+            return;
+        }
+
+        // Can delete - dispatch confirmation alert
+        $this->dispatch('swal-confirm', [
+            'id'    => $id,
+            'title' => $validation['title'],
+            'text'  => $validation['text'],
+        ]);
+    }
+
+    public function deletePropertySaleConfirmed(int $id): void
+    {
+        abort_unless(Auth::user()?->can('property_sale.delete'), 403);
+
+        $sale = PropertySale::findOrFail($id);
+        $sale->delete();
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Property sale deleted successfully.']);
+    }
+
     public function deletePropertySale(int $id): void
     {
         abort_unless(Auth::user()?->can('property_sale.delete'), 403);

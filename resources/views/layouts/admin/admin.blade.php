@@ -22,13 +22,8 @@
 
     <script>
         document.addEventListener('livewire:init', () => {
-            // php code
-            //      $this->dispatch('toast', [
-            //     'type' => 'success',
-            //     'message' => 'Item deleted successfully!'
-            // ]);
+            // Toast notifications
             Livewire.on('toast', data => {
-                // console.log(data);
                 Swal.fire({
                     toast: true,
                     position: 'top-end',
@@ -38,7 +33,43 @@
                     timer: 3000,
                     timerProgressBar: true
                 })
-            })
+            });
+
+            // Error alert (OK button only) - cannot delete
+            Livewire.on('swal-error', data => {
+                Swal.fire({
+                    icon: 'error',
+                    title: data[0].title,
+                    text: data[0].text,
+                    confirmButtonText: 'OK',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
+                });
+            });
+
+            // Confirmation alert - delete with Yes/Cancel
+            Livewire.on('swal-confirm', data => {
+                const id = data[0].id;
+                const title = data[0].title;
+                const text = data[0].text;
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: title,
+                    text: text,
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, Delete',
+                    cancelButtonText: 'Cancel',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Livewire.dispatch('deletePropertySaleConfirmed', { id: id });
+                    }
+                });
+            });
         })
     </script>
 

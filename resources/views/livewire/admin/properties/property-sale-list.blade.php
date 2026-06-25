@@ -242,8 +242,7 @@
                         @can('property_sale.delete')
                             @if(! $sale->isHandedOver() || auth()->user()?->hasRole('superadmin'))
                                 <button
-                                    x-data
-                                    @click="if(confirm('Delete this sale record?')) { $wire.deletePropertySale({{ $sale->id }}) }"
+                                    @click="$wire.confirmDelete({{ $sale->id }})"
                                     title="Delete"
                                     style="width:28px; height:28px; border-radius:5px; display:flex; align-items:center; justify-content:center;
                                            cursor:pointer; background:transparent; border:0; color:var(--rj-fg);"
