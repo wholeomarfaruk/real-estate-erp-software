@@ -2,8 +2,8 @@
 
 namespace App\Livewire\Admin\Projects;
 
-use App\Enums\Accounts\TransactionType;
 use App\Models\BankingPaymentRequest;
+use App\Models\FeatureAccountMapping;
 use App\Models\Project;
 use App\Models\Transaction;
 use Livewire\Component;
@@ -27,25 +27,38 @@ class ProjectExpenses extends Component
     }
 
     /**
-     * Actual project expenses live in the transactions ledger as either:
-     * - expense entries (type=expense) for labour/other costs
-     * - material_consumption entries for material costs
-     * Both reference the Project directly via reference_type/reference_id,
-     * with amounts recorded on the credit side (money leaving the account).
+     * Get enabled accounts for the project_expense feature.
+     */
+    private function getEnabledExpenseAccountIds(): array
+    {
+        return FeatureAccountMapping::where('feature_key', 'project_expense')
+            ->where('is_enabled', true)
+            ->pluck('child_account_id')
+            ->toArray();
+    }
+
+    /**
+     * Project expenses are transactions where enabled expense accounts have debit amounts
+     * (amounts charged to the expense account).
      */
     private function baseQuery()
     {
+        $enabledAccountIds = $this->getEnabledExpenseAccountIds();
+
         return Transaction::query()
-            ->whereIn('type', [TransactionType::EXPENSE->value, TransactionType::MATERIAL_CONSUMPTION->value])
-            ->whereHas('lines', fn ($l) => $l->where('credit', '>', 0))
+            ->whereHas('lines', fn ($l) => $l->where('debit', '>', 0)
+                ->whereIn('account_id', $enabledAccountIds))
             ->where('reference_type', Project::class)
             ->where('reference_id', $this->project->id);
     }
 
-    /** Total credit (money out) across a transaction's ledger lines. */
-    private function lineCredit(Transaction $t): float
+    /** Total debit from enabled expense accounts. */
+    private function getExpenseAmount(Transaction $t): float
     {
-        return (float) $t->lines->sum('credit');
+        $enabledAccountIds = $this->getEnabledExpenseAccountIds();
+        return (float) $t->lines
+            ->whereIn('account_id', $enabledAccountIds)
+            ->sum('debit');
     }
 
     private function getPhaseLabel(?string $phaseValue): string
@@ -74,9 +87,14 @@ class ProjectExpenses extends Component
             ->latest('id')
             ->paginate(15);
 
-        // Map expenses to include phase info
-        $expenses->getCollection()->transform(function ($expense) {
+        $enabledAccountIds = $this->getEnabledExpenseAccountIds();
+
+        // Map expenses to include phase info and expense amount
+        $expenses->getCollection()->transform(function ($expense) use ($enabledAccountIds) {
             $expense->phase = $this->getPhaseLabel($expense->external_data['project_work_phase'] ?? null);
+            $expense->expense_amount = (float) $expense->lines
+                ->whereIn('account_id', $enabledAccountIds)
+                ->sum('debit');
             return $expense;
         });
 
@@ -85,9 +103,9 @@ class ProjectExpenses extends Component
         // KPIs from all posted expense transactions for this project
         $all = $this->baseQuery()->with('lines.account')->get();
 
-        $totalAmount = (float) $all->sum(fn($t) => $this->lineCredit($t));
+        $totalAmount = (float) $all->sum(fn($t) => $this->getExpenseAmount($t));
         $thisMonth   = (float) $all->filter(fn($t) => $t->datetime?->isCurrentMonth())
-            ->sum(fn($t) => $this->lineCredit($t));
+            ->sum(fn($t) => $this->getExpenseAmount($t));
 
         // Pending (requested but not yet posted to ledger) — informational
         $pendingTotal = (float) BankingPaymentRequest::query()

@@ -175,7 +175,7 @@ td.amt { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12.5px; 
           <td>{{ $expense->name ?? $expense->notes ?? '—' }}</td>
           <td style="font-size:11px;"><span style="display:inline-block;padding:2px 8px;background:#f0f0f1;border-radius:4px;color:var(--muted);">{{ $expense->phase }}</span></td>
           <td>{{ $expense->account?->name ?? '—' }}</td>
-          <td class="right amt">BDT {{ number_format($expense->lines->sum('credit'), 2) }}</td>
+          <td class="right amt">BDT {{ number_format($expense->expense_amount ?? 0, 2) }}</td>
         </tr>
         @endforeach
       </tbody>
