@@ -50,7 +50,7 @@ class RequestEngine
 
         return BankingPaymentRequest::create([
             'request_no'        => BankingPaymentRequest::generateRequestNo(),
-            'source_type'       => 'project_expense',
+            'source_type'       => 'expense',
             'sourceable_type'   => Project::class,
             'sourceable_id'     => $projectId,
             'amount'            => $roundedAmount,
@@ -107,7 +107,7 @@ class RequestEngine
 
         $data = [
             'request_no'        => BankingPaymentRequest::generateRequestNo(),
-            'source_type'       => $expenseType,
+            'source_type'       => 'expense',
             'amount'            => $roundedAmount,
             'description'       => $title,
             'method'            => $paymentMethod,
