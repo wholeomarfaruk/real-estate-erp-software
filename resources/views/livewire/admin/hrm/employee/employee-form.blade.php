@@ -22,7 +22,10 @@
             <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                     <label class="text-sm font-medium text-gray-700">Employee ID <span class="text-rose-500">*</span></label>
-                    <input type="text" wire:model.defer="employee_id" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                    <input type="text" wire:model.defer="employee_id" {{ !$employee ? 'disabled' : '' }} class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed">
+                    @if (!$employee)
+                        <p class="mt-1 text-xs text-gray-500">Auto-generated</p>
+                    @endif
                     @error('employee_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 <div>

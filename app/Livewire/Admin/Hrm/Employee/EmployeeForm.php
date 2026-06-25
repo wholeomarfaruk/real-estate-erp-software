@@ -70,6 +70,7 @@ class EmployeeForm extends Component
 
         $this->authorizePermission('hrm.employees.create');
         $this->joining_date = now()->toDateString();
+        $this->employee_id = $this->generateEmployeeId();
     }
 
     public function updatedUserId(): void
@@ -122,7 +123,7 @@ class EmployeeForm extends Component
      */
     protected function rules(): array
     {
-        return [
+        $rules = [
             'department_id' => ['nullable', 'exists:departments,id'],
             'designation_id' => ['nullable', 'exists:designations,id'],
             'user_id' => [
@@ -130,12 +131,26 @@ class EmployeeForm extends Component
                 'exists:users,id',
                 Rule::unique('employees', 'user_id')->ignore($this->employee?->id),
             ],
-            'employee_id' => [
+        ];
+
+        // Employee ID is required only for updates (auto-generated for creates)
+        if ($this->employee) {
+            $rules['employee_id'] = [
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('employees', 'employee_id')->ignore($this->employee?->id),
-            ],
+                Rule::unique('employees', 'employee_id')->ignore($this->employee->id),
+            ];
+        } else {
+            $rules['employee_id'] = [
+                'required',
+                'string',
+                'max:50',
+                'unique:employees,employee_id',
+            ];
+        }
+
+        $rules += [
             'name' => ['required', 'string', 'max:150'],
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:150'],
@@ -151,6 +166,8 @@ class EmployeeForm extends Component
             'address' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
         ];
+
+        return $rules;
     }
 
     /**
@@ -187,6 +204,25 @@ class EmployeeForm extends Component
         $this->photo_file_id = $employee->photo_file_id ? (int) $employee->photo_file_id : null;
         $this->address = $employee->address;
         $this->notes = $employee->notes;
+    }
+
+    protected function generateEmployeeId(): string
+    {
+        $lastEmployee = Employee::query()
+            ->latest('id')
+            ->first(['employee_id']);
+
+        if (!$lastEmployee || !$lastEmployee->employee_id) {
+            return 'EMP0000001';
+        }
+
+        // Extract number from last employee_id (e.g., "EMP0000001" -> 1)
+        if (preg_match('/(\d+)$/', $lastEmployee->employee_id, $matches)) {
+            $nextNumber = (int) $matches[1] + 1;
+            return 'EMP' . str_pad($nextNumber, 7, '0', STR_PAD_LEFT);
+        }
+
+        return 'EMP0000001';
     }
 }
 

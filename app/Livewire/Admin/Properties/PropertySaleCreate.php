@@ -304,7 +304,9 @@ class PropertySaleCreate extends Component
             $rs = (float) ($row['sale_amount'] ?? 0);
             $rd = (float) ($row['discount_amount'] ?? 0);
             $rt = (float) ($row['tax_amount'] ?? 0);
-            $rn = round($rs - $rd + $rt, 2);
+            $rsc = (float) ($row['service_charge'] ?? 0);
+            $ruc = (float) ($row['utility_charge'] ?? 0);
+            $rn = round($rs - $rd + $rt + $rsc + $ruc, 2);
 
             $this->dUnits[$i]['net_amount'] = (string) $rn;
 
@@ -312,8 +314,8 @@ class PropertySaleCreate extends Component
             $discount += $rd;
             $tax      += $rt;
             $net      += $rn;
-            $service  += (float) ($row['service_charge'] ?? 0);
-            $utility  += (float) ($row['utility_charge'] ?? 0);
+            $service  += $rsc;
+            $utility  += $ruc;
         }
 
         $this->dSaleAmount     = (string) round($sale, 2);
@@ -523,6 +525,8 @@ class PropertySaleCreate extends Component
                     $rs = (float) ($row['sale_amount'] ?? 0);
                     $rd = (float) ($row['discount_amount'] ?? 0);
                     $rt = (float) ($row['tax_amount'] ?? 0);
+                    $rsc = (float) ($row['service_charge'] ?? 0);
+                    $ruc = (float) ($row['utility_charge'] ?? 0);
 
                     PropertySaleUnit::create([
                         'property_sale_id'        => $sale->id,
@@ -531,9 +535,9 @@ class PropertySaleCreate extends Component
                         'sale_amount'             => $rs,
                         'discount_amount'         => $rd,
                         'tax_amount'              => $rt,
-                        'net_amount'              => round($rs - $rd + $rt, 2),
-                        'service_charge'          => (float) ($row['service_charge'] ?? 0),
-                        'utility_charge'          => (float) ($row['utility_charge'] ?? 0),
+                        'net_amount'              => round($rs - $rd + $rt + $rsc + $ruc, 2),
+                        'service_charge'          => $rsc,
+                        'utility_charge'          => $ruc,
                         'down_payment_percentage' => ($row['down_payment_percentage'] ?? '') !== ''
                             ? (float) $row['down_payment_percentage'] : null,
                         'sort_order'              => $i,
