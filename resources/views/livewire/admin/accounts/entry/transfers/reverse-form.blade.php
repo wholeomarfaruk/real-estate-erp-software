@@ -1,0 +1,12 @@
+<div class="max-w-[700px] mx-auto px-4 py-6"><style>:root{--gap:.6rem}.fc{background:#fff;border:1px solid #e0e0e0;border-radius:6px}.fh{padding:1.2rem 1.5rem;border-bottom:1px solid #f0f0f0}.fh h1{font-size:20px;font-weight:600}.fb{padding:1.5rem}.fg{margin-bottom:1rem}.fg label{display:block;font-size:12px;font-weight:600;margin-bottom:.35rem}.fg input,.fg select{width:100%;padding:.6rem .8rem;border:1px solid #ddd;border-radius:4px;font-size:13px}.fg input:focus,.fg select:focus{outline:0;border-color:#0066cc;box-shadow:0 0 0 2px rgba(0,102,204,.1)}.ff{padding:1.2rem 1.5rem;border-top:1px solid #f0f0f0;display:flex;gap:.75rem;justify-content:flex-end}.btn{padding:.6rem 1.2rem;border:0;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer}.btn-s{background:#f5f5f5;border:1px solid #ddd}.btn-s:hover{background:#efefef}.btn-p{background:#0066cc;color:#fff}.btn-p:hover{background:#0052a3}.et{color:#d32f2f;font-size:11px;margin-top:.2rem}.tx{font-size:12px;color:#666;padding:.75rem;background:#f9f9f9;border-radius:4px;margin-bottom:1rem}</style>
+    <form wire:submit="save" class="fc">
+        <div class="fh"><h1>Reverse Entry</h1><p>Reverse a previous transaction</p></div>
+        <div class="fb">
+            <div class="fg"><label>Transaction to Reverse *</label><select wire:model="transaction_id" required><option value="">-- Select Transaction --</option>@foreach ($transactions as $txn)<option value="{{ $txn->id }}">{{ $txn->date }} - {{ $txn->reference_no }} ({{ $txn->type }})</option>@endforeach</select>@error('transaction_id')<div class="et">{{ $message }}</div>@enderror</div>
+            @if ($selectedTransaction)<div class="tx"><strong>Original Entry:</strong> {{ $selectedTransaction->date }}<br>{{ $selectedTransaction->reference_no }}<br><small>{{ count($selectedTransaction->transactionLines) }} line(s)</small></div>@endif
+            <div class="fg"><label>Date *</label><input type="date" wire:model="date" required /></div>
+            <div class="fg"><label>Notes</label><input type="text" wire:model="notes" placeholder="Reason for reversal" /></div>
+        </div>
+        <div class="ff"><a href="{{ route('admin.account-entries.index') }}" class="btn btn-s">Cancel</a><button type="submit" class="btn btn-p" wire:loading.attr="disabled"><span wire:loading.remove>Submit Reversal</span><span wire:loading>...</span></button></div>
+    </form>
+</div>

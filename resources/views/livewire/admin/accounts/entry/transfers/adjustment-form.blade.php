@@ -1,0 +1,12 @@
+<div class="max-w-[700px] mx-auto px-4 py-6"><style>:root{--gap:.6rem}.fc{background:#fff;border:1px solid #e0e0e0;border-radius:6px}.fh{padding:1.2rem 1.5rem;border-bottom:1px solid #f0f0f0}.fh h1{font-size:20px;font-weight:600;margin:0 0 .25rem 0}.fb{padding:1.5rem}.fg{margin-bottom:1rem}.fg label{display:block;font-size:12px;font-weight:600;margin-bottom:.35rem}.fg input,.fg select,.fg textarea{width:100%;padding:.6rem .8rem;border:1px solid #ddd;border-radius:4px;font-size:13px}.fg input:focus,.fg select:focus{outline:0;border-color:#0066cc;box-shadow:0 0 0 2px rgba(0,102,204,.1)}.fr{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}.fgf{grid-column:1/-1}.ff{padding:1.2rem 1.5rem;border-top:1px solid #f0f0f0;display:flex;gap:.75rem;justify-content:flex-end}.btn{padding:.6rem 1.2rem;border:0;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer}.btn-s{background:#f5f5f5;border:1px solid #ddd}.btn-s:hover{background:#efefef}.btn-p{background:#0066cc;color:#fff}.btn-p:hover{background:#0052a3}.et{color:#d32f2f;font-size:11px;margin-top:.2rem}</style>
+    <form wire:submit="save" class="fc">
+        <div class="fh"><h1>Account Adjustment</h1><p>Adjust account balance</p></div>
+        <div class="fb">
+            <div class="fg"><label>Debit Account *</label><select wire:model="debit_account_id" required><option value="">-- Select --</option>@foreach ($accounts as $a)<option value="{{ $a->id }}">{{ $a->code }} - {{ $a->name }}</option>@endforeach</select></div>
+            <div class="fg"><label>Credit Account *</label><select wire:model="credit_account_id" required><option value="">-- Select --</option>@foreach ($accounts as $a)<option value="{{ $a->id }}">{{ $a->code }} - {{ $a->name }}</option>@endforeach</select></div>
+            <div class="fr"><div class="fg"><label>Amount *</label><input type="number" wire:model="amount" step="0.01" min="0" required /></div><div class="fg"><label>Date *</label><input type="date" wire:model="date" required /></div></div>
+            <div class="fg fgf"><label>Reason *</label><textarea wire:model="notes" rows="4" required placeholder="Explain the adjustment..."></textarea></div>
+        </div>
+        <div class="ff"><a href="{{ route('admin.account-entries.index') }}" class="btn btn-s">Cancel</a><button type="submit" class="btn btn-p" wire:loading.attr="disabled"><span wire:loading.remove>Submit Adjustment</span><span wire:loading>...</span></button></div>
+    </form>
+</div>
