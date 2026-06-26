@@ -464,6 +464,13 @@ Route::controller(ReportController::class)->prefix('reports')->name('reports.')-
     Route::get('/scheduled', 'scheduled')->name('scheduled');
 });
 
+// Account Entry module
+Route::prefix('account-entries')->name('account-entries.')->group(function () {
+    Route::get('/', \App\Livewire\Admin\Accounts\Entry\EntryHub::class)->name('index');
+    Route::get('/{category}', \App\Livewire\Admin\Accounts\Entry\EntryCategory::class)->name('category');
+    Route::get('/{category}/{slug}', \App\Livewire\Admin\Accounts\Entry\DynamicEntryForm::class)->name('form');
+});
+
 // Finance Reports
 Route::prefix('reports/finance')->name('reports.finance.')->group(function () {
     Route::get('/daily-statement',
