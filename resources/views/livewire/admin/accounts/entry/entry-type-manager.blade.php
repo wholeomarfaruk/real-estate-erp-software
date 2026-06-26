@@ -18,8 +18,8 @@
         .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 3px; font-size: 11px; font-weight: 600; }
         .badge-success { background: #e8f5e9; color: #2e7d32; }
         .badge-warning { background: #fff3e0; color: #e65100; }
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-        .modal.hidden { display: none; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex !important; align-items: center; justify-content: center; z-index: 1000; }
+        .modal.hidden { display: none !important; }
         .modal-content { background: white; border-radius: 8px; padding: 2rem; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
         .modal-header { font-size: 18px; font-weight: 600; margin-bottom: 1.5rem; }
         .form-group { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 1rem; }
@@ -43,7 +43,7 @@
             </div>
             <div style="display: flex; gap: 0.75rem;">
                 <a href="{{ route('admin.account-entries.index') }}" class="btn btn-secondary">← Back to Hub</a>
-                <button wire:click="openCreateModal" class="btn btn-primary">+ Add New Entry Type</button>
+                <button type="button" wire:click="openCreateModal" class="btn btn-primary">+ Add New Entry Type</button>
             </div>
         </div>
 
@@ -94,11 +94,11 @@
                             </td>
                             <td style="text-align: right;">
                                 <div class="actions">
-                                    <button wire:click="openEditModal({{ $entry->id }})" class="btn btn-secondary" style="padding: 0.5rem 0.75rem; font-size: 12px;">Edit</button>
-                                    <button wire:click="toggleActive({{ $entry->id }})" class="btn btn-secondary" style="padding: 0.5rem 0.75rem; font-size: 12px;">
+                                    <button type="button" wire:click="openEditModal({{ $entry->id }})" class="btn btn-secondary" style="padding: 0.5rem 0.75rem; font-size: 12px;">Edit</button>
+                                    <button type="button" wire:click="toggleActive({{ $entry->id }})" class="btn btn-secondary" style="padding: 0.5rem 0.75rem; font-size: 12px;">
                                         {{ $entry->is_active ? 'Deactivate' : 'Activate' }}
                                     </button>
-                                    <button wire:click="deleteEntry({{ $entry->id }})" onclick="return confirm('Delete this entry type?')" class="btn btn-danger" style="padding: 0.5rem 0.75rem; font-size: 12px;">Delete</button>
+                                    <button type="button" wire:click="deleteEntry({{ $entry->id }})" onclick="return confirm('Delete this entry type?')" class="btn btn-danger" style="padding: 0.5rem 0.75rem; font-size: 12px;">Delete</button>
                                 </div>
                             </td>
                         </tr>
@@ -114,7 +114,8 @@
     </div>
 
     {{-- Create/Edit Modal --}}
-    <div class="modal @if (!$showCreateModal && !$showEditModal) hidden @endif">
+    @if ($showCreateModal || $showEditModal)
+    <div class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 {{ $editingId ? 'Edit Entry Type' : 'Create New Entry Type' }}
@@ -262,4 +263,5 @@
             </form>
         </div>
     </div>
+    @endif
 </div>
