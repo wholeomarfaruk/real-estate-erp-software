@@ -654,6 +654,11 @@
                                         'permission' => 'accounts.entry.hub.view',
                                     ],
                                     [
+                                        'label' => 'Manage Entry Types',
+                                        'route' => 'admin.account-entries.manage',
+                                        'permission' => 'accounts.entry.manage',
+                                    ],
+                                    [
                                         'label' => 'Chart of Accounts',
                                         'route' => 'admin.accounts.chart-of-accounts.index',
                                         'permission' => 'accounts.chart.list',

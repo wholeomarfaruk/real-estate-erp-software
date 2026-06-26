@@ -36,9 +36,18 @@
 
         {{-- Header --}}
         <div class="entry-header">
-            <h1>Account Entries</h1>
-            <div class="entry-header-sub">
-                <span>Create and manage accounting entries</span>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>Account Entries</h1>
+                    <div class="entry-header-sub">
+                        <span>Create and manage accounting entries</span>
+                    </div>
+                </div>
+                @can('accounts.entry.manage')
+                <a href="{{ route('admin.account-entries.manage') }}" style="background: #0066cc; color: white; padding: 0.625rem 1.25rem; border-radius: 4px; text-decoration: none; font-size: 13px; font-weight: 600;">
+                    ⚙️ Manage Types
+                </a>
+                @endcan
             </div>
         </div>
 

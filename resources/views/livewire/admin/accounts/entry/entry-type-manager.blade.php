@@ -41,7 +41,10 @@
                 <h1>Account Entry Types</h1>
                 <p style="font-size: 12px; color: #666; margin: 0.5rem 0 0 0;">Manage dynamic entry types (locked entries are system-defined)</p>
             </div>
-            <button wire:click="openCreateModal" class="btn btn-primary">+ Add New Entry Type</button>
+            <div style="display: flex; gap: 0.75rem;">
+                <a href="{{ route('admin.account-entries.index') }}" class="btn btn-secondary">← Back to Hub</a>
+                <button wire:click="openCreateModal" class="btn btn-primary">+ Add New Entry Type</button>
+            </div>
         </div>
 
         {{-- Dynamic Entries Table --}}

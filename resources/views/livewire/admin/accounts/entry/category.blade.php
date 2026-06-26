@@ -37,9 +37,16 @@
         </div>
 
         {{-- Hero Section --}}
-        <div class="entry-hero">
-            <h1>{{ $categoryData->title }}</h1>
-            <p>{{ $categoryData->description }}</p>
+        <div class="entry-hero" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>{{ $categoryData->title }}</h1>
+                <p>{{ $categoryData->description }}</p>
+            </div>
+            @can('accounts.entry.manage')
+            <a href="{{ route('admin.account-entries.manage') }}" style="background: rgba(255,255,255,0.2); color: white; padding: 0.625rem 1.25rem; border-radius: 4px; text-decoration: none; font-size: 13px; font-weight: 600; white-space: nowrap;">
+                ⚙️ Manage
+            </a>
+            @endcan
         </div>
 
         {{-- Entry Types Grid --}}
