@@ -50,15 +50,15 @@
                         <div class="entry-card-header">
                             @if ($categoryData['icon'])
                                 <div class="entry-card-icon">
-                                    {!! $categoryData['icon'] !!}
+                                    {!! $categoryData->icon !!}
                                 </div>
                             @endif
                             <div class="flex-1">
-                                <div class="entry-card-title">{{ $categoryData['title'] }}</div>
-                                <div class="entry-card-desc">{{ $categoryData['description'] }}</div>
+                                <div class="entry-card-title">{{ $categoryData->title }}</div>
+                                <div class="entry-card-desc">{{ $categoryData->description }}</div>
                             </div>
                         </div>
-                        <div class="entry-card-count">{{ count($categoryData['items']) }} entry types</div>
+                        <div class="entry-card-count">{{ $categoryData->items->count() }} entry types</div>
                         <div class="entry-card-footer">
                             <span class="entry-card-link">
                                 View all

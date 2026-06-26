@@ -2,6 +2,7 @@
 
 namespace App\Services\Accounts\Entry;
 
+use App\DTOs\Accounts\CategoryData;
 use App\DTOs\Accounts\EntryDefinition;
 use App\Enums\Accounts\EntryWorkflow;
 use App\Enums\Accounts\TransactionType;
@@ -11,6 +12,9 @@ class ConfigBasedEntryRegistry
 {
     private static ?array $cache = null;
 
+    /**
+     * @return array<string, CategoryData>
+     */
     public function getCategorized(): array
     {
         $config = $this->getConfig();
@@ -29,17 +33,17 @@ class ConfigBasedEntryRegistry
 
             uasort($categoryEntries, fn ($a, $b) => $a->sort <=> $b->sort);
 
-            $categorized[$key] = [
-                'key' => $key,
-                'title' => $category['title'] ?? '',
-                'description' => $category['description'] ?? '',
-                'icon' => $category['icon'] ?? '',
-                'sort' => $category['sort'] ?? 0,
-                'items' => array_values($categoryEntries),
-            ];
+            $categorized[$key] = new CategoryData(
+                key: $key,
+                title: $category['title'] ?? '',
+                description: $category['description'] ?? '',
+                icon: $category['icon'] ?? '',
+                sort: $category['sort'] ?? 0,
+                items: collect(array_values($categoryEntries)),
+            );
         }
 
-        uasort($categorized, fn ($a, $b) => ($a['sort'] ?? 0) <=> ($b['sort'] ?? 0));
+        uasort($categorized, fn ($a, $b) => $a->sort <=> $b->sort);
 
         return $categorized;
     }
@@ -55,7 +59,7 @@ class ConfigBasedEntryRegistry
         return $this->toDefinition($slug, $entries[$slug]);
     }
 
-    public function getCategory(string $key): ?array
+    public function getCategory(string $key): ?CategoryData
     {
         $categorized = $this->getCategorized();
         return $categorized[$key] ?? null;
