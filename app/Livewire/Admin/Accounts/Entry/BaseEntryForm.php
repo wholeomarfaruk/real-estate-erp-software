@@ -4,14 +4,15 @@ namespace App\Livewire\Admin\Accounts\Entry;
 
 use App\Livewire\Admin\Accounts\Concerns\InteractsWithAccountsAccess;
 use App\Livewire\Traits\WithMediaPicker;
-use App\Services\Accounts\Entry\ConfigBasedEntryRegistry;
+use App\Models\AccountEntryType;
 use App\Services\Accounts\Entry\EntrySubmissionService;
-use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
 abstract class BaseEntryForm extends Component
 {
     use InteractsWithAccountsAccess, WithMediaPicker;
+
+    public AccountEntryType $entryType;
 
     public ?int $debit_account_id = null;
     public ?int $credit_account_id = null;
@@ -24,7 +25,6 @@ abstract class BaseEntryForm extends Component
     public string $notes = '';
     public array $mediaIds = [];
 
-    abstract protected function entrySlug(): string;
     abstract protected function extraRules(): array;
     abstract protected function buildPayload(): array;
 
@@ -45,15 +45,7 @@ abstract class BaseEntryForm extends Component
     public function save(): void
     {
         try {
-            $slug = $this->entrySlug();
-            $registry = app(ConfigBasedEntryRegistry::class);
-            $def = $registry->find($slug);
-
-            if (!$def) {
-                throw new \Exception("Entry definition not found for slug: {$slug}");
-            }
-
-            $this->authorizePermission($def->permission);
+            $this->authorizePermission($this->entryType->permission);
 
             $rules = array_merge($this->baseRules(), $this->extraRules());
             $this->validate($rules);
@@ -61,9 +53,9 @@ abstract class BaseEntryForm extends Component
             $payload = $this->buildPayload();
             $payload['attachments'] = $this->normalizedAttachmentIds();
 
-            app(EntrySubmissionService::class)->submit($def, $payload);
+            app(EntrySubmissionService::class)->submit($this->entryType, $payload);
 
-            $this->dispatch('toast', type: 'success', message: $def->title . ' submitted successfully.');
+            $this->dispatch('toast', type: 'success', message: $this->entryType->name . ' submitted successfully.');
             $this->redirectRoute('admin.account-entries.index', navigate: true);
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->dispatch('toast', type: 'error', message: $e->validator->errors()->first());

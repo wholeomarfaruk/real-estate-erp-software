@@ -45,8 +45,8 @@
         {{-- Entry Types Grid --}}
         <div class="entry-grid">
             @forelse ($categoryData->items as $entry)
-                @if ($entry->enabled && $entry->visible)
-                    <a href="{{ route('admin.account-entries.form', ['category' => $entry->categoryKey, 'slug' => $entry->slug]) }}" class="entry-item">
+                @if ($entry->is_active && $entry->is_visible)
+                    <a href="{{ route('admin.account-entries.form', ['category' => $entry->category_key, 'slug' => $entry->slug]) }}" class="entry-item">
                         @if ($entry->icon)
                             <div class="entry-icon">
                                 {!! $entry->icon !!}

@@ -1,9 +1,7 @@
 <div>
-    @if ($entryDef && $entryDef->componentClass)
-        @livewire($entryDef->componentClass)
+    @if ($entryType?->hasHardcodedForm())
+        @livewire($entryType->form_component, ['entryType' => $entryType, 'key' => $entryType->slug])
     @else
-        <div style="padding: 2rem; text-align: center; color: #999;">
-            Entry form not found.
-        </div>
+        @livewire('admin.accounts.entry.generic-entry-form', ['entryType' => $entryType])
     @endif
 </div>

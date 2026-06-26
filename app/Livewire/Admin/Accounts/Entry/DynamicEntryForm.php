@@ -2,8 +2,7 @@
 
 namespace App\Livewire\Admin\Accounts\Entry;
 
-use App\DTOs\Accounts\EntryDefinition;
-use App\Services\Accounts\Entry\ConfigBasedEntryRegistry;
+use App\Models\AccountEntryType;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
@@ -13,34 +12,26 @@ class DynamicEntryForm extends Component
 {
     public string $category = '';
     public string $slug = '';
-    public ?EntryDefinition $entryDef = null;
+    public ?AccountEntryType $entryType = null;
 
-    public function mount(string $category, string $slug, ConfigBasedEntryRegistry $registry): void
+    public function mount(string $category, string $slug): void
     {
-        $entry = $registry->find($slug);
-        abort_if($entry === null, 404);
-        abort_unless($entry->categoryKey === $category, 404);
+        $entry = AccountEntryType::where('slug', $slug)
+            ->where('is_active', true)
+            ->firstOrFail();
 
-        $permission = $entry->permission;
-        abort_unless(auth()->user()?->can($permission), 403);
+        abort_unless($entry->category_key === $category, 404);
+        abort_unless(auth()->user()?->can($entry->permission), 403);
 
         $this->category = $category;
         $this->slug = $slug;
-        $this->entryDef = $entry;
-
-        // If entry has a route override, redirect immediately
-        if ($entry->routeOverride) {
-            $this->redirect(
-                route($entry->routeOverride['name'], $entry->routeOverride['params'] ?? []),
-                navigate: true
-            );
-        }
+        $this->entryType = $entry;
     }
 
     public function render(): View
     {
         return view('livewire.admin.accounts.entry.dynamic-entry-form', [
-            'entryDef' => $this->entryDef,
+            'entryType' => $this->entryType,
         ]);
     }
 }

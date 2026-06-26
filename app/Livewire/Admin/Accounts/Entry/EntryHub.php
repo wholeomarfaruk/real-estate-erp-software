@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Admin\Accounts\Entry;
 
-use App\Services\Accounts\Entry\ConfigBasedEntryRegistry;
+use App\Repositories\AccountEntryTypeRepository;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
@@ -10,14 +10,15 @@ use Livewire\Attributes\Layout;
 #[Layout('layouts.admin.admin')]
 class EntryHub extends Component
 {
-    public function mount(ConfigBasedEntryRegistry $registry): void
+    public function mount(): void
     {
         $this->authorizePermission('accounts.entry.hub.view');
     }
 
-    public function render(ConfigBasedEntryRegistry $registry): View
+    public function render(): View
     {
-        $categories = $registry->getCategorized();
+        $repo = app(AccountEntryTypeRepository::class);
+        $categories = $repo->getCategorized();
 
         return view('livewire.admin.accounts.entry.hub', [
             'categories' => $categories,

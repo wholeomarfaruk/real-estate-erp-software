@@ -132,4 +132,49 @@ class RequestEngine
 
         return BankingPaymentRequest::create($data);
     }
+
+    /**
+     * Create an entry request from the account entry module.
+     */
+    public function createEntryRequest(
+        \App\Models\AccountEntryType $entryType,
+        array $payload
+    ): BankingPaymentRequest {
+        $userId = $payload['requested_by'] ?? auth()->id();
+        $amount = round((float) ($payload['amount'] ?? 0), 3);
+
+        $externalData = [
+            'debit_account_id' => $payload['debit_account_id'],
+            'credit_account_id' => $payload['credit_account_id'],
+            'method' => $payload['method'] ?? 'cash',
+            'reference_no' => $payload['reference_no'] ?? null,
+            'name' => $payload['name'] ?? null,
+            'phone' => $payload['phone'] ?? null,
+            'notes' => $payload['notes'] ?? null,
+        ];
+
+        if (!empty($payload['attachments'])) {
+            $externalData['attachments'] = $payload['attachments'];
+        }
+
+        return BankingPaymentRequest::create([
+            'request_no' => BankingPaymentRequest::generateRequestNo(),
+            'source_type' => $entryType->transaction_type ?? 'entry',
+            'amount' => $amount,
+            'description' => $payload['description'] ?? $entryType->name,
+            'account_id' => $payload['credit_account_id'],
+            'status' => 'pending',
+            'method' => $payload['method'] ?? 'cash',
+            'notes' => $payload['notes'] ?? null,
+            'reference_no' => $payload['reference_no'] ?? null,
+            'name' => $payload['name'] ?? null,
+            'phone' => $payload['phone'] ?? null,
+            'requested_by' => $userId,
+            'external_data' => $externalData,
+            'debit_account_id' => $payload['debit_account_id'],
+            'debit_amount' => $amount,
+            'credit_account_id' => $payload['credit_account_id'],
+            'credit_amount' => $amount,
+        ]);
+    }
 }

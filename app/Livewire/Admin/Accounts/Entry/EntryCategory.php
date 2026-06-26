@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Admin\Accounts\Entry;
 
-use App\Services\Accounts\Entry\ConfigBasedEntryRegistry;
+use App\Repositories\AccountEntryTypeRepository;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
@@ -12,16 +12,18 @@ class EntryCategory extends Component
 {
     public string $category = '';
 
-    public function mount(string $category, ConfigBasedEntryRegistry $registry): void
+    public function mount(string $category): void
     {
         $this->authorizePermission('accounts.entry.category.view');
-        abort_unless($registry->getCategory($category), 404);
+        $repo = app(AccountEntryTypeRepository::class);
+        abort_unless($repo->findCategory($category), 404);
         $this->category = $category;
     }
 
-    public function render(ConfigBasedEntryRegistry $registry): View
+    public function render(): View
     {
-        $categorized = $registry->getCategorized();
+        $repo = app(AccountEntryTypeRepository::class);
+        $categorized = $repo->getCategorized();
         $categoryData = $categorized[$this->category] ?? null;
 
         abort_unless($categoryData !== null, 404);

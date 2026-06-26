@@ -6,4 +6,5 @@ enum EntryWorkflow: string
 {
     case BANKING_REQUEST = 'banking_request';
     case DIRECT_LEDGER = 'direct_ledger';
+    case POSTING_ENGINE = 'posting_engine';
 }
