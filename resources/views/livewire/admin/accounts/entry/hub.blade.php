@@ -45,7 +45,7 @@
         {{-- Category Grid --}}
         <div class="entry-grid">
             @foreach ($categories as $categoryKey => $categoryData)
-                @if ($categoryData['items'])
+                @if ($categoryData->items->isNotEmpty())
                     <a href="{{ route('admin.account-entries.category', $categoryKey) }}" class="entry-card">
                         <div class="entry-card-header">
                             @if ($categoryData['icon'])

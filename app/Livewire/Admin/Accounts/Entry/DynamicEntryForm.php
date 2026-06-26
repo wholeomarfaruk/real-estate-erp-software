@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Accounts\Entry;
 
+use App\DTOs\Accounts\EntryDefinition;
 use App\Services\Accounts\Entry\ConfigBasedEntryRegistry;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
@@ -12,7 +13,7 @@ class DynamicEntryForm extends Component
 {
     public string $category = '';
     public string $slug = '';
-    public ?array $entryDef = null;
+    public ?EntryDefinition $entryDef = null;
 
     public function mount(string $category, string $slug, ConfigBasedEntryRegistry $registry): void
     {
@@ -25,12 +26,7 @@ class DynamicEntryForm extends Component
 
         $this->category = $category;
         $this->slug = $slug;
-        $this->entryDef = [
-            'slug' => $entry->slug,
-            'title' => $entry->title,
-            'component' => $entry->componentClass,
-            'routeOverride' => $entry->routeOverride,
-        ];
+        $this->entryDef = $entry;
 
         // If entry has a route override, redirect immediately
         if ($entry->routeOverride) {

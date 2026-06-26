@@ -68,7 +68,7 @@
         <div class="entry-pills">
             <span style="font-size: 11px; font-weight: 600; color: #333; margin-right: 0.5rem;">Browse:</span>
             @foreach ($allCategories as $cat)
-                <a href="{{ route('admin.account-entries.category', $cat['key']) }}"
+                <a href="{{ route('admin.account-entries.category', $cat->key) }}"
                    class="entry-pill @if ($cat->key === $categoryData->key) active @endif">
                     {{ $cat->title }}
                 </a>
