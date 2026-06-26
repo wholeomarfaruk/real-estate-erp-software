@@ -281,6 +281,7 @@ class PermissionSeeder extends Seeder
             ['id' => 295, 'name' => 'accounts.entry.payments.create'],
             ['id' => 296, 'name' => 'accounts.entry.transfers.create'],
             ['id' => 297, 'name' => 'accounts.entry.opening.create'],
+            ['id' => 298, 'name' => 'accounts.entry.manage'],
 
             // ── CRM Module ───────────────────────────────────────────────────
             // Leads

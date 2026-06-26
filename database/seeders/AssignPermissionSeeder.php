@@ -211,6 +211,7 @@ class AssignPermissionSeeder extends Seeder
                 'accounts.entry.payments.create',
                 'accounts.entry.transfers.create',
                 'accounts.entry.opening.create',
+                'accounts.entry.manage',
             ])
             ->get();
 

@@ -467,6 +467,7 @@ Route::controller(ReportController::class)->prefix('reports')->name('reports.')-
 // Account Entry module
 Route::prefix('account-entries')->name('account-entries.')->group(function () {
     Route::get('/', \App\Livewire\Admin\Accounts\Entry\EntryHub::class)->name('index');
+    Route::get('/manage', \App\Livewire\Admin\Accounts\Entry\EntryTypeManager::class)->name('manage');
     Route::get('/{category}', \App\Livewire\Admin\Accounts\Entry\EntryCategory::class)->name('category');
     Route::get('/{category}/{slug}', \App\Livewire\Admin\Accounts\Entry\DynamicEntryForm::class)->name('form');
 });
