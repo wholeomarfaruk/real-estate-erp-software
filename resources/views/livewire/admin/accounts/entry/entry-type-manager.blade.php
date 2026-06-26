@@ -98,13 +98,14 @@
     @endif
 
     <!-- Create Modal -->
-    <x-modal wire:model="showCreateModal" maxWidth="md">
-        <div class="space-y-6 p-6">
-            <div>
-                <h3 class="text-lg font-medium text-gray-900">Create New Entry Type</h3>
-            </div>
+    <x-modal wire:model="showCreateModal" maxWidth="xl">
+        <div class="max-h-[calc(100vh-200px)] overflow-y-auto">
+            <div class="space-y-6 p-6">
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900">Create New Entry Type</h3>
+                </div>
 
-            <form wire:submit.prevent="save" class="space-y-4">
+                <form wire:submit.prevent="save" class="space-y-4">
                 <!-- Name & Slug Row -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -257,17 +258,19 @@
                     </button>
                 </div>
             </form>
+            </div>
         </div>
     </x-modal>
 
     <!-- Edit Modal -->
-    <x-modal wire:model="showEditModal" maxWidth="md">
-        <div class="space-y-6 p-6">
-            <div>
-                <h3 class="text-lg font-medium text-gray-900">Edit Entry Type</h3>
-            </div>
+    <x-modal wire:model="showEditModal" maxWidth="xl">
+        <div class="max-h-[calc(100vh-200px)] overflow-y-auto">
+            <div class="space-y-6 p-6">
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900">Edit Entry Type</h3>
+                </div>
 
-            <form wire:submit.prevent="save" class="space-y-4">
+                <form wire:submit.prevent="save" class="space-y-4">
                 <!-- Name & Slug Row -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -419,6 +422,7 @@
                     </button>
                 </div>
             </form>
+            </div>
         </div>
     </x-modal>
 </div>
