@@ -48,7 +48,7 @@
                 @if ($categoryData->items->isNotEmpty())
                     <a href="{{ route('admin.account-entries.category', $categoryKey) }}" class="entry-card">
                         <div class="entry-card-header">
-                            @if ($categoryData['icon'])
+                            @if ($categoryData->icon)
                                 <div class="entry-card-icon">
                                     {!! $categoryData->icon !!}
                                 </div>
