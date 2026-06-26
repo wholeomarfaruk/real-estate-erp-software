@@ -18,16 +18,13 @@
         .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 3px; font-size: 11px; font-weight: 600; }
         .badge-success { background: #e8f5e9; color: #2e7d32; }
         .badge-warning { background: #fff3e0; color: #e65100; }
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex !important; align-items: center; justify-content: center; z-index: 1000; }
-        .modal.hidden { display: none !important; }
-        .modal-content { background: white; border-radius: 8px; padding: 2rem; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
-        .modal-header { font-size: 18px; font-weight: 600; margin-bottom: 1.5rem; }
         .form-group { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 1rem; }
         .form-label { font-size: 13px; font-weight: 600; color: #333; }
         .form-input, .form-select, .form-textarea { padding: 0.625rem 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; width: 100%; }
         .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #0066cc; box-shadow: 0 0 0 2px rgba(0,102,204,0.1); }
         .form-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--gap); }
         .form-full { grid-column: 1/-1; }
+        .modal-header { font-size: 18px; font-weight: 600; margin-bottom: 1.5rem; }
         .modal-footer { display: flex; gap: var(--gap); justify-content: flex-end; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #ddd; }
         .checkbox { display: flex; align-items: center; gap: 0.5rem; }
         .checkbox input { cursor: pointer; }
@@ -114,11 +111,10 @@
     </div>
 
     {{-- Create/Edit Modal --}}
-    @if ($showCreateModal || $showEditModal)
-    <div class="modal">
-        <div class="modal-content">
+    <x-modal wire:model="showCreateModal" maxWidth="md">
+        <div style="padding: 2rem;">
             <div class="modal-header">
-                {{ $editingId ? 'Edit Entry Type' : 'Create New Entry Type' }}
+                Create New Entry Type
             </div>
 
             <form wire:submit.prevent="save">
@@ -258,10 +254,159 @@
 
                 <div class="modal-footer">
                     <button type="button" wire:click="closeModals" class="btn btn-secondary">Cancel</button>
-                    <button type="submit" class="btn btn-primary">{{ $editingId ? 'Update' : 'Create' }} Entry Type</button>
+                    <button type="submit" class="btn btn-primary">Create Entry Type</button>
                 </div>
             </form>
         </div>
-    </div>
-    @endif
+    </x-modal>
+
+    {{-- Edit Modal --}}
+    <x-modal wire:model="showEditModal" maxWidth="md">
+        <div style="padding: 2rem;">
+            <div class="modal-header">
+                Edit Entry Type
+            </div>
+
+            <form wire:submit.prevent="save">
+                <div class="form-row form-full">
+                    <div class="form-group">
+                        <label class="form-label">Name *</label>
+                        <input type="text" wire:model="name" placeholder="e.g., Custom Receipt" class="form-input">
+                        @error('name') <span style="color: #d32f2f; font-size: 11px;">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Slug *</label>
+                        <input type="text" wire:model="slug" placeholder="e.g., custom-receipt" class="form-input" disabled>
+                        @error('slug') <span style="color: #d32f2f; font-size: 11px;">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <div class="form-group form-full">
+                    <label class="form-label">Description</label>
+                    <textarea wire:model="description" placeholder="What does this entry type do?" class="form-textarea" rows="2"></textarea>
+                    @error('description') <span style="color: #d32f2f; font-size: 11px;">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="form-row form-full">
+                    <div class="form-group">
+                        <label class="form-label">Category *</label>
+                        <select wire:model="category_key" class="form-select">
+                            @foreach ($categories as $cat)
+                                <option value="{{ $cat->key }}">{{ $cat->title }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Workflow *</label>
+                        <select wire:model="workflow" class="form-select">
+                            <option value="banking_request">Banking Request</option>
+                            <option value="direct_ledger">Direct Ledger</option>
+                            <option value="posting_engine">Posting Engine</option>
+                        </select>
+                    </div>
+                </div>
+
+                @if ($workflow === 'posting_engine')
+                    <div class="form-group form-full">
+                        <label class="form-label">Accounting Event Key</label>
+                        <input type="text" wire:model="accounting_event_key" placeholder="e.g., expense.payment" class="form-input">
+                        <div style="font-size: 11px; color: #999; margin-top: 0.25rem;">Available: expense.payment, hrm.salary_payment, property.rent_collection, etc.</div>
+                    </div>
+                @endif
+
+                <div class="form-row form-full">
+                    <div class="form-group">
+                        <label class="form-label">Transaction Type</label>
+                        <input type="text" wire:model="transaction_type" placeholder="e.g., custom_receipt" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Permission</label>
+                        <input type="text" wire:model="permission" placeholder="e.g., accounts.entry.receipts.create" class="form-input">
+                    </div>
+                </div>
+
+                <div style="background: #f5f5f5; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                    <div style="font-size: 12px; font-weight: 600; margin-bottom: 0.75rem;">Debit Account Source</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Feature Type</label>
+                            <select wire:model="debit_feature_type" class="form-select">
+                                <option value="">None</option>
+                                @foreach ($features as $feature)
+                                    <option value="{{ $feature->key }}">{{ $feature->label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Account Group</label>
+                            <select wire:model="debit_account_group" class="form-select">
+                                <option value="">None</option>
+                                <option value="asset">Asset</option>
+                                <option value="liability">Liability</option>
+                                <option value="equity">Equity</option>
+                                <option value="income">Income</option>
+                                <option value="expense">Expense</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Account Type</label>
+                        <input type="text" wire:model="debit_account_type" placeholder="e.g., cash,bank,mfs" class="form-input">
+                        <div style="font-size: 11px; color: #999; margin-top: 0.25rem;">Comma-separated: cash, bank, mfs, wallet</div>
+                    </div>
+                </div>
+
+                <div style="background: #f5f5f5; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                    <div style="font-size: 12px; font-weight: 600; margin-bottom: 0.75rem;">Credit Account Source</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Feature Type</label>
+                            <select wire:model="credit_feature_type" class="form-select">
+                                <option value="">None</option>
+                                @foreach ($features as $feature)
+                                    <option value="{{ $feature->key }}">{{ $feature->label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Account Group</label>
+                            <select wire:model="credit_account_group" class="form-select">
+                                <option value="">None</option>
+                                <option value="asset">Asset</option>
+                                <option value="liability">Liability</option>
+                                <option value="equity">Equity</option>
+                                <option value="income">Income</option>
+                                <option value="expense">Expense</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Account Type</label>
+                        <input type="text" wire:model="credit_account_type" placeholder="e.g., cash,bank" class="form-input">
+                    </div>
+                </div>
+
+                <div class="form-row form-full">
+                    <div class="checkbox">
+                        <input type="checkbox" wire:model="is_active" id="is_active">
+                        <label for="is_active" style="margin: 0; cursor: pointer;">Active</label>
+                    </div>
+                    <div class="checkbox">
+                        <input type="checkbox" wire:model="is_visible" id="is_visible">
+                        <label for="is_visible" style="margin: 0; cursor: pointer;">Visible</label>
+                    </div>
+                </div>
+
+                <div class="form-group form-full">
+                    <label class="form-label">Sort Order</label>
+                    <input type="number" wire:model="sort_order" class="form-input">
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" wire:click="closeModals" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Entry Type</button>
+                </div>
+            </form>
+        </div>
+    </x-modal>
 </div>
