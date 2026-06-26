@@ -24,10 +24,10 @@ class EntryCategory extends Component
         $categorized = $registry->getCategorized();
         $categoryData = $categorized[$this->category] ?? null;
 
-        abort_unless($categoryData, 404);
+        abort_unless($categoryData !== null, 404);
 
         return view('livewire.admin.accounts.entry.category', [
-            'category' => $categoryData,
+            'categoryData' => $categoryData,
             'allCategories' => $categorized,
         ]);
     }

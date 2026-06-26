@@ -33,18 +33,18 @@
             <span>/</span>
             <a href="{{ route('admin.account-entries.index') }}">Account Entries</a>
             <span>/</span>
-            <span>{{ $category['title'] }}</span>
+            <span>{{ $categoryData['title'] }}</span>
         </div>
 
         {{-- Hero Section --}}
         <div class="entry-hero">
-            <h1>{{ $category['title'] }}</h1>
-            <p>{{ $category['description'] }}</p>
+            <h1>{{ $categoryData['title'] }}</h1>
+            <p>{{ $categoryData['description'] }}</p>
         </div>
 
         {{-- Entry Types Grid --}}
         <div class="entry-grid">
-            @forelse ($category['items'] as $entry)
+            @forelse ($categoryData['items'] as $entry)
                 @if ($entry->enabled && $entry->visible)
                     <a href="{{ route('admin.account-entries.form', ['category' => $entry->categoryKey, 'slug' => $entry->slug]) }}" class="entry-item">
                         @if ($entry->icon)
@@ -69,7 +69,7 @@
             <span style="font-size: 11px; font-weight: 600; color: #333; margin-right: 0.5rem;">Browse:</span>
             @foreach ($allCategories as $cat)
                 <a href="{{ route('admin.account-entries.category', $cat['key']) }}"
-                   class="entry-pill @if ($cat['key'] === $category['key']) active @endif">
+                   class="entry-pill @if ($cat['key'] === $categoryData['key']) active @endif">
                     {{ $cat['title'] }}
                 </a>
             @endforeach
