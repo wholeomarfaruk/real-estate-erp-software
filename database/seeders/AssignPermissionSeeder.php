@@ -204,6 +204,13 @@ class AssignPermissionSeeder extends Seeder
                 // Inventory Reports
                 'reports.inventory.stocks-report.view',
                 'reports.inventory.export',
+                // Account Entry Module
+                'accounts.entry.hub.view',
+                'accounts.entry.category.view',
+                'accounts.entry.receipts.create',
+                'accounts.entry.payments.create',
+                'accounts.entry.transfers.create',
+                'accounts.entry.opening.create',
             ])
             ->get();
 
