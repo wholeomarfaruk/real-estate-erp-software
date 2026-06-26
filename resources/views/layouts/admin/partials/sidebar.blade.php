@@ -649,6 +649,11 @@
                             @php
                                 $accountsMenuRoutes = [
                                     [
+                                        'label' => 'Account Entries',
+                                        'route' => 'admin.account-entries.index',
+                                        'permission' => 'accounts.entry.hub.view',
+                                    ],
+                                    [
                                         'label' => 'Chart of Accounts',
                                         'route' => 'admin.accounts.chart-of-accounts.index',
                                         'permission' => 'accounts.chart.list',

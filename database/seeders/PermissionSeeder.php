@@ -274,6 +274,14 @@ class PermissionSeeder extends Seeder
             // Advance Refund
             ['id' => 229, 'name' => 'accounts.advance.refund'],
 
+            // Account Entry Module
+            ['id' => 230, 'name' => 'accounts.entry.hub.view'],
+            ['id' => 231, 'name' => 'accounts.entry.category.view'],
+            ['id' => 232, 'name' => 'accounts.entry.receipts.create'],
+            ['id' => 233, 'name' => 'accounts.entry.payments.create'],
+            ['id' => 234, 'name' => 'accounts.entry.transfers.create'],
+            ['id' => 235, 'name' => 'accounts.entry.opening.create'],
+
             // ── CRM Module ───────────────────────────────────────────────────
             // Leads
             ['id' => 230, 'name' => 'crm.lead.view'],
