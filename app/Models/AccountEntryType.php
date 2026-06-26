@@ -71,21 +71,18 @@ class AccountEntryType extends Model
         if ($this->debit_account_group) {
             return Account::where('group', $this->debit_account_group)
                 ->where('is_active', true)
-                ->orderBy('sort_order')
-                ->orderBy('id')
+                ->orderBy('name')
                 ->get();
         }
         if ($this->debit_account_type) {
             $types = explode(',', $this->debit_account_type);
             return Account::whereIn('type', $types)
                 ->where('is_active', true)
-                ->orderBy('sort_order')
-                ->orderBy('id')
+                ->orderBy('name')
                 ->get();
         }
         return Account::where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('id')
+            ->orderBy('name')
             ->get();
     }
 
@@ -98,21 +95,18 @@ class AccountEntryType extends Model
         if ($this->credit_account_group) {
             return Account::where('group', $this->credit_account_group)
                 ->where('is_active', true)
-                ->orderBy('sort_order')
-                ->orderBy('id')
+                ->orderBy('name')
                 ->get();
         }
         if ($this->credit_account_type) {
             $types = explode(',', $this->credit_account_type);
             return Account::whereIn('type', $types)
                 ->where('is_active', true)
-                ->orderBy('sort_order')
-                ->orderBy('id')
+                ->orderBy('name')
                 ->get();
         }
         return Account::where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('id')
+            ->orderBy('name')
             ->get();
     }
 }
