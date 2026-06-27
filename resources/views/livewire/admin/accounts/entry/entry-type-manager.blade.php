@@ -33,8 +33,17 @@
                     @foreach ($entries as $entry)
                         <tr class="hover:bg-gray-50 transition-colors duration-150">
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-semibold text-gray-900">{{ $entry->name }}</div>
-                                <div class="text-xs text-gray-500 mt-1">{{ $entry->slug }}</div>
+                                <div class="flex items-center gap-2">
+                                    <div>
+                                        <div class="text-sm font-semibold text-gray-900">{{ $entry->name }}</div>
+                                        <div class="text-xs text-gray-500 mt-1">{{ $entry->slug }}</div>
+                                    </div>
+                                    @if ($entry->isLocked())
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                            🔒 Locked
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {{ $entry->category->title }}
@@ -72,14 +81,16 @@
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex gap-2 justify-end">
                                     <button type="button" wire:click="openEditModal({{ $entry->id }})" class="text-blue-600 hover:text-blue-900 inline-flex items-center px-3 py-1.5 border border-blue-300 rounded-md text-xs font-medium hover:bg-blue-50 transition-colors duration-200">
-                                        Edit
+                                        ⚙️ Configure
                                     </button>
                                     <button type="button" wire:click="toggleActive({{ $entry->id }})" class="text-gray-600 hover:text-gray-900 inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium hover:bg-gray-50 transition-colors duration-200">
                                         {{ $entry->is_active ? 'Deactivate' : 'Activate' }}
                                     </button>
-                                    <button type="button" wire:click="deleteEntry({{ $entry->id }})" onclick="return confirm('Delete this entry type?')" class="text-red-600 hover:text-red-900 inline-flex items-center px-3 py-1.5 border border-red-300 rounded-md text-xs font-medium hover:bg-red-50 transition-colors duration-200">
-                                        Delete
-                                    </button>
+                                    @if ($entry->isDynamic())
+                                        <button type="button" wire:click="deleteEntry({{ $entry->id }})" onclick="return confirm('Delete this entry type?')" class="text-red-600 hover:text-red-900 inline-flex items-center px-3 py-1.5 border border-red-300 rounded-md text-xs font-medium hover:bg-red-50 transition-colors duration-200">
+                                            Delete
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -267,8 +278,25 @@
         <div class="max-h-[calc(100vh-200px)] overflow-y-auto">
             <div class="space-y-6 p-6">
                 <div>
-                    <h3 class="text-lg font-medium text-gray-900">Edit Entry Type</h3>
+                    <h3 class="text-lg font-medium text-gray-900">
+                        @if ($editingId && \App\Models\AccountEntryType::find($editingId)?->isLocked())
+                            Configure Locked Entry Type
+                        @else
+                            Edit Entry Type
+                        @endif
+                    </h3>
                 </div>
+
+                @if ($editingId && \App\Models\AccountEntryType::find($editingId)?->isLocked())
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <div class="flex gap-3">
+                            <div class="text-amber-600 text-lg">🔒</div>
+                            <div class="text-sm text-amber-800">
+                                <strong>Locked Entry:</strong> This entry type is system-defined. You can configure how it posts (workflow, posting engine, account filters), but the form component cannot be changed.
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
                 <form wire:submit.prevent="save" class="space-y-4">
                 <!-- Name & Slug Row -->

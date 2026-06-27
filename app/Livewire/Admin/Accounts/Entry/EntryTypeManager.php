@@ -62,7 +62,7 @@ class EntryTypeManager extends Component
     public function render(): View
     {
         $categories = AccountEntryCategory::active()->ordered()->get();
-        $entries = AccountEntryType::where('is_locked', false)
+        $entries = AccountEntryType::orderBy('is_locked', 'desc')
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
@@ -93,7 +93,6 @@ class EntryTypeManager extends Component
     public function openEditModal(int $id): void
     {
         $entry = AccountEntryType::findOrFail($id);
-        abort_unless($entry->isDynamic(), 403);
 
         $this->editingId = $id;
         $this->name = $entry->name;
@@ -147,7 +146,6 @@ class EntryTypeManager extends Component
         $validated = $this->validate($rules);
 
         $entry = AccountEntryType::findOrFail($this->editingId);
-        abort_unless($entry->isDynamic(), 403);
 
         $entry->update($validated);
 
@@ -158,7 +156,11 @@ class EntryTypeManager extends Component
     public function deleteEntry(int $id): void
     {
         $entry = AccountEntryType::findOrFail($id);
-        abort_unless($entry->isDynamic(), 403);
+
+        if ($entry->isLocked()) {
+            $this->dispatch('toast', type: 'error', message: 'Cannot delete locked entry types!');
+            return;
+        }
 
         $entry->delete();
         $this->dispatch('toast', type: 'success', message: 'Entry type deleted successfully!');
