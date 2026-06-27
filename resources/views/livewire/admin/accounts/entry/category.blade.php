@@ -59,7 +59,7 @@
                                 {!! $entry->icon !!}
                             </div>
                         @endif
-                        <div class="entry-title">{{ $entry->title }}</div>
+                        <div class="entry-title">{{ $entry->name }}</div>
                         <div class="entry-desc">{{ $entry->description }}</div>
                         <div class="entry-arrow">Create →</div>
                     </a>
