@@ -21,6 +21,7 @@ class EntryTypeManager extends Component
     public string $name = '';
     public string $description = '';
     public string $slug = '';
+    public string $icon = '';
     public string $category_key = 'receipts';
     public string $workflow = 'banking_request';
     public ?string $transaction_type = null;
@@ -40,6 +41,7 @@ class EntryTypeManager extends Component
         'name' => 'required|string|max:120',
         'description' => 'nullable|string|max:500',
         'slug' => 'required|string|max:80|unique:account_entry_types,slug',
+        'icon' => 'nullable|string|max:500',
         'category_key' => 'required|exists:account_entry_categories,key',
         'workflow' => 'required|in:banking_request,direct_ledger,posting_engine',
         'transaction_type' => 'nullable|string|max:50',
@@ -98,6 +100,7 @@ class EntryTypeManager extends Component
         $this->name = $entry->name;
         $this->description = $entry->description;
         $this->slug = $entry->slug;
+        $this->icon = $entry->icon ?? '';
         $this->category_key = $entry->category_key;
         $this->workflow = $entry->workflow->value;
         $this->transaction_type = $entry->transaction_type;
@@ -178,6 +181,7 @@ class EntryTypeManager extends Component
         $this->name = '';
         $this->description = '';
         $this->slug = '';
+        $this->icon = '';
         $this->category_key = 'receipts';
         $this->workflow = 'banking_request';
         $this->transaction_type = null;

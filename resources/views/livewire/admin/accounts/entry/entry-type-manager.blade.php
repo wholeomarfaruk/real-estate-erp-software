@@ -138,6 +138,21 @@
                     @error('description') <span class="mt-1 text-xs text-red-600">{{ $message }}</span> @enderror
                 </div>
 
+                <!-- Icon -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Icon</label>
+                    <div class="flex gap-2">
+                        <input type="text" wire:model="icon" placeholder="e.g., 💰 or emoji" maxlength="10" class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        @if ($icon)
+                            <div class="px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-xl flex items-center justify-center w-12">
+                                {!! $icon !!}
+                            </div>
+                        @endif
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">Paste emoji (💰 👤 🛒) or HTML icon</p>
+                    @error('icon') <span class="mt-1 text-xs text-red-600">{{ $message }}</span> @enderror
+                </div>
+
                 <!-- Category & Workflow Row -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -317,6 +332,21 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                     <textarea wire:model="description" placeholder="What does this entry type do?" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm" rows="2"></textarea>
                     @error('description') <span class="mt-1 text-xs text-red-600">{{ $message }}</span> @enderror
+                </div>
+
+                <!-- Icon -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Icon</label>
+                    <div class="flex gap-2">
+                        <input type="text" wire:model="icon" placeholder="e.g., 💰 or emoji" maxlength="10" class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        @if ($icon)
+                            <div class="px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-xl flex items-center justify-center w-12">
+                                {!! $icon !!}
+                            </div>
+                        @endif
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">Paste emoji (💰 👤 🛒) or HTML icon</p>
+                    @error('icon') <span class="mt-1 text-xs text-red-600">{{ $message }}</span> @enderror
                 </div>
 
                 <!-- Category & Workflow Row -->
