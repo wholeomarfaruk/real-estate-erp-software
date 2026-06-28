@@ -50,6 +50,7 @@
             // Confirmation alert - delete with Yes/Cancel
             Livewire.on('swal-confirm', data => {
                 const id = data[0].id;
+                const method = data[0].method;
                 const title = data[0].title;
                 const text = data[0].text;
 
@@ -66,7 +67,7 @@
                     allowEscapeKey: false
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        Livewire.dispatch('deletePropertySaleConfirmed', { id: id });
+                        Livewire.call(method, id);
                     }
                 });
             });
@@ -152,6 +153,7 @@
     <script>
         document.addEventListener('alpine:init', () => {
             Alpine.data('livewireConfirm', () => ({
+                
                 confirmAction({
                     id = null,
                     method = null,

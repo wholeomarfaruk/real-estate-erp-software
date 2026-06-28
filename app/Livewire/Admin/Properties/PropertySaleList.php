@@ -255,16 +255,15 @@ class PropertySaleList extends Component
     {
         abort_unless(Auth::user()?->can('property_sale.delete'), 403);
 
-        $sale = PropertySale::findOrFail($id);
+        $validation = $this->getDeleteValidation($id);
 
-        // A handed-over sale is locked — only a superadmin may still delete it.
-        if ($sale->isHandedOver() && ! Auth::user()?->hasRole('superadmin')) {
-            $this->dispatch('toast', ['type' => 'error', 'message' => 'This sale has been handed over and can no longer be deleted.']);
+        if (!$validation['canDelete']) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => $validation['text']]);
             return;
         }
 
-        $sale->delete();
-        $this->dispatch('toast', ['type' => 'success', 'message' => 'Property sale deleted.']);
+        PropertySale::findOrFail($id)->delete();
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Property sale deleted successfully.']);
     }
 
     // ── Render ────────────────────────────────────────────────────────────────
