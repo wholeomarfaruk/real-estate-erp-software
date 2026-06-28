@@ -357,7 +357,7 @@ class PropertySaleCreate extends Component
         if (!$this->dIsScheduled) return;
         $count = (int) $this->dScheduleCount;
         if ($count <= 0) return;
-        $remaining = max(0.0, (float) $this->dNetAmount - (float) $this->dDownPaymentAmount);
+        $remaining = max(0.0, (float) $this->dNetAmount - (float) $this->dDownPaymentAmount - (float) $this->dServiceCharge - (float) $this->dUtilityCharge);
         $this->dScheduleAmount = (string) round($remaining / $count, 2);
     }
 
