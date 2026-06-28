@@ -235,6 +235,7 @@ class PropertySaleList extends Component
 
         // Can delete - dispatch confirmation alert
         $this->dispatch('swal-confirm', [
+            'method'=> 'deletePropertySaleConfirmed',
             'id'    => $id,
             'title' => $validation['title'],
             'text'  => $validation['text'],

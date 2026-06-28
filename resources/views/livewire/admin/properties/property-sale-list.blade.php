@@ -242,7 +242,8 @@
                         @can('property_sale.delete')
                             @if(! $sale->isHandedOver() || auth()->user()?->hasRole('superadmin'))
                                 <button
-                                    @click="$wire.confirmDelete({{ $sale->id }})"
+                                    x-data="livewireConfirm()"
+                                    @click="confirmAction({ id: {{ $sale->id }}, method: 'deletePropertySaleConfirmed', title: 'Delete Property Sale?', text: 'This sale will be permanently deleted. This action cannot be undone.' })"
                                     title="Delete"
                                     style="width:28px; height:28px; border-radius:5px; display:flex; align-items:center; justify-content:center;
                                            cursor:pointer; background:transparent; border:0; color:var(--rj-fg);"
