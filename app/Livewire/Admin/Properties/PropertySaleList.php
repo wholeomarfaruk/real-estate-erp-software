@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Properties;
 use App\Models\Customer;
 use App\Models\Property;
 use App\Models\PropertySale;
+use App\Models\PropertySaleUnit;
 use App\Models\PropertyUnit;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -23,6 +24,7 @@ class PropertySaleList extends Component
     // ── Edit drawer UI state ──────────────────────────────────────────────────
     public bool $drawerOpen = false;
     public ?int $editingId  = null;
+    public array $editingUnits = [];
 
     // ── Edit drawer fields ────────────────────────────────────────────────────
     public $dPropertyId         = '';
@@ -40,6 +42,13 @@ class PropertySaleList extends Component
     public $dStatus             = 'active';
     public $dSalesRepresentative = '';
     public $dNotes              = '';
+
+    // ── Rent-specific fields ───────────────────────────────────────────────────
+    public $dRentStartDate      = '';
+    public $dRentEndDate        = '';
+    public $dSecurityDeposit    = '0';
+    public $dIsRenewal          = false;
+    public $dRenewalDate        = '';
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     public function mount(): void
@@ -122,7 +131,7 @@ class PropertySaleList extends Component
     {
         abort_unless(Auth::user()?->can('property_sale.edit'), 403);
 
-        $sale = PropertySale::findOrFail($id);
+        $sale = PropertySale::with('saleUnits.propertyUnit')->findOrFail($id);
         $this->editingId = $id;
 
         $this->dPropertyId          = (string) ($sale->property_id ?? $sale->propertyUnit?->property_id ?? '');
@@ -140,6 +149,25 @@ class PropertySaleList extends Component
         $this->dStatus              = $sale->status;
         $this->dSalesRepresentative = $sale->sales_representative ?? '';
         $this->dNotes               = $sale->notes ?? '';
+
+        // Rent-specific fields
+        $this->dRentStartDate       = $sale->rent_start_date?->format('Y-m-d') ?? '';
+        $this->dRentEndDate         = $sale->rent_end_date?->format('Y-m-d') ?? '';
+        $this->dSecurityDeposit     = (string) $sale->security_deposit_amount;
+        $this->dIsRenewal           = (bool) $sale->is_renewal;
+        $this->dRenewalDate         = $sale->renewal_date?->format('Y-m-d') ?? '';
+
+        $this->editingUnits = $sale->saleUnits->map(fn($unit) => [
+            'id'               => $unit->id,
+            'property_unit_id' => $unit->property_unit_id,
+            'unit_code'        => $unit->propertyUnit?->code ?? '',
+            'sale_amount'      => (string) $unit->sale_amount,
+            'discount_amount'  => (string) $unit->discount_amount,
+            'tax_amount'       => (string) $unit->tax_amount,
+            'net_amount'       => (string) $unit->net_amount,
+            'service_charge'   => (string) $unit->service_charge,
+            'utility_charge'   => (string) $unit->utility_charge,
+        ])->toArray();
 
         $this->drawerOpen = true;
     }
@@ -194,7 +222,8 @@ class PropertySaleList extends Component
 
         $this->recalcNet();
 
-        PropertySale::findOrFail($this->editingId)->update([
+        $sale = PropertySale::findOrFail($this->editingId);
+        $updateData = [
             'property_id'          => $this->dPropertyId,
             'sale_type'            => $this->dSaleType,
             'property_unit_id'     => $this->dPropertyUnitId,
@@ -211,6 +240,46 @@ class PropertySaleList extends Component
             'sales_representative' => $this->dSalesRepresentative ?: null,
             'notes'                => $this->dNotes ?: null,
             'updated_by'           => Auth::id(),
+        ];
+
+        if ($this->dSaleType === 'rent') {
+            $updateData['rent_start_date'] = $this->dRentStartDate ?: null;
+            $updateData['rent_end_date'] = $this->dRentEndDate ?: null;
+            $updateData['security_deposit_amount'] = (float) $this->dSecurityDeposit;
+            $updateData['is_renewal'] = $this->dIsRenewal;
+            $updateData['renewal_date'] = $this->dRenewalDate && $this->dIsRenewal ? $this->dRenewalDate : null;
+        }
+
+        $sale->update($updateData);
+
+        $totalSaleAmount = 0;
+        $totalDiscountAmount = 0;
+        $totalTaxAmount = 0;
+        $totalNetAmount = 0;
+
+        foreach ($this->editingUnits as $unitData) {
+            $unitNetAmount = (float) $unitData['sale_amount'] - (float) $unitData['discount_amount'] + (float) $unitData['tax_amount'] + (float) $unitData['service_charge'] + (float) $unitData['utility_charge'];
+
+            PropertySaleUnit::findOrFail($unitData['id'])->update([
+                'sale_amount'     => (float) $unitData['sale_amount'],
+                'discount_amount' => (float) $unitData['discount_amount'],
+                'tax_amount'      => (float) $unitData['tax_amount'],
+                'service_charge'  => (float) $unitData['service_charge'],
+                'utility_charge'  => (float) $unitData['utility_charge'],
+                'net_amount'      => round($unitNetAmount, 2),
+            ]);
+
+            $totalSaleAmount += (float) $unitData['sale_amount'];
+            $totalDiscountAmount += (float) $unitData['discount_amount'];
+            $totalTaxAmount += (float) $unitData['tax_amount'];
+            $totalNetAmount += round($unitNetAmount, 2);
+        }
+
+        $sale->update([
+            'sale_amount'   => round($totalSaleAmount, 2),
+            'discount_amount' => round($totalDiscountAmount, 2),
+            'tax_amount'    => round($totalTaxAmount, 2),
+            'net_amount'    => round($totalNetAmount, 2),
         ]);
 
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Property sale updated successfully.']);

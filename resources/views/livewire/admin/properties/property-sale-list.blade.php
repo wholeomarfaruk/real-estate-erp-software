@@ -307,10 +307,13 @@
         x-transition:leave-start="transform translate-x-0"
         x-transition:leave-end="transform translate-x-full"
         style="position:fixed; top:0; right:0; bottom:0; width:680px; max-width:100vw;
-               background:var(--canvas); z-index:51; display:flex; flex-direction:column;
+               background:var(--canvas); z-index:51;
                box-shadow: -20px 0 40px -20px rgba(0,0,0,.25);"
         x-cloak
     >
+    <div class="flex flex-col relative h-full">
+
+
         {{-- Drawer Head --}}
         <div style="padding:18px 24px; border-bottom:1px solid var(--rule); background:var(--paper);
                     display:flex; justify-content:space-between; align-items:center;">
@@ -346,10 +349,10 @@
                     </label>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                         @foreach(['sale' => 'Sale', 'rent' => 'Rent'] as $val => $label)
-                            <label style="display:flex; align-items:center; gap:8px; padding:9px 12px; border-radius:7px; cursor:pointer;
+                            <label style="display:flex; align-items:center; gap:8px; padding:9px 12px; border-radius:7px; cursor:not-allowed; opacity:0.6;
                                           border:1.5px solid {{ $dSaleType === $val ? 'var(--accent)' : 'var(--rule)' }};
                                           background:{{ $dSaleType === $val ? 'rgba(31,58,104,.06)' : 'transparent' }};">
-                                <input type="radio" wire:model.live="dSaleType" value="{{ $val }}" style="accent-color:var(--accent);">
+                                <input type="radio" value="{{ $val }}" {{ $dSaleType === $val ? 'checked' : '' }} disabled style="accent-color:var(--accent); cursor:not-allowed;">
                                 <span style="font:500 12.5px 'Inter', sans-serif; color:{{ $dSaleType === $val ? 'var(--accent)' : 'var(--ink-2)' }};">{{ $label }}</span>
                             </label>
                         @endforeach
@@ -413,59 +416,120 @@
                 </div>
             </div>
 
-            {{-- ── 2. Dates ── --}}
-            <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
-                <div style="margin-bottom:14px;">
-                    <h4 style="margin:0; font-size:13px; font-weight:600;">Dates</h4>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 14px;">
-                    <div>
-                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Sale Date</label>
-                        <input wire:model="dSaleDate" type="date"
-                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" class="flatpickr-only-date" />
+            {{-- ── 2. Dates (Sale) ── --}}
+            @if($dSaleType === 'sale')
+                <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                    <div style="margin-bottom:14px;">
+                        <h4 style="margin:0; font-size:13px; font-weight:600;">Dates</h4>
                     </div>
-                    <div>
-                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Contract Date</label>
-                        <input wire:model="dContractDate" type="date"
-                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" class="flatpickr-only-date" />
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 14px;">
+                        <div>
+                            <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Sale Date</label>
+                            <input wire:model="dSaleDate" type="date"
+                                style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" class="flatpickr-only-date" />
+                        </div>
+                        <div>
+                            <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Contract Date</label>
+                            <input wire:model="dContractDate" type="date"
+                                style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" class="flatpickr-only-date" />
+                        </div>
                     </div>
                 </div>
-            </div>
+            @endif
 
-            {{-- ── 3. Financial ── --}}
-            <div style="background:#F5F2E8; border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
-                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
-                    <h4 style="margin:0; font-size:13px; font-weight:600;">Financial Details</h4>
-                    <span style="font:11px var(--mono); color:var(--ink-3);">BDT (৳)</span>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px 14px;">
-                    <div>
-                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
-                            Sale Amount <span style="color:var(--rj-fg)">*</span>
-                        </label>
-                        <input wire:model.blur="dSaleAmount" type="number" min="0" step="0.01" placeholder="0.00"
-                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
-                        @error('dSaleAmount') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+            {{-- ── 2b. Rent Details ── --}}
+            @if($dSaleType === 'rent')
+                <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                    <div style="margin-bottom:14px;">
+                        <h4 style="margin:0; font-size:13px; font-weight:600;">Rent Period</h4>
                     </div>
-                    <div>
-                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Discount</label>
-                        <input wire:model.blur="dDiscountAmount" type="number" min="0" step="0.01" placeholder="0.00"
-                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
-                    </div>
-                    <div>
-                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Tax</label>
-                        <input wire:model.blur="dTaxAmount" type="number" min="0" step="0.01" placeholder="0.00"
-                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 14px;">
+                        <div>
+                            <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Rent Start Date</label>
+                            <input wire:model="dRentStartDate" type="date"
+                                style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" class="flatpickr-only-date" />
+                        </div>
+                        <div>
+                            <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Rent End Date</label>
+                            <input wire:model="dRentEndDate" type="date"
+                                style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" class="flatpickr-only-date" />
+                        </div>
                     </div>
                 </div>
-                {{-- Net Amount display --}}
-                <div style="margin-top:14px; padding:12px 16px; background:var(--paper); border:1.5px solid var(--accent); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font:600 11px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Net Amount (Sale − Discount + Tax)</span>
-                    <span style="font:700 20px var(--mono); color:var(--accent); font-variant-numeric:tabular-nums;">
-                        ৳ {{ number_format((float)$dNetAmount, 2) }}
-                    </span>
+
+                <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                    <div style="margin-bottom:14px;">
+                        <h4 style="margin:0; font-size:13px; font-weight:600;">Security &amp; Renewal</h4>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px 14px;">
+                        <div>
+                            <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Security Deposit</label>
+                            <input wire:model="dSecurityDeposit" type="number" min="0" step="0.01" placeholder="0.00"
+                                style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
+                        </div>
+                        <div style="display:flex; align-items:flex-end;">
+                            <label style="display:flex; align-items:center; gap:8px; padding:9px 12px; border:1px solid var(--rule); border-radius:7px; cursor:pointer; width:100%;">
+                                <input type="checkbox" wire:model="dIsRenewal" style="accent-color:var(--accent);">
+                                <span style="font:500 12px 'Inter', sans-serif; color:var(--ink-2);">Is Renewal</span>
+                            </label>
+                        </div>
+                        @if($dIsRenewal)
+                            <div>
+                                <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Renewal Date</label>
+                                <input wire:model="dRenewalDate" type="date"
+                                    style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" class="flatpickr-only-date" />
+                            </div>
+                        @endif
+                    </div>
                 </div>
-            </div>
+            @endif
+
+            {{-- ── 4. Unit-wise Edit (Sale only) ── --}}
+            @if($dSaleType === 'sale' && count($editingUnits) > 0)
+                <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
+                    <div style="margin-bottom:14px;">
+                        <h4 style="margin:0; font-size:13px; font-weight:600;">Unit Details (Edit in Units section below)</h4>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                            <thead>
+                                <tr style="border-bottom:2px solid var(--rule); background:rgba(0,0,0,.02);">
+                                    <th style="padding:8px; text-align:left; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Unit</th>
+                                    <th style="padding:8px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Sale Amount</th>
+                                    <th style="padding:8px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Discount</th>
+                                    <th style="padding:8px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Tax</th>
+                                    <th style="padding:8px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Service Charge</th>
+                                    <th style="padding:8px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Utility Charge</th>
+                                    <th style="padding:8px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);">Net Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($editingUnits as $idx => $unit)
+                                    <tr style="border-bottom:1px solid var(--rule);">
+                                        <td style="padding:8px; font-weight:500; color:var(--ink-1);">{{ $unit['unit_code'] }}</td>
+                                        <td style="padding:8px;"><input wire:model.blur="editingUnits.{{ $idx }}.sale_amount" type="number" min="0" step="0.01" style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:4px 8px; border-radius:4px; font-family:'IBM Plex Mono', monospace; font-size:11px;" /></td>
+                                        <td style="padding:8px;"><input wire:model.blur="editingUnits.{{ $idx }}.discount_amount" type="number" min="0" step="0.01" style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:4px 8px; border-radius:4px; font-family:'IBM Plex Mono', monospace; font-size:11px;" /></td>
+                                        <td style="padding:8px;"><input wire:model.blur="editingUnits.{{ $idx }}.tax_amount" type="number" min="0" step="0.01" style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:4px 8px; border-radius:4px; font-family:'IBM Plex Mono', monospace; font-size:11px;" /></td>
+                                        <td style="padding:8px;"><input wire:model.blur="editingUnits.{{ $idx }}.service_charge" type="number" min="0" step="0.01" style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:4px 8px; border-radius:4px; font-family:'IBM Plex Mono', monospace; font-size:11px;" /></td>
+                                        <td style="padding:8px;"><input wire:model.blur="editingUnits.{{ $idx }}.utility_charge" type="number" min="0" step="0.01" style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:4px 8px; border-radius:4px; font-family:'IBM Plex Mono', monospace; font-size:11px;" /></td>
+                                        <td style="padding:8px; text-align:right; font:600 11px var(--mono); color:var(--accent);">৳ {{ number_format((float)$unit['sale_amount'] - (float)$unit['discount_amount'] + (float)$unit['tax_amount'] + (float)$unit['service_charge'] + (float)$unit['utility_charge'], 2) }}</td>
+                                    </tr>
+                                @endforeach
+                                <tr style="border-top:2px solid var(--rule); background:rgba(0,0,0,.02); font-weight:600;">
+                                    <td style="padding:8px; color:var(--ink-1);">TOTAL</td>
+                                    <td style="padding:8px; text-align:right; color:var(--accent);">৳ {{ number_format(array_sum(array_column($editingUnits, 'sale_amount')), 2) }}</td>
+                                    <td style="padding:8px; text-align:right; color:var(--accent);">৳ {{ number_format(array_sum(array_column($editingUnits, 'discount_amount')), 2) }}</td>
+                                    <td style="padding:8px; text-align:right; color:var(--accent);">৳ {{ number_format(array_sum(array_column($editingUnits, 'tax_amount')), 2) }}</td>
+                                    <td style="padding:8px; text-align:right; color:var(--accent);">৳ {{ number_format(array_sum(array_column($editingUnits, 'service_charge')), 2) }}</td>
+                                    <td style="padding:8px; text-align:right; color:var(--accent);">৳ {{ number_format(array_sum(array_column($editingUnits, 'utility_charge')), 2) }}</td>
+                                    <td style="padding:8px; text-align:right; font:700 12px var(--mono); color:var(--accent);">৳ {{ number_format(array_sum(array_map(fn($u) => (float)$u['sale_amount'] - (float)$u['discount_amount'] + (float)$u['tax_amount'] + (float)$u['service_charge'] + (float)$u['utility_charge'], $editingUnits)), 2) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
+
 
             {{-- ── 4. Sale Details ── --}}
             <div style="background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:18px 20px;">
@@ -526,6 +590,7 @@
                 </div>
             </div>
 
+
         </div>
 
         {{-- Drawer Footer --}}
@@ -565,6 +630,7 @@
                 </button>
             </div>
         </div>
+            </div>
     </aside>
 
 </div>
