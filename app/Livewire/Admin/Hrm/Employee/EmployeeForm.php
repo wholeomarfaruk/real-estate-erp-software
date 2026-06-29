@@ -7,6 +7,7 @@ use App\Livewire\Traits\WithMediaPicker;
 use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
+use App\Models\WorkStation;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
@@ -22,6 +23,8 @@ class EmployeeForm extends Component
     public ?int $department_id = null;
 
     public ?int $designation_id = null;
+
+    public ?int $work_station_id = null;
 
     public ?int $user_id = null;
 
@@ -106,11 +109,13 @@ class EmployeeForm extends Component
             ->where('status', true)
             ->orderBy('name')
             ->get(['id', 'name', 'department_id']);
+        $workStations = WorkStation::query()->where('status', true)->orderBy('name')->get(['id', 'name']);
         $users = User::query()->orderBy('name')->get(['id', 'name', 'email']);
 
         return view('livewire.admin.hrm.employee.employee-form', [
             'departments' => $departments,
             'designations' => $designations,
+            'workStations' => $workStations,
             'users' => $users,
             'genderOptions' => ['male', 'female', 'other'],
             'employmentTypes' => ['permanent', 'contractual', 'intern', 'daily'],
@@ -126,6 +131,7 @@ class EmployeeForm extends Component
         $rules = [
             'department_id' => ['nullable', 'exists:departments,id'],
             'designation_id' => ['nullable', 'exists:designations,id'],
+            'work_station_id' => ['required', 'exists:work_stations,id'],
             'user_id' => [
                 'nullable',
                 'exists:users,id',
@@ -187,6 +193,7 @@ class EmployeeForm extends Component
     {
         $this->department_id = $employee->department_id ? (int) $employee->department_id : null;
         $this->designation_id = $employee->designation_id ? (int) $employee->designation_id : null;
+        $this->work_station_id = $employee->work_station_id ? (int) $employee->work_station_id : null;
         $this->user_id = $employee->user_id ? (int) $employee->user_id : null;
         $this->employee_id = (string) $employee->employee_id;
         $this->name = (string) $employee->name;

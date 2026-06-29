@@ -17,7 +17,7 @@
     <div class="mt-4 rounded-2xl border border-gray-200 bg-white">
         <div class="px-5 py-4 sm:px-6 sm:py-5">
             <div class="grid grid-cols-1 gap-3 lg:grid-cols-12">
-                <div class="lg:col-span-4">
+                <div class="lg:col-span-3">
                     <input
                         type="text"
                         wire:model.live.debounce.400ms="search"
@@ -42,6 +42,14 @@
                     </select>
                 </div>
                 <div class="lg:col-span-2">
+                    <select wire:model.live="workStationFilter" class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
+                        <option value="">All Work Stations</option>
+                        @foreach ($workStations as $workStation)
+                            <option value="{{ $workStation->id }}">{{ $workStation->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="lg:col-span-1">
                     <select wire:model.live="statusFilter" class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none">
                         <option value="">All Status</option>
                         @foreach ($statusOptions as $statusOption)
@@ -68,6 +76,7 @@
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Employee</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Contact</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Department / Designation</th>
+                                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Work Station</th>
                                 <th class="px-5 py-3 text-right text-xs font-medium text-gray-500">Basic Salary</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Status</th>
                                 <th class="px-5 py-3 text-left text-xs font-medium text-gray-500">Login</th>
@@ -89,6 +98,7 @@
                                         <p>{{ $employee->department?->name ?: 'N/A' }}</p>
                                         <p class="text-xs text-gray-500">{{ $employee->designation?->name ?: 'N/A' }}</p>
                                     </td>
+                                    <td class="px-5 py-4 text-sm text-gray-700">{{ $employee->workStation?->name ?: 'N/A' }}</td>
                                     <td class="px-5 py-4 text-right text-sm font-medium text-gray-700">{{ number_format((float) $employee->basic_salary, 2) }}</td>
                                     <td class="px-5 py-4">
                                         <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {{ $employee->status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-700' }}">
@@ -125,7 +135,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-5 py-12 text-center">
+                                    <td colspan="8" class="px-5 py-12 text-center">
                                         <p class="text-sm font-medium text-gray-700">No employees found.</p>
                                         <p class="mt-1 text-xs text-gray-500">Try changing filters or create an employee.</p>
                                     </td>

@@ -15,6 +15,7 @@ class Employee extends Model
     protected $fillable = [
         'department_id',
         'designation_id',
+        'work_station_id',
         'user_id',
         'employee_id',
         'name',
@@ -58,6 +59,11 @@ class Employee extends Model
     public function designation(): BelongsTo
     {
         return $this->belongsTo(Designation::class);
+    }
+
+    public function workStation(): BelongsTo
+    {
+        return $this->belongsTo(WorkStation::class);
     }
 
     public function user(): BelongsTo

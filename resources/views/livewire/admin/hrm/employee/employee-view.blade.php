@@ -42,6 +42,7 @@
             <div class="mt-4 grid grid-cols-1 gap-3 text-sm text-gray-700 md:grid-cols-2">
                 <p><span class="text-gray-500">Department:</span> {{ $employee->department?->name ?: 'N/A' }}</p>
                 <p><span class="text-gray-500">Designation:</span> {{ $employee->designation?->name ?: 'N/A' }}</p>
+                <p><span class="text-gray-500">Work Station:</span> {{ $employee->workStation?->name ?: 'N/A' }}</p>
                 <p><span class="text-gray-500">Phone:</span> {{ $employee->phone ?: 'N/A' }}</p>
                 <p><span class="text-gray-500">Email:</span> {{ $employee->email ?: 'N/A' }}</p>
                 <p><span class="text-gray-500">Joining Date:</span> {{ optional($employee->joining_date)->format('d M, Y') ?: 'N/A' }}</p>

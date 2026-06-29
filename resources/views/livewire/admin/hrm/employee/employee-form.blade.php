@@ -85,6 +85,16 @@
                     @error('designation_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
+                    <label class="text-sm font-medium text-gray-700">Work Station <span class="text-rose-500">*</span></label>
+                    <select wire:model.defer="work_station_id" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                        <option value="">Select work station</option>
+                        @foreach ($workStations as $workStation)
+                            <option value="{{ $workStation->id }}">{{ $workStation->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('work_station_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+                <div>
                     <label class="text-sm font-medium text-gray-700">Joining Date <span class="text-rose-500">*</span></label>
                     <input type="date" wire:model.defer="joining_date" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none flatpickr-only-date">
                     @error('joining_date') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror

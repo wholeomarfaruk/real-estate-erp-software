@@ -577,6 +577,11 @@
                                         'permission' => 'hrm.designations.view',
                                     ],
                                     [
+                                        'label' => 'Work Stations',
+                                        'route' => 'admin.hrm.work-stations.index',
+                                        'permission' => 'hrm.work-stations.view',
+                                    ],
+                                    [
                                         'label' => 'Employees',
                                         'route' => 'admin.hrm.employees.index',
                                         'permission' => 'hrm.employees.view',

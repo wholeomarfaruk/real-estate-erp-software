@@ -6,6 +6,7 @@ use App\Livewire\Admin\Hrm\Concerns\InteractsWithHrmAccess;
 use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
+use App\Models\WorkStation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
@@ -21,6 +22,8 @@ class EmployeeList extends Component
     public ?int $departmentFilter = null;
 
     public ?int $designationFilter = null;
+
+    public ?int $workStationFilter = null;
 
     public string $statusFilter = '';
 
@@ -46,6 +49,11 @@ class EmployeeList extends Component
         $this->resetPage();
     }
 
+    public function updatedWorkStationFilter(): void
+    {
+        $this->resetPage();
+    }
+
     public function updatedStatusFilter(): void
     {
         $this->resetPage();
@@ -59,6 +67,7 @@ class EmployeeList extends Component
             ->with([
                 'department:id,name',
                 'designation:id,name',
+                'workStation:id,name',
                 'user:id,name,email',
             ])
             ->withCount(['payrolls', 'advances'])
@@ -73,17 +82,20 @@ class EmployeeList extends Component
             })
             ->when($this->departmentFilter, fn (Builder $query): Builder => $query->where('department_id', $this->departmentFilter))
             ->when($this->designationFilter, fn (Builder $query): Builder => $query->where('designation_id', $this->designationFilter))
+            ->when($this->workStationFilter, fn (Builder $query): Builder => $query->where('work_station_id', $this->workStationFilter))
             ->when($this->statusFilter !== '', fn (Builder $query): Builder => $query->where('status', $this->statusFilter))
             ->latest('id')
             ->paginate(15);
 
         $departments = Department::query()->where('status', true)->orderBy('name')->get(['id', 'name']);
         $designations = Designation::query()->where('status', true)->orderBy('name')->get(['id', 'name']);
+        $workStations = WorkStation::query()->where('status', true)->orderBy('name')->get(['id', 'name']);
 
         return view('livewire.admin.hrm.employee.employee-list', [
             'employees' => $employees,
             'departments' => $departments,
             'designations' => $designations,
+            'workStations' => $workStations,
             'statusOptions' => ['active', 'inactive', 'resigned', 'terminated'],
         ])->layout('layouts.admin.admin');
     }

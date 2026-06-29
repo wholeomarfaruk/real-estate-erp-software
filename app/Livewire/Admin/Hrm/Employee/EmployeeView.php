@@ -202,6 +202,7 @@ class EmployeeView extends Component
             ->with([
                 'department:id,name',
                 'designation:id,name',
+                'workStation:id,name',
                 'user:id,name,email',
                 'photo:id,name,extension',
             ])

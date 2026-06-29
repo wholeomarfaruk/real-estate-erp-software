@@ -370,6 +370,12 @@ class PermissionSeeder extends Seeder
 
             // Salary Structure
             ['id' => 291, 'name' => 'hrm.salary-structures.delete'],
+
+            // Work Stations
+            ['id' => 292, 'name' => 'hrm.work-stations.view'],
+            ['id' => 293, 'name' => 'hrm.work-stations.create'],
+            ['id' => 294, 'name' => 'hrm.work-stations.update'],
+            ['id' => 295, 'name' => 'hrm.work-stations.delete'],
         ];
 
         foreach ($permissions as $permission) {

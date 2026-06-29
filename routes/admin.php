@@ -261,6 +261,10 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
 
 // hrm module
 Route::prefix('hrm')->name('hrm.')->group(function (): void {
+    Route::get('/work-stations', App\Livewire\Admin\Hrm\WorkStation\WorkStationList::class)
+        ->middleware('can:hrm.work-stations.view')
+        ->name('work-stations.index');
+
     Route::get('/departments', App\Livewire\Admin\Hrm\Department\DepartmentList::class)
         ->middleware('can:hrm.departments.view')
         ->name('departments.index');
