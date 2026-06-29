@@ -135,6 +135,14 @@
                                             @endif
                                         </button>
                                     @endcan
+                                    {{-- Delete --}}
+                                    @can('hrm.salary-structures.delete')
+                                        <button type="button" wire:click="confirmDeleteSalaryStructure({{ $structure->id }})" title="Delete" class="rounded p-1 text-red-400 transition hover:bg-red-50 hover:text-red-600">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>
@@ -282,6 +290,29 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    {{-- Delete Confirmation Modal --}}
+    <div x-cloak x-data x-show="$wire.confirmingDeleteId !== null" x-transition class="fixed inset-0 z-50 grid place-content-center bg-black/50 p-4">
+        <div class="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg">
+            <div class="flex items-center gap-3">
+                <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    </svg>
+                </div>
+                <h2 class="text-base font-semibold text-gray-900">Delete Salary Structure</h2>
+            </div>
+            <p class="mt-3 text-sm text-gray-600">Are you sure you want to delete this salary structure? This action cannot be undone.</p>
+            <div class="mt-5 flex justify-end gap-2">
+                <button type="button" wire:click="cancelDeleteSalaryStructure" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="button" wire:click="deleteSalaryStructure" class="inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700">
+                    Delete
+                </button>
+            </div>
         </div>
     </div>
 

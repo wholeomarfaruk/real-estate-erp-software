@@ -367,6 +367,9 @@ class PermissionSeeder extends Seeder
             // Inventory Reports (from config/reports.php)
             ['id' => 289, 'name' => 'reports.inventory.stocks-report.view'],
             ['id' => 290, 'name' => 'reports.inventory.export'],
+
+            // Salary Structure
+            ['id' => 291, 'name' => 'hrm.salary-structures.delete'],
         ];
 
         foreach ($permissions as $permission) {

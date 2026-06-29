@@ -28,6 +28,8 @@ class EmployeeView extends Component
 
     public ?int $viewingSalaryStructureId = null;
 
+    public ?int $confirmingDeleteId = null;
+
     public string $effective_from = '';
 
     public float|int|string $basic_salary = 0;
@@ -160,6 +162,36 @@ class EmployeeView extends Component
     {
         $this->showViewSalaryStructureModal = false;
         $this->viewingSalaryStructureId = null;
+    }
+
+    public function confirmDeleteSalaryStructure(int $id): void
+    {
+        $this->authorizePermission('hrm.salary-structures.delete');
+
+        $this->confirmingDeleteId = $id;
+    }
+
+    public function cancelDeleteSalaryStructure(): void
+    {
+        $this->confirmingDeleteId = null;
+    }
+
+    public function deleteSalaryStructure(): void
+    {
+        $this->authorizePermission('hrm.salary-structures.delete');
+
+        $structure = SalaryStructure::findOrFail($this->confirmingDeleteId);
+
+        if ($structure->payrolls()->exists()) {
+            $this->confirmingDeleteId = null;
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Cannot delete: this structure is linked to one or more payrolls.']);
+
+            return;
+        }
+
+        $structure->delete();
+        $this->confirmingDeleteId = null;
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Salary structure deleted successfully.']);
     }
 
     public function render(): View
