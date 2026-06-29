@@ -89,6 +89,7 @@
                         <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Allowances</th>
                         <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Gross</th>
                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Status</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -105,10 +106,41 @@
                                     {{ $structure->status ? 'Active' : 'Inactive' }}
                                 </span>
                             </td>
+                            <td class="px-3 py-2">
+                                <div class="flex items-center justify-end gap-1">
+                                    {{-- View --}}
+                                    <button type="button" wire:click="openViewSalaryStructureModal({{ $structure->id }})" title="View" class="rounded p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    </button>
+                                    {{-- Edit --}}
+                                    @can('hrm.salary-structures.update')
+                                        <button type="button" wire:click="openEditSalaryStructureModal({{ $structure->id }})" title="Edit" class="rounded p-1 text-gray-400 transition hover:bg-indigo-50 hover:text-indigo-600">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 0110 16H8v-2a2 2 0 01.586-1.414z" />
+                                            </svg>
+                                        </button>
+                                        {{-- Toggle Status --}}
+                                        <button type="button" wire:click="toggleSalaryStructureStatus({{ $structure->id }})" title="{{ $structure->status ? 'Deactivate' : 'Activate' }}" class="rounded p-1 transition {{ $structure->status ? 'text-emerald-500 hover:bg-emerald-50 hover:text-emerald-700' : 'text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600' }}">
+                                            @if ($structure->status)
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            @else
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            @endif
+                                        </button>
+                                    @endcan
+                                </div>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-3 py-8 text-center text-sm text-gray-500">No salary structures found.</td>
+                            <td colspan="6" class="px-3 py-8 text-center text-sm text-gray-500">No salary structures found.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -189,7 +221,7 @@
     <div x-cloak x-data="{ open: @entangle('showSalaryStructureModal') }" x-show="open" x-transition class="fixed inset-0 z-50 grid place-content-center bg-black/50 p-4">
         <div class="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg">
             <div class="flex items-start justify-between">
-                <h2 class="text-xl font-bold text-gray-900">Add Salary Structure</h2>
+                <h2 class="text-xl font-bold text-gray-900">{{ $editingSalaryStructureId ? 'Edit Salary Structure' : 'Add Salary Structure' }}</h2>
                 <button type="button" @click="open = false; $wire.closeSalaryStructureModal()" class="-me-4 -mt-4 rounded-full p-2 text-gray-400 transition hover:bg-gray-50 hover:text-gray-600">
                     <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -246,10 +278,79 @@
                         Cancel
                     </button>
                     <button type="submit" class="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800">
-                        Save Structure
+                        {{ $editingSalaryStructureId ? 'Update Structure' : 'Save Structure' }}
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    {{-- View Salary Structure Modal --}}
+    <div x-cloak x-data="{ open: @entangle('showViewSalaryStructureModal') }" x-show="open" x-transition class="fixed inset-0 z-50 grid place-content-center bg-black/50 p-4">
+        <div class="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
+            <div class="flex items-start justify-between">
+                <h2 class="text-xl font-bold text-gray-900">Salary Structure Details</h2>
+                <button type="button" wire:click="closeViewSalaryStructureModal" class="-me-4 -mt-4 rounded-full p-2 text-gray-400 transition hover:bg-gray-50 hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            @if ($viewingStructure)
+                <div class="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                    <div>
+                        <p class="text-xs text-gray-500">Effective From</p>
+                        <p class="mt-0.5 font-medium text-gray-800">{{ optional($viewingStructure->effective_from)->format('d M, Y') }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Status</p>
+                        <p class="mt-0.5">
+                            <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {{ $viewingStructure->status ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-700' }}">
+                                {{ $viewingStructure->status ? 'Active' : 'Inactive' }}
+                            </span>
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Basic Salary</p>
+                        <p class="mt-0.5 font-medium text-gray-800">{{ number_format((float) $viewingStructure->basic_salary, 2) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">House Rent</p>
+                        <p class="mt-0.5 font-medium text-gray-800">{{ number_format((float) $viewingStructure->house_rent, 2) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Medical Allowance</p>
+                        <p class="mt-0.5 font-medium text-gray-800">{{ number_format((float) $viewingStructure->medical_allowance, 2) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Transport Allowance</p>
+                        <p class="mt-0.5 font-medium text-gray-800">{{ number_format((float) $viewingStructure->transport_allowance, 2) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Food Allowance</p>
+                        <p class="mt-0.5 font-medium text-gray-800">{{ number_format((float) $viewingStructure->food_allowance, 2) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Other Allowance</p>
+                        <p class="mt-0.5 font-medium text-gray-800">{{ number_format((float) $viewingStructure->other_allowance, 2) }}</p>
+                    </div>
+                    <div class="col-span-2 border-t border-gray-100 pt-3">
+                        <p class="text-xs text-gray-500">Gross Salary</p>
+                        <p class="mt-0.5 text-base font-semibold text-gray-900">{{ number_format((float) $viewingStructure->gross_salary, 2) }}</p>
+                    </div>
+                    @if ($viewingStructure->notes)
+                        <div class="col-span-2">
+                            <p class="text-xs text-gray-500">Notes</p>
+                            <p class="mt-0.5 text-gray-700">{{ $viewingStructure->notes }}</p>
+                        </div>
+                    @endif
+                </div>
+            @endif
+            <div class="mt-6 flex justify-end">
+                <button type="button" wire:click="closeViewSalaryStructureModal" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                    Close
+                </button>
+            </div>
         </div>
     </div>
 </div>

@@ -22,6 +22,12 @@ class EmployeeView extends Component
 
     public bool $showSalaryStructureModal = false;
 
+    public ?int $editingSalaryStructureId = null;
+
+    public bool $showViewSalaryStructureModal = false;
+
+    public ?int $viewingSalaryStructureId = null;
+
     public string $effective_from = '';
 
     public float|int|string $basic_salary = 0;
@@ -53,51 +59,107 @@ class EmployeeView extends Component
         $this->authorizePermission('hrm.salary-structures.create');
 
         $this->resetSalaryStructureForm();
+        $this->editingSalaryStructureId = null;
         $this->effective_from = now()->toDateString();
         $this->basic_salary = (float) $this->employee->basic_salary;
+        $this->showSalaryStructureModal = true;
+    }
+
+    public function openEditSalaryStructureModal(int $id): void
+    {
+        $this->authorizePermission('hrm.salary-structures.update');
+
+        $structure = SalaryStructure::findOrFail($id);
+
+        $this->resetSalaryStructureForm();
+        $this->editingSalaryStructureId = $id;
+        $this->effective_from = $structure->effective_from->toDateString();
+        $this->basic_salary = (float) $structure->basic_salary;
+        $this->house_rent = (float) $structure->house_rent;
+        $this->medical_allowance = (float) $structure->medical_allowance;
+        $this->transport_allowance = (float) $structure->transport_allowance;
+        $this->food_allowance = (float) $structure->food_allowance;
+        $this->other_allowance = (float) $structure->other_allowance;
+        $this->status = (bool) $structure->status;
+        $this->notes = $structure->notes;
         $this->showSalaryStructureModal = true;
     }
 
     public function closeSalaryStructureModal(): void
     {
         $this->showSalaryStructureModal = false;
+        $this->editingSalaryStructureId = null;
     }
 
     public function saveSalaryStructure(): void
     {
-        $this->authorizePermission('hrm.salary-structures.create');
-
         $validated = $this->validate($this->salaryStructureRules());
 
-        DB::transaction(function () use ($validated): void {
-            $grossSalary = round(
-                (float) $validated['basic_salary']
-                + (float) $validated['house_rent']
-                + (float) $validated['medical_allowance']
-                + (float) $validated['transport_allowance']
-                + (float) $validated['food_allowance']
-                + (float) $validated['other_allowance'],
-                2
-            );
+        if ($this->editingSalaryStructureId) {
+            $this->authorizePermission('hrm.salary-structures.update');
 
-            SalaryStructure::query()->create([
-                'employee_id' => $this->employee->id,
-                'effective_from' => $validated['effective_from'],
-                'basic_salary' => $validated['basic_salary'],
-                'house_rent' => $validated['house_rent'],
-                'medical_allowance' => $validated['medical_allowance'],
-                'transport_allowance' => $validated['transport_allowance'],
-                'food_allowance' => $validated['food_allowance'],
-                'other_allowance' => $validated['other_allowance'],
-                'gross_salary' => $grossSalary,
-                'status' => (bool) $validated['status'],
-                'notes' => $validated['notes'] ?? null,
-            ]);
-        });
+            DB::transaction(function () use ($validated): void {
+                SalaryStructure::findOrFail($this->editingSalaryStructureId)->update([
+                    'effective_from' => $validated['effective_from'],
+                    'basic_salary' => $validated['basic_salary'],
+                    'house_rent' => $validated['house_rent'],
+                    'medical_allowance' => $validated['medical_allowance'],
+                    'transport_allowance' => $validated['transport_allowance'],
+                    'food_allowance' => $validated['food_allowance'],
+                    'other_allowance' => $validated['other_allowance'],
+                    'status' => (bool) $validated['status'],
+                    'notes' => $validated['notes'] ?? null,
+                ]);
+            });
 
-        $this->dispatch('toast', ['type' => 'success', 'message' => 'Salary structure saved successfully.']);
+            $this->dispatch('toast', ['type' => 'success', 'message' => 'Salary structure updated successfully.']);
+        } else {
+            $this->authorizePermission('hrm.salary-structures.create');
+
+            DB::transaction(function () use ($validated): void {
+                SalaryStructure::query()->create([
+                    'employee_id' => $this->employee->id,
+                    'effective_from' => $validated['effective_from'],
+                    'basic_salary' => $validated['basic_salary'],
+                    'house_rent' => $validated['house_rent'],
+                    'medical_allowance' => $validated['medical_allowance'],
+                    'transport_allowance' => $validated['transport_allowance'],
+                    'food_allowance' => $validated['food_allowance'],
+                    'other_allowance' => $validated['other_allowance'],
+                    'status' => (bool) $validated['status'],
+                    'notes' => $validated['notes'] ?? null,
+                ]);
+            });
+
+            $this->dispatch('toast', ['type' => 'success', 'message' => 'Salary structure saved successfully.']);
+        }
+
         $this->showSalaryStructureModal = false;
         $this->resetSalaryStructureForm();
+    }
+
+    public function toggleSalaryStructureStatus(int $id): void
+    {
+        $this->authorizePermission('hrm.salary-structures.update');
+
+        $structure = SalaryStructure::findOrFail($id);
+        $structure->update(['status' => ! $structure->status]);
+
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Status updated successfully.']);
+    }
+
+    public function openViewSalaryStructureModal(int $id): void
+    {
+        $this->authorizePermission('hrm.employees.view');
+
+        $this->viewingSalaryStructureId = $id;
+        $this->showViewSalaryStructureModal = true;
+    }
+
+    public function closeViewSalaryStructureModal(): void
+    {
+        $this->showViewSalaryStructureModal = false;
+        $this->viewingSalaryStructureId = null;
     }
 
     public function render(): View
@@ -143,9 +205,14 @@ class EmployeeView extends Component
             ->whereNotNull('transaction_id')
             ->sum('amount'), 2);
 
+        $viewingStructure = $this->viewingSalaryStructureId
+            ? SalaryStructure::find($this->viewingSalaryStructureId)
+            : null;
+
         return view('livewire.admin.hrm.employee.employee-view', [
             'employee' => $employee,
             'salaryStructures' => $salaryStructures,
+            'viewingStructure' => $viewingStructure,
             'payrolls' => $payrolls,
             'advances' => $advances,
             'paymentHistory' => $paymentHistory,
@@ -188,6 +255,7 @@ class EmployeeView extends Component
             'food_allowance',
             'other_allowance',
             'notes',
+            'editingSalaryStructureId',
         ]);
         $this->status = true;
     }
