@@ -18,6 +18,7 @@ class SalaryStructure extends Model
         'house_rent',
         'medical_allowance',
         'transport_allowance',
+        'mobile_allowance',
         'food_allowance',
         'other_allowance',
         'gross_salary',
@@ -31,6 +32,7 @@ class SalaryStructure extends Model
         'house_rent' => 'decimal:2',
         'medical_allowance' => 'decimal:2',
         'transport_allowance' => 'decimal:2',
+        'mobile_allowance' => 'decimal:2',
         'food_allowance' => 'decimal:2',
         'other_allowance' => 'decimal:2',
         'gross_salary' => 'decimal:2',
@@ -61,6 +63,7 @@ class SalaryStructure extends Model
             + (float) $this->house_rent
             + (float) $this->medical_allowance
             + (float) $this->transport_allowance
+            + (float) $this->mobile_allowance
             + (float) $this->food_allowance
             + (float) $this->other_allowance,
             2

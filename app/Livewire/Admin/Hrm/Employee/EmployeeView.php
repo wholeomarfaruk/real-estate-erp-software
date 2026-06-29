@@ -40,6 +40,8 @@ class EmployeeView extends Component
 
     public float|int|string $transport_allowance = 0;
 
+    public float|int|string $mobile_allowance = 0;
+
     public float|int|string $food_allowance = 0;
 
     public float|int|string $other_allowance = 0;
@@ -80,6 +82,7 @@ class EmployeeView extends Component
         $this->house_rent = (float) $structure->house_rent;
         $this->medical_allowance = (float) $structure->medical_allowance;
         $this->transport_allowance = (float) $structure->transport_allowance;
+        $this->mobile_allowance = (float) $structure->mobile_allowance;
         $this->food_allowance = (float) $structure->food_allowance;
         $this->other_allowance = (float) $structure->other_allowance;
         $this->status = (bool) $structure->status;
@@ -107,6 +110,7 @@ class EmployeeView extends Component
                     'house_rent' => $validated['house_rent'],
                     'medical_allowance' => $validated['medical_allowance'],
                     'transport_allowance' => $validated['transport_allowance'],
+                    'mobile_allowance' => $validated['mobile_allowance'],
                     'food_allowance' => $validated['food_allowance'],
                     'other_allowance' => $validated['other_allowance'],
                     'status' => (bool) $validated['status'],
@@ -126,6 +130,7 @@ class EmployeeView extends Component
                     'house_rent' => $validated['house_rent'],
                     'medical_allowance' => $validated['medical_allowance'],
                     'transport_allowance' => $validated['transport_allowance'],
+                    'mobile_allowance' => $validated['mobile_allowance'],
                     'food_allowance' => $validated['food_allowance'],
                     'other_allowance' => $validated['other_allowance'],
                     'status' => (bool) $validated['status'],
@@ -270,6 +275,7 @@ class EmployeeView extends Component
             'house_rent' => ['required', 'numeric', 'min:0'],
             'medical_allowance' => ['required', 'numeric', 'min:0'],
             'transport_allowance' => ['required', 'numeric', 'min:0'],
+            'mobile_allowance' => ['required', 'numeric', 'min:0'],
             'food_allowance' => ['required', 'numeric', 'min:0'],
             'other_allowance' => ['required', 'numeric', 'min:0'],
             'status' => ['required', 'boolean'],
@@ -285,6 +291,7 @@ class EmployeeView extends Component
             'house_rent',
             'medical_allowance',
             'transport_allowance',
+            'mobile_allowance',
             'food_allowance',
             'other_allowance',
             'notes',

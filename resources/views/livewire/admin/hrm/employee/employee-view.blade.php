@@ -259,9 +259,14 @@
                     @error('medical_allowance') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="text-sm font-medium text-gray-700">Transport Allowance</label>
+                    <label class="text-sm font-medium text-gray-700">Conveyance Allowance</label>
                     <input type="number" step="0.01" min="0" wire:model.defer="transport_allowance" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
                     @error('transport_allowance') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Mobile Allowance</label>
+                    <input type="number" step="0.01" min="0" wire:model.defer="mobile_allowance" class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
+                    @error('mobile_allowance') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="text-sm font-medium text-gray-700">Food Allowance</label>
@@ -355,8 +360,12 @@
                         <p class="mt-0.5 font-medium text-gray-800">{{ number_format((float) $viewingStructure->medical_allowance, 2) }}</p>
                     </div>
                     <div>
-                        <p class="text-xs text-gray-500">Transport Allowance</p>
+                        <p class="text-xs text-gray-500">Conveyance Allowance</p>
                         <p class="mt-0.5 font-medium text-gray-800">{{ number_format((float) $viewingStructure->transport_allowance, 2) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Mobile Allowance</p>
+                        <p class="mt-0.5 font-medium text-gray-800">{{ number_format((float) $viewingStructure->mobile_allowance, 2) }}</p>
                     </div>
                     <div>
                         <p class="text-xs text-gray-500">Food Allowance</p>

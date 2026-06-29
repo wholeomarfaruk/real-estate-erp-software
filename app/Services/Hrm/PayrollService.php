@@ -55,6 +55,7 @@ class PayrollService
                 (float) $salaryStructure->house_rent
                 + (float) $salaryStructure->medical_allowance
                 + (float) $salaryStructure->transport_allowance
+                + (float) $salaryStructure->mobile_allowance
                 + (float) $salaryStructure->food_allowance
                 + (float) $salaryStructure->other_allowance,
                 2
@@ -462,7 +463,8 @@ class PayrollService
             ['label' => 'Basic Salary', 'amount' => (float) $salaryStructure->basic_salary],
             ['label' => 'House Rent', 'amount' => (float) $salaryStructure->house_rent],
             ['label' => 'Medical Allowance', 'amount' => (float) $salaryStructure->medical_allowance],
-            ['label' => 'Transport Allowance', 'amount' => (float) $salaryStructure->transport_allowance],
+            ['label' => 'Conveyance Allowance', 'amount' => (float) $salaryStructure->transport_allowance],
+            ['label' => 'Mobile Allowance', 'amount' => (float) $salaryStructure->mobile_allowance],
             ['label' => 'Food Allowance', 'amount' => (float) $salaryStructure->food_allowance],
             ['label' => 'Other Allowance', 'amount' => (float) $salaryStructure->other_allowance],
         ];
