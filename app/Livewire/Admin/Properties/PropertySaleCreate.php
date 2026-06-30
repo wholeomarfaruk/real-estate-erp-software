@@ -357,7 +357,7 @@ class PropertySaleCreate extends Component
         if (!$this->dIsScheduled) return;
         $count = (int) $this->dScheduleCount;
         if ($count <= 0) return;
-        $remaining = max(0.0, (float) $this->dNetAmount - (float) $this->dDownPaymentAmount - (float) $this->dServiceCharge - (float) $this->dUtilityCharge);
+        $remaining = max(0.0, (float) $this->dNetAmount - (float) $this->dDownPaymentAmount);
         $this->dScheduleAmount = (string) round($remaining / $count, 2);
     }
 
@@ -563,11 +563,7 @@ class PropertySaleCreate extends Component
 
         // Generate payment schedules — one down payment, one combined service
         // charge, one utility charge, one installment/rent series.
-        app(ScheduleGeneratorService::class)->generateForSale(
-            $sale,
-            (float) $this->dServiceCharge,
-            (float) $this->dUtilityCharge,
-        );
+        app(ScheduleGeneratorService::class)->generateForSale($sale);
 
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Property sale created successfully.']);
         $this->redirect(route('admin.properties.sales.show', $sale), navigate: true);
