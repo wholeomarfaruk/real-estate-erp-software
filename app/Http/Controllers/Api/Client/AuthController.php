@@ -65,8 +65,9 @@ class AuthController extends Controller
 
     /**
      * Self-service — send a password reset code to the account matching the
-     * given email/phone. Always returns a generic success response so the
-     * endpoint can't be used to enumerate which accounts exist.
+     * given email/phone. Returns success:false with a plain-language message
+     * (still HTTP 200) when no account matches, so the client app can show
+     * it inline instead of treating it like a network/server error.
      */
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
@@ -75,17 +76,22 @@ class AuthController extends Controller
 
         $user = $this->resolveClient($login);
 
-        if ($user) {
-            try {
-                $this->passwordResets->send($user, $channel);
-            } catch (RuntimeException $e) {
-                Log::error('Client forgot-password send failed', ['login' => $login, 'error' => $e->getMessage()]);
-            }
+        if (! $user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No account found with this email or phone number.',
+            ]);
+        }
+
+        try {
+            $this->passwordResets->send($user, $channel);
+        } catch (RuntimeException $e) {
+            Log::error('Client forgot-password send failed', ['login' => $login, 'error' => $e->getMessage()]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'If an account matches, a password reset code has been sent.',
+            'message' => 'A password reset code has been sent.',
         ]);
     }
 
