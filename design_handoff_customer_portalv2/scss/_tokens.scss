@@ -1,0 +1,116 @@
+// =============================================================
+//  Star Unity Customer Portal — Design Tokens
+//  Single source of truth. Do NOT hard-code these values elsewhere.
+//  Usage in a partial:  @use 'abstracts/tokens' as *;
+// =============================================================
+
+// ---- Brand: Green (primary) --------------------------------
+$c-green-900: #0F6B2E;   // deep — hero/drawer bg, headings on light
+$c-green-700: #1B8A3D;   // mid  — primary buttons, active, links, icons
+$c-green-600: #157C36;   // gradient stop
+$c-green-500: #34A853;   // bright — progress fill end
+$c-green-tint:#EAF3EC;   // icon tiles, chips, tick backgrounds
+$c-green-tint-2:#CFE5D5; // timeline connectors, borders on green tint
+
+// ---- Accent: Orange (secondary) ----------------------------
+$c-accent:      #F47C20;  // CTAs, "Pay now", badges, alerts, unread dot
+$c-accent-light:#FF9D4D;  // gradient stop
+$c-accent-tint: #FDEFE3;  // orange tile / info bg
+$c-accent-soft: #FFD7B0;  // on-green highlight text
+$c-accent-border:#F8C99B; // orange card borders
+
+// ---- Tertiary: Gold (2nd property / some content) ----------
+$c-gold:      #C8973A;
+$c-gold-light:#E0B65B;
+$c-gold-mid:  #D9A94B;
+$c-gold-tint: #F6EEDD;
+
+// ---- Neutrals / text ---------------------------------------
+$c-ink:      #102017;   // near-black primary text
+$c-ink-2:    #3A4942;   // form labels
+$c-muted:    #6E7C73;   // secondary text
+$c-muted-2:  #9AA89F;   // meta / captions
+$c-muted-3:  #A9B5AE;   // placeholder dots
+
+// ---- Surfaces & borders ------------------------------------
+$c-bg-mist:  #F5F8F5;   // app backdrop (default tone)
+$c-white:    #FFFFFF;
+$c-border:   #ECF0ED;   // default hairline card border
+$c-border-2: #E2E9E4;   // input border (idle)
+$c-border-3: #DCE6DF;   // divider
+$c-divider:  #F1F5F2;   // row divider inside cards
+
+// ---- Semantic / status -------------------------------------
+$c-pdf:      #E11D2A;   // pdf file icon
+$c-pdf-tint: #FDEAEA;
+$c-bezel:    #11231A;   // device frame (reference only)
+$c-scrim:    rgba(16,32,23,.45); // drawer overlay
+
+// Alias set (use these names in components)
+$c-primary:  $c-green-700;
+$c-primary-dark: $c-green-900;
+
+// ---- Gradients ---------------------------------------------
+$grad-green:  linear-gradient(160deg, #{$c-green-900}, #{$c-green-700} 52%, #{$c-green-600});
+$grad-green-card: linear-gradient(135deg, #{$c-green-900}, #{$c-green-700});
+$grad-green-banner: linear-gradient(120deg, #{$c-green-700}, #{$c-green-600});
+$grad-accent: linear-gradient(120deg, #{$c-accent}, #{$c-accent-light});
+$grad-gold:   linear-gradient(120deg, #{$c-gold}, #{$c-gold-light});
+$grad-progress: linear-gradient(90deg, #{$c-green-700}, #{$c-green-500});
+
+// ---- Typography --------------------------------------------
+$font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+$fw-regular: 400;
+$fw-medium:  500;
+$fw-semibold:600;
+$fw-bold:    700;
+$fw-extra:   800;
+
+// Type scale (px) — matches the reference exactly
+$fs-display: 28px;  // dashboard amount
+$fs-h1:      26px;  // auth headlines
+$fs-h2:      21px;  // hero titles
+$fs-h3:      17px;  // screen header title
+$fs-title:   16px;  // card titles / section titles
+$fs-body:    15px;  // body / inputs
+$fs-sm:      14px;
+$fs-meta:    13px;
+$fs-cap:     12px;  // captions
+$fs-cap-sm:  11px;
+$fs-micro:   10px;  // badges / nav labels
+
+// ---- Spacing scale (px) ------------------------------------
+$sp-1: 4px;
+$sp-2: 8px;
+$sp-3: 12px;
+$sp-4: 14px;
+$sp-5: 16px;
+$sp-6: 18px;   // standard screen L/R padding
+$sp-7: 22px;
+$sp-8: 28px;
+
+// ---- Radius ------------------------------------------------
+$r-sm:  10px;   // small icon tiles
+$r-md:  13px;   // inputs, list rows
+$r-lg:  15px;   // buttons
+$r-xl:  16px;   // cards
+$r-2xl: 18px;   // feature cards
+$r-3xl: 22px;   // sheets
+$r-pill:20px;   // badges/chips
+$r-round:50%;
+
+// ---- Shadows -----------------------------------------------
+$sh-card:   0 6px 18px rgba(15,107,46,.07);
+$sh-raised: 0 10px 26px rgba(15,107,46,.12);
+$sh-btn:    0 12px 26px rgba(27,138,61,.32);   // green button
+$sh-btn-accent: 0 8px 18px rgba(244,124,32,.30);
+$sh-nav:   0 -4px 16px rgba(15,107,46,.05);
+
+// ---- Layout ------------------------------------------------
+$app-max-width: 480px;   // hard cap — never exceed on large screens
+$design-width:  390px;   // reference design width
+$bottom-nav-h:  62px;
+$drawer-w:      300px;
+$screen-pad:    $sp-6;    // 18px
+$header-green-radius: 26px;

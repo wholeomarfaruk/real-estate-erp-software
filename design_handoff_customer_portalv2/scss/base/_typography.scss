@@ -1,0 +1,12 @@
+// base/_typography.scss
+@use '../abstracts/tokens' as *;
+
+body { color: $c-ink; font-size: $fs-body; }
+
+// Text helpers (use sparingly; prefer component classes)
+.u-h1     { font: #{$fw-extra} #{$fs-h1}/1.2 #{$font-sans}; letter-spacing: -.01em; color: $c-ink; }
+.u-h2     { font: #{$fw-extra} #{$fs-h2}/1.2 #{$font-sans}; color: $c-ink; }
+.u-title  { font: #{$fw-bold} #{$fs-title}/1.3 #{$font-sans}; color: $c-ink; }
+.u-body   { font: #{$fw-medium} #{$fs-body}/1.5 #{$font-sans}; color: $c-muted; }
+.u-meta   { font: #{$fw-medium} #{$fs-cap}/1.4 #{$font-sans}; color: $c-muted-2; }
+.u-label  { font: #{$fw-semibold} #{$fs-meta}/1.2 #{$font-sans}; color: $c-ink-2; }

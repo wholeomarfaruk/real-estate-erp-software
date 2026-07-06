@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'client_app' => [
+        'login_url' => env('CLIENT_APP_LOGIN_URL', 'https://app.example.com/login'),
+    ],
+
 ];

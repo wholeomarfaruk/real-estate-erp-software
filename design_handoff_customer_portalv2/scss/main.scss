@@ -1,0 +1,52 @@
+// =============================================================
+//  main.scss — compilation entry point
+//  Import order is INTENTIONAL: base → layout → components → pages
+//  (abstracts first because everything else depends on the tokens/mixins)
+// =============================================================
+
+// 1. Abstracts (no CSS output — variables, mixins, functions)
+@use 'abstracts/tokens' as *;
+@use 'abstracts/mixins' as *;
+@use 'abstracts/functions' as *;
+
+// 2. Base
+@use 'base/reset';
+@use 'base/typography';
+@use 'base/globals';
+
+// 3. Layout (app shell + persistent chrome)
+@use 'layout/app-shell';
+@use 'layout/screen-header';
+@use 'layout/bottom-nav';
+@use 'layout/drawer';
+
+// 4. Components (reusable, page-agnostic)
+@use 'components/button';
+@use 'components/card';
+@use 'components/badge';
+@use 'components/progress';
+@use 'components/list-row';
+@use 'components/form-field';
+@use 'components/otp-input';
+@use 'components/stat-strip';
+@use 'components/quick-actions';
+@use 'components/property-card';
+@use 'components/offer-card';
+@use 'components/carousel';
+@use 'components/timeline';
+@use 'components/notice-card';
+
+// 5. Pages (only page-specific glue/overrides)
+@use 'pages/welcome';
+@use 'pages/auth';
+@use 'pages/dashboard';
+@use 'pages/properties';
+@use 'pages/property-detail';
+@use 'pages/payments';
+@use 'pages/installments';
+@use 'pages/noticeboard';
+@use 'pages/offers';
+@use 'pages/news';
+@use 'pages/notifications';
+@use 'pages/profile';
+@use 'pages/change-password';

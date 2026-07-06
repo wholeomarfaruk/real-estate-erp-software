@@ -1,0 +1,5 @@
+// abstracts/_functions.scss — helper functions (extend as needed)
+@use 'sass:math';
+
+// px → rem (base 16) if you prefer rem output anywhere
+@function rem($px) { @return math.div($px, 16px) * 1rem; }

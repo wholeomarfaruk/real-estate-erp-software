@@ -22,6 +22,7 @@ class PermissionSeeder extends Seeder
             'md',
             'supplier',
             'salesmarketing',
+            'client',
         ];
 
         foreach ($roles as $role) {

@@ -15,6 +15,7 @@ class Customer extends Model
 
     protected $fillable = [
         'customer_id',
+        'user_id',
         'type',
         'name',
         'father_name',
@@ -100,5 +101,10 @@ class Customer extends Model
     public function updatedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

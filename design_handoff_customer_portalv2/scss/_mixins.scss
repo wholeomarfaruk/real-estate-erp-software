@@ -1,0 +1,60 @@
+// =============================================================
+//  Reusable mixins & helpers
+//  @use 'abstracts/mixins' as *;
+// =============================================================
+@use 'tokens' as *;
+
+// App shell: keep the app phone-shaped and centered on every viewport.
+// The whole authenticated + public UI lives inside one of these.
+@mixin app-container {
+  width: 100%;
+  max-width: $app-max-width;      // never grows past 480px
+  margin-inline: auto;
+  min-height: 100dvh;
+  background: $c-white;
+  position: relative;
+  overflow: hidden;
+}
+
+// iOS / notch safe areas (WKWebView). Apply to sticky top/bottom chrome.
+@mixin safe-top    { padding-top:    env(safe-area-inset-top, 0px); }
+@mixin safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+// Standard white card
+@mixin card($radius: $r-xl) {
+  background: $c-white;
+  border: 1px solid $c-border;
+  border-radius: $radius;
+  box-shadow: $sh-card;
+}
+
+// Hide scrollbar but keep scrolling (carousels, drawer menu)
+@mixin hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+// Single-line ellipsis
+@mixin truncate {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+// Multi-line clamp
+@mixin clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// Min touch target (WebView) — never below 44px for interactive elements
+@mixin tap-target { min-width: 44px; min-height: 44px; }
+
+// Quick type helper
+@mixin type($size, $weight: $fw-medium, $color: $c-ink, $lh: 1.4) {
+  font: #{$weight} #{$size}/#{$lh} #{$font-sans};
+  color: $color;
+}

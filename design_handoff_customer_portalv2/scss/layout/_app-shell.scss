@@ -1,0 +1,37 @@
+// layout/_app-shell.scss
+@use '../abstracts/tokens' as *;
+@use '../abstracts/mixins' as *;
+
+// The one wrapper every page lives inside. Caps width at 480px, centered.
+.app {
+  @include app-container;
+}
+
+// Scrollable screen body between the (optional) header and bottom nav.
+.screen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+
+  // leave room for the fixed bottom nav on authenticated screens
+  &--with-nav { padding-bottom: $bottom-nav-h; }
+
+  &__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 $screen-pad;
+    @include hide-scrollbar;
+  }
+}
+
+// iOS status-bar spacing row (time + signal). Keep for WebView parity.
+.status-bar {
+  @include safe-top;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px $sp-7 7px;
+  font: #{$fw-bold} #{$fs-sm}/1 #{$font-sans};
+  color: $c-ink;
+}

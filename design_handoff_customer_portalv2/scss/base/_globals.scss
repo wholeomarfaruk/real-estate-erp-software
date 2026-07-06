@@ -1,0 +1,12 @@
+// base/_globals.scss
+@use '../abstracts/tokens' as *;
+@use '../abstracts/mixins' as *;
+
+// On wide viewports the app stays phone-shaped, centered on a calm backdrop.
+html, body { background: $c-bg-mist; min-height: 100dvh; }
+
+// Default screen background tone (per-screen may override to white)
+.screen { background: $c-bg-mist; }
+
+// Utility: hide scrollbars on any scroll region
+.no-scrollbar { @include hide-scrollbar; }

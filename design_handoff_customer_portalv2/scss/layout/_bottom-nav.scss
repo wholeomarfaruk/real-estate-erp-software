@@ -1,0 +1,38 @@
+// layout/_bottom-nav.scss
+@use '../abstracts/tokens' as *;
+@use '../abstracts/mixins' as *;
+
+// Fixed 4-tab bar: Dashboard · Offers · News · Menu.
+// Rendered on all authenticated screens; NOT on Welcome/Login/Forgot/OTP.
+.bottom-nav {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 100%;
+  max-width: $app-max-width;
+  height: $bottom-nav-h;
+  background: $c-white;
+  border-top: 1px solid $c-border;
+  box-shadow: $sh-nav;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding-bottom: 7px;
+  @include safe-bottom;
+  z-index: 40;
+
+  &__item {
+    @include tap-target;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    color: $c-muted-2;
+
+    span { font: #{$fw-semibold} #{$fs-micro}/1 #{$font-sans}; }
+    svg { width: 23px; height: 23px; }
+
+    &.is-active { color: $c-primary; }
+  }
+}

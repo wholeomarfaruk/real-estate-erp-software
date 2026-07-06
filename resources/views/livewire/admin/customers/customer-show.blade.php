@@ -185,6 +185,145 @@
                     </div>
                 </div>
             </div>
+
+            {{-- Login access --}}
+            <div>
+                <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Login access</div>
+
+                @if($customer->user)
+                    <div style="padding:10px 12px; background:var(--paper); border:1px solid var(--rule); border-radius:8px; margin-bottom:8px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="width:8px; height:8px; border-radius:50%; background:var(--av-fg); flex-shrink:0;"></span>
+                            <span style="font:600 12.5px 'Inter', sans-serif;">Client app access enabled</span>
+                        </div>
+                        <div style="margin-top:4px; font:11px var(--mono); color:var(--ink-2);">{{ $customer->user->email }}</div>
+                    </div>
+
+                    @if($canEdit)
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <button type="button"
+                                @if($customer->email)
+                                    x-data="livewireConfirm"
+                                    @click="confirmAction({
+                                        method: 'sendPasswordResetEmail',
+                                        title: 'Send password reset code?',
+                                        text: 'An email with a password reset code will be sent to {{ $customer->email }}.',
+                                        confirmText: 'Yes, send email',
+                                        icon: 'question'
+                                    })"
+                                @else disabled @endif
+                                style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--paper); border:1px solid var(--rule); border-radius:8px; text-align:left; color:var(--ink-1); {{ $customer->email ? 'cursor:pointer;' : 'opacity:.5; cursor:not-allowed;' }}"
+                                class="{{ $customer->email ? 'hover:bg-black/[.018] hover:border-[var(--ink-3)] transition-colors' : '' }}">
+                                <span style="width:32px; height:32px; border-radius:7px; background:var(--sd-bg); color:var(--sd-fg); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="m22 6-10 7L2 6"/></svg>
+                                </span>
+                                <span style="font:500 12.5px 'Inter', sans-serif; flex:1;">Send reset code · Email</span>
+                            </button>
+                            <button type="button"
+                                @if($customer->phone)
+                                    x-data="livewireConfirm"
+                                    @click="confirmAction({
+                                        method: 'sendPasswordResetSms',
+                                        title: 'Send password reset code?',
+                                        text: 'An SMS with a password reset code will be sent to {{ $customer->phone }}.',
+                                        confirmText: 'Yes, send SMS',
+                                        icon: 'question'
+                                    })"
+                                @else disabled @endif
+                                style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--paper); border:1px solid var(--rule); border-radius:8px; text-align:left; color:var(--ink-1); {{ $customer->phone ? 'cursor:pointer;' : 'opacity:.5; cursor:not-allowed;' }}"
+                                class="{{ $customer->phone ? 'hover:bg-black/[.018] hover:border-[var(--ink-3)] transition-colors' : '' }}">
+                                <span style="width:32px; height:32px; border-radius:7px; background:var(--sd-bg); color:var(--sd-fg); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                                </span>
+                                <span style="font:500 12.5px 'Inter', sans-serif; flex:1;">Send reset code · SMS</span>
+                            </button>
+                        </div>
+                    @endif
+                @elseif($canEdit)
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <button type="button"
+                            @if($customer->email)
+                                x-data="livewireConfirm"
+                                @click="confirmAction({
+                                    method: 'createLoginAccessEmail',
+                                    title: 'Create client app login?',
+                                    text: 'A login with the Client role will be created and a password reset code emailed to {{ $customer->email }}.',
+                                    confirmText: 'Yes, create & send',
+                                    icon: 'question'
+                                })"
+                            @else disabled @endif
+                            style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--paper); border:1px solid var(--rule); border-radius:8px; text-align:left; color:var(--ink-1); {{ $customer->email ? 'cursor:pointer;' : 'opacity:.5; cursor:not-allowed;' }}"
+                            class="{{ $customer->email ? 'hover:bg-black/[.018] hover:border-[var(--ink-3)] transition-colors' : '' }}">
+                            <span style="width:32px; height:32px; border-radius:7px; background:var(--in-bg); color:var(--in-fg); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="m22 6-10 7L2 6"/></svg>
+                            </span>
+                            <span style="font:500 12.5px 'Inter', sans-serif; flex:1;">Create login · Email</span>
+                        </button>
+                        <button type="button"
+                            @if($customer->phone)
+                                x-data="livewireConfirm"
+                                @click="confirmAction({
+                                    method: 'createLoginAccessSms',
+                                    title: 'Create client app login?',
+                                    text: 'A login with the Client role will be created and a password reset code texted to {{ $customer->phone }}.',
+                                    confirmText: 'Yes, create & send',
+                                    icon: 'question'
+                                })"
+                            @else disabled @endif
+                            style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--paper); border:1px solid var(--rule); border-radius:8px; text-align:left; color:var(--ink-1); {{ $customer->phone ? 'cursor:pointer;' : 'opacity:.5; cursor:not-allowed;' }}"
+                            class="{{ $customer->phone ? 'hover:bg-black/[.018] hover:border-[var(--ink-3)] transition-colors' : '' }}">
+                            <span style="width:32px; height:32px; border-radius:7px; background:var(--in-bg); color:var(--in-fg); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                            </span>
+                            <span style="font:500 12.5px 'Inter', sans-serif; flex:1;">Create login · SMS</span>
+                        </button>
+                    </div>
+                @endif
+
+                @if($canEdit)
+                    <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--rule);">
+                        <div style="font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Reset password &amp; send credentials</div>
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <button type="button"
+                                @if($customer->email)
+                                    x-data="livewireConfirm"
+                                    @click="confirmAction({
+                                        method: 'resetPasswordAndSendEmail',
+                                        title: 'Reset password and email credentials?',
+                                        text: 'A new password will be generated and emailed to {{ $customer->email }} along with the login link. Any current password stops working immediately.',
+                                        confirmText: 'Yes, reset & send',
+                                        icon: 'warning'
+                                    })"
+                                @else disabled @endif
+                                style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--paper); border:1px solid var(--rule); border-radius:8px; text-align:left; color:var(--ink-1); {{ $customer->email ? 'cursor:pointer;' : 'opacity:.5; cursor:not-allowed;' }}"
+                                class="{{ $customer->email ? 'hover:bg-black/[.018] hover:border-[var(--ink-3)] transition-colors' : '' }}">
+                                <span style="width:32px; height:32px; border-radius:7px; background:var(--bk-bg); color:var(--bk-fg); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                </span>
+                                <span style="font:500 12.5px 'Inter', sans-serif; flex:1;">Reset &amp; send · Email</span>
+                            </button>
+                            <button type="button"
+                                @if($customer->phone)
+                                    x-data="livewireConfirm"
+                                    @click="confirmAction({
+                                        method: 'resetPasswordAndSendSms',
+                                        title: 'Reset password and text credentials?',
+                                        text: 'A new password will be generated and texted to {{ $customer->phone }} along with the login link. Any current password stops working immediately.',
+                                        confirmText: 'Yes, reset & send',
+                                        icon: 'warning'
+                                    })"
+                                @else disabled @endif
+                                style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--paper); border:1px solid var(--rule); border-radius:8px; text-align:left; color:var(--ink-1); {{ $customer->phone ? 'cursor:pointer;' : 'opacity:.5; cursor:not-allowed;' }}"
+                                class="{{ $customer->phone ? 'hover:bg-black/[.018] hover:border-[var(--ink-3)] transition-colors' : '' }}">
+                                <span style="width:32px; height:32px; border-radius:7px; background:var(--bk-bg); color:var(--bk-fg); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                </span>
+                                <span style="font:500 12.5px 'Inter', sans-serif; flex:1;">Reset &amp; send · SMS</span>
+                            </button>
+                        </div>
+                    </div>
+                @endif
+            </div>
         </div>
     </section>
 
