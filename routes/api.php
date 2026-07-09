@@ -2,9 +2,11 @@
 
 use App\Http\Controllers\Api\Client\AuthController as ClientAuthController;
 use App\Http\Controllers\Api\Client\DashboardController as ClientDashboardController;
+use App\Http\Controllers\Api\Client\NotificationController as ClientNotificationController;
 use App\Http\Controllers\Api\Client\PaymentHistoryController as ClientPaymentHistoryController;
 use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
 use App\Http\Controllers\Api\Client\PropertySaleController as ClientPropertySaleController;
+use App\Http\Controllers\Api\Client\PushSubscriptionController as ClientPushSubscriptionController;
 use App\Http\Controllers\Api\Client\SidebarController as ClientSidebarController;
 use App\Http\Controllers\Api\WebhookController;
 use Illuminate\Http\Request;
@@ -49,5 +51,12 @@ Route::prefix('client')->name('api.client.')->group(function () {
 
         // "Payment History" — every paid/partial schedule across all properties.
         Route::get('payment-history', [ClientPaymentHistoryController::class, 'index'])->name('payment-history');
+
+        // Notifications
+        Route::get('notifications', [ClientNotificationController::class, 'index'])->name('notifications.index');
+        Route::get('notifications/unread-count', [ClientNotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+        Route::post('notifications/{notification}/read', [ClientNotificationController::class, 'read'])->name('notifications.read');
+        Route::post('notifications/mark-all-read', [ClientNotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
+        Route::post('push-subscriptions', [ClientPushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
     });
 });

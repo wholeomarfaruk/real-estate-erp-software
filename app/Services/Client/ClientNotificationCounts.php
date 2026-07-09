@@ -2,16 +2,20 @@
 
 namespace App\Services\Client;
 
+use App\Models\Customer;
+use App\Models\NotificationRecipient;
+
 class ClientNotificationCounts
 {
     /**
-     * Placeholder until the Notice/News/Notification systems exist —
-     * static values so the client app can wire up these fields now.
+     * unread_notices stays a placeholder until the Notice system exists.
      */
-    public static function unread(): array
+    public static function unread(?Customer $customer): array
     {
+        $user = $customer?->user;
+
         return [
-            'unread_notifications' => 3,
+            'unread_notifications' => $user ? NotificationRecipient::forUser($user)->unread()->count() : 0,
             'unread_notices'       => 2,
         ];
     }

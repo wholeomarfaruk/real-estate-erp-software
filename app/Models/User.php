@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Concerns\HasNotifications;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -12,16 +13,21 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     use HasApiTokens;
+    use HasPushSubscriptions;
     use HasRoles;
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory;
+    use HasNotifications, Notifiable {
+        HasNotifications::unreadNotifications insteadof Notifiable;
+        Notifiable::unreadNotifications as unreadDatabaseNotifications;
+    }
     use HasProfilePhoto;
-    use Notifiable;
     use TwoFactorAuthenticatable;
 
     /**
@@ -103,6 +109,11 @@ class User extends Authenticatable
     public function customer(): HasOne
     {
         return $this->hasOne(Customer::class);
+    }
+
+    public function employee(): HasOne
+    {
+        return $this->hasOne(Employee::class);
     }
 
     public function managedStores(): HasMany

@@ -203,6 +203,57 @@
                     </div>
                 @endif
 
+                @if(auth()->user()?->canAny(['notification.view','notification.template.view']))
+                    <!-- Notifications -->
+                    <div class="mt-2 mb-1">
+                        <h2 class="text-gray-500 text-md font-semibold" :class="{ 'hidden': !$store.sidebar.full }"
+                            x-transition>Notifications</h2>
+                    </div>
+                    <div x-data="dropdown('notification')" class="relative">
+                        <div @click="toggle('notification')" x-data="tooltip" @mouseover="show = true"
+                            @mouseleave="show = false"
+                            class="flex justify-between text-gray-400 hover:text-gray-200 hover:bg-gray-800 items-center space-x-2 rounded-md p-2 cursor-pointer text-xs"
+                            :class="{
+                                'justify-start': $store.sidebar.full,
+                                'sm:justify-center': !$store.sidebar.full,
+                                'text-gray-200 bg-gray-800': $store.sidebar.active == 'notification',
+                                'text-gray-400': $store.sidebar.active != 'notification'
+                            }">
+                            <div class="relative flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="2" stroke="currentColor" class="size-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                </svg>
+                                <p x-cloak class="text-xs"
+                                    :class="!$store.sidebar.full ? (show ? visibleClass : 'sm:hidden') : ''">
+                                    Notifications
+                                </p>
+                            </div>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke-width="1.5" stroke="currentColor" class="size-3 ml-auto" x-cloak
+                                :class="[$store.sidebar.full ? '' : 'sm:hidden', open ? 'rotate-180' : '']">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                            </svg>
+                        </div>
+                        <div x-cloak x-show="open"
+                            :class="$store.sidebar.full ? expandedClass : shrinkedClass" class="text-gray-400 space-y-3">
+                            @can('notification.view')
+                                <a href="{{ route('admin.notification.list') }}"
+                                    class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.notification.list') ? 'text-gray-200' : '' }}">
+                                    Notifications
+                                </a>
+                            @endcan
+                            @can('notification.template.view')
+                                <a href="{{ route('admin.notification.templates.index') }}"
+                                    class="hover:text-gray-200 block cursor-pointer text-xs {{ Route::is('admin.notification.templates.*') ? 'text-gray-200' : '' }}">
+                                    Templates
+                                </a>
+                            @endcan
+                        </div>
+                    </div>
+                @endif
+
                 @can('module.reports.access')
                 <!-- Reports -->
                 <div class="mt-2 mb-1">
@@ -1041,6 +1092,26 @@
                             SMTP Config</p>
                     </a>
                     @endcan
+
+                    <!-- Notification Settings -->
+                    @can('settings.notifications.view')
+                    <a href="{{ route('admin.settings.notifications') }}" x-data="tooltip" x-on:mouseover="show = true"
+                        x-on:mouseleave="show = false"
+                        class="relative flex items-center hover:text-gray-200 hover:bg-gray-800 space-x-2 rounded-md p-2 cursor-pointer justify-start text-gray-400 text-xs
+                    {{ Route::is('admin.settings.notifications') ? 'text-gray-200 bg-gray-800' : '' }}
+                    ">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+
+                        <p x-cloak class="text-xs"
+                            x-bind:class="!$store.sidebar.full && show ? visibleClass : '' || !$store.sidebar.full ?
+                                'sm:hidden' : ''">
+                            Notification Settings</p>
+                    </a>
+                    @endcan
                 @endcan
                 @can('section.ui_components.access')
                     <!-- Ui elements -->
@@ -1156,7 +1227,6 @@
                     </button>
                 </div>
             </div>
-
             <!-- logout -->
             <div x-data="tooltip" @click="$refs.logoutForm.submit()" @mouseover="show = true"
                 @mouseleave="show = false"

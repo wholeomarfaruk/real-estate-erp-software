@@ -377,6 +377,20 @@ class PermissionSeeder extends Seeder
             ['id' => 293, 'name' => 'hrm.work-stations.create'],
             ['id' => 294, 'name' => 'hrm.work-stations.update'],
             ['id' => 295, 'name' => 'hrm.work-stations.delete'],
+
+            // Notification Settings
+            ['id' => 296, 'name' => 'settings.notifications.view'],
+
+            // Notification Module
+            ['id' => 297, 'name' => 'notification.view'],
+            ['id' => 298, 'name' => 'notification.create'],
+            ['id' => 299, 'name' => 'notification.edit'],
+            ['id' => 300, 'name' => 'notification.delete'],
+            ['id' => 301, 'name' => 'notification.send'],
+            ['id' => 302, 'name' => 'notification.template.view'],
+            ['id' => 303, 'name' => 'notification.template.create'],
+            ['id' => 304, 'name' => 'notification.template.edit'],
+            ['id' => 305, 'name' => 'notification.template.delete'],
         ];
 
         foreach ($permissions as $permission) {

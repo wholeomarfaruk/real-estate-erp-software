@@ -58,7 +58,7 @@ class ClientDashboardService
                 'total_paid'        => $totalPaid,
                 'total_outstanding' => $totalDue,
                 'overdue_count'     => $overdueCount,
-            ], ClientNotificationCounts::unread()),
+            ], ClientNotificationCounts::unread($customer)),
             'next_payment' => $nextPayment,
         ];
     }
@@ -70,6 +70,6 @@ class ClientDashboardService
             'total_paid'        => 0.0,
             'total_outstanding' => 0.0,
             'overdue_count'     => 0,
-        ], ClientNotificationCounts::unread());
+        ], ClientNotificationCounts::unread(null));
     }
 }

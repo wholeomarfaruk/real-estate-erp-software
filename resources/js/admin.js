@@ -355,3 +355,69 @@ $(function () {
 });
 
 // select2==================================================END
+
+// WebPush==================================================START
+function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+async function registerWebPush() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        return;
+    }
+
+    const vapidKey = document
+        .querySelector('meta[name="vapid-public-key"]')
+        ?.getAttribute("content");
+    if (!vapidKey) {
+        return;
+    }
+
+    try {
+        const registration = await navigator.serviceWorker.register(
+            "/service-worker.js",
+        );
+
+        let subscription =
+            await registration.pushManager.getSubscription();
+
+        if (!subscription) {
+            if (Notification.permission === "default") {
+                const permission = await Notification.requestPermission();
+                if (permission !== "granted") {
+                    return;
+                }
+            } else if (Notification.permission !== "granted") {
+                return;
+            }
+
+            subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidKey),
+            });
+        }
+
+        await fetch("/admin/push-subscriptions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": document.querySelector(
+                    'meta[name="csrf-token"]',
+                ).content,
+            },
+            body: JSON.stringify(subscription.toJSON()),
+        });
+    } catch (e) {
+        console.error("WebPush registration failed:", e);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    registerWebPush();
+});
+// WebPush==================================================END

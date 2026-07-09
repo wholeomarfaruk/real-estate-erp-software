@@ -170,6 +170,15 @@ class AssignPermissionSeeder extends Seeder
                 'marketing.automation.create',
                 'marketing.automation.edit',
                 'marketing.automation.delete',
+                'notification.view',
+                'notification.create',
+                'notification.edit',
+                'notification.delete',
+                'notification.send',
+                'notification.template.view',
+                'notification.template.create',
+                'notification.template.edit',
+                'notification.template.delete',
                 'section.settings.access',
                 'settings.sms_gateway.view',
                 'settings.sms_gateway.create',
@@ -177,6 +186,8 @@ class AssignPermissionSeeder extends Seeder
                 'settings.sms_gateway.delete',
                 // SMTP
                 'settings.smtp.view',
+                // Notification Settings
+                'settings.notifications.view',
                 // Reports
                 'module.reports.access',
                 'reports.hub.view',
@@ -327,8 +338,12 @@ class AssignPermissionSeeder extends Seeder
                 'marketing.campaign.view',
                 'marketing.message.view',
                 'marketing.automation.view',
+                'notification.view',
+                'notification.template.view',
                 // SMTP
                 'settings.smtp.view',
+                // Notification Settings
+                'settings.notifications.view',
                 // Reports
                 'module.reports.access',
                 'reports.hub.view',
@@ -473,8 +488,12 @@ class AssignPermissionSeeder extends Seeder
                 'marketing.campaign.view',
                 'marketing.message.view',
                 'marketing.automation.view',
+                'notification.view',
+                'notification.template.view',
                 // SMTP
                 'settings.smtp.view',
+                // Notification Settings
+                'settings.notifications.view',
                 // Reports
                 'module.reports.access',
                 'reports.hub.view',
@@ -601,9 +620,20 @@ class AssignPermissionSeeder extends Seeder
                 'marketing.automation.create',
                 'marketing.automation.edit',
                 'marketing.automation.delete',
+                'notification.view',
+                'notification.create',
+                'notification.edit',
+                'notification.delete',
+                'notification.send',
+                'notification.template.view',
+                'notification.template.create',
+                'notification.template.edit',
+                'notification.template.delete',
                 'settings.sms_gateway.view',
                 // SMTP
                 'settings.smtp.view',
+                // Notification Settings
+                'settings.notifications.view',
                 // Reports
                 'module.reports.access',
                 'reports.hub.view',
@@ -690,10 +720,14 @@ class AssignPermissionSeeder extends Seeder
                 'marketing.campaign.view',
                 'marketing.message.view',
                 'marketing.automation.view',
+                'notification.view',
+                'notification.template.view',
                 // Settings — SMS Gateway view-only
                 'settings.sms_gateway.view',
                 // SMTP
                 'settings.smtp.view',
+                // Notification Settings
+                'settings.notifications.view',
                 // Reports
                 'module.reports.access',
                 'reports.hub.view',

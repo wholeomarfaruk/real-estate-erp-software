@@ -11,9 +11,12 @@ use App\Http\Controllers\Admin\Hrm\PayrollDocumentController;
 use App\Http\Controllers\Admin\Inventory\PurchaseOrderDocumentController;
 use App\Http\Controllers\Admin\Inventory\SupplierPurchaseOrderDownloadController;
 use App\Http\Controllers\Admin\Property\ReceiptController;
+use App\Http\Controllers\Admin\PushSubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/dashboard', \App\Livewire\Admin\Dashboard\Dashboard::class)->name('dashboard');
+
+Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
 
 // CRM - Customers
 Route::get('/crm/customers', App\Livewire\Admin\Customers\CustomerList::class)->name('crm.customers.index');
@@ -37,6 +40,7 @@ Route::get('/profile', App\Livewire\Admin\Profile\Profile::class)->name('profile
 Route::get('/settings', App\Livewire\Admin\Settings\Settings::class)->name('settings');
 Route::get('/settings/sms-gateway', App\Livewire\Admin\Settings\SmsGatewayList::class)->name('settings.sms-gateway');
 Route::get('/settings/smtp', App\Livewire\Admin\Settings\SmtpConfig::class)->name('settings.smtp');
+Route::get('/settings/notifications', App\Livewire\Admin\Settings\NotificationSettings::class)->name('settings.notifications');
 
 // permissions
 Route::get('/permissions/roles', App\Livewire\Admin\Permissions\RoleList::class)->name('roles.list');
@@ -456,6 +460,17 @@ Route::prefix('marketing')->name('marketing.')->group(function (): void {
     Route::get('/automations', App\Livewire\Admin\Marketing\Automation\AutomationList::class)
         ->middleware('can:marketing.automation.view')
         ->name('automations.index');
+});
+
+// Notification module
+Route::prefix('notification')->name('notification.')->group(function (): void {
+    Route::get('/', App\Livewire\Admin\Notifications\NotificationList::class)
+        ->middleware('can:notification.view')
+        ->name('list');
+
+    Route::get('/templates', App\Livewire\Admin\Notifications\Template\TemplateList::class)
+        ->middleware('can:notification.template.view')
+        ->name('templates.index');
 });
 
 // Reports module

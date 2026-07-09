@@ -14,3 +14,9 @@ Schedule::command('property:mark-overdue')
     ->withoutOverlapping()
     ->runInBackground();
 
+// ── Notification module scheduled jobs ────────────────────────────────────────
+Schedule::command('notifications:process-scheduled')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground();
+

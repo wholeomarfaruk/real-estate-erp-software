@@ -22,7 +22,7 @@ class SidebarController extends Controller
             'success'              => true,
             'user'                 => ClientPayloadBuilder::user($user),
             'customer'             => ClientPayloadBuilder::customer($user->customer),
-            'unread_notifications' => ClientNotificationCounts::unread()['unread_notifications'],
+            'unread_notifications' => ClientNotificationCounts::unread($user->customer)['unread_notifications'],
         ]);
     }
 }
