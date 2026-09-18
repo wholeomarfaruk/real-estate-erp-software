@@ -81,16 +81,6 @@ class Transaction extends Model
         return $line?->account;
     }
 
-    public function payment(): HasOne
-    {
-        return $this->hasOne(Payment::class);
-    }
-
-    public function collection(): HasOne
-    {
-        return $this->hasOne(AccountCollection::class, 'transaction_id');
-    }
-
     public function expense(): HasOne
     {
         return $this->hasOne(Expense::class);

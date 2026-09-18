@@ -3,10 +3,10 @@
 namespace App\Services\Accounts;
 
 use App\Enums\Accounts\AccountType;
+use App\Enums\Accounts\TransactionRelationType;
+use App\Enums\Accounts\TransactionType;
 use App\Models\Account;
-use App\Models\AccountCollection;
 use App\Models\Expense;
-use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Supplier;
 use App\Models\Transaction;
@@ -169,17 +169,10 @@ class AccountReportService
      */
     public function getCustomerNames(): Collection
     {
-        $collectionNames = AccountCollection::query()
-            ->whereNotNull('payer_name')
-            ->pluck('payer_name');
-
-        $paymentNames = Payment::query()
+        return Transaction::query()
             ->where('reference_type', 'customer')
-            ->whereNotNull('payee_name')
-            ->pluck('payee_name');
-
-        return $collectionNames
-            ->merge($paymentNames)
+            ->whereNotNull('name')
+            ->pluck('name')
             ->filter(fn (mixed $name): bool => filled($name))
             ->map(fn (mixed $name): string => trim((string) $name))
             ->filter()
@@ -305,35 +298,17 @@ class AccountReportService
      */
     protected function buildPaymentReport(string $title, array $filters): array
     {
-        $payments = Payment::query()
-            ->with([
-                'purposeAccount:id,name,code',
-                'paymentAccount:id,name,code',
-            ])
-            ->when($filters['account_id'], function (Builder $query) use ($filters): void {
-                $query->where(function (Builder $subQuery) use ($filters): void {
-                    $subQuery->where('purpose_account_id', $filters['account_id'])
-                        ->orWhere('payment_account_id', $filters['account_id']);
-                });
-            })
-            ->tap(fn (Builder $query) => $this->applyDateBetween($query, 'date', $filters))
-            ->tap(fn (Builder $query) => $this->applyReferenceFilter($query, 'project', $filters['project_id']))
-            ->tap(fn (Builder $query) => $this->applyReferenceFilter($query, 'supplier', $filters['supplier_id']))
-            ->orderBy('date')
-            ->orderBy('id')
-            ->get();
+        $transactions = $this->reportGroupTransactions(TransactionType::payments(), $filters);
 
-        $rows = $payments->map(function (Payment $payment): array {
+        $rows = $transactions->map(function (Transaction $tx): array {
+            $debitLine = $tx->lines->firstWhere(fn ($l) => (float) $l->debit > 0) ?? $tx->lines->first();
+
             return [
-                'date' => optional($payment->date)->format('d M Y') ?: '-',
-                'pay_to' => $payment->payee_name ?: '-',
-                'account' => $payment->purposeAccount?->name ?? '-',
-                'amount' => $this->money((float) $payment->amount),
-                'reference' => $this->entryReference(
-                    documentNo: $payment->payment_no,
-                    referenceType: $payment->reference_type,
-                    referenceId: $payment->reference_id
-                ),
+                'date' => optional($tx->datetime)->format('d M Y') ?: '-',
+                'pay_to' => $tx->name ?: '-',
+                'account' => $debitLine?->account?->name ?? '-',
+                'amount' => $this->money((float) $tx->lines->sum('debit')),
+                'reference' => $this->transactionReference($tx),
             ];
         })->all();
 
@@ -352,7 +327,7 @@ class AccountReportService
                 'date' => '',
                 'pay_to' => '',
                 'account' => 'Total',
-                'amount' => $this->money((float) $payments->sum('amount')),
+                'amount' => $this->money((float) $transactions->sum(fn ($tx) => $tx->lines->sum('debit'))),
                 'reference' => '',
             ]
         );
@@ -364,34 +339,17 @@ class AccountReportService
      */
     protected function buildCollectionReport(string $title, array $filters): array
     {
-        $collections = AccountCollection::query()
-            ->with([
-                'targetAccount:id,name,code',
-                'collectionAccount:id,name,code',
-            ])
-            ->when($filters['account_id'], function (Builder $query) use ($filters): void {
-                $query->where(function (Builder $subQuery) use ($filters): void {
-                    $subQuery->where('target_account_id', $filters['account_id'])
-                        ->orWhere('collection_account_id', $filters['account_id']);
-                });
-            })
-            ->tap(fn (Builder $query) => $this->applyDateBetween($query, 'date', $filters))
-            ->tap(fn (Builder $query) => $this->applyReferenceFilter($query, 'project', $filters['project_id']))
-            ->orderBy('date')
-            ->orderBy('id')
-            ->get();
+        $transactions = $this->reportGroupTransactions(TransactionType::receipts(), $filters, applySupplierFilter: false);
 
-        $rows = $collections->map(function (AccountCollection $collection): array {
+        $rows = $transactions->map(function (Transaction $tx): array {
+            $debitLine = $tx->lines->firstWhere(fn ($l) => (float) $l->debit > 0) ?? $tx->lines->first();
+
             return [
-                'date' => optional($collection->date)->format('d M Y') ?: '-',
-                'received_from' => $collection->payer_name ?: '-',
-                'account' => $collection->targetAccount?->name ?? '-',
-                'amount' => $this->money((float) $collection->amount),
-                'reference' => $this->entryReference(
-                    documentNo: $collection->collection_no,
-                    referenceType: $collection->reference_type,
-                    referenceId: $collection->reference_id
-                ),
+                'date' => optional($tx->datetime)->format('d M Y') ?: '-',
+                'received_from' => $tx->name ?: '-',
+                'account' => $debitLine?->account?->name ?? '-',
+                'amount' => $this->money((float) $tx->lines->sum('debit')),
+                'reference' => $this->transactionReference($tx),
             ];
         })->all();
 
@@ -410,10 +368,84 @@ class AccountReportService
                 'date' => '',
                 'received_from' => '',
                 'account' => 'Total',
-                'amount' => $this->money((float) $collections->sum('amount')),
+                'amount' => $this->money((float) $transactions->sum(fn ($tx) => $tx->lines->sum('debit'))),
                 'reference' => '',
             ]
         );
+    }
+
+    /**
+     * Shared query for payment/collection style reports: transaction headers of
+     * the given TransactionType group (payments() or receipts()), filtered by
+     * date range, the money-side account, and optionally project/supplier
+     * reference, with lines + account eager loaded for amount/account display.
+     *
+     * @param  array<int, string>  $types
+     * @param  array{from:\Carbon\Carbon,to:\Carbon\Carbon,account_id:?int,project_id:?int,supplier_id:?int,customer_name:?string}  $filters
+     * @return \Illuminate\Support\Collection<int, \App\Models\Transaction>
+     */
+    protected function reportGroupTransactions(array $types, array $filters, bool $applySupplierFilter = true): Collection
+    {
+        return Transaction::query()
+            ->with(['lines.account:id,name,code'])
+            ->whereIn('type', $types)
+            ->whereNull('adjusted_at')
+            ->where(function (Builder $q): void {
+                $q->whereNull('relation_type')
+                    ->orWhere('relation_type', '!=', TransactionRelationType::REVERSE->value);
+            })
+            ->when($filters['account_id'], function (Builder $query) use ($filters): void {
+                $query->whereHas('lines', fn (Builder $sub) => $sub->where('account_id', $filters['account_id']));
+            })
+            ->tap(fn (Builder $query) => $this->applyDateBetween($query, 'datetime', $filters))
+            ->tap(fn (Builder $query) => $this->applyReferenceFilter($query, 'project', $filters['project_id']))
+            ->tap(fn (Builder $query) => $applySupplierFilter
+                ? $this->applyReferenceFilter($query, 'supplier', $filters['supplier_id'])
+                : null)
+            ->orderBy('datetime')
+            ->orderBy('id')
+            ->get();
+    }
+
+    /**
+     * Date => total-amount map for a TransactionType group (payments() or
+     * receipts()), summing each transaction's debit-side movement (the money
+     * actually received/paid), grouped by calendar date. Used by the Daily
+     * Summary report.
+     *
+     * @param  array<int, string>  $types
+     * @param  array{from:\Carbon\Carbon,to:\Carbon\Carbon,account_id:?int,project_id:?int,supplier_id:?int,customer_name:?string}  $filters
+     * @return \Illuminate\Support\Collection<string, float>
+     */
+    protected function reportGroupDailyTotals(array $types, array $filters, bool $applySupplierFilter = true): Collection
+    {
+        $query = DB::table('transaction_lines as tl')
+            ->join('transactions as t', 't.id', '=', 'tl.transaction_id')
+            ->selectRaw('DATE(t.datetime) as day, COALESCE(SUM(tl.debit), 0) as total_amount')
+            ->whereIn('t.type', $types)
+            ->whereNull('t.adjusted_at')
+            ->where(function ($q): void {
+                $q->whereNull('t.relation_type')
+                    ->orWhere('t.relation_type', '!=', TransactionRelationType::REVERSE->value);
+            })
+            ->whereDate('t.datetime', '>=', $filters['from']->toDateString())
+            ->whereDate('t.datetime', '<=', $filters['to']->toDateString());
+
+        if ($filters['account_id']) {
+            $query->where('tl.account_id', $filters['account_id']);
+        }
+
+        if ($filters['project_id']) {
+            $query->where('t.reference_type', 'project')->where('t.reference_id', $filters['project_id']);
+        }
+
+        if ($applySupplierFilter && $filters['supplier_id']) {
+            $query->where('t.reference_type', 'supplier')->where('t.reference_id', $filters['supplier_id']);
+        }
+
+        return $query->groupBy('day')
+            ->pluck('total_amount', 'day')
+            ->map(fn (mixed $value): float => (float) $value);
     }
 
     /**
@@ -594,64 +626,54 @@ class AccountReportService
      * @param  array{from:\Carbon\Carbon,to:\Carbon\Carbon,account_id:?int,project_id:?int,supplier_id:?int,customer_name:?string}  $filters
      * @return array<string, mixed>
      */
-    /**
-     * @param  array{from:\Carbon\Carbon,to:\Carbon\Carbon,account_id:?int,project_id:?int,supplier_id:?int,customer_name:?string}  $filters
-     * @return array<string, mixed>
-     */
     protected function buildCustomerLedgerReport(string $title, array $filters): array
     {
-        $collectionEntries = AccountCollection::query()
-            ->with(['targetAccount:id,name,code'])
-            ->when($filters['account_id'], function (Builder $query) use ($filters): void {
-                $query->where(function (Builder $subQuery) use ($filters): void {
-                    $subQuery->where('target_account_id', $filters['account_id'])
-                        ->orWhere('collection_account_id', $filters['account_id']);
-                });
-            })
-            ->tap(fn (Builder $query) => $this->applyDateBetween($query, 'date', $filters))
-            ->when($filters['customer_name'], fn (Builder $query): Builder => $query->where('payer_name', $filters['customer_name']))
-            ->orderBy('date')
-            ->orderBy('id')
-            ->get();
-
-        $paymentEntries = Payment::query()
-            ->with(['purposeAccount:id,name,code'])
+        $baseQuery = fn (): Builder => Transaction::query()
+            ->with(['lines.account:id,name,code'])
             ->where('reference_type', 'customer')
-            ->when($filters['account_id'], function (Builder $query) use ($filters): void {
-                $query->where(function (Builder $subQuery) use ($filters): void {
-                    $subQuery->where('purpose_account_id', $filters['account_id'])
-                        ->orWhere('payment_account_id', $filters['account_id']);
-                });
+            ->whereNull('adjusted_at')
+            ->where(function (Builder $q): void {
+                $q->whereNull('relation_type')
+                    ->orWhere('relation_type', '!=', TransactionRelationType::REVERSE->value);
             })
-            ->tap(fn (Builder $query) => $this->applyDateBetween($query, 'date', $filters))
-            ->when($filters['customer_name'], fn (Builder $query): Builder => $query->where('payee_name', $filters['customer_name']))
-            ->orderBy('date')
-            ->orderBy('id')
-            ->get();
+            ->when($filters['account_id'], function (Builder $query) use ($filters): void {
+                $query->whereHas('lines', fn (Builder $sub) => $sub->where('account_id', $filters['account_id']));
+            })
+            ->tap(fn (Builder $query) => $this->applyDateBetween($query, 'datetime', $filters))
+            ->when($filters['customer_name'], fn (Builder $query): Builder => $query->where('name', $filters['customer_name']));
+
+        // Receipts (money in from the customer) credit their ledger balance;
+        // payments/refunds (money out to the customer) debit it.
+        $collectionEntries = $baseQuery()->whereIn('type', TransactionType::receipts())->orderBy('datetime')->orderBy('id')->get();
+        $paymentEntries = $baseQuery()->whereIn('type', TransactionType::payments())->orderBy('datetime')->orderBy('id')->get();
 
         $entries = collect();
 
-        foreach ($collectionEntries as $collection) {
+        foreach ($collectionEntries as $tx) {
+            $debitLine = $tx->lines->firstWhere(fn ($l) => (float) $l->debit > 0) ?? $tx->lines->first();
+
             $entries->push([
-                'date' => optional($collection->date)->toDateString(),
-                'customer' => $collection->payer_name ?: 'Customer',
-                'reference' => $this->entryReference($collection->collection_no, $collection->reference_type, $collection->reference_id),
+                'date' => optional($tx->datetime)->toDateString(),
+                'customer' => $tx->name ?: 'Customer',
+                'reference' => $this->transactionReference($tx),
                 'debit_raw' => 0.0,
-                'credit_raw' => (float) $collection->amount,
-                'description' => $collection->targetAccount?->name ?? 'Collection',
-                'sequence' => 'collection-'.(int) $collection->id,
+                'credit_raw' => (float) $tx->lines->sum('debit'),
+                'description' => $debitLine?->account?->name ?? 'Collection',
+                'sequence' => 'collection-'.(int) $tx->id,
             ]);
         }
 
-        foreach ($paymentEntries as $payment) {
+        foreach ($paymentEntries as $tx) {
+            $debitLine = $tx->lines->firstWhere(fn ($l) => (float) $l->debit > 0) ?? $tx->lines->first();
+
             $entries->push([
-                'date' => optional($payment->date)->toDateString(),
-                'customer' => $payment->payee_name ?: 'Customer',
-                'reference' => $this->entryReference($payment->payment_no, $payment->reference_type, $payment->reference_id),
-                'debit_raw' => (float) $payment->amount,
+                'date' => optional($tx->datetime)->toDateString(),
+                'customer' => $tx->name ?: 'Customer',
+                'reference' => $this->transactionReference($tx),
+                'debit_raw' => (float) $tx->lines->sum('debit'),
                 'credit_raw' => 0.0,
-                'description' => $payment->purposeAccount?->name ?? 'Payment',
-                'sequence' => 'payment-'.(int) $payment->id,
+                'description' => $debitLine?->account?->name ?? 'Payment',
+                'sequence' => 'payment-'.(int) $tx->id,
             ]);
         }
 
@@ -699,8 +721,8 @@ class AccountReportService
                 'customer' => '',
                 'reference' => '',
                 'description' => 'Total',
-                'debit' => $this->money((float) $paymentEntries->sum('amount')),
-                'credit' => $this->money((float) $collectionEntries->sum('amount')),
+                'debit' => $this->money((float) $paymentEntries->sum(fn ($tx) => $tx->lines->sum('debit'))),
+                'credit' => $this->money((float) $collectionEntries->sum(fn ($tx) => $tx->lines->sum('debit'))),
                 'balance' => '',
             ]
         );
@@ -897,32 +919,8 @@ class AccountReportService
      */
     protected function buildDailySummaryReport(string $title, array $filters): array
     {
-        $collections = AccountCollection::query()
-            ->selectRaw('date, COALESCE(SUM(amount), 0) as total_amount')
-            ->when($filters['account_id'], function (Builder $query) use ($filters): void {
-                $query->where(function (Builder $subQuery) use ($filters): void {
-                    $subQuery->where('target_account_id', $filters['account_id'])
-                        ->orWhere('collection_account_id', $filters['account_id']);
-                });
-            })
-            ->tap(fn (Builder $query) => $this->applyDateBetween($query, 'date', $filters))
-            ->tap(fn (Builder $query) => $this->applyReferenceFilter($query, 'project', $filters['project_id']))
-            ->groupBy('date')
-            ->pluck('total_amount', 'date');
-
-        $payments = Payment::query()
-            ->selectRaw('date, COALESCE(SUM(amount), 0) as total_amount')
-            ->when($filters['account_id'], function (Builder $query) use ($filters): void {
-                $query->where(function (Builder $subQuery) use ($filters): void {
-                    $subQuery->where('purpose_account_id', $filters['account_id'])
-                        ->orWhere('payment_account_id', $filters['account_id']);
-                });
-            })
-            ->tap(fn (Builder $query) => $this->applyDateBetween($query, 'date', $filters))
-            ->tap(fn (Builder $query) => $this->applyReferenceFilter($query, 'project', $filters['project_id']))
-            ->tap(fn (Builder $query) => $this->applyReferenceFilter($query, 'supplier', $filters['supplier_id']))
-            ->groupBy('date')
-            ->pluck('total_amount', 'date');
+        $collections = $this->reportGroupDailyTotals(TransactionType::receipts(), $filters, applySupplierFilter: false);
+        $payments = $this->reportGroupDailyTotals(TransactionType::payments(), $filters);
 
         $expenses = Expense::query()
             ->selectRaw('date, COALESCE(SUM(amount), 0) as total_amount')
@@ -989,8 +987,6 @@ class AccountReportService
         $lines = TransactionLine::query()
             ->with([
                 'account:id,name,code',
-                'transaction.payment:id,transaction_id,payment_no,payee_name,reference_type,reference_id',
-                'transaction.collection:id,transaction_id,collection_no,payer_name,reference_type,reference_id',
                 'transaction.expense:id,transaction_id,expense_no,title,reference_type,reference_id',
             ])
             ->when($filters['account_id'], fn (Builder $builder): Builder => $builder->where('transaction_lines.account_id', $filters['account_id']))
@@ -1171,13 +1167,12 @@ class AccountReportService
 
         // Per-account movements now live in transaction_lines. Each line carries its
         // own debit/credit + account; the parent transaction supplies date / type /
-        // source relations. Callers read $line->debit, $line->credit, $line->account,
-        // $line->datetime and $line->payment/collection/expense — all proxied below.
+        // name / reference_no directly (proxied via TransactionLine accessors) and
+        // the expense relation for expense-sourced lines. Callers read $line->debit,
+        // $line->credit, $line->account, $line->datetime and $line->expense.
         return TransactionLine::query()
             ->with([
                 'account:id,name,code',
-                'transaction.payment:id,transaction_id,payment_no,payee_name,reference_type,reference_id',
-                'transaction.collection:id,transaction_id,collection_no,payer_name,reference_type,reference_id',
                 'transaction.expense:id,transaction_id,expense_no,title,reference_type,reference_id',
             ])
             ->whereIn('account_id', $accountIds)
@@ -1234,19 +1229,14 @@ class AccountReportService
 
     protected function lineParticulars(Transaction|TransactionLine $line, array $selectedAccountIds = []): string
     {
-        if ($line->payment) {
-            return collect([$line->payment->payee_name, $line->notes])->filter()->implode(' — ') ?: 'Payment';
-        }
-
-        if ($line->collection) {
-            return collect([$line->collection->payer_name, $line->notes])->filter()->implode(' — ') ?: 'Collection';
-        }
-
         if ($line->expense) {
             return collect([$line->expense->title, $line->notes])->filter()->implode(' — ') ?: 'Expense';
         }
 
-        return $line->notes ?: $line->name ?: ($line->type?->label() ?? '-');
+        // Payer/payee name now lives directly on the transaction header (name
+        // column) rather than a separate Payment/AccountCollection sub-record.
+        return collect([$line->notes, $line->name])->filter()->implode(' — ')
+            ?: ($line->type?->label() ?? '-');
     }
 
     protected function transactionReference(Transaction|TransactionLine|null $transaction): string
@@ -1255,19 +1245,14 @@ class AccountReportService
             return '-';
         }
 
-        if ($transaction->payment) {
-            return $this->entryReference($transaction->payment->payment_no, $transaction->payment->reference_type ?? null, $transaction->payment->reference_id ?? null);
-        }
-
-        if ($transaction->collection) {
-            return $this->entryReference($transaction->collection->collection_no, $transaction->collection->reference_type ?? null, $transaction->collection->reference_id ?? null);
-        }
-
         if ($transaction->expense) {
             return $this->entryReference($transaction->expense->expense_no, $transaction->expense->reference_type ?? null, $transaction->expense->reference_id ?? null);
         }
 
-        return $this->referenceLabel($transaction->reference_type, $transaction->reference_id);
+        // The transaction header carries its own reference_no (cheque no / txn
+        // id) alongside the polymorphic reference_type/reference_id — prefer
+        // the explicit document number when present, same as entryReference().
+        return $this->entryReference($transaction->reference_no, $transaction->reference_type, $transaction->reference_id);
     }
 
     protected function entryReference(?string $documentNo, ?string $referenceType, mixed $referenceId): string
@@ -1286,7 +1271,15 @@ class AccountReportService
             return $fallbackDash ? '-' : '';
         }
 
-        $label = $referenceType ? Str::headline(str_replace('_', ' ', $referenceType)) : 'Ref';
+        // reference_type is sometimes a short slug ('project', 'supplier') and
+        // sometimes a fully-qualified model class (PaymentSchedule::class, as
+        // PostingContext passes it) — reduce the latter to its class basename
+        // before headlining, or Str::headline() garbles the backslashes.
+        $type = $referenceType && str_contains($referenceType, '\\')
+            ? class_basename($referenceType)
+            : $referenceType;
+
+        $label = $type ? Str::headline(str_replace('_', ' ', $type)) : 'Ref';
         $idPart = $referenceId ? ' #'.$referenceId : '';
 
         return trim($label.$idPart);

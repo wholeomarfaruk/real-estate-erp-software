@@ -214,6 +214,18 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
         ->middleware('can:accounts.report.view')
         ->name('reports.liability');
 
+    Route::get('/reports/payment', App\Livewire\Admin\Accounts\Reports\PaymentReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.payment');
+
+    Route::get('/reports/collection', App\Livewire\Admin\Accounts\Reports\CollectionReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.collection');
+
+    Route::get('/reports/expense', App\Livewire\Admin\Accounts\Reports\ExpenseReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.expense');
+
     Route::get('/reports/cash-book', App\Livewire\Admin\Accounts\Reports\CashBookReport::class)
         ->middleware('can:accounts.report.view')
         ->name('reports.cash-book');
@@ -245,6 +257,10 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
     Route::get('/reports/account-ledger', App\Livewire\Admin\Accounts\Reports\AccountLedgerReport::class)
         ->middleware('can:accounts.report.view')
         ->name('reports.account-ledger');
+
+    Route::get('/reports/project-wise-expense', App\Livewire\Admin\Accounts\Reports\ProjectWiseExpenseReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('reports.project-wise-expense');
 
     Route::get('/reports/export/{report}/excel', [AccountReportExportController::class, 'excel'])
         ->middleware('can:accounts.report.view')
@@ -536,6 +552,72 @@ Route::prefix('reports/finance')->name('reports.finance.')->group(function () {
         [App\Http\Controllers\Admin\Reports\CompanyOverviewExportController::class, 'printStandalone'])
         ->middleware('can:reports.finance.export')
         ->name('company-overview.print-standalone');
+
+    // Accounts reports, linked into the Reports Hub's Finance category. These
+    // route names (reports.finance.<slug>) are the ones ConfigBasedRegistry
+    // generates for config/reports.php entries; they point at the exact same
+    // Livewire report components already registered under admin.accounts.reports.*
+    // — this only adds an additional, Hub-discoverable path to each report, it
+    // does not duplicate or replace the existing accounts.reports.* routes.
+    Route::get('/assets', App\Livewire\Admin\Accounts\Reports\AssetReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('assets');
+
+    Route::get('/liability', App\Livewire\Admin\Accounts\Reports\LiabilityReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('liability');
+
+    Route::get('/payment', App\Livewire\Admin\Accounts\Reports\PaymentReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('payment');
+
+    Route::get('/collection', App\Livewire\Admin\Accounts\Reports\CollectionReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('collection');
+
+    Route::get('/expense', App\Livewire\Admin\Accounts\Reports\ExpenseReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('expense');
+
+    Route::get('/cash-book', App\Livewire\Admin\Accounts\Reports\CashBookReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('cash-book');
+
+    Route::get('/bank-book', App\Livewire\Admin\Accounts\Reports\BankBookReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('bank-book');
+
+    Route::get('/customer-ledger', App\Livewire\Admin\Accounts\Reports\CustomerLedgerReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('customer-ledger');
+
+    Route::get('/trial-balance', App\Livewire\Admin\Accounts\Reports\TrialBalanceReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('trial-balance');
+
+    Route::get('/profit-loss', App\Livewire\Admin\Accounts\Reports\ProfitLossReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('profit-loss');
+
+    Route::get('/balance-sheet', App\Livewire\Admin\Accounts\Reports\BalanceSheetReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('balance-sheet');
+
+    Route::get('/daily-summary', App\Livewire\Admin\Accounts\Reports\DailySummaryReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('daily-summary');
+
+    Route::get('/account-ledger', App\Livewire\Admin\Accounts\Reports\AccountLedgerReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('account-ledger');
+
+    Route::get('/project-wise-expense', App\Livewire\Admin\Accounts\Reports\ProjectWiseExpenseReport::class)
+        ->middleware('can:accounts.report.view')
+        ->name('project-wise-expense');
+
+    Route::get('/statement', App\Livewire\Admin\Accounts\Reports\StatementReport::class)
+        ->middleware('can:accounts.reports.statement.view')
+        ->name('statement');
 });
 
 // Sales Reports

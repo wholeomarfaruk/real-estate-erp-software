@@ -47,6 +47,145 @@ return [
                 'view' => 'livewire.admin.reports.finance.company-overview',
                 'permission' => 'reports.finance.company-overview.view',
             ],
+
+            // Accounts reports — routed via reports.finance.<slug> aliases in
+            // routes/admin.php that point at the existing accounts.reports.*
+            // Livewire components (App\Services\Accounts\AccountReportService
+            // powers all of these except 'statement').
+            'assets' => [
+                'title' => 'Assets Report',
+                'description' => 'Asset-type accounts and their current balances.',
+                'service' => App\Services\Accounts\AccountReportService::class,
+                'component' => App\Livewire\Admin\Accounts\Reports\AssetReport::class,
+                'view' => 'livewire.admin.accounts.reports.base-account-report',
+                'permission' => 'accounts.report.view',
+            ],
+
+            'liability' => [
+                'title' => 'Liability Report',
+                'description' => 'Liability-type accounts and their current balances.',
+                'service' => App\Services\Accounts\AccountReportService::class,
+                'component' => App\Livewire\Admin\Accounts\Reports\LiabilityReport::class,
+                'view' => 'livewire.admin.accounts.reports.base-account-report',
+                'permission' => 'accounts.report.view',
+            ],
+
+            'payment' => [
+                'title' => 'Payment Report',
+                'description' => 'All outgoing payments with account, payee and reference.',
+                'service' => App\Services\Accounts\AccountReportService::class,
+                'component' => App\Livewire\Admin\Accounts\Reports\PaymentReport::class,
+                'view' => 'livewire.admin.accounts.reports.base-account-report',
+                'permission' => 'accounts.report.view',
+            ],
+
+            'collection' => [
+                'title' => 'Collection Report',
+                'description' => 'All incoming collections/receipts with account, payer and reference.',
+                'service' => App\Services\Accounts\AccountReportService::class,
+                'component' => App\Livewire\Admin\Accounts\Reports\CollectionReport::class,
+                'view' => 'livewire.admin.accounts.reports.base-account-report',
+                'permission' => 'accounts.report.view',
+            ],
+
+            'expense' => [
+                'title' => 'Expense Report',
+                'description' => 'Categorized expenses by account, project and supplier.',
+                'service' => App\Services\Accounts\AccountReportService::class,
+                'component' => App\Livewire\Admin\Accounts\Reports\ExpenseReport::class,
+                'view' => 'livewire.admin.accounts.reports.base-account-report',
+                'permission' => 'accounts.report.view',
+            ],
+
+            'project-wise-expense' => [
+                'title' => 'Project Wise Expense',
+                'description' => 'Expenses grouped and totalled by project.',
+                'service' => App\Services\Accounts\AccountReportService::class,
+                'component' => App\Livewire\Admin\Accounts\Reports\ProjectWiseExpenseReport::class,
+                'view' => 'livewire.admin.accounts.reports.base-account-report',
+                'permission' => 'accounts.report.view',
+            ],
+
+            'cash-book' => [
+                'title' => 'Cash Book',
+                'description' => 'Cash-account transaction register with running balance.',
+                'service' => App\Services\Accounts\AccountReportService::class,
+                'component' => App\Livewire\Admin\Accounts\Reports\CashBookReport::class,
+                'view' => 'livewire.admin.accounts.reports.base-account-report',
+                'permission' => 'accounts.report.view',
+            ],
+
+            'bank-book' => [
+                'title' => 'Bank Book',
+                'description' => 'Bank-account transaction register with running balance.',
+                'service' => App\Services\Accounts\AccountReportService::class,
+                'component' => App\Livewire\Admin\Accounts\Reports\BankBookReport::class,
+                'view' => 'livewire.admin.accounts.reports.base-account-report',
+                'permission' => 'accounts.report.view',
+            ],
+
+            'account-ledger' => [
+                'title' => 'Account Ledger',
+                'description' => 'Full transaction history and running balance for any account.',
+                'service' => App\Services\Accounts\AccountReportService::class,
+                'component' => App\Livewire\Admin\Accounts\Reports\AccountLedgerReport::class,
+                'view' => 'livewire.admin.accounts.reports.base-account-report',
+                'permission' => 'accounts.report.view',
+            ],
+
+            'customer-ledger' => [
+                'title' => 'Customer Ledger',
+                'description' => 'Per-customer running balance of receipts and payments.',
+                'service' => App\Services\Accounts\AccountReportService::class,
+                'component' => App\Livewire\Admin\Accounts\Reports\CustomerLedgerReport::class,
+                'view' => 'livewire.admin.accounts.reports.base-account-report',
+                'permission' => 'accounts.report.view',
+            ],
+
+            'trial-balance' => [
+                'title' => 'Trial Balance',
+                'description' => 'All accounts with debit/credit totals, checked for balance.',
+                'service' => App\Services\Accounts\AccountReportService::class,
+                'component' => App\Livewire\Admin\Accounts\Reports\TrialBalanceReport::class,
+                'view' => 'livewire.admin.accounts.reports.base-account-report',
+                'permission' => 'accounts.report.view',
+            ],
+
+            'profit-loss' => [
+                'title' => 'Profit & Loss',
+                'description' => 'Income vs. expense summary for a selected period.',
+                'service' => App\Services\Accounts\AccountReportService::class,
+                'component' => App\Livewire\Admin\Accounts\Reports\ProfitLossReport::class,
+                'view' => 'livewire.admin.accounts.reports.base-account-report',
+                'permission' => 'accounts.report.view',
+            ],
+
+            'balance-sheet' => [
+                'title' => 'Balance Sheet',
+                'description' => 'Assets, liabilities and equity position at a given date.',
+                'service' => App\Services\Accounts\AccountReportService::class,
+                'component' => App\Livewire\Admin\Accounts\Reports\BalanceSheetReport::class,
+                'view' => 'livewire.admin.accounts.reports.balance-sheet-report',
+                'permission' => 'accounts.report.view',
+            ],
+
+            'daily-summary' => [
+                'title' => 'Daily Summary',
+                'description' => 'Day-wise receipt, payment and expense totals with net movement.',
+                'service' => App\Services\Accounts\AccountReportService::class,
+                'component' => App\Livewire\Admin\Accounts\Reports\DailySummaryReport::class,
+                'view' => 'livewire.admin.accounts.reports.base-account-report',
+                'permission' => 'accounts.report.view',
+            ],
+
+            'statement' => [
+                'title' => 'Statement Report',
+                'description' => 'Bank, project or property statement with date-range presets.',
+                'service' => App\Services\Accounts\StatementReportService::class,
+                'component' => App\Livewire\Admin\Accounts\Reports\StatementReport::class,
+                'view' => 'livewire.admin.accounts.reports.statement-report',
+                'permission' => 'accounts.reports.statement.view',
+            ],
         ],
     ],
 

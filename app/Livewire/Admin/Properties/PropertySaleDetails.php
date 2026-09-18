@@ -36,6 +36,9 @@ class PropertySaleDetails extends Component
     public $dSalesRepresentative = '';
     public $dNotes               = '';
 
+    // ── Payment Schedule card tabs ───────────────────────────────────────────────
+    public string $scheduleTab = 'schedule'; // 'schedule' | 'all_payments'
+
     // ── Schedule drawer ──────────────────────────────────────────────────────
     public bool $scheduleDrawerOpen = false;
     public ?int $editingScheduleId  = null;
@@ -64,6 +67,23 @@ class PropertySaleDetails extends Component
     public string  $payNowNotes          = '';
     public array   $payNowAttachmentIds  = [];
     public array   $payTransactions      = [];
+    public array   $receiptTx            = [];
+    public array   $attachList           = [];
+
+    // ── Bulk Pay (sequential allocation across dues) modal ──────────────────────
+    public bool    $bulkPayModalOpen      = false;
+    public string  $bulkPayAccountType    = '';
+    public string  $bulkPayAccountId      = '';
+    public array   $bulkPayAccounts       = [];
+    public string  $bulkPayPaymentMethod  = 'cash';
+    public string  $bulkPayPayerName      = '';
+    public string  $bulkPayReferenceNo    = '';
+    public string  $bulkPayPhone          = '';
+    public string  $bulkPayAmount         = '0';
+    public string  $bulkPayDate           = '';
+    public string  $bulkPayNotes          = '';
+    public array   $bulkPayAttachmentIds  = [];
+    public array   $bulkPayAllocation     = [];
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     public function mount(PropertySale $sale): void
@@ -103,6 +123,12 @@ class PropertySaleDetails extends Component
     }
 
     // ── Edit drawer ───────────────────────────────────────────────────────────
+    public function openDrawer(): void
+    {
+        abort_unless(Auth::user()?->can('property_sale.edit'), 403);
+        $this->drawerOpen = true;
+    }
+
     public function closeDrawer(): void
     {
         $this->drawerOpen = false;
@@ -173,6 +199,117 @@ class PropertySaleDetails extends Component
         ]);
         $this->closeDrawer();
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Sale updated successfully.']);
+    }
+
+    // ── Payment Schedule card tabs ───────────────────────────────────────────────
+    public function switchScheduleTab(string $tab): void
+    {
+        $this->scheduleTab = in_array($tab, ['schedule', 'all_payments'], true) ? $tab : 'schedule';
+    }
+
+    /**
+     * Every payment ever recorded against this sale's schedules, one row per
+     * payment event: a single-schedule payment shows its one schedule, and a
+     * bulk payment that was split across multiple schedules is still grouped
+     * into a single row listing every schedule it covered.
+     *
+     * New bulk payments carry an explicit external_data['bulk_payment_batch_id']
+     * (set in submitBulkPayment()). Legacy split payments made before that
+     * existed are reconstructed by grouping same-sale transactions that share
+     * the exact same `datetime` value across more than one distinct schedule —
+     * a single bulk submission always applies one datetime to every schedule it
+     * splits into, so an exact match is a safe signal (unlike a fuzzy time
+     * window, which could merge unrelated payments entered moments apart).
+     *
+     * @return array<int, array{key:string, datetime:?string, total:float, name:?string, method:?string, reference_no:?string, schedules:array<int, array{schedule_id:int, label:string, allocated:float}>}>
+     */
+    protected function loadAllPayments(): array
+    {
+        $scheduleIds = $this->sale->paymentSchedules->pluck('id');
+
+        if ($scheduleIds->isEmpty()) {
+            return [];
+        }
+
+        $schedulesById = $this->sale->paymentSchedules->keyBy('id');
+
+        $transactions = \App\Models\Transaction::where('reference_type', PaymentSchedule::class)
+            ->whereIn('reference_id', $scheduleIds)
+            ->whereNull('adjusted_at')
+            ->where(function ($q) {
+                $q->whereNull('relation_type')
+                    ->orWhere('relation_type', '!=', \App\Enums\Accounts\TransactionRelationType::REVERSE->value);
+            })
+            ->with('lines')
+            ->orderBy('datetime')
+            ->get();
+
+        $groups = $transactions->groupBy(function ($tx) {
+            // Two separate payments happening to land on the same schedule at
+            // the same recorded datetime (e.g. cash + a bank top-up moments
+            // later) must not collapse into one row — key by transaction id too
+            // unless an explicit batch id says otherwise.
+            return $tx->external_data['bulk_payment_batch_id']
+                ?? 'tx:' . $tx->id;
+        });
+
+        // Legacy multi-schedule payments (no batch id) still need grouping by
+        // matching datetime — do a second pass merging same-datetime, distinct
+        // per-transaction groups that span more than one schedule.
+        $byDatetime = [];
+        $singles    = [];
+
+        foreach ($groups as $key => $txs) {
+            if (str_starts_with($key, 'tx:')) {
+                $singles[] = $txs->first();
+            } else {
+                $byDatetime[$key] = $txs; // already an explicit batch
+            }
+        }
+
+        $datetimeGroups = collect($singles)->groupBy(fn ($tx) => optional($tx->datetime)->toDateTimeString());
+
+        foreach ($datetimeGroups as $datetime => $txs) {
+            if ($txs->pluck('reference_id')->unique()->count() < 2) {
+                // Not a split payment — each stays its own row.
+                foreach ($txs as $tx) {
+                    $byDatetime['tx:' . $tx->id] = collect([$tx]);
+                }
+                continue;
+            }
+
+            $byDatetime['datetime:' . $datetime] = $txs;
+        }
+
+        $batches = [];
+
+        foreach ($byDatetime as $key => $txs) {
+            $first = $txs->first();
+
+            $batches[] = [
+                'key'          => $key,
+                'datetime'     => optional($first->datetime)->toDateTimeString(),
+                'total'        => (float) $txs->sum(fn ($tx) => $tx->lines->sum('debit')),
+                'name'         => $first->name,
+                'method'       => $first->method?->label(),
+                'reference_no' => $first->reference_no,
+                'schedules'    => $txs->map(function ($tx) use ($schedulesById) {
+                    $schedule = $schedulesById->get($tx->reference_id);
+
+                    return [
+                        'transaction_id' => $tx->id,
+                        'schedule_id'    => $tx->reference_id,
+                        'label'          => $schedule?->label() ?? '—',
+                        'allocated'      => (float) $tx->lines->sum('debit'),
+                    ];
+                })->all(),
+            ];
+        }
+
+        // Most recent payment first.
+        usort($batches, fn ($a, $b) => strcmp($b['datetime'] ?? '', $a['datetime'] ?? ''));
+
+        return $batches;
     }
 
     // ── Schedule drawer ──────────────────────────────────────────────────────
@@ -410,6 +547,214 @@ class PropertySaleDetails extends Component
         $this->dispatch('toast', ['type' => 'success', 'message' => 'Payment recorded successfully.']);
     }
 
+    // ── Bulk Pay (sequential allocation across dues) ─────────────────────────────
+
+    /**
+     * Unpaid/partial schedules for this sale, earliest due date first — the order
+     * a lump-sum payment is sequentially applied against.
+     */
+    protected function unpaidSchedulesInOrder(): \Illuminate\Support\Collection
+    {
+        return $this->sale->paymentSchedules()
+            ->where('due_amount', '>', 0)
+            ->orderBy('due_date')
+            ->get();
+    }
+
+    /**
+     * Walk the unpaid schedules oldest-first and greedily fill each due amount
+     * with what's left of the incoming lump sum, e.g. ৳1000 against a ৳200 due
+     * then a ৳1200 due pays the ৳200 off first, then ৳800 toward the next.
+     *
+     * @return array<int, array{schedule_id:int, label:string, due_amount:float, allocated:float, remaining_due:float}>
+     */
+    protected function allocateBulkPayment(float $amount): array
+    {
+        $remaining  = round($amount, 2);
+        $allocation = [];
+
+        foreach ($this->unpaidSchedulesInOrder() as $schedule) {
+            if ($remaining <= 0) {
+                break;
+            }
+
+            $due       = (float) $schedule->due_amount;
+            $applied   = round(min($due, $remaining), 2);
+            $remaining = round($remaining - $applied, 2);
+
+            $allocation[] = [
+                'schedule_id'   => $schedule->id,
+                'label'         => $schedule->label(),
+                'due_amount'    => $due,
+                'allocated'     => $applied,
+                'remaining_due' => round($due - $applied, 2),
+            ];
+        }
+
+        return $allocation;
+    }
+
+    public function openBulkPayModal(): void
+    {
+        abort_unless(Auth::user()?->can('property_sale.edit'), 403);
+        $this->bulkPayAccountType   = '';
+        $this->bulkPayAccountId     = '';
+        $this->bulkPayAccounts      = [];
+        $this->bulkPayPaymentMethod = 'cash';
+        $this->bulkPayPayerName     = '';
+        $this->bulkPayReferenceNo   = '';
+        $this->bulkPayPhone         = '';
+        $this->bulkPayAmount        = '0';
+        $this->bulkPayDate          = now()->format('Y-m-d H:i');
+        $this->bulkPayNotes         = '';
+        $this->bulkPayAttachmentIds = [];
+        $this->bulkPayAllocation    = [];
+        $this->bulkPayModalOpen     = true;
+    }
+
+    public function updatedBulkPayAmount(): void
+    {
+        $this->resetValidation('bulkPayAmount');
+
+        $amount = round((float) $this->bulkPayAmount, 2);
+        $this->bulkPayAllocation = $amount > 0 ? $this->allocateBulkPayment($amount) : [];
+
+        $totalDue = round((float) $this->unpaidSchedulesInOrder()->sum('due_amount'), 2);
+        if ($amount > $totalDue) {
+            $this->addError('bulkPayAmount', 'Amount cannot exceed the total outstanding due of ৳' . number_format($totalDue, 2) . '.');
+        }
+    }
+
+    public function updatedBulkPayAccountType(): void
+    {
+        $this->bulkPayAccountId = '';
+        $this->bulkPayAccounts  = $this->bulkPayAccountType
+            ? Account::where('is_active', true)
+                ->where('sub_type', $this->bulkPayAccountType)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->toArray()
+            : [];
+    }
+
+    public function closeBulkPayModal(): void
+    {
+        $this->bulkPayModalOpen  = false;
+        $this->bulkPayAllocation = [];
+        $this->resetValidation();
+    }
+
+    public function submitBulkPayment(): void
+    {
+        abort_unless(Auth::user()?->can('property_sale.edit'), 403);
+
+        $totalDue = round((float) $this->unpaidSchedulesInOrder()->sum('due_amount'), 2);
+
+        $validator = Validator::make([
+            'bulkPayAccountType'   => $this->bulkPayAccountType,
+            'bulkPayAccountId'     => $this->bulkPayAccountId,
+            'bulkPayPaymentMethod' => $this->bulkPayPaymentMethod,
+            'bulkPayDate'          => $this->bulkPayDate,
+            'bulkPayAmount'        => $this->bulkPayAmount,
+        ], [
+            'bulkPayAccountType'   => 'required',
+            'bulkPayAccountId'     => 'required|exists:accounts,id',
+            'bulkPayPaymentMethod' => 'required',
+            'bulkPayDate'          => 'required|date',
+            'bulkPayAmount'        => 'required|numeric|min:0.01|max:' . $totalDue,
+        ], [
+            'bulkPayAccountType.required'   => 'Receive account type is required.',
+            'bulkPayAccountId.required'     => 'Please select an account.',
+            'bulkPayAccountId.exists'       => 'Selected account does not exist.',
+            'bulkPayPaymentMethod.required' => 'Payment method is required.',
+            'bulkPayDate.required'          => 'Payment date is required.',
+            'bulkPayAmount.required'        => 'Amount is required.',
+            'bulkPayAmount.min'             => 'Amount must be greater than zero.',
+            'bulkPayAmount.max'             => 'Amount cannot exceed the total outstanding due of ৳' . number_format($totalDue, 2) . '.',
+        ]);
+
+        if ($validator->fails()) {
+            $this->setErrorBag($validator->errors());
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Please fix the validation errors.']);
+            return;
+        }
+
+        $amount     = round((float) $this->bulkPayAmount, 2);
+        $allocation = $this->allocateBulkPayment($amount);
+
+        if (empty($allocation)) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'No outstanding dues to apply this payment to.']);
+            return;
+        }
+
+        $eventKey = $this->sale->sale_type === 'rent'
+            ? 'property.rent_collection'
+            : 'property.down_payment';
+
+        $postingEngine   = app(\App\Services\Accounts\PostingEngine::class);
+        $transactionIds  = [];
+        // Tag every transaction from this one submission with a shared batch id so
+        // the UI can later reconstruct "this ৳X payment covered these N schedules" —
+        // only meaningful once the payment actually spans more than one schedule.
+        $batchId = count($allocation) > 1 ? (string) \Illuminate\Support\Str::uuid() : null;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($allocation, $eventKey, $postingEngine, $batchId, &$transactionIds): void {
+            foreach ($allocation as $row) {
+                $schedule = PaymentSchedule::findOrFail($row['schedule_id']);
+
+                $transaction = $postingEngine->record(
+                    $eventKey,
+                    new \App\Accounting\PostingContext(
+                        amount: $row['allocated'],
+                        datetime: $this->bulkPayDate,
+                        paymentAccountId: (int) $this->bulkPayAccountId,
+                        referenceType: PaymentSchedule::class,
+                        referenceId: (int) $schedule->id,
+                        referenceNo: $this->bulkPayReferenceNo ?: null,
+                        method: $this->bulkPayPaymentMethod,
+                        name: $this->bulkPayPayerName ?: null,
+                        phone: $this->bulkPayPhone ?: null,
+                        notes: $this->bulkPayNotes ?: null,
+                        actorId: Auth::id(),
+                    ),
+                );
+
+                if ($batchId) {
+                    $transaction->update(['external_data' => array_merge(
+                        $transaction->external_data ?? [],
+                        ['bulk_payment_batch_id' => $batchId],
+                    )]);
+                }
+
+                $transactionIds[] = $transaction->id;
+
+                $newPaid = round((float) $schedule->paid_amount + $row['allocated'], 2);
+                $newDue  = round(max(0, (float) $schedule->amount - $newPaid), 2);
+                $schedule->update([
+                    'paid_amount' => $newPaid,
+                    'due_amount'  => $newDue,
+                    'status'      => $newPaid <= 0 ? 'pending' : ($newDue <= 0 ? 'paid' : 'partial'),
+                ]);
+            }
+        });
+
+        if (! empty($this->bulkPayAttachmentIds) && ! empty($transactionIds)) {
+            \App\Models\Transaction::whereIn('id', $transactionIds)
+                ->update(['attachments' => $this->bulkPayAttachmentIds]);
+        }
+
+        app(PaymentAllocationService::class)->syncSalePaymentStatus($this->sale);
+
+        $this->sale = $this->sale->fresh([
+            'propertyUnit.property', 'saleUnits.propertyUnit.property', 'customer', 'createdByUser', 'updatedByUser',
+            'paymentSchedules',
+        ]);
+
+        $count = count($allocation);
+        $this->closeBulkPayModal();
+        $this->dispatch('toast', ['type' => 'success', 'message' => "Payment recorded across {$count} schedule(s)."]);
+    }
+
     /**
      * Map a schedule's payment transactions to the array shape the view renders.
      * Under double-entry the amount + receiving account come from the debit line
@@ -443,6 +788,7 @@ class PropertySaleDetails extends Component
                     'account' => $debitLine?->account
                         ? ['name' => $debitLine->account->name, 'code' => $debitLine->account->code]
                         : null,
+                    'attachments' => $tx->attachments ?? [],
                 ];
             })
             ->all();
@@ -539,6 +885,31 @@ class PropertySaleDetails extends Component
         $this->resetValidation();
     }
 
+    // ── Receipt / Attachments sub-modals ────────────────────────────────────────
+    public function openReceipt(int $txId): void
+    {
+        $this->receiptTx = collect($this->payTransactions)->firstWhere('id', $txId) ?? [];
+        $this->receiptModalOpen = true;
+    }
+
+    public function closeReceiptModal(): void
+    {
+        $this->receiptModalOpen = false;
+        $this->receiptTx        = [];
+    }
+
+    public function openAttachments(int $txId): void
+    {
+        $this->attachList = collect($this->payTransactions)->firstWhere('id', $txId)['attachments'] ?? [];
+        $this->attachModalOpen = true;
+    }
+
+    public function closeAttachmentsModal(): void
+    {
+        $this->attachModalOpen = false;
+        $this->attachList      = [];
+    }
+
     public function updatedPayNowAccountType(): void
     {
         $this->payNowAccountId  = '';
@@ -556,10 +927,16 @@ class PropertySaleDetails extends Component
     {
         abort_unless(Auth::user()?->can('property_sale.view'), 403);
 
-        $units     = PropertyUnit::with('property')->orderBy('code')->get();
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        // Only the Edit Sale drawer's dropdowns need these — skip the query on
+        // every other update (Pay Now / Bulk Pay account-type changes, etc.).
+        $units     = $this->drawerOpen ? PropertyUnit::with('property')->orderBy('code')->get() : collect();
+        $customers = $this->drawerOpen ? Customer::where('status', 'active')->orderBy('name')->get() : collect();
+
+        // Only queried when that tab is actually visible.
+        $allPayments = $this->scheduleTab === 'all_payments' ? $this->loadAllPayments() : [];
 
         return view('livewire.admin.properties.property-sale-details', [
+            'allPayments' => $allPayments,
             'sale'      => $this->sale,
             'units'     => $units,
             'customers' => $customers,

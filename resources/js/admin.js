@@ -142,10 +142,15 @@ import "flatpickr/dist/flatpickr.min.css";
 
 window.flatpickr = flatpickr;
 
-window.initFlatpickr = () => {
-    document.querySelectorAll(".flatpickr-only-date").forEach((el) => {
+window.initFlatpickr = (root = document) => {
+    const findAll = (selector) => {
+        const matches = root.matches && root.matches(selector) ? [root] : [];
+        return matches.concat(Array.from(root.querySelectorAll(selector)));
+    };
+
+    findAll(".flatpickr-only-date").forEach((el) => {
         if (el._flatpickr) {
-            el._flatpickr.destroy();
+            return;
         }
 
         flatpickr(el, {
@@ -158,9 +163,9 @@ window.initFlatpickr = () => {
         });
     });
 
-    document.querySelectorAll(".flatpickr").forEach((el) => {
+    findAll(".flatpickr").forEach((el) => {
         if (el._flatpickr) {
-            el._flatpickr.destroy();
+            return;
         }
 
         let defaultDate = el.value;
@@ -201,8 +206,10 @@ document.addEventListener("livewire:navigated", () => {
 });
 
 document.addEventListener("livewire:initialized", () => {
-    Livewire.hook("morph.updated", () => {
-        window.initFlatpickr();
+    Livewire.hook("morph.updated", ({ el }) => {
+        if (el.nodeType === 1) {
+            window.initFlatpickr(el);
+        }
     });
 });
 //FlatPickr==================================================END

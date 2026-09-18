@@ -207,7 +207,7 @@ class PropertySaleCreate extends Component
     public function updatedDSaleAmount(): void
     {
         $this->recalcNet();
-        $this->recalcDownPaymentFromPercentage();
+        $this->recalcPercentageFromDownPayment();
         $this->recalcScheduleAmount();
         if ($this->dIsScheduled) $this->generateSchedulePreview();
     }
@@ -215,7 +215,7 @@ class PropertySaleCreate extends Component
     public function updatedDDiscountAmount(): void
     {
         $this->recalcNet();
-        $this->recalcDownPaymentFromPercentage();
+        $this->recalcPercentageFromDownPayment();
         $this->recalcScheduleAmount();
         if ($this->dIsScheduled) $this->generateSchedulePreview();
     }
@@ -223,7 +223,7 @@ class PropertySaleCreate extends Component
     public function updatedDTaxAmount(): void
     {
         $this->recalcNet();
-        $this->recalcDownPaymentFromPercentage();
+        $this->recalcPercentageFromDownPayment();
         $this->recalcScheduleAmount();
         if ($this->dIsScheduled) $this->generateSchedulePreview();
     }
@@ -326,10 +326,19 @@ class PropertySaleCreate extends Component
         $this->dUtilityCharge  = (string) round($utility, 2);
     }
 
-    /** Recompute downstream shared figures (down payment, installments) + preview. */
+    /**
+     * Recompute downstream shared figures (down payment, installments) + preview.
+     *
+     * The down payment AMOUNT is the source of truth for the schedule math —
+     * only re-derive it from the percentage where the user directly edited the
+     * percentage field. Here (net amount changed via unit/sale/discount/tax
+     * edits) we refresh the displayed percentage to match the current amount
+     * instead, so an admin's exact amount is never nudged by percentage
+     * rounding (e.g. 33.33% of ৳6,002,000 rounds ~200 off the true 1/3).
+     */
     protected function afterSummaryRecalc(): void
     {
-        $this->recalcDownPaymentFromPercentage();
+        $this->recalcPercentageFromDownPayment();
         $this->recalcScheduleAmount();
         if ($this->dIsScheduled) $this->generateSchedulePreview();
     }
@@ -459,9 +468,12 @@ class PropertySaleCreate extends Component
         }
 
         // Recompute the combined summary from rows so persisted totals are authoritative.
+        // Down payment AMOUNT is the source of truth (see afterSummaryRecalc()) —
+        // only refresh the display percentage here, never re-derive the amount
+        // from it, or an admin's exact typed amount gets overwritten at save time.
         if ($this->dSaleType === 'sale') {
             $this->recalcSummaryFromUnits();
-            $this->recalcDownPaymentFromPercentage();
+            $this->recalcPercentageFromDownPayment();
             $this->recalcScheduleAmount();
         } else {
             $this->recalcNet();

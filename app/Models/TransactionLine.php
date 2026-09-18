@@ -84,16 +84,6 @@ class TransactionLine extends Model
         return $this->transaction?->reference_id;
     }
 
-    public function getPaymentAttribute(): mixed
-    {
-        return $this->transaction?->payment;
-    }
-
-    public function getCollectionAttribute(): mixed
-    {
-        return $this->transaction?->collection;
-    }
-
     public function getExpenseAttribute(): mixed
     {
         return $this->transaction?->expense;

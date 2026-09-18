@@ -1,16 +1,4 @@
 <div
-    x-data="{
-        drawerOpen: $wire.entangle('drawerOpen'),
-        scheduleDrawerOpen: $wire.entangle('scheduleDrawerOpen'),
-        payNowModalOpen: $wire.entangle('payNowModalOpen'),
-        receiptModalOpen: $wire.entangle('receiptModalOpen'),
-        receiptTx: {},
-        attachModalOpen: $wire.entangle('attachModalOpen'),
-        attachList: [],
-        dSaleAmount: $wire.entangle('dSaleAmount'),
-        dDiscountAmount: $wire.entangle('dDiscountAmount'),
-        dTaxAmount: $wire.entangle('dTaxAmount'),
-    }"
     x-init="$store.pageName = { name: 'Sale Details', slug: 'property-sales' }"
     style="
         --paper:#FCFBF7; --canvas:#F2EFE7;
@@ -111,7 +99,7 @@
             {{-- Edit — locked once handed over (superadmin may still edit) --}}
             @can('property_sale.edit')
                 @if(! $sale->isHandedOver() || auth()->user()?->hasRole('superadmin'))
-                    <button @click="drawerOpen = true"
+                    <button wire:click="openDrawer"
                         style="appearance:none; border:1px solid var(--ink-1); background:var(--ink-1); color:var(--paper);
                                padding:7px 14px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
                                display:inline-flex; align-items:center; gap:6px;">
@@ -340,13 +328,24 @@
                 <div style="padding:14px 20px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
                     <h3 style="margin:0; font-size:13px; font-weight:600;">Payment Schedule</h3>
                     @can('property_sale.edit')
-                        <button wire:click="openAddSchedule"
-                            style="appearance:none; border:1px solid var(--rule); background:transparent; color:var(--ink-2);
-                                   padding:5px 11px; font:500 11.5px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
-                                   display:inline-flex; align-items:center; gap:5px;">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Add Entry
-                        </button>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            @if($totalDue > 0)
+                            <button wire:click="openBulkPayModal"
+                                style="appearance:none; border:none; background:var(--av-bg); color:var(--av-fg);
+                                       padding:5px 11px; font:600 11.5px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
+                                       display:inline-flex; align-items:center; gap:5px;">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                                Pay Now
+                            </button>
+                            @endif
+                            <button wire:click="openAddSchedule"
+                                style="appearance:none; border:1px solid var(--rule); background:transparent; color:var(--ink-2);
+                                       padding:5px 11px; font:500 11.5px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
+                                       display:inline-flex; align-items:center; gap:5px;">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Add Entry
+                            </button>
+                        </div>
                     @endcan
                 </div>
 
@@ -366,8 +365,88 @@
                     </div>
                 </div>
 
-                {{-- Schedule rows --}}
-                @if($schedules->isEmpty())
+                {{-- Tabs --}}
+                <div style="display:flex; gap:2px; padding:10px 20px 0; background:var(--paper); border-bottom:1px solid var(--rule);">
+                    <button wire:click="switchScheduleTab('schedule')"
+                        style="appearance:none; border:none; background:transparent; cursor:pointer;
+                               padding:8px 4px; margin-right:18px; font:600 11.5px 'Inter', sans-serif;
+                               color:{{ $scheduleTab === 'schedule' ? 'var(--accent)' : 'var(--ink-3)' }};
+                               border-bottom:2px solid {{ $scheduleTab === 'schedule' ? 'var(--accent)' : 'transparent' }};">
+                        Schedule
+                    </button>
+                    <button wire:click="switchScheduleTab('all_payments')"
+                        style="appearance:none; border:none; background:transparent; cursor:pointer;
+                               padding:8px 4px; font:600 11.5px 'Inter', sans-serif;
+                               color:{{ $scheduleTab === 'all_payments' ? 'var(--accent)' : 'var(--ink-3)' }};
+                               border-bottom:2px solid {{ $scheduleTab === 'all_payments' ? 'var(--accent)' : 'transparent' }};
+                               display:inline-flex; align-items:center; gap:5px;">
+                        Payment By
+                    </button>
+                </div>
+
+                @if($scheduleTab === 'all_payments')
+                    {{-- Payment By tab: which transaction(s)/installment(s) each customer payment was applied to --}}
+                    @if(empty($allPayments))
+                        <div style="padding:28px 20px; text-align:center; color:var(--ink-3); font-size:13px;">
+                            No payments recorded yet.
+                        </div>
+                    @else
+                        <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                            <thead>
+                                <tr style="background:var(--canvas);">
+                                    <th style="padding:8px 16px; text-align:left; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Paid On</th>
+                                    <th style="padding:8px 12px; text-align:left; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Payer</th>
+                                    <th style="padding:8px 12px; text-align:right; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Total Paid</th>
+                                    <th style="padding:8px 16px; text-align:left; font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);">Applied To</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($allPayments as $batch)
+                                    @php $isBulk = count($batch['schedules']) > 1; @endphp
+                                    <tr style="border-bottom:1px solid var(--rule); vertical-align:top;">
+                                        <td style="padding:10px 16px; font-family:var(--mono); color:var(--ink-2); white-space:nowrap;">
+                                            {{ $batch['datetime'] ? \Carbon\Carbon::parse($batch['datetime'])->format('d M Y, h:i A') : '—' }}
+                                        </td>
+                                        <td style="padding:10px 12px;">
+                                            {{ $batch['name'] ?: '—' }}
+                                            @if($batch['method'])
+                                                <div style="font:10.5px 'Inter', sans-serif; color:var(--ink-3); margin-top:1px;">{{ $batch['method'] }}</div>
+                                            @endif
+                                            @if($batch['reference_no'])
+                                                <div style="font:10.5px var(--mono); color:var(--ink-3); margin-top:1px;">Ref: {{ $batch['reference_no'] }}</div>
+                                            @endif
+                                        </td>
+                                        <td style="padding:10px 12px; text-align:right; font-family:var(--mono); font-weight:700; color:var(--av-fg); white-space:nowrap;">
+                                            ৳ {{ number_format($batch['total'], 2) }}
+                                            @if($isBulk)
+                                                <div style="margin-top:3px;">
+                                                    <span style="padding:1px 7px; border-radius:999px; background:var(--sd-bg); color:var(--sd-fg); font:600 9px 'Inter', sans-serif; letter-spacing:.04em; text-transform:uppercase;">Bulk · {{ count($batch['schedules']) }}</span>
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td style="padding:10px 16px;">
+                                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                                @foreach($batch['schedules'] as $row)
+                                                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:12px;">
+                                                        <span style="color:var(--ink-2);">{{ $row['label'] }}</span>
+                                                        <span style="display:inline-flex; align-items:center; gap:8px;">
+                                                            <span style="font-family:var(--mono); font-weight:600; white-space:nowrap;">৳ {{ number_format($row['allocated'], 2) }}</span>
+                                                            <a href="{{ route('admin.properties.receipts.show', $row['transaction_id']) }}" target="_blank"
+                                                                title="View Receipt"
+                                                                style="color:var(--ink-3); display:inline-flex; align-items:center;">
+                                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                            </a>
+                                                        </span>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @endif
+                @elseif($schedules->isEmpty())
                     <div style="padding:28px 20px; text-align:center; color:var(--ink-3); font-size:13px;">
                         No payment schedule entries yet.
                         @can('property_sale.edit')
@@ -422,7 +501,7 @@
                                         @can('property_sale.edit')
                                             <div style="display:inline-flex; align-items:center; gap:6px;">
                                                 @if($sched->status !== 'paid')
-                                                    <button @click="payNowModalOpen = true; $wire.OpenPayNowModal({{ $sched->id }})"
+                                                    <button wire:click="OpenPayNowModal({{ $sched->id }})"
                                                         title="Pay Now"
                                                         style="appearance:none; border:none; background:var(--av-bg); color:var(--av-fg);
                                                                padding:4px 10px; font:600 10.5px 'Inter', sans-serif; border-radius:6px; cursor:pointer; white-space:nowrap;
@@ -431,7 +510,7 @@
                                                         Pay Now
                                                     </button>
                                                 @else
-                                                    <button title="Payment Details" @click="payNowModalOpen = true; $wire.OpenPayNowModal({{ $sched->id }})"
+                                                    <button title="Payment Details" wire:click="OpenPayNowModal({{ $sched->id }})"
                                                         style="appearance:none; border:none; background:var(--av-bg); color:var(--av-fg);
                                                                padding:4px 10px; font:600 10.5px 'Inter', sans-serif; border-radius:6px; cursor:pointer; white-space:nowrap;
                                                                display:inline-flex; align-items:center; gap:4px; letter-spacing:.01em;">
@@ -677,32 +756,17 @@
     </div>
 
     {{-- ─── SCHEDULE DRAWER SCRIM ─────────────────────────────────────────── --}}
+    @if($scheduleDrawerOpen)
     <div
-        x-show="scheduleDrawerOpen"
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-        @click="$wire.closeScheduleDrawer()"
+        wire:click="closeScheduleDrawer"
         style="position:fixed; inset:0; background:rgba(20,18,16,.45); backdrop-filter:blur(4px); z-index:50;"
-        x-cloak
     ></div>
 
     {{-- ─── SCHEDULE DRAWER ─────────────────────────────────────────────────── --}}
     <aside
-        x-show="scheduleDrawerOpen"
-        x-transition:enter="transition ease-out duration-250"
-        x-transition:enter-start="transform translate-x-full"
-        x-transition:enter-end="transform translate-x-0"
-        x-transition:leave="transition ease-in duration-200"
-        x-transition:leave-start="transform translate-x-0"
-        x-transition:leave-end="transform translate-x-full"
         style="position:fixed; top:0; right:0; bottom:0; width:520px; max-width:100vw;
                background:var(--canvas); z-index:51; display:flex; flex-direction:column;
                box-shadow:-20px 0 40px -20px rgba(0,0,0,.25);"
-        x-cloak
     >
         {{-- Head --}}
         <div style="padding:18px 24px; border-bottom:1px solid var(--rule); background:var(--paper);
@@ -715,7 +779,7 @@
                     {{ $sale->sale_number }}
                 </div>
             </div>
-            <button @click="$wire.closeScheduleDrawer()"
+            <button wire:click="closeScheduleDrawer"
                 style="appearance:none; border:0; background:transparent; color:var(--ink-2);
                        width:32px; height:32px; border-radius:6px; cursor:pointer;
                        display:flex; align-items:center; justify-content:center;"
@@ -814,7 +878,7 @@
                 </div>
             @endif
             <div style="padding:14px 24px; display:flex; justify-content:flex-end; align-items:center; gap:10px;">
-                <button @click="$wire.closeScheduleDrawer()"
+                <button wire:click="closeScheduleDrawer"
                     style="appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2);
                            padding:7px 16px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;">
                     Cancel
@@ -833,31 +897,17 @@
             </div>
         </div>
     </aside>
+    @endif
 
     {{-- ─── DRAWER SCRIM ────────────────────────────────────────────────────── --}}
+    @if($drawerOpen)
     <div
-        x-show="drawerOpen"
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-        @click="drawerOpen = false"
+        wire:click="closeDrawer"
         style="position:fixed; inset:0; background:rgba(20,18,16,.45); backdrop-filter:blur(4px); z-index:50;"
-        x-cloak
     ></div>
 
     {{-- ─── EDIT DRAWER ─────────────────────────────────────────────────────── --}}
     <aside
-        x-show="drawerOpen"
-        x-transition:enter="transition ease-out duration-250"
-        x-transition:enter-start="transform translate-x-full"
-        x-transition:enter-end="transform translate-x-0"
-        x-transition:leave="transition ease-in duration-200"
-        x-transition:leave-start="transform translate-x-0"
-        x-transition:leave-end="transform translate-x-full"
-        x-cloak
         style="position:fixed; top:0; right:0; bottom:0; width:680px; max-width:100vw; z-index:51;"
     >
         <div style="width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden;
@@ -872,7 +922,7 @@
                     Update sale details
                 </div>
             </div>
-            <button @click="drawerOpen = false"
+            <button wire:click="closeDrawer"
                 style="appearance:none; border:0; background:transparent; color:var(--ink-2);
                        width:32px; height:32px; border-radius:6px; cursor:pointer;
                        display:flex; align-items:center; justify-content:center;"
@@ -1052,7 +1102,7 @@
                 </div>
             @endif
             <div style="padding:14px 24px; display:flex; justify-content:flex-end; align-items:center; gap:10px;">
-                <button @click="$wire.closeDrawer()"
+                <button wire:click="closeDrawer"
                     style="appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2);
                            padding:7px 16px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;">
                     Cancel
@@ -1075,11 +1125,12 @@
         </div>
         </div>{{-- /flex layer --}}
     </aside>
-
-
+    @endif
 
     {{-- ─── PAY NOW MODAL ───────────────────────────────────────────────────── --}}
-    <x-modal wire:model="payNowModalOpen" maxWidth="lg" focusable>
+    @if($payNowModalOpen)
+    <div wire:click="closePayNowModal" style="position:fixed; inset:0; background:rgba(20,18,16,.45); backdrop-filter:blur(4px); z-index:50; display:flex; align-items:center; justify-content:center; padding:24px;">
+    <div wire:click.stop style="width:100%; max-width:560px; max-height:calc(100vh - 48px); overflow-y:auto; background:var(--paper); border-radius:14px; box-shadow:0 20px 60px -20px rgba(0,0,0,.35);">
 
             {{-- Header --}}
             <div style="padding:18px 22px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
@@ -1092,7 +1143,7 @@
                         <div style="font:500 10.5px var(--mono); color:var(--ink-3); letter-spacing:.04em; text-transform:uppercase; margin-top:1px;">{{ $sale->sale_number }}</div>
                     </div>
                 </div>
-                <button @click="payNowModalOpen = false"
+                <button wire:click="closePayNowModal"
                     style="appearance:none; border:0; background:transparent; color:var(--ink-2); width:30px; height:30px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
@@ -1100,17 +1151,6 @@
 
             {{-- Body --}}
             <div style="padding:20px 22px; display:flex; flex-direction:column; gap:14px; position:relative; min-height:120px;">
-
-                {{-- Loading overlay --}}
-                <div wire:loading.flex wire:target="OpenPayNowModal"
-                    style="position:absolute; inset:0; background:var(--canvas); z-index:10; border-radius:0 0 14px 14px;
-                           align-items:center; justify-content:center; gap:10px;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        style="animation:spin 1s linear infinite; color:var(--accent);">
-                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                    </svg>
-                    <span style="font:500 13px 'Inter', sans-serif; color:var(--ink-2);">Loading…</span>
-                </div>
 
                 @if((float)$payNowAmount > 0)
                 {{-- Row 1: Account Type + Account --}}
@@ -1277,7 +1317,7 @@
                                     </div>
                                     <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
                                         <button
-                                            @click="receiptTx = {{ json_encode($tx) }}; receiptModalOpen = true"
+                                            wire:click="openReceipt({{ $tx['id'] }})"
                                             title="View Receipt"
                                             style="appearance:none; border:1px solid var(--rule); background:transparent; color:var(--ink-2);
                                                    padding:4px 9px; font:500 10.5px 'Inter', sans-serif; border-radius:5px; cursor:pointer;
@@ -1295,7 +1335,7 @@
                                     </a>
                                         @if(!empty($tx['attachments']))
                                             <button
-                                                @click="attachList = {{ json_encode($tx['attachments']) }}; attachModalOpen = true"
+                                                wire:click="openAttachments({{ $tx['id'] }})"
                                                 title="View Attachments"
                                                 style="appearance:none; border:1px solid var(--sd-fg); background:var(--sd-bg); color:var(--sd-fg);
                                                        padding:4px 9px; font:500 10.5px 'Inter', sans-serif; border-radius:5px; cursor:pointer;
@@ -1316,7 +1356,7 @@
             {{-- Footer --}}
             <div style="padding:14px 22px; border-top:1px solid var(--rule); background:var(--paper); border-radius:0 0 14px 14px;
                         display:flex; justify-content:flex-end; align-items:center; gap:10px;">
-                <button @click="payNowModalOpen = false"
+                <button wire:click="closePayNowModal"
                     style="appearance:none; border:1px solid var(--rule); background:transparent; color:var(--ink-2);
                            padding:7px 16px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;">
                     Cancel
@@ -1336,10 +1376,222 @@
                 @endif
             </div>
 
-    </x-modal>
+    </div>
+    </div>
+    @endif
+
+    {{-- ─── BULK PAY MODAL (sequential allocation across dues) ───────────────── --}}
+    @if($bulkPayModalOpen)
+    <div wire:click="closeBulkPayModal" style="position:fixed; inset:0; background:rgba(20,18,16,.45); backdrop-filter:blur(4px); z-index:50; display:flex; align-items:center; justify-content:center; padding:24px;">
+    <div wire:click.stop style="width:100%; max-width:560px; max-height:calc(100vh - 48px); overflow-y:auto; background:var(--paper); border-radius:14px; box-shadow:0 20px 60px -20px rgba(0,0,0,.35);">
+
+            {{-- Header --}}
+            <div style="padding:18px 22px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="width:30px; height:30px; border-radius:8px; background:var(--av-bg); color:var(--av-fg); display:flex; align-items:center; justify-content:center;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    </div>
+                    <div>
+                        <h3 style="margin:0; font-size:15px; font-weight:600; color:var(--ink-1);">Pay Now</h3>
+                        <div style="font:500 10.5px var(--mono); color:var(--ink-3); letter-spacing:.04em; text-transform:uppercase; margin-top:1px;">{{ $sale->sale_number }} · applies to oldest dues first</div>
+                    </div>
+                </div>
+                <button wire:click="closeBulkPayModal"
+                    style="appearance:none; border:0; background:transparent; color:var(--ink-2); width:30px; height:30px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            {{-- Body --}}
+            <div style="padding:20px 22px; display:flex; flex-direction:column; gap:14px;">
+
+                {{-- Row 1: Account Type + Account --}}
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                            Receive Account Type <span style="color:var(--rj-fg)">*</span>
+                        </label>
+                        <select wire:model.live="bulkPayAccountType"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;">
+                            <option value="">— Select type —</option>
+                            @foreach(\App\Enums\Accounts\AccountSubType::cases() as $subType)
+                                <option value="{{ $subType->value }}">{{ $subType->label() }}</option>
+                            @endforeach
+                        </select>
+                        @error('bulkPayAccountType') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label style="display:flex; align-items:center; gap:5px; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                            Account <span style="color:var(--rj-fg)">*</span>
+                            <svg wire:loading wire:target="bulkPayAccountType" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite; color:var(--accent);"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                        </label>
+                        <select wire:model="bulkPayAccountId"
+                            wire:loading.attr="disabled" wire:target="bulkPayAccountType"
+                            @if(!$bulkPayAccountType) disabled @endif
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif; {{ !$bulkPayAccountType ? 'opacity:.5; cursor:not-allowed;' : '' }}">
+                            <option value="">— Select account —</option>
+                            @foreach($bulkPayAccounts as $account)
+                                <option value="{{ $account['id'] }}">{{ $account['name'] }}</option>
+                            @endforeach
+                        </select>
+                        @error('bulkPayAccountId') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                {{-- Row 2: Payment Method + Payer Name --}}
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                            Payment Method <span style="color:var(--rj-fg)">*</span>
+                        </label>
+                        <select wire:model="bulkPayPaymentMethod"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;">
+                            <option value="cash">Cash</option>
+                            <option value="cheque">Cheque</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="online">Online</option>
+                            <option value="card">Card</option>
+                            <option value="other">Other</option>
+                        </select>
+                        @error('bulkPayPaymentMethod') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Payer Name</label>
+                        <input wire:model="bulkPayPayerName" type="text" placeholder="e.g. John Doe"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;" />
+                    </div>
+                </div>
+
+                {{-- Row 2b: Reference No + Phone --}}
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Reference No <span style="color:var(--ink-3); font-weight:400;">(Optional)</span></label>
+                        <input wire:model="bulkPayReferenceNo" type="text" placeholder="e.g. Cheque no, TxnID…"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;" />
+                    </div>
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Payer Phone <span style="color:var(--ink-3); font-weight:400;">(Optional)</span></label>
+                        <input wire:model="bulkPayPhone" type="text" placeholder="e.g. +880 1700 000 000"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif;" />
+                    </div>
+                </div>
+
+                {{-- Row 3: Amount + Payment Date --}}
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                            Amount Received <span style="color:var(--rj-fg)">*</span>
+                        </label>
+                        <div style="position:relative;">
+                            <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); font:500 13px var(--mono); color:var(--ink-3); pointer-events:none;">৳</span>
+                            <input wire:model.live.debounce.400ms="bulkPayAmount" type="number" min="0.01" step="0.01" placeholder="0.00"
+                                style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1);
+                                       padding:9px 12px 9px 26px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
+                        </div>
+                        @error('bulkPayAmount') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">
+                            Payment Date <span style="color:var(--rj-fg)">*</span>
+                        </label>
+                        <input wire:model="bulkPayDate" type="text" class="flatpickr" placeholder="Select datetime"
+                            style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font-family:'IBM Plex Mono', monospace; font-size:13px;" />
+                        @error('bulkPayDate') <p style="margin-top:4px; font-size:11px; color:var(--rj-fg);">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                {{-- Allocation preview --}}
+                @if(count($bulkPayAllocation) > 0)
+                    <div style="border:1px solid var(--rule); border-radius:8px; overflow:hidden;">
+                        <div style="padding:8px 14px; background:var(--canvas); font:600 10px 'Inter', sans-serif; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3);">
+                            Will be applied to {{ count($bulkPayAllocation) }} schedule(s)
+                        </div>
+                        @foreach($bulkPayAllocation as $row)
+                            <div style="padding:9px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; {{ !$loop->last ? 'border-bottom:1px solid var(--rule);' : '' }} background:var(--paper);">
+                                <div style="min-width:0;">
+                                    <div style="font:600 12px 'Inter', sans-serif; color:var(--ink-1);">{{ $row['label'] }}</div>
+                                    <div style="font:10.5px var(--mono); color:var(--ink-3); margin-top:1px;">Due ৳ {{ number_format($row['due_amount'], 2) }}</div>
+                                </div>
+                                <div style="text-align:right; flex-shrink:0;">
+                                    <div style="font:700 13px var(--mono); color:var(--av-fg);">৳ {{ number_format($row['allocated'], 2) }}</div>
+                                    <div style="font:10.5px var(--mono); color:{{ $row['remaining_due'] > 0 ? 'var(--rj-fg)' : 'var(--ink-3)' }}; margin-top:1px;">
+                                        {{ $row['remaining_due'] > 0 ? 'Remaining ৳ ' . number_format($row['remaining_due'], 2) : 'Fully paid' }}
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @elseif((float)$bulkPayAmount > 0)
+                    <div style="padding:10px 14px; background:var(--rj-bg); border-radius:8px; font:500 12px 'Inter', sans-serif; color:var(--rj-fg);">
+                        No outstanding dues to apply this payment to.
+                    </div>
+                @endif
+
+                {{-- Row 4: Notes --}}
+                <div>
+                    <label style="display:block; font:600 10px 'Inter', sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px;">Notes</label>
+                    <textarea wire:model="bulkPayNotes" rows="2" placeholder="Optional payment notes…"
+                        style="width:100%; appearance:none; outline:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-1); padding:9px 12px; border-radius:7px; font:13px 'Inter', sans-serif; resize:vertical;"></textarea>
+                </div>
+
+                {{-- Row 5: Attachments --}}
+                <div>
+                    <x-media-picker-field
+                        field="bulkPayAttachmentIds"
+                        :value="$bulkPayAttachmentIds"
+                        label="Attachments"
+                        placeholder="Click to select files"
+                        :multiple="true"
+                        type="all"
+                        required="false"
+                        :canEdit="true" />
+                </div>
+
+                {{-- Validation errors --}}
+                @if($errors->hasAny(['bulkPayAccountType','bulkPayAccountId','bulkPayPaymentMethod','bulkPayDate','bulkPayAmount']))
+                    <div style="padding:10px 14px; background:var(--rj-bg); border:1px solid rgba(122,42,30,.15); border-radius:8px;">
+                        <ul style="margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:3px;">
+                            @foreach(collect($errors->getBag('default')->getMessages())->only(['bulkPayAccountType','bulkPayAccountId','bulkPayPaymentMethod','bulkPayDate','bulkPayAmount'])->flatten() as $error)
+                                <li style="font:500 11.5px 'Inter', sans-serif; color:var(--rj-fg); display:flex; align-items:center; gap:6px;">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                    {{ $error }}
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+            </div>
+
+            {{-- Footer --}}
+            <div style="padding:14px 22px; border-top:1px solid var(--rule); background:var(--paper); border-radius:0 0 14px 14px;
+                        display:flex; justify-content:flex-end; align-items:center; gap:10px;">
+                <button wire:click="closeBulkPayModal"
+                    style="appearance:none; border:1px solid var(--rule); background:transparent; color:var(--ink-2);
+                           padding:7px 16px; font:500 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;">
+                    Cancel
+                </button>
+                <button wire:click="submitBulkPayment"
+                    wire:loading.attr="disabled" wire:target="submitBulkPayment"
+                    style="appearance:none; border:1px solid var(--av-fg); background:var(--av-fg); color:#fff;
+                           padding:7px 18px; font:600 12px 'Inter', sans-serif; border-radius:6px; cursor:pointer;
+                           display:inline-flex; align-items:center; gap:6px;">
+                    <span wire:loading.remove wire:target="submitBulkPayment" style="display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Confirm Payment
+                    </span>
+                    <span wire:loading wire:target="submitBulkPayment">Processing…</span>
+                </button>
+            </div>
+
+    </div>
+    </div>
+    @endif
 
     {{-- ─── RECEIPT SUB-MODAL ──────────────────────────────────────────────── --}}
-    <x-modal wire:model="receiptModalOpen" maxWidth="md" focusable>
+    @if($receiptModalOpen)
+    <div wire:click="closeReceiptModal" style="position:fixed; inset:0; background:rgba(20,18,16,.45); backdrop-filter:blur(4px); z-index:60; display:flex; align-items:center; justify-content:center; padding:24px;">
+    <div wire:click.stop style="width:100%; max-width:420px; max-height:calc(100vh - 48px); overflow-y:auto; background:var(--paper); border-radius:12px; box-shadow:0 20px 60px -20px rgba(0,0,0,.35);">
             <div style="padding:16px 20px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; align-items:center; gap:8px;">
                     <div style="width:28px; height:28px; border-radius:7px; background:var(--av-bg); color:var(--av-fg); display:flex; align-items:center; justify-content:center;">
@@ -1347,7 +1599,7 @@
                     </div>
                     <h3 style="margin:0; font-size:14px; font-weight:600; color:var(--ink-1);">Payment Receipt</h3>
                 </div>
-                <button @click="receiptModalOpen = false"
+                <button wire:click="closeReceiptModal"
                     style="appearance:none; border:0; background:transparent; color:var(--ink-3); cursor:pointer; display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:5px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
@@ -1356,41 +1608,49 @@
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
                     <div>
                         <div style="font:600 9.5px 'Inter'; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px;">Date</div>
-                        <div style="font:500 13px var(--mono); color:var(--ink-1);" x-text="receiptTx.datetime ? new Date(receiptTx.datetime).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : '—'"></div>
+                        <div style="font:500 13px var(--mono); color:var(--ink-1);">{{ !empty($receiptTx['datetime']) ? \Carbon\Carbon::parse($receiptTx['datetime'])->format('d M Y') : '—' }}</div>
                     </div>
                     <div>
                         <div style="font:600 9.5px 'Inter'; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px;">Amount</div>
-                        <div style="font:700 16px var(--mono); color:var(--av-fg);">৳ <span x-text="parseFloat(receiptTx.debit ?? 0).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 })"></span></div>
+                        <div style="font:700 16px var(--mono); color:var(--av-fg);">৳ {{ number_format($receiptTx['debit'] ?? 0, 2) }}</div>
                     </div>
                     <div>
                         <div style="font:600 9.5px 'Inter'; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px;">Payment Method</div>
-                        <div style="font:500 12.5px 'Inter'; color:var(--ink-1);" x-text="(receiptTx.method ?? '').replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase())"></div>
+                        <div style="font:500 12.5px 'Inter'; color:var(--ink-1);">{{ $receiptTx['method'] ?? '—' }}</div>
                     </div>
                     <div>
                         <div style="font:600 9.5px 'Inter'; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px;">Payer Name</div>
-                        <div style="font:500 12.5px 'Inter'; color:var(--ink-1);" x-text="receiptTx.name || '—'"></div>
+                        <div style="font:500 12.5px 'Inter'; color:var(--ink-1);">{{ $receiptTx['name'] ?? '—' }}</div>
                     </div>
-                    <div x-show="receiptTx.account && receiptTx.account.name">
+                    @if(!empty($receiptTx['account']['name']))
+                    <div>
                         <div style="font:600 9.5px 'Inter'; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px;">Account</div>
-                        <div style="font:500 12.5px 'Inter'; color:var(--ink-1);" x-text="receiptTx.account ? receiptTx.account.name : '—'"></div>
+                        <div style="font:500 12.5px 'Inter'; color:var(--ink-1);">{{ $receiptTx['account']['name'] }}</div>
                     </div>
-                    <div x-show="receiptTx.notes">
+                    @endif
+                    @if(!empty($receiptTx['notes']))
+                    <div>
                         <div style="font:600 9.5px 'Inter'; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px;">Notes</div>
-                        <div style="font:13px 'Inter'; color:var(--ink-2);" x-text="receiptTx.notes"></div>
+                        <div style="font:13px 'Inter'; color:var(--ink-2);">{{ $receiptTx['notes'] }}</div>
                     </div>
+                    @endif
                 </div>
             </div>
             <div style="padding:12px 20px; border-top:1px solid var(--rule); display:flex; justify-content:flex-end;">
-                <button @click="receiptModalOpen = false"
+                <button wire:click="closeReceiptModal"
                     style="appearance:none; border:1px solid var(--rule); background:transparent; color:var(--ink-2);
                            padding:6px 14px; font:500 12px 'Inter'; border-radius:6px; cursor:pointer;">
                     Close
                 </button>
             </div>
-    </x-modal>
+    </div>
+    </div>
+    @endif
 
     {{-- ─── ATTACHMENTS SUB-MODAL ──────────────────────────────────────────── --}}
-    <x-modal wire:model="attachModalOpen" maxWidth="md" focusable>
+    @if($attachModalOpen)
+    <div wire:click="closeAttachmentsModal" style="position:fixed; inset:0; background:rgba(20,18,16,.45); backdrop-filter:blur(4px); z-index:60; display:flex; align-items:center; justify-content:center; padding:24px;">
+    <div wire:click.stop style="width:100%; max-width:420px; max-height:calc(100vh - 48px); overflow-y:auto; background:var(--paper); border-radius:12px; box-shadow:0 20px 60px -20px rgba(0,0,0,.35);">
             <div style="padding:16px 20px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; align-items:center; gap:8px;">
                     <div style="width:28px; height:28px; border-radius:7px; background:var(--sd-bg); color:var(--sd-fg); display:flex; align-items:center; justify-content:center;">
@@ -1398,24 +1658,24 @@
                     </div>
                     <h3 style="margin:0; font-size:14px; font-weight:600; color:var(--ink-1);">Attachments</h3>
                 </div>
-                <button @click="attachModalOpen = false"
+                <button wire:click="closeAttachmentsModal"
                     style="appearance:none; border:0; background:transparent; color:var(--ink-3); cursor:pointer; display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:5px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
             <div style="padding:16px 20px; display:flex; flex-direction:column; gap:8px; max-height:350px; overflow-y:auto;">
-                <template x-if="attachList.length === 0">
+                @if(count($attachList) === 0)
                     <div style="text-align:center; padding:20px; color:var(--ink-3); font:13px 'Inter';">No attachments</div>
-                </template>
-                <template x-for="(fileId, idx) in attachList" :key="idx">
+                @endif
+                @foreach($attachList as $fileId)
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 12px; border:1px solid var(--rule); border-radius:7px; background:var(--canvas);">
                         <div style="display:flex; align-items:center; gap:8px;">
                             <div style="width:28px; height:28px; border-radius:6px; background:var(--sd-bg); color:var(--sd-fg); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                             </div>
-                            <span style="font:500 12px 'Inter'; color:var(--ink-1);">File #<span x-text="fileId"></span></span>
+                            <span style="font:500 12px 'Inter'; color:var(--ink-1);">File #{{ $fileId }}</span>
                         </div>
-                        <a :href="'/admin/files/' + fileId" target="_blank"
+                        <a href="/admin/files/{{ $fileId }}" target="_blank"
                             style="appearance:none; border:1px solid var(--rule); background:var(--paper); color:var(--ink-2);
                                    padding:4px 9px; font:500 10.5px 'Inter'; border-radius:5px; cursor:pointer; text-decoration:none;
                                    display:inline-flex; align-items:center; gap:4px;">
@@ -1423,14 +1683,16 @@
                             View
                         </a>
                     </div>
-                </template>
+                @endforeach
             </div>
             <div style="padding:12px 20px; border-top:1px solid var(--rule); display:flex; justify-content:flex-end;">
-                <button @click="attachModalOpen = false"
+                <button wire:click="closeAttachmentsModal"
                     style="appearance:none; border:1px solid var(--rule); background:transparent; color:var(--ink-2);
                            padding:6px 14px; font:500 12px 'Inter'; border-radius:6px; cursor:pointer;">
                     Close
                 </button>
             </div>
-    </x-modal>
+    </div>
+    </div>
+    @endif
 </div>

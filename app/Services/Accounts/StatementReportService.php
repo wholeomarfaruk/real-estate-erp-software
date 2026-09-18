@@ -291,8 +291,6 @@ class StatementReportService
         // so the row builders below read $tx->account_id / debit / credit unchanged.
         return TransactionLine::query()
             ->with([
-                'transaction.payment:id,transaction_id,payment_no,payee_name,notes',
-                'transaction.collection:id,transaction_id,collection_no,payer_name,notes',
                 'transaction.expense:id,transaction_id,expense_no,title,notes',
             ])
             ->whereIn('transaction_lines.account_id', $trackedAccountIds)
@@ -592,19 +590,21 @@ class StatementReportService
 
     protected function cashReferenceNo(Transaction|TransactionLine $transaction): string
     {
-        if ($transaction->collection) {
-            return $transaction->collection->collection_no ?: 'COL-'.$transaction->id;
-        }
-
         if ($transaction->expense) {
             return $transaction->expense->expense_no ?: 'EXP-'.$transaction->id;
         }
 
-        if ($transaction->payment) {
-            return $transaction->payment->payment_no ?: 'PAY-'.$transaction->id;
+        if ($transaction->reference_no) {
+            return $transaction->reference_no;
         }
 
-        return 'TXN-'.$transaction->id;
+        $group = $transaction->type?->reportGroup();
+
+        return match ($group) {
+            \App\Enums\Accounts\ReportGroup::RECEIPT => 'COL-'.$transaction->id,
+            \App\Enums\Accounts\ReportGroup::PAYMENT => 'PAY-'.$transaction->id,
+            default => 'TXN-'.$transaction->id,
+        };
     }
 
     /**
@@ -617,10 +617,12 @@ class StatementReportService
         float $iouAdjustment,
         float $expenseAmount
     ): string {
+        $group = $transaction->type?->reportGroup();
+
         $base = match (true) {
-            (bool) $transaction->collection => $transaction->collection?->payer_name ?: 'Cash collection',
             (bool) $transaction->expense => $transaction->expense?->title ?: 'Cash expense',
-            (bool) $transaction->payment => $transaction->payment?->payee_name ?: 'Cash payment',
+            $group === \App\Enums\Accounts\ReportGroup::RECEIPT => $transaction->name ?: 'Cash collection',
+            $group === \App\Enums\Accounts\ReportGroup::PAYMENT => $transaction->name ?: 'Cash payment',
             default => Str::headline((string) ($transaction->type?->value ?? 'journal')),
         };
 
@@ -651,7 +653,15 @@ class StatementReportService
             return '-';
         }
 
-        $label = $referenceType ? Str::headline(str_replace('_', ' ', $referenceType)) : 'Ref';
+        // reference_type is sometimes a short slug ('project', 'supplier') and
+        // sometimes a fully-qualified model class (PaymentSchedule::class, as
+        // PostingContext passes it) — reduce the latter to its class basename
+        // before headlining, or Str::headline() garbles the backslashes.
+        $type = $referenceType && str_contains($referenceType, '\\')
+            ? class_basename($referenceType)
+            : $referenceType;
+
+        $label = $type ? Str::headline(str_replace('_', ' ', $type)) : 'Ref';
         $idPart = $referenceId ? ' #'.$referenceId : '';
 
         return trim($label.$idPart);
