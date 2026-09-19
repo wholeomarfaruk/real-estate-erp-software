@@ -516,31 +516,35 @@
             <div class="totals-h">Statement Summary</div>
             <table class="totals">
                 <tr>
-                    <td style="width:13%;">
+                    <td style="width:11%;">
                         <div class="t-k">Properties</div>
                         <div class="t-v">{{ $report['summary']['total_transactions'] ?? 0 }}</div>
                     </td>
-                    <td style="width:15%;">
+                    <td style="width:13%;">
                         <div class="t-k">Sale Amount</div>
                         <div class="t-v small">{{ number_format((float) ($report['summary']['total_sale_amount'] ?? 0), 2) }}</div>
                     </td>
-                    <td style="width:15%;">
+                    <td style="width:13%;">
                         <div class="t-k">Rent Amount</div>
                         <div class="t-v small">{{ number_format((float) ($report['summary']['total_rent_amount'] ?? 0), 2) }}</div>
                     </td>
-                    <td style="width:15%;">
+                    <td style="width:13%;">
                         <div class="t-k">Total Paid</div>
                         <div class="t-v small">{{ number_format((float) ($report['summary']['total_paid'] ?? 0), 2) }}</div>
                     </td>
-                    <td style="width:12%;">
+                    <td style="width:10%;">
                         <div class="t-k">Scheduled</div>
                         <div class="t-v">{{ $report['summary']['total_scheduled'] ?? 0 }}</div>
                     </td>
-                    <td style="width:10%;">
+                    <td style="width:8%;">
                         <div class="t-k">Overdue</div>
                         <div class="t-v">{{ $report['summary']['total_overdue'] ?? 0 }}</div>
                     </td>
-                    <td style="width:20%;" class="t-emph">
+                    <td style="width:14%;">
+                        <div class="t-k">Overdue Amount</div>
+                        <div class="t-v small">{{ number_format((float) ($report['summary']['total_overdue_amount'] ?? 0), 2) }}</div>
+                    </td>
+                    <td style="width:18%;" class="t-emph">
                         <div class="t-k">Total Outstanding</div>
                         <div class="t-v">{{ number_format((float) ($report['summary']['total_outstanding'] ?? 0), 2) }}</div>
                     </td>

@@ -205,6 +205,22 @@
                             'text-ink-1' => (int) $report['summary']['total_overdue'] === 0,
                         ])>{{ $report['summary']['total_overdue'] }}</div>
                     </div>
+                    <div @class([
+                        'rounded-xl p-4 border',
+                        'bg-red-50 border-red-100' => (float) $report['summary']['total_overdue_amount'] > 0,
+                        'bg-paper border-rule' => (float) $report['summary']['total_overdue_amount'] === 0.0,
+                    ])>
+                        <div @class([
+                            'text-xs uppercase tracking-wide mb-1',
+                            'text-red-700/70' => (float) $report['summary']['total_overdue_amount'] > 0,
+                            'text-ink-3' => (float) $report['summary']['total_overdue_amount'] === 0.0,
+                        ])>Overdue Amount</div>
+                        <div @class([
+                            'text-2xl font-bold',
+                            'text-red-700' => (float) $report['summary']['total_overdue_amount'] > 0,
+                            'text-ink-1' => (float) $report['summary']['total_overdue_amount'] === 0.0,
+                        ])>{{ number_format((float) $report['summary']['total_overdue_amount'], 0) }}</div>
+                    </div>
                     <div class="bg-paper border border-rule rounded-xl p-4 flex flex-col justify-center">
                         <div class="text-ink-3 text-xs uppercase tracking-wide mb-2">Export</div>
                         <div class="flex gap-2">
@@ -279,6 +295,10 @@
                                                 @endif
                                             @elseif($column['key'] === 'scheduled_count')
                                                 <span class="text-ink-2 font-medium">{{ $row['scheduled_count'] }}</span>
+                                            @elseif($column['key'] === 'overdue_amount')
+                                                <span class="@if((float)$row['overdue_amount'] > 0) text-red-600 font-medium @else text-ink-3 @endif">
+                                                    {{ number_format((float)$row['overdue_amount'], 0) }}
+                                                </span>
                                             @elseif(in_array($column['key'], ['amount', 'total_paid', 'total_due']))
                                                 <span class="@if($column['key'] === 'total_due' && (float)$row['total_due'] > 0) text-red-600 font-medium @endif">
                                                     {{ number_format((float)$row[$column['key']], 0) }}

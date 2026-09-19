@@ -41,7 +41,9 @@ class ClientWiseStatementService
             $totalDue = $sale->totalDue();
 
             $scheduledCount = $sale->paymentSchedules->count();
-            $overdueCount = $sale->paymentSchedules->filter(fn ($schedule) => $schedule->isOverdue())->count();
+            $overdueSchedules = $sale->paymentSchedules->filter(fn ($schedule) => $schedule->isOverdue());
+            $overdueCount = $overdueSchedules->count();
+            $overdueAmount = (float) $overdueSchedules->sum('due_amount');
 
             $propertyUnit = $sale->propertyUnit;
             $propertyName = $propertyUnit?->property?->name ?? '-';
@@ -67,6 +69,7 @@ class ClientWiseStatementService
                 'total_due' => $totalDue,
                 'scheduled_count' => $scheduledCount,
                 'overdue_count' => $overdueCount,
+                'overdue_amount' => $overdueAmount,
                 // Use the sale's actual payment_status (source of truth, matches the
                 // property-sale detail page) rather than re-deriving from amounts.
                 'status' => ucfirst($sale->payment_status),
@@ -90,6 +93,7 @@ class ClientWiseStatementService
             'total_outstanding' => collect($rows)->sum('total_due'),
             'total_scheduled' => collect($rows)->sum('scheduled_count'),
             'total_overdue' => collect($rows)->sum('overdue_count'),
+            'total_overdue_amount' => collect($rows)->sum('overdue_amount'),
         ];
 
         $customerInfo = $customer ? [
@@ -138,6 +142,7 @@ class ClientWiseStatementService
                 ['key' => 'total_due', 'label' => 'Outstanding', 'align' => 'right'],
                 ['key' => 'scheduled_count', 'label' => 'Scheduled', 'align' => 'center'],
                 ['key' => 'overdue_count', 'label' => 'Overdue', 'align' => 'center'],
+                ['key' => 'overdue_amount', 'label' => 'Overdue Amount', 'align' => 'right'],
                 ['key' => 'status', 'label' => 'Status', 'align' => 'center'],
                 ['key' => 'actions', 'label' => 'Actions', 'align' => 'center'],
             ],

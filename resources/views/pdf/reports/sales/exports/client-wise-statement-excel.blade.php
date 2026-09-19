@@ -141,6 +141,7 @@
             ['Total Paid', number_format((float)($report['summary']['total_paid'] ?? 0), 2), true],
             ['Scheduled', $report['summary']['total_scheduled'] ?? 0, false],
             ['Overdue', $report['summary']['total_overdue'] ?? 0, false],
+            ['Overdue Amount', number_format((float)($report['summary']['total_overdue_amount'] ?? 0), 2), true],
         ];
     @endphp
     @foreach($totals as $i => $total)
