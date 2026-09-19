@@ -129,7 +129,7 @@
     <div class="divider-soft"></div>
 
     {{-- ── SECTION 1 · BANK ACCOUNTS LEDGER ── --}}
-    <div class="band">Bank Accounts Ledger</div>
+    <div class="band">Accounts Ledger</div>
     <table class="table" style="margin-top:0;">
       <colgroup>
         <col style="width:4%"><col style="width:26%"><col style="width:12%"><col style="width:11.5%">

@@ -93,10 +93,10 @@
                 </div>
             </div>
 
-            {{-- Bank Accounts Ledger --}}
+            {{-- Accounts Ledger --}}
             <div class="bg-paper border border-rule rounded-xl overflow-hidden mb-6">
                 <div class="px-5 py-3.5 border-b border-rule">
-                    <h3 class="font-semibold text-ink-1">Bank Accounts Ledger</h3>
+                    <h3 class="font-semibold text-ink-1">Accounts Ledger</h3>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">

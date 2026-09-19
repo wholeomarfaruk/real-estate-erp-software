@@ -710,7 +710,7 @@
                                         'permission' => 'accounts.chart.list',
                                     ],
                                     [
-                                        'label' => 'Banking',
+                                        'label' => 'Requests',
                                         'route' => 'admin.accounts.banking.index',
                                         'permission' => 'accounts.chart.list',
                                     ],
