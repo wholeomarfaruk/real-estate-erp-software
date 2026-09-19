@@ -68,7 +68,7 @@
         @if($report)
             @php
                 $totalReceipts = ($report['receipt_totals']['cash'] ?? 0) + ($report['receipt_totals']['bank'] ?? 0);
-                $totalPayments = $report['payment_totals']['cash'] ?? 0;
+                $totalPayments = ($report['payment_totals']['cash'] ?? 0) + ($report['payment_totals']['bank'] ?? 0);
             @endphp
 
             {{-- Summary Cards --}}
@@ -185,8 +185,8 @@
                                 <tr class="border-b border-rule last:border-0 hover:bg-ink-5/20 transition">
                                     <td class="px-4 py-3">{{ $payment['account'] }}</td>
                                     <td class="px-4 py-3 text-ink-2">{{ $payment['particulars'] }}</td>
-                                    <td class="px-4 py-3 text-center text-ink-3 text-xs">Cash</td>
-                                    <td class="px-4 py-3 text-right font-medium text-red-600">{{ number_format((float)$payment['cash'], 0) }}</td>
+                                    <td class="px-4 py-3 text-center text-ink-3 text-xs">{{ (float)($payment['bank'] ?? 0) > 0 ? 'Bank' : 'Cash' }}</td>
+                                    <td class="px-4 py-3 text-right font-medium text-red-600">{{ number_format((float)$payment['cash'] + (float)($payment['bank'] ?? 0), 0) }}</td>
                                 </tr>
                             @empty
                                 <tr>

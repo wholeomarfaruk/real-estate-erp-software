@@ -359,6 +359,7 @@ class DailyStatementService
                 'proj_no' => $projNo,
                 'folio' => null,
                 'cash' => $line->account->type->value === 'cash' ? (int) $line->credit : 0,
+                'bank' => $line->account->type->value === 'bank' ? (int) $line->credit : 0,
             ];
         })
         ->filter()
@@ -373,6 +374,7 @@ class DailyStatementService
     {
         return [
             'cash' => (int) collect($payments)->sum('cash'),
+            'bank' => (int) collect($payments)->sum('bank'),
         ];
     }
 

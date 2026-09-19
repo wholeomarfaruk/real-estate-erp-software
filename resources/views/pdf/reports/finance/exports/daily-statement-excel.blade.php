@@ -121,7 +121,8 @@
     <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:center;">Proj-No</th>
     <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:center;">Folio/No</th>
     <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:right;">Cash</th>
-    <td colspan="2" style="border:none;"></td>
+    <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:right;">Bank</th>
+    <td style="border:none;"></td>
   </tr>
   @foreach ($report['payments'] as $i => $p)
   <tr>
@@ -131,13 +132,15 @@
     <td style="border:1px solid #c9c9c9; padding:6px; text-align:center;">{{ $p['proj_no'] ?? '–' }}</td>
     <td style="border:1px solid #c9c9c9; padding:6px; text-align:center;">{{ $p['folio'] ?? '–' }}</td>
     <td style="border:1px solid #c9c9c9; padding:6px; text-align:right;">{{ $n($p['cash']) }}</td>
-    <td colspan="2" style="border:none;"></td>
+    <td style="border:1px solid #c9c9c9; padding:6px; text-align:right;">{{ $n($p['bank']) }}</td>
+    <td style="border:none;"></td>
   </tr>
   @endforeach
   <tr style="background:#f4f4f4; font-weight:bold;">
     <td colspan="5" style="border:1px solid #161616; padding:7px; text-align:right;">TOTAL PAYMENTS</td>
     <td style="border:1px solid #161616; padding:7px; text-align:right;">{{ $n($report['payment_totals']['cash']) }}</td>
-    <td colspan="2" style="border:none;"></td>
+    <td style="border:1px solid #161616; padding:7px; text-align:right;">{{ $n($report['payment_totals']['bank']) }}</td>
+    <td style="border:none;"></td>
   </tr>
 
   {{-- CLOSING --}}

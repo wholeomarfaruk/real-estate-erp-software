@@ -176,13 +176,13 @@
     <div class="sec-h">Payments</div>
     <table class="table">
       <colgroup>
-        <col style="width:4%"><col style="width:30%"><col style="width:34%">
-        <col style="width:10%"><col style="width:9%"><col style="width:13%">
+        <col style="width:4%"><col style="width:27%"><col style="width:29%">
+        <col style="width:9%"><col style="width:8%"><col style="width:11.5%"><col style="width:11.5%">
       </colgroup>
       <thead>
         <tr>
           <th class="c">S.N</th><th>Account Name</th><th>Particulars</th>
-          <th class="c">Proj-No</th><th class="c">Folio/N</th><th style="text-align:right;">Cash</th>
+          <th class="c">Proj-No</th><th class="c">Folio/N</th><th style="text-align:right;">Cash</th><th style="text-align:right;">Bank</th>
         </tr>
       </thead>
       <tbody>
@@ -194,6 +194,7 @@
           <td class="c {{ empty($p['proj_no']) ? 'num-zero' : '' }}">{{ $p['proj_no'] ?? '–' }}</td>
           <td class="c {{ empty($p['folio']) ? 'num-zero' : '' }}">{{ $p['folio'] ?? '–' }}</td>
           <td class="num {{ $z($p['cash']) }}">{{ $n($p['cash']) }}</td>
+          <td class="num {{ $z($p['bank']) }}">{{ $n($p['bank']) }}</td>
         </tr>
         @endforeach
       </tbody>
@@ -201,9 +202,10 @@
         <tr>
           <td colspan="5" class="total-lbl">Total Payments</td>
           <td class="num {{ $z($report['payment_totals']['cash']) }}">{{ $n($report['payment_totals']['cash']) }}</td>
+          <td class="num {{ $z($report['payment_totals']['bank']) }}">{{ $n($report['payment_totals']['bank']) }}</td>
         </tr>
         <tr class="closing">
-          <td colspan="4" class="total-lbl" style="font-size:9.5px;">Closing Balance</td>
+          <td colspan="5" class="total-lbl" style="font-size:9.5px;">Closing Balance</td>
           <td colspan="2" class="num" style="font-size:10px; white-space:normal; line-height:1.5;">Cash {{ number_format($report['closing']['cash']) }}<br>Bank {{ number_format($report['closing']['bank']) }}</td>
         </tr>
       </tfoot>
