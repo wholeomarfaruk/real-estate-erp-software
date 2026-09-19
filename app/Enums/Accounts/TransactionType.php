@@ -26,6 +26,7 @@ enum TransactionType: string
     case TRANSPORTATION_PAYMENT = 'transportation_payment';
     case UTILITY_BILL_PAYMENT  = 'utility_bill_payment';
     case ADVANCE               = 'advance';
+    case OFFICE_EXPENSE        = 'office_expense';
 
     public function label(): string
     {
@@ -52,6 +53,7 @@ enum TransactionType: string
             self::TRANSPORTATION_PAYMENT => 'Transportation Payment',
             self::UTILITY_BILL_PAYMENT  => 'Utility Bill Payment',
             self::ADVANCE               => 'Advance (Legacy)',
+            self::OFFICE_EXPENSE        => 'Office Expense',
         };
     }
 
@@ -80,6 +82,7 @@ enum TransactionType: string
             self::TRANSPORTATION_PAYMENT => 'bg-blue-50 text-blue-700 border-blue-200',
             self::UTILITY_BILL_PAYMENT  => 'bg-green-50 text-green-700 border-green-200',
             self::ADVANCE               => 'bg-gray-100 text-gray-600 border-gray-200',
+            self::OFFICE_EXPENSE        => 'bg-rose-50 text-rose-700 border-rose-200',
         };
     }
 
@@ -104,7 +107,8 @@ enum TransactionType: string
             self::EQUIPMENT_RENT_PAYMENT,
             self::TRANSPORTATION_PAYMENT,
             self::UTILITY_BILL_PAYMENT,
-            self::ADVANCE_PAYMENT
+            self::ADVANCE_PAYMENT,
+            self::OFFICE_EXPENSE
             => ReportGroup::PAYMENT,
 
             self::TRANSFER,

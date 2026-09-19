@@ -113,7 +113,7 @@ class RequestEngine
 
         $data = [
             'request_no'        => BankingPaymentRequest::generateRequestNo(),
-            'source_type'       => TransactionType::EXPENSE->value,
+            'source_type'       => $expenseType,
             'amount'            => $roundedAmount,
             'description'       => $title,
             'method'            => $paymentMethod,

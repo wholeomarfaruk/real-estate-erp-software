@@ -39,6 +39,11 @@ class BankingTransactionService
 
             $sourceType = $request->source_type;
 
+            // Office expense payment (no sourceable model required)
+            if ($sourceType === TransactionType::OFFICE_EXPENSE->value) {
+                return $this->postOfficeExpensePayment($request, $userId);
+            }
+
             // Expense payments (all PAYMENT group transaction types)
             $paymentTypes = TransactionType::payments();
             if (in_array($sourceType, $paymentTypes)) {
@@ -131,6 +136,70 @@ class BankingTransactionService
         );
 
         // Update banking request with transaction and completion info
+        $request->update([
+            'transaction_id' => $transaction->id,
+            'status' => 'completed',
+            'completed_by' => $userId,
+            'completed_at' => now(),
+        ]);
+
+        return $transaction;
+    }
+
+    /**
+     * Post an office expense payment using stored double-entry data:
+     *   Dr Office Expense Account / Cr Payment Account
+     *
+     * Office expenses have no associated sourceable model (no project, employee,
+     * supplier, etc.) — sourceable_type/sourceable_id are intentionally left null.
+     * Uses debit/credit accounts and amounts pre-stored on the request.
+     */
+    private function postOfficeExpensePayment(
+        BankingPaymentRequest $request,
+        int $userId
+    ): Transaction {
+        if (!$request->debit_account_id || !$request->credit_account_id) {
+            throw new \DomainException('Double-entry accounts not configured for this office expense request.');
+        }
+
+        $debitAccount = Account::findOrFail($request->debit_account_id);
+        $creditAccount = Account::findOrFail($request->credit_account_id);
+
+        if (!$debitAccount->is_active || !$creditAccount->is_active) {
+            throw new \DomainException('One or more double-entry accounts are inactive.');
+        }
+
+        $transaction = $this->ledger->post(
+            [
+                'datetime' => now()->format('Y-m-d H:i:s'),
+                'type' => $request->source_type,
+                'reference_type' => null,
+                'reference_id' => null,
+                'reference_no' => $request->reference_no,
+                'voucher_no' => $request->voucher_no,
+                'name' => $request->name,
+                'phone' => $request->phone,
+                'method' => $request->method ?? 'cash',
+                'notes' => $request->notes ?? $request->description,
+                'created_by' => $userId,
+                'external_data' => $request->external_data,
+            ],
+            [
+                [
+                    'account_id' => (int) $debitAccount->id,
+                    'debit' => (float) $request->debit_amount,
+                    'credit' => 0,
+                    'notes' => $debitAccount->name,
+                ],
+                [
+                    'account_id' => (int) $creditAccount->id,
+                    'debit' => 0,
+                    'credit' => (float) $request->credit_amount,
+                    'notes' => $creditAccount->name,
+                ],
+            ],
+        );
+
         $request->update([
             'transaction_id' => $transaction->id,
             'status' => 'completed',
