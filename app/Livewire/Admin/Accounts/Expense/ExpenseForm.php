@@ -27,6 +27,7 @@ class ExpenseForm extends Component
     public string $date                    = '';
     public string $amount                  = '';
     public string $notes                   = '';
+    public string $voucher_no              = '';
     public ?int   $reference_id            = null;    // project or supplier id
     public ?string $project_work_phase     = null;    // optional work phase for project expenses
     public array  $attachments             = [];      // selected file IDs
@@ -117,6 +118,7 @@ class ExpenseForm extends Component
             'date'                    => ['required', 'date'],
             'amount'                  => ['required', 'numeric', 'gt:0'],
             'notes'                   => ['nullable', 'string', 'max:1000'],
+            'voucher_no'              => ['nullable', 'string'],
             'attachments'             => ['nullable', 'array'],
             'attachments.*'           => ['integer', 'exists:files,id'],
         ];
@@ -153,6 +155,7 @@ class ExpenseForm extends Component
                 'amount'                  => round((float) $this->amount, 3),
                 'description'             => $this->title,
                 'status'                  => 'pending',
+                'voucher_no'              => trim($this->voucher_no) !== '' ? trim($this->voucher_no) : null,
                 'notes'                   => $this->notes ?: null,
                 'requested_by'            => Auth::id(),
                 'external_data'           => $externalData ?: null,

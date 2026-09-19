@@ -28,6 +28,7 @@ class ProjectExpenseForm extends Component
     public string $date                 = '';
     public string $amount               = '';
     public string $reference_no         = '';
+    public string $voucher_no           = '';
     public string $paid_to_name         = '';
     public string $paid_to_phone        = '';
     public string $notes                = '';
@@ -70,6 +71,7 @@ class ProjectExpenseForm extends Component
                 'date'               => 'required|date',
                 'amount'             => 'required|numeric|gt:0',
                 'reference_no'       => 'nullable|string|max:100',
+                'voucher_no'         => 'nullable|string',
                 'paid_to_name'       => 'nullable|string|max:200',
                 'paid_to_phone'      => 'nullable|string|max:20',
                 'notes'              => 'nullable|string|max:1000',
@@ -93,6 +95,7 @@ class ProjectExpenseForm extends Component
                 title: $this->title,
                 date: $this->date,
                 referenceNo: $this->reference_no,
+                voucherNo: $this->voucher_no,
                 paidToName: $this->paid_to_name,
                 paidToPhone: $this->paid_to_phone,
                 workPhase: $this->project_work_phase,

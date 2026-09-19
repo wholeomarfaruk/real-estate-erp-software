@@ -46,7 +46,7 @@ class LedgerService
             // transaction_category_id — per-account movements live entirely in
             // transaction_lines. Only header metadata is persisted here.
             $allowedKeys = [
-                'datetime', 'type', 'reference_no', 'reference_type',
+                'datetime', 'type', 'reference_no', 'voucher_no', 'reference_type',
                 'reference_id', 'notes', 'method', 'name', 'phone', 'attachments', 'external_data',
                 'related_transaction_id', 'relation_type', 'created_by', 'updated_by',
             ];

@@ -106,6 +106,7 @@ class BankingTransactionService
                 'reference_type' => $request->sourceable_type,
                 'reference_id' => $request->sourceable_id,
                 'reference_no' => $request->reference_no,
+                'voucher_no' => $request->voucher_no,
                 'name' => $request->name,
                 'phone' => $request->phone,
                 'method' => $request->method ?? 'bank',

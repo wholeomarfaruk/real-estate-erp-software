@@ -163,6 +163,13 @@
           @error('reference_no') <div class="err-msg">{{ $message }}</div> @enderror
         </div>
 
+        {{-- Voucher No --}}
+        <div>
+          <label class="lbl">Voucher No (Optional)</label>
+          <input type="text" wire:model="voucher_no" class="inp @error('voucher_no') err @enderror" placeholder="e.g. VCH-2026-001" />
+          @error('voucher_no') <div class="err-msg">{{ $message }}</div> @enderror
+        </div>
+
         {{-- Paid To Name --}}
         <div>
           <label class="lbl">Paid To - Name (Optional)</label>

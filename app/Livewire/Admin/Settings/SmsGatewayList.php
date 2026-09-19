@@ -25,6 +25,13 @@ class SmsGatewayList extends Component
     public string $fAlphaApiUrlSend = '';
     public string $fAlphaApiUrlBalance = '';
 
+    // REVE SMS
+    public string $fReveApiKey = '';
+    public string $fReveSecretKey = '';
+    public string $fReveSenderId = '';
+    public string $fReveSubmitUrl = '';
+    public string $fReveStatusUrl = '';
+
     public function openCreate(): void
     {
         $this->editingId = null;
@@ -54,6 +61,13 @@ class SmsGatewayList extends Component
                 $this->fAlphaApiUrlSend = $creds['api_url_send'] ?? 'https://api.sms.net.bd/sendsms',
                 $this->fAlphaApiUrlBalance = $creds['api_url_balance'] ?? 'https://api.sms.net.bd/user/balance/',
             ],
+            'reve_sms' => [
+                $this->fReveApiKey = $creds['api_key'] ?? '',
+                $this->fReveSecretKey = $creds['secret_key'] ?? '',
+                $this->fReveSenderId = $creds['sender_id'] ?? '',
+                $this->fReveSubmitUrl = $creds['submit_url'] ?? 'https://smpp.revesms.com/smsapi/sendtext',
+                $this->fReveStatusUrl = $creds['status_url'] ?? 'https://smpp.revesms.com/smsapi/status',
+            ],
         };
 
         $this->drawerOpen = true;
@@ -76,6 +90,13 @@ class SmsGatewayList extends Component
                 'type'            => $this->fAlphaType,
                 'api_url_send'    => $this->fAlphaApiUrlSend,
                 'api_url_balance' => $this->fAlphaApiUrlBalance,
+            ],
+            'reve_sms' => [
+                'api_key'    => $this->fReveApiKey,
+                'secret_key' => $this->fReveSecretKey,
+                'sender_id'  => $this->fReveSenderId,
+                'submit_url' => $this->fReveSubmitUrl,
+                'status_url' => $this->fReveStatusUrl,
             ],
         };
 
@@ -201,6 +222,11 @@ class SmsGatewayList extends Component
         $this->fAlphaType = 'text';
         $this->fAlphaApiUrlSend = '';
         $this->fAlphaApiUrlBalance = '';
+        $this->fReveApiKey = '';
+        $this->fReveSecretKey = '';
+        $this->fReveSenderId = '';
+        $this->fReveSubmitUrl = '';
+        $this->fReveStatusUrl = '';
     }
 
     public function render()

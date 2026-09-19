@@ -26,6 +26,7 @@ class GenericExpenseForm extends Component
     public string $date = '';
     public string $amount = '';
     public string $reference_no = '';
+    public string $voucher_no = '';
     public string $paid_to_name = '';
     public string $paid_to_phone = '';
     public string $notes = '';
@@ -52,6 +53,7 @@ class GenericExpenseForm extends Component
                 'date' => 'required|date',
                 'amount' => 'required|numeric|gt:0',
                 'reference_no' => 'nullable|string|max:100',
+                'voucher_no' => 'nullable|string',
                 'paid_to_name' => 'nullable|string|max:200',
                 'paid_to_phone' => 'nullable|string|max:20',
                 'notes' => 'nullable|string|max:1000',
@@ -88,6 +90,7 @@ class GenericExpenseForm extends Component
                 'status' => 'pending',
                 'notes' => $this->notes ?: null,
                 'reference_no' => $this->reference_no ?: null,
+                'voucher_no' => $this->voucher_no ?: null,
                 'name' => $this->paid_to_name ?: null,
                 'phone' => $this->paid_to_phone ?: null,
                 'method' => $this->payment_method,

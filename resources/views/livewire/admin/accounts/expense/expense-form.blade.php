@@ -149,6 +149,13 @@
           @error('bank_account_id') <div class="err-msg">{{ $message }}</div> @enderror
         </div>
 
+        {{-- Voucher No --}}
+        <div>
+          <label class="lbl">Voucher No</label>
+          <input type="text" wire:model="voucher_no" class="inp @error('voucher_no') err @enderror" placeholder="Optional voucher number" />
+          @error('voucher_no') <div class="err-msg">{{ $message }}</div> @enderror
+        </div>
+
         {{-- Notes --}}
         <div class="full">
           <label class="lbl">Notes</label>

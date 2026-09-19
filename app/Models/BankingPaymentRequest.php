@@ -27,6 +27,7 @@ class BankingPaymentRequest extends Model
         'credit_account_id',
         'credit_amount',
         'reference_no',
+        'voucher_no',
         'name',
         'phone',
         'method',

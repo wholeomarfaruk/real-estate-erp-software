@@ -24,6 +24,7 @@ class PostingContext
         public readonly ?string $referenceType = null,
         public readonly ?int $referenceId = null,
         public readonly ?string $referenceNo = null,
+        public readonly ?string $voucherNo = null,
         public readonly ?string $method = null,
         public readonly ?string $name = null,
         public readonly ?string $phone = null,

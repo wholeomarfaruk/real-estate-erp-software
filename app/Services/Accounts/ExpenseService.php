@@ -45,6 +45,7 @@ class ExpenseService
             $transaction->update([
                 'external_data' => $bankingRequest->external_data,
                 'attachments'   => $bankingRequest->external_data['attachments'] ?? null,
+                'voucher_no'    => $bankingRequest->voucher_no,
             ]);
 
             $bankingRequest->update([

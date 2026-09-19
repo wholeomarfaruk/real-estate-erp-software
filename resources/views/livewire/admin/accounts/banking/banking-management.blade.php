@@ -346,10 +346,16 @@
                 </div>
 
                 {{-- Transaction Details --}}
-                @if($r->reference_no || $r->name || $r->phone || $r->method)
+                @if($r->reference_no || $r->voucher_no || $r->name || $r->phone || $r->method)
                     <div>
                         <h4 class="mb-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Transaction Details</h4>
                         <dl class="space-y-2 text-sm">
+                            @if($r->voucher_no)
+                                <div class="flex gap-3">
+                                    <dt class="w-28 shrink-0 text-xs text-gray-400">Voucher No</dt>
+                                    <dd class="font-mono text-gray-700">{{ $r->voucher_no }}</dd>
+                                </div>
+                            @endif
                             @if($r->reference_no)
                                 <div class="flex gap-3">
                                     <dt class="w-28 shrink-0 text-xs text-gray-400">Reference No</dt>

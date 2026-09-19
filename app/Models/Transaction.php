@@ -27,6 +27,7 @@ class Transaction extends Model
         'adjusted_transaction_id',
         'created_by',
         'reference_no',
+        'voucher_no',
         'name',
         'phone',
         'method',

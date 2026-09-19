@@ -60,6 +60,7 @@ class PostingEngine
             'reference_type' => $context->referenceType,
             'reference_id'   => $context->referenceId,
             'reference_no'   => $context->referenceNo,
+            'voucher_no'     => $context->voucherNo,
             'method'         => $context->method,
             'name'           => $context->name,
             'phone'          => $context->phone,
