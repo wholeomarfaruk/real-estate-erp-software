@@ -65,8 +65,8 @@ class SmsGatewayList extends Component
                 $this->fReveApiKey = $creds['api_key'] ?? '',
                 $this->fReveSecretKey = $creds['secret_key'] ?? '',
                 $this->fReveSenderId = $creds['sender_id'] ?? '',
-                $this->fReveSubmitUrl = $creds['submit_url'] ?? 'https://smpp.revesms.com/smsapi/sendtext',
-                $this->fReveStatusUrl = $creds['status_url'] ?? 'https://smpp.revesms.com/smsapi/status',
+                $this->fReveSubmitUrl = $creds['submit_url'] ?? 'https://smpp.revesms.com:7790/sendtext',
+                $this->fReveStatusUrl = $creds['status_url'] ?? 'https://smpp.revesms.com:7790/getstatus',
             ],
         };
 

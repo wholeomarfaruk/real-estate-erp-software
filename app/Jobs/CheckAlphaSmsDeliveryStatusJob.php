@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\Message;
 use App\Services\Sms\Providers\AlphaSmsProvider;
 use App\Services\Sms\Providers\BulkSmsDhakaProvider;
+use App\Services\Sms\Providers\ReveSmsProvider;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -119,6 +120,7 @@ class CheckAlphaSmsDeliveryStatusJob implements ShouldQueue
         return match($providerName) {
             'bulk_sms_dhaka' => new BulkSmsDhakaProvider($credentials),
             'alpha_sms'      => new AlphaSmsProvider($credentials),
+            'reve_sms'       => new ReveSmsProvider($credentials),
             default          => null,
         };
     }

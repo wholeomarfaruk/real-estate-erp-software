@@ -10,10 +10,11 @@ use Illuminate\Support\Facades\Http;
 /**
  * REVE SMS (smpp.revesms.com) HTTP API driver.
  *
- * Endpoint/parameter names come from REVE's published HTTP API (apikey,
- * secretkey, callerID, toUser, messageContent) — verify against the account's
- * own "HTTP Configuration" panel before relying on this in production, since
- * REVE is white-labelled per reseller and the submit URL can be account-specific.
+ * Verified against the account's own "SMS Client Technical Details" panel
+ * (HTTP API Format: Request Type = json, fields apikey/secretkey/callerID/
+ * toUser/messageContent) and REVE's SMSServer Postman collection. Submit
+ * endpoint is a JSON POST to smpp.revesms.com:7790/sendtext (https) — NOT the
+ * smpp.revesms.com web login host/path.
  */
 class ReveSmsProvider implements SmsProviderInterface
 {
@@ -22,7 +23,7 @@ class ReveSmsProvider implements SmsProviderInterface
     public function send(string $to, string $message): array
     {
         try {
-            $apiUrl = $this->credentials['submit_url'] ?? 'https://smpp.revesms.com/smsapi/sendtext';
+            $apiUrl = $this->credentials['submit_url'] ?? 'https://smpp.revesms.com:7790/sendtext';
 
             $phone = ltrim($to, '+');
 
@@ -39,7 +40,7 @@ class ReveSmsProvider implements SmsProviderInterface
                 'payload' => array_merge($payload, ['apikey' => '***', 'secretkey' => '***']),
             ]);
 
-            $response = Http::timeout(10)->withoutVerifying()->get($apiUrl, $payload);
+            $response = Http::timeout(10)->withoutVerifying()->asJson()->post($apiUrl, $payload);
 
             \Log::info('REVE SMS send API response', [
                 'status_code' => $response->status(),
@@ -50,7 +51,7 @@ class ReveSmsProvider implements SmsProviderInterface
                 $data = $response->json();
 
                 if (!is_array($data)) {
-                    return ['success' => false, 'error' => 'REVE SMS: Non-JSON response received'];
+                    return ['success' => false, 'error' => 'REVE SMS: Non-JSON response received: ' . $response->body()];
                 }
 
                 try {
@@ -87,12 +88,12 @@ class ReveSmsProvider implements SmsProviderInterface
     public function checkDeliveryStatus(string $messageId): array
     {
         try {
-            $apiUrl = $this->credentials['status_url'] ?? 'https://smpp.revesms.com/smsapi/status';
+            $apiUrl = $this->credentials['status_url'] ?? 'https://smpp.revesms.com:7790/getstatus';
 
-            $response = Http::timeout(10)->withoutVerifying()->get($apiUrl, [
+            $response = Http::timeout(10)->withoutVerifying()->asJson()->post($apiUrl, [
                 'apikey'    => $this->credentials['api_key'],
                 'secretkey' => $this->credentials['secret_key'],
-                'messageID' => $messageId,
+                'messageid' => $messageId,
             ]);
 
             \Log::info('REVE SMS delivery status check', [
@@ -105,7 +106,7 @@ class ReveSmsProvider implements SmsProviderInterface
                 $data = $response->json();
 
                 if (!is_array($data)) {
-                    return ['success' => false, 'error' => 'REVE SMS: Non-JSON status response received'];
+                    return ['success' => false, 'error' => 'REVE SMS: Non-JSON status response received: ' . $response->body()];
                 }
 
                 $text = strtoupper((string) ($data['Text'] ?? ''));

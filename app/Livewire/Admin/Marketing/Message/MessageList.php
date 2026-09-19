@@ -25,6 +25,14 @@ class MessageList extends Component
     #[Url(history: true)]
     public string $filterStatus = 'all';
 
+    // Bulk selection (delivery status check / resend)
+    public array $selected = [];
+    public bool  $selectAll = false;
+
+    // Details view modal
+    public bool $viewModal = false;
+    public ?int $viewingMessageId = null;
+
     // Individual send modal
     public bool   $sendModal    = false;
     public string $sType        = 'sms';
@@ -40,9 +48,45 @@ class MessageList extends Component
         abort_unless(auth()->user()?->can('marketing.message.view'), 403);
     }
 
-    public function updatedSearch(): void       { $this->resetPage(); }
-    public function updatedFilterType(): void   { $this->resetPage(); }
-    public function updatedFilterStatus(): void { $this->resetPage(); }
+    public function updatedSearch(): void       { $this->resetPage(); $this->clearSelection(); }
+    public function updatedFilterType(): void   { $this->resetPage(); $this->clearSelection(); }
+    public function updatedFilterStatus(): void { $this->resetPage(); $this->clearSelection(); }
+
+    public function updatedSelectAll(bool $value): void
+    {
+        $this->selected = $value ? $this->actionableMessageIdsOnPage() : [];
+    }
+
+    public function clearSelection(): void
+    {
+        $this->selected  = [];
+        $this->selectAll = false;
+    }
+
+    /** IDs of currently-listed messages eligible for at least one bulk action (check status or resend). */
+    private function actionableMessageIdsOnPage(): array
+    {
+        return $this->currentPageQuery()
+            ->where(fn($q) => $q
+                ->where(fn($i) => $i->where('type', 'sms')->where('status', 'sent')->whereNotNull('provider_message_id'))
+                ->orWhere('status', 'failed')
+            )
+            ->pluck('id')
+            ->all();
+    }
+
+    private function currentPageQuery()
+    {
+        return Message::query()
+            ->when($this->search, fn($q) => $q->where(fn($i) =>
+                $i->where('recipient', 'like', '%'.$this->search.'%')
+                  ->orWhere('body', 'like', '%'.$this->search.'%')
+            ))
+            ->when($this->filterType !== 'all', fn($q) => $q->where('type', $this->filterType))
+            ->when($this->filterStatus !== 'all', fn($q) => $q->where('status', $this->filterStatus))
+            ->orderBy('created_at', 'desc')
+            ->forPage($this->getPage(), 20);
+    }
 
     public function openSendModal(): void
     {
@@ -147,6 +191,115 @@ class MessageList extends Component
         ]);
     }
 
+    /** Check delivery status for every currently-selected message. */
+    public function bulkCheckDeliveryStatus(): void
+    {
+        abort_unless(auth()->user()?->can('marketing.message.view'), 403);
+
+        $ids = Message::query()
+            ->whereIn('id', $this->selected)
+            ->where('type', 'sms')
+            ->whereNotNull('provider_message_id')
+            ->pluck('id');
+
+        if ($ids->isEmpty()) {
+            $this->dispatch('toast', [
+                'type' => 'warning',
+                'message' => 'No checkable SMS messages selected.',
+            ]);
+            return;
+        }
+
+        foreach ($ids as $id) {
+            CheckAlphaSmsDeliveryStatusJob::dispatch((int) $id);
+        }
+
+        $this->dispatch('toast', [
+            'type' => 'info',
+            'message' => "Checking delivery status for {$ids->count()} message(s)...",
+        ]);
+
+        $this->clearSelection();
+    }
+
+    /** Requeue a single failed message for sending again. */
+    public function resendMessage(int $messageId): void
+    {
+        abort_unless(auth()->user()?->can('marketing.message.send'), 403);
+
+        $message = Message::find($messageId);
+
+        if (!$message || $message->status !== 'failed') {
+            $this->dispatch('toast', [
+                'type' => 'warning',
+                'message' => 'Only failed messages can be resent.',
+            ]);
+            return;
+        }
+
+        $this->requeue($message);
+
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Message requeued for sending.']);
+    }
+
+    /** Requeue every currently-selected failed message for sending again. */
+    public function bulkResendMessages(): void
+    {
+        abort_unless(auth()->user()?->can('marketing.message.send'), 403);
+
+        $messages = Message::query()
+            ->whereIn('id', $this->selected)
+            ->where('status', 'failed')
+            ->get();
+
+        if ($messages->isEmpty()) {
+            $this->dispatch('toast', [
+                'type' => 'warning',
+                'message' => 'No failed messages selected.',
+            ]);
+            return;
+        }
+
+        foreach ($messages as $message) {
+            $this->requeue($message);
+        }
+
+        $this->dispatch('toast', [
+            'type' => 'success',
+            'message' => "{$messages->count()} message(s) requeued for sending.",
+        ]);
+
+        $this->clearSelection();
+    }
+
+    public function viewMessage(int $messageId): void
+    {
+        abort_unless(auth()->user()?->can('marketing.message.view'), 403);
+
+        $this->viewingMessageId = $messageId;
+        $this->viewModal = true;
+    }
+
+    public function closeViewModal(): void
+    {
+        $this->viewModal = false;
+        $this->viewingMessageId = null;
+    }
+
+    private function requeue(Message $message): void
+    {
+        $message->update([
+            'status'              => 'queued',
+            'provider_response'   => null,
+            'provider_error_code' => null,
+            'validation_error'    => null,
+            'response_snapshot'   => null,
+        ]);
+        $message->addTimelineEvent('requeued', ['by' => auth()->id()]);
+
+        SendMessageJob::dispatch($message->id);
+    }
+
     private function resetSendForm(): void
     {
         $this->sType       = 'sms';
@@ -184,7 +337,11 @@ class MessageList extends Component
         $leads     = Lead::orderBy('name')->get(['id','name','phone','email']);
         $customers = Customer::orderBy('name')->get(['id','name','phone','email']);
 
-        return view('livewire.admin.marketing.message.message-list', compact('messages', 'kpi', 'templates', 'leads', 'customers'))
+        $viewingMessage = $this->viewingMessageId
+            ? Message::with(['campaign', 'sentByUser'])->find($this->viewingMessageId)
+            : null;
+
+        return view('livewire.admin.marketing.message.message-list', compact('messages', 'kpi', 'templates', 'leads', 'customers', 'viewingMessage'))
             ->layout('layouts.admin.admin');
     }
 }

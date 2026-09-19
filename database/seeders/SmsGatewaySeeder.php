@@ -46,7 +46,7 @@ class SmsGatewaySeeder extends Seeder
         );
 
         // REVE SMS Gateway (Star Unity account)
-        SmsGateway::firstOrCreate(
+        SmsGateway::updateOrCreate(
             ['name' => 'Star Unity - REVE SMS'],
             [
                 'provider'    => 'reve_sms',
@@ -54,12 +54,11 @@ class SmsGatewaySeeder extends Seeder
                     'api_key'    => '5c9abcfe4fefbbed',
                     'secret_key' => '7310d223',
                     'sender_id'  => 'Star Unity',
-                    'submit_url' => 'https://smpp.revesms.com/smsapi/sendtext',
-                    'status_url' => 'https://smpp.revesms.com/smsapi/status',
+                    'submit_url' => 'https://smpp.revesms.com:7790/sendtext',
+                    'status_url' => 'https://smpp.revesms.com:7790/getstatus',
                     'website'    => 'https://www.revesms.com',
                     'dashboard'  => 'https://smpp.revesms.com/',
                 ],
-                'is_active'   => false,
                 'created_by'  => 1,
                 'updated_by'  => 1,
             ]
