@@ -41,6 +41,7 @@ Route::get('/settings', App\Livewire\Admin\Settings\Settings::class)->name('sett
 Route::get('/settings/sms-gateway', App\Livewire\Admin\Settings\SmsGatewayList::class)->name('settings.sms-gateway');
 Route::get('/settings/smtp', App\Livewire\Admin\Settings\SmtpConfig::class)->name('settings.smtp');
 Route::get('/settings/notifications', App\Livewire\Admin\Settings\NotificationSettings::class)->name('settings.notifications');
+Route::get('/settings/queue', App\Livewire\Admin\Settings\QueueSettings::class)->name('settings.queue');
 
 // permissions
 Route::get('/permissions/roles', App\Livewire\Admin\Permissions\RoleList::class)->name('roles.list');

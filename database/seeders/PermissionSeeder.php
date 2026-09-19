@@ -391,6 +391,9 @@ class PermissionSeeder extends Seeder
             ['id' => 303, 'name' => 'notification.template.create'],
             ['id' => 304, 'name' => 'notification.template.edit'],
             ['id' => 305, 'name' => 'notification.template.delete'],
+
+            // Queue Settings
+            ['id' => 306, 'name' => 'settings.queue.view'],
         ];
 
         foreach ($permissions as $permission) {

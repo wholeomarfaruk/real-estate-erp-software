@@ -188,6 +188,7 @@ class AssignPermissionSeeder extends Seeder
                 'settings.smtp.view',
                 // Notification Settings
                 'settings.notifications.view',
+                'settings.queue.view',
                 // Reports
                 'module.reports.access',
                 'reports.hub.view',
@@ -344,6 +345,7 @@ class AssignPermissionSeeder extends Seeder
                 'settings.smtp.view',
                 // Notification Settings
                 'settings.notifications.view',
+                'settings.queue.view',
                 // Reports
                 'module.reports.access',
                 'reports.hub.view',
@@ -494,6 +496,7 @@ class AssignPermissionSeeder extends Seeder
                 'settings.smtp.view',
                 // Notification Settings
                 'settings.notifications.view',
+                'settings.queue.view',
                 // Reports
                 'module.reports.access',
                 'reports.hub.view',
@@ -634,6 +637,7 @@ class AssignPermissionSeeder extends Seeder
                 'settings.smtp.view',
                 // Notification Settings
                 'settings.notifications.view',
+                'settings.queue.view',
                 // Reports
                 'module.reports.access',
                 'reports.hub.view',
@@ -728,6 +732,7 @@ class AssignPermissionSeeder extends Seeder
                 'settings.smtp.view',
                 // Notification Settings
                 'settings.notifications.view',
+                'settings.queue.view',
                 // Reports
                 'module.reports.access',
                 'reports.hub.view',
