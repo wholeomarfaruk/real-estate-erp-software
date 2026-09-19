@@ -8,6 +8,7 @@ use App\Models\CommunicationTemplate;
 use App\Models\Customer;
 use App\Models\Lead;
 use App\Models\Message;
+use App\Models\SmsGateway;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -32,6 +33,11 @@ class MessageList extends Component
     // Details view modal
     public bool $viewModal = false;
     public ?int $viewingMessageId = null;
+
+    // Resend-as modal (choose which SMS gateway to resend through)
+    public bool  $resendModal = false;
+    public array $resendMessageIds = [];
+    public string $resendGatewayId = '';
 
     // Individual send modal
     public bool   $sendModal    = false;
@@ -222,7 +228,7 @@ class MessageList extends Component
         $this->clearSelection();
     }
 
-    /** Requeue a single failed message for sending again. */
+    /** Open the "resend as" picker for a single failed message. */
     public function resendMessage(int $messageId): void
     {
         abort_unless(auth()->user()?->can('marketing.message.send'), 403);
@@ -237,22 +243,21 @@ class MessageList extends Component
             return;
         }
 
-        $this->requeue($message);
-
-        $this->dispatch('toast', ['type' => 'success', 'message' => 'Message requeued for sending.']);
+        $this->openResendModal([$messageId], $message->type);
     }
 
-    /** Requeue every currently-selected failed message for sending again. */
+    /** Open the "resend as" picker for every currently-selected failed message. */
     public function bulkResendMessages(): void
     {
         abort_unless(auth()->user()?->can('marketing.message.send'), 403);
 
-        $messages = Message::query()
+        $ids = Message::query()
             ->whereIn('id', $this->selected)
             ->where('status', 'failed')
-            ->get();
+            ->pluck('id')
+            ->all();
 
-        if ($messages->isEmpty()) {
+        if (empty($ids)) {
             $this->dispatch('toast', [
                 'type' => 'warning',
                 'message' => 'No failed messages selected.',
@@ -260,16 +265,58 @@ class MessageList extends Component
             return;
         }
 
+        $this->openResendModal($ids, 'sms');
+    }
+
+    private function openResendModal(array $messageIds, string $type): void
+    {
+        $this->resendMessageIds = $messageIds;
+
+        if ($type === 'sms') {
+            $activeGateway = SmsGateway::where('is_active', true)->first();
+            $this->resendGatewayId = $activeGateway ? (string) $activeGateway->id : '';
+            $this->resendModal = true;
+        } else {
+            // Email doesn't have a gateway choice — resend immediately.
+            $this->performResend($messageIds, null);
+        }
+    }
+
+    /** Requeue the pending resend batch using the chosen SMS gateway. */
+    public function confirmResend(): void
+    {
+        abort_unless(auth()->user()?->can('marketing.message.send'), 403);
+
+        $gatewayId = $this->resendGatewayId !== '' ? (int) $this->resendGatewayId : null;
+
+        $this->performResend($this->resendMessageIds, $gatewayId);
+
+        $this->resendModal = false;
+        $this->resendMessageIds = [];
+        $this->resendGatewayId = '';
+        $this->clearSelection();
+    }
+
+    public function closeResendModal(): void
+    {
+        $this->resendModal = false;
+        $this->resendMessageIds = [];
+        $this->resendGatewayId = '';
+    }
+
+    private function performResend(array $messageIds, ?int $gatewayId): void
+    {
+        $messages = Message::query()->whereIn('id', $messageIds)->where('status', 'failed')->get();
+
         foreach ($messages as $message) {
-            $this->requeue($message);
+            $this->requeue($message, $gatewayId);
         }
 
+        $count = $messages->count();
         $this->dispatch('toast', [
             'type' => 'success',
-            'message' => "{$messages->count()} message(s) requeued for sending.",
+            'message' => $count === 1 ? 'Message requeued for sending.' : "{$count} message(s) requeued for sending.",
         ]);
-
-        $this->clearSelection();
     }
 
     public function viewMessage(int $messageId): void
@@ -286,7 +333,7 @@ class MessageList extends Component
         $this->viewingMessageId = null;
     }
 
-    private function requeue(Message $message): void
+    private function requeue(Message $message, ?int $gatewayId = null): void
     {
         $message->update([
             'status'              => 'queued',
@@ -295,9 +342,12 @@ class MessageList extends Component
             'validation_error'    => null,
             'response_snapshot'   => null,
         ]);
-        $message->addTimelineEvent('requeued', ['by' => auth()->id()]);
+        $message->addTimelineEvent('requeued', [
+            'by'      => auth()->id(),
+            'gateway' => $gatewayId ? SmsGateway::find($gatewayId)?->name : null,
+        ]);
 
-        SendMessageJob::dispatch($message->id);
+        SendMessageJob::dispatch($message->id, $gatewayId);
     }
 
     private function resetSendForm(): void
@@ -341,7 +391,9 @@ class MessageList extends Component
             ? Message::with(['campaign', 'sentByUser'])->find($this->viewingMessageId)
             : null;
 
-        return view('livewire.admin.marketing.message.message-list', compact('messages', 'kpi', 'templates', 'leads', 'customers', 'viewingMessage'))
+        $smsGateways = SmsGateway::orderBy('is_active', 'desc')->orderBy('name')->get(['id', 'name', 'provider', 'is_active']);
+
+        return view('livewire.admin.marketing.message.message-list', compact('messages', 'kpi', 'templates', 'leads', 'customers', 'viewingMessage', 'smsGateways'))
             ->layout('layouts.admin.admin');
     }
 }

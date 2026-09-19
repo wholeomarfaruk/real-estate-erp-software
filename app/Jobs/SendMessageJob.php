@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Campaign;
 use App\Models\Message;
+use App\Models\SmsGateway;
 use App\Services\Mail\MailService;
 use App\Services\Sms\SmsService;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -15,7 +16,12 @@ class SendMessageJob implements ShouldQueue
 
     public int $tries = 1;
 
-    public function __construct(public readonly int $messageId) {}
+    /**
+     * @param  int|null  $gatewayId  Explicit SMS gateway to send through — used when
+     *         resending a failed message via a different provider. Null uses whichever
+     *         gateway is currently marked active.
+     */
+    public function __construct(public readonly int $messageId, public readonly ?int $gatewayId = null) {}
 
     public function handle(): void
     {
@@ -39,13 +45,14 @@ class SendMessageJob implements ShouldQueue
                 ]);
                 $message->addTimelineEvent('sent', ['via' => 'email']);
             } else {
-                $result = app(SmsService::class)->send($message->recipient, $message->body);
+                $gateway = $this->gatewayId ? SmsGateway::find($this->gatewayId) : null;
+
+                $result = app(SmsService::class)->send($message->recipient, $message->body, $gateway);
                 if (!$result['success']) {
                     throw new \RuntimeException($result['error'] ?? 'SMS sending failed');
                 }
 
-                $gateway = \App\Models\SmsGateway::where('is_active', true)->first();
-                $provider = $gateway?->provider ?? 'unknown';
+                $provider = $result['provider'] ?? 'unknown';
 
                 $messageId = $result['response']['id']
                     ?? $result['response']['message_id']

@@ -474,4 +474,49 @@
             @endif
         </div>
     </div>
+
+    {{-- Resend-As Modal (choose SMS gateway) --}}
+    <div x-show="@this.resendModal" x-cloak style="position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;">
+        <div wire:click="closeResendModal" style="position:absolute;inset:0;background:rgba(0,0,0,.5);"></div>
+        <div x-show="@this.resendModal"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+             style="position:relative;width:100%;max-width:420px;background:var(--paper);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;">
+
+            <div style="padding:18px 24px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;">
+                <div style="font-weight:600;font-size:16px;">
+                    Resend {{ count($resendMessageIds) > 1 ? count($resendMessageIds).' Messages' : 'Message' }}
+                </div>
+                <button wire:click="closeResendModal" style="background:none;border:none;cursor:pointer;color:var(--ink-3);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div style="padding:24px;">
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Send Via</label>
+                <select wire:model="resendGatewayId" style="width:100%;padding:9px 12px;border:1px solid var(--rule);border-radius:7px;font:13px 'Inter',sans-serif;background:var(--canvas);color:var(--ink-1);outline:none;">
+                    @forelse($smsGateways as $gw)
+                    <option value="{{ $gw->id }}">
+                        {{ $gw->name }} ({{ str_replace('_', ' ', ucfirst($gw->provider)) }}){{ $gw->is_active ? ' — currently active' : '' }}
+                    </option>
+                    @empty
+                    <option value="">No SMS gateways configured</option>
+                    @endforelse
+                </select>
+                <p style="font-size:11px;color:var(--ink-3);margin-top:8px;">
+                    Choose a different provider if the previous attempt failed because of that gateway (e.g. expired account, blocked sender ID).
+                </p>
+
+                <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px;">
+                    <button wire:click="closeResendModal"
+                        style="padding:9px 18px;border:1px solid var(--rule);border-radius:7px;font:600 12px 'Inter',sans-serif;background:var(--canvas);color:var(--ink-2);cursor:pointer;">Cancel</button>
+                    <button wire:click="confirmResend" wire:loading.attr="disabled" wire:target="confirmResend"
+                        style="padding:9px 20px;background:var(--ink-1);color:white;border:none;border-radius:7px;font:600 12px 'Inter',sans-serif;cursor:pointer;">
+                        <span wire:loading.remove wire:target="confirmResend">Resend Now</span>
+                        <span wire:loading wire:target="confirmResend">Resending…</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
