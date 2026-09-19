@@ -41,20 +41,25 @@
 
                 {{-- From Date --}}
                 <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold uppercase tracking-wide text-ink-3 mb-2">From</label>
+                    <label class="block text-xs font-semibold uppercase tracking-wide text-ink-3 mb-2">Sale Date From</label>
                     <input type="date" wire:model.live="fromDate" class="flatpickr-only-date input w-full">
                 </div>
 
                 {{-- To Date --}}
                 <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold uppercase tracking-wide text-ink-3 mb-2">To</label>
+                    <label class="block text-xs font-semibold uppercase tracking-wide text-ink-3 mb-2">Sale Date To</label>
                     <input type="date" wire:model.live="toDate" class="flatpickr-only-date input w-full">
                 </div>
             </div>
+            <p class="text-xs text-ink-3 -mt-2">Filters this client's sales/rent transactions by sale date — leave empty (or use "All Time") to see their full transaction history.</p>
 
             {{-- Presets + Reset --}}
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <div class="flex gap-2">
+                    <button wire:click="applyPreset('all')"
+                            class="btn text-sm px-3 py-1.5 @if($preset === 'all') btn-primary @else btn-secondary @endif">
+                        All Time
+                    </button>
                     <button wire:click="applyPreset('today')"
                             class="btn text-sm px-3 py-1.5 @if($preset === 'today') btn-primary @else btn-secondary @endif">
                         Today

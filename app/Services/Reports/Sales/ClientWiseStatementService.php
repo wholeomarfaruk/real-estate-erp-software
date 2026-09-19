@@ -118,8 +118,8 @@ class ClientWiseStatementService
             'report_slug' => 'client-wise-statement',
             'generated_at' => now()->format('d-M-Y H:i A'),
             'generated_by' => auth()->user()?->name ?? 'System',
-            'from_date' => $filters['from_date'] ?? '-',
-            'to_date' => $filters['to_date'] ?? '-',
+            'from_date' => $filters['from_date'] ?: 'All Time',
+            'to_date' => $filters['to_date'] ?: 'All Time',
             'file_name' => 'client-wise-statement-' . ($customer?->id ?? 'unknown') . '-' . now()->format('Y-m-d-His'),
             'notes' => $filters['notes'] ?? '',
         ];

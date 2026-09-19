@@ -19,7 +19,7 @@ class ClientWiseStatement extends Component
 
     public string $transactionType = 'all';
 
-    public string $preset = 'month';
+    public string $preset = 'all';
 
 
     public function mount(?int $customer_id = null): void
@@ -29,10 +29,8 @@ class ClientWiseStatement extends Component
 
         $this->customerId = request()->query('customer_id', $customer_id);
 
-        $today = now()->toDateString();
-        $this->fromDate = $this->fromDate ?: Carbon::now()->startOfMonth()->toDateString();
-        $this->toDate = $this->toDate ?: $today;
-
+        // Default to "All Time" — most clients purchased outside the current
+        // month/year, so defaulting to a narrow range made the report look empty.
         $this->syncPreset();
     }
 
@@ -58,7 +56,14 @@ class ClientWiseStatement extends Component
     {
         $now = now();
 
-        $this->preset = in_array($preset, ['today', 'month', 'year', 'custom'], true) ? $preset : 'today';
+        $this->preset = in_array($preset, ['all', 'today', 'month', 'year', 'custom'], true) ? $preset : 'all';
+
+        if ($this->preset === 'all') {
+            $this->fromDate = '';
+            $this->toDate = '';
+
+            return;
+        }
 
         if ($this->preset === 'month') {
             $this->fromDate = $now->copy()->startOfMonth()->toDateString();
@@ -86,7 +91,7 @@ class ClientWiseStatement extends Component
     {
         $this->transactionType = 'all';
 
-        $this->applyPreset('month');
+        $this->applyPreset('all');
     }
 
     public function render(ClientWiseStatementService $service): View
@@ -122,6 +127,12 @@ class ClientWiseStatement extends Component
 
     protected function syncPreset(): void
     {
+        if ($this->fromDate === '' && $this->toDate === '') {
+            $this->preset = 'all';
+
+            return;
+        }
+
         try {
             $from = Carbon::parse($this->fromDate);
             $to = Carbon::parse($this->toDate);

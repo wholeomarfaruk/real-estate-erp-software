@@ -21,7 +21,7 @@ class RegularClientStatement extends Component
 
     public string $saleType = 'all';
 
-    public string $preset = 'month';
+    public string $preset = 'all';
 
     public string $notes = '';
 
@@ -29,10 +29,8 @@ class RegularClientStatement extends Component
     {
         $this->authorizePermission('reports.sales.regular-client-statement.view');
 
-        $today = now()->toDateString();
-        $this->fromDate = $this->fromDate ?: Carbon::now()->startOfMonth()->toDateString();
-        $this->toDate = $this->toDate ?: $today;
-
+        // Default to "All Time" — most clients purchased outside the current
+        // month/year, so defaulting to a narrow range made the report look empty.
         $this->syncPreset();
     }
 
@@ -51,7 +49,14 @@ class RegularClientStatement extends Component
     {
         $now = now();
 
-        $this->preset = in_array($preset, ['today', 'month', 'year', 'custom'], true) ? $preset : 'today';
+        $this->preset = in_array($preset, ['all', 'today', 'month', 'year', 'custom'], true) ? $preset : 'all';
+
+        if ($this->preset === 'all') {
+            $this->fromDate = '';
+            $this->toDate = '';
+
+            return;
+        }
 
         if ($this->preset === 'month') {
             $this->fromDate = $now->copy()->startOfMonth()->toDateString();
@@ -82,7 +87,7 @@ class RegularClientStatement extends Component
         $this->propertyId = null;
         $this->saleType = 'all';
 
-        $this->applyPreset('month');
+        $this->applyPreset('all');
     }
 
     public function render(RegularClientStatementService $service): View
@@ -123,6 +128,12 @@ class RegularClientStatement extends Component
 
     protected function syncPreset(): void
     {
+        if ($this->fromDate === '' && $this->toDate === '') {
+            $this->preset = 'all';
+
+            return;
+        }
+
         try {
             $from = Carbon::parse($this->fromDate);
             $to = Carbon::parse($this->toDate);

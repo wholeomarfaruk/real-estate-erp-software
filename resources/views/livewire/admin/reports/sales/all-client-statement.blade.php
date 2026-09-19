@@ -60,16 +60,17 @@
 
                 {{-- From Date --}}
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">From</label>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Sale Date From</label>
                     <input type="date" wire:model.live="fromDate" class="flatpickr-only-date w-full h-10 px-3 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition">
                 </div>
 
                 {{-- To Date --}}
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">To</label>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Sale Date To</label>
                     <input type="date" wire:model.live="toDate" class="flatpickr-only-date w-full h-10 px-3 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition">
                 </div>
             </div>
+            <p class="text-xs text-slate-500 mt-2">Filters clients by when they purchased/registered the sale — leave empty (or use "All Time") to include every client regardless of sale date. Paid/outstanding amounts always reflect the client's full lifetime balance.</p>
 
             {{-- Notes Field --}}
             <div class="mt-5">
@@ -80,6 +81,10 @@
             {{-- Preset Buttons --}}
             <div class="flex gap-2 mt-5 pt-5 border-t border-slate-200">
                 <span class="text-xs font-semibold text-slate-600 uppercase tracking-wide py-2">Quick Range:</span>
+                <button wire:click="applyPreset('all')"
+                        class="px-3 py-2 text-xs font-medium rounded-lg transition @if($preset === 'all') bg-blue-500 text-white shadow-sm @else bg-slate-100 text-slate-700 hover:bg-slate-200 @endif">
+                    All Time
+                </button>
                 <button wire:click="applyPreset('today')"
                         class="px-3 py-2 text-xs font-medium rounded-lg transition @if($preset === 'today') bg-blue-500 text-white shadow-sm @else bg-slate-100 text-slate-700 hover:bg-slate-200 @endif">
                     Today
