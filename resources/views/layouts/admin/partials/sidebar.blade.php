@@ -725,7 +725,7 @@
                                         'permission' => 'accounts.expense.list',
                                     ],
                                     [
-                                        'label' => 'Banks',
+                                        'label' => 'Cash & Banks Visual',
                                         'route' => 'admin.accounts.banks.list',
                                         'permission' => 'accounts.chart.list',
                                     ],

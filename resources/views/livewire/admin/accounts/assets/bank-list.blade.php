@@ -1,9 +1,9 @@
-<div x-data x-init="$store.pageName = { name: 'Bank Accounts' }">
+<div x-data x-init="$store.pageName = { name: 'Cash & Banks Visual' }">
 
     {{-- ── Page header ─────────────────────────────────────────────────────── --}}
     <div class="flex flex-wrap items-end justify-between gap-4 mb-4">
         <div>
-            <h1 class="text-lg font-bold text-gray-800">Bank Accounts</h1>
+            <h1 class="text-lg font-bold text-gray-800">Cash & Banks Visual</h1>
             <p class="text-sm text-gray-500">Company bank, cash, MFS and wallet accounts — balances and ledger links.</p>
         </div>
         <div class="flex items-center gap-2">

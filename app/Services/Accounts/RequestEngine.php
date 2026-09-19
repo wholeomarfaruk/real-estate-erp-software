@@ -2,6 +2,7 @@
 
 namespace App\Services\Accounts;
 
+use App\Enums\Accounts\TransactionType;
 use App\Models\BankingPaymentRequest;
 use App\Models\Project;
 
@@ -112,7 +113,7 @@ class RequestEngine
 
         $data = [
             'request_no'        => BankingPaymentRequest::generateRequestNo(),
-            'source_type'       => $expenseType,
+            'source_type'       => TransactionType::EXPENSE->value,
             'amount'            => $roundedAmount,
             'description'       => $title,
             'method'            => $paymentMethod,

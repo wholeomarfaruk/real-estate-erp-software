@@ -17,7 +17,7 @@
         [
             'key'   => 'bank-accounts',
             'route' => 'admin.accounts.banks.list',
-            'label' => 'Bank Accounts',
+            'label' => 'Cash & Banks Visual',
             'icon'  => '<path d="M3 21h18M5 21V10m4 11V10m6 11V10m4 11V10M2 10l10-7 10 7"/>',
         ],
         [
