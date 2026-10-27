@@ -65,7 +65,6 @@ class BankingManagement extends Component
             ->selectRaw("
                 SUM(CASE WHEN status='pending'   THEN 1 ELSE 0 END) AS pending,
                 SUM(CASE WHEN status='approved'  THEN 1 ELSE 0 END) AS approved,
-                SUM(CASE WHEN status='released'  THEN 1 ELSE 0 END) AS released,
                 SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) AS completed,
                 SUM(CASE WHEN status='rejected'  THEN 1 ELSE 0 END) AS rejected,
                 SUM(amount) AS total_amount
@@ -79,7 +78,6 @@ class BankingManagement extends Component
                 'transactionCategory',
                 'requestedBy',
                 'approvedBy',
-                'releasedBy',
                 'completedBy',
                 'rejectedBy',
             ])->find($this->viewingId);
@@ -174,17 +172,9 @@ class BankingManagement extends Component
         ]);
     }
 
-    public function release(int $id): void
-    {
-        $this->transition($id, 'approved', 'released', [
-            'released_by' => Auth::id(),
-            'released_at' => now(),
-        ]);
-    }
-
     public function markCompleted(int $id): void
     {
-        $request = BankingPaymentRequest::where('id', $id)->where('status', 'released')->first();
+        $request = BankingPaymentRequest::where('id', $id)->where('status', 'approved')->first();
         if (! $request) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Cannot perform this action.']);
             return;
@@ -227,7 +217,7 @@ class BankingManagement extends Component
         ]);
 
         $request = BankingPaymentRequest::find($this->rejectingId);
-        if ($request && in_array($request->status, ['pending', 'approved', 'released'])) {
+        if ($request && in_array($request->status, ['pending', 'approved'])) {
             $request->update([
                 'status'           => 'rejected',
                 'rejection_reason' => $this->rejection_reason,

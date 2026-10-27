@@ -211,8 +211,8 @@ class FundReleaseService
     {
         return DB::transaction(function () use ($bankingRequest, $userId): PurchaseFund {
 
-            if ($bankingRequest->status !== 'released') {
-                throw new \DomainException('Only a released payment request can be completed.');
+            if ($bankingRequest->status !== 'approved') {
+                throw new \DomainException('Only an approved payment request can be completed.');
             }
 
             $fundId = (int) ($bankingRequest->external_data['purchase_fund_id'] ?? 0);

@@ -94,8 +94,6 @@ class EmployeeAdvanceService
                 'requested_by' => $actorId,
                 'approved_by' => null,
                 'approved_at' => null,
-                'released_by' => null,
-                'released_at' => null,
                 'completed_by' => null,
                 'completed_at' => null,
                 'rejected_by' => null,

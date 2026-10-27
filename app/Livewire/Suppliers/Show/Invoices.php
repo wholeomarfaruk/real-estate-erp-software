@@ -94,7 +94,7 @@ class Invoices extends Component
             return collect();
         }
 
-        // Pending/approved/released/rejected requests (everything not yet completed).
+        // Pending/approved/rejected requests (everything not yet completed).
         $requests = BankingPaymentRequest::query()
             ->where('sourceable_type', PurchaseInvoice::class)
             ->where('sourceable_id', $invoiceId)

@@ -186,7 +186,7 @@ class BankingTransactionServiceTest extends TestCase
     {
         $request = BankingPaymentRequest::factory()->create([
             'source_type' => TransactionType::EXPENSE->value,
-            'status' => 'released',
+            'status' => 'approved',
             'bank_account_id' => $this->bankAccount->id,
             'account_id' => $this->paymentAccount->id,
             'amount' => 1000.00,
@@ -213,7 +213,7 @@ class BankingTransactionServiceTest extends TestCase
     {
         $request = BankingPaymentRequest::factory()->create([
             'source_type' => TransactionType::INCOME->value,
-            'status' => 'released',
+            'status' => 'approved',
             'bank_account_id' => $this->bankAccount->id,
             'account_id' => $this->paymentAccount->id,
             'amount' => 5000.00,
@@ -238,7 +238,7 @@ class BankingTransactionServiceTest extends TestCase
         $this->assertEquals($this->paymentAccount->id, $debitLines[0]->account_id);
     }
 
-    public function test_reject_completion_if_not_released_status(): void
+    public function test_reject_completion_if_not_approved_status(): void
     {
         $request = BankingPaymentRequest::factory()->create([
             'status' => 'pending',
@@ -248,7 +248,7 @@ class BankingTransactionServiceTest extends TestCase
         ]);
 
         $this->expectException(\DomainException::class);
-        $this->expectExceptionMessage("Payment request must be 'released' to complete");
+        $this->expectExceptionMessage("Payment request must be 'approved' to complete");
 
         $this->service->completePaymentRequest($request, $this->user->id);
     }
@@ -258,7 +258,7 @@ class BankingTransactionServiceTest extends TestCase
         $transaction = Transaction::factory()->create();
 
         $request = BankingPaymentRequest::factory()->create([
-            'status' => 'released',
+            'status' => 'approved',
             'bank_account_id' => $this->bankAccount->id,
             'account_id' => $this->paymentAccount->id,
             'amount' => 1000.00,
@@ -274,7 +274,7 @@ class BankingTransactionServiceTest extends TestCase
     public function test_reject_completion_with_zero_amount(): void
     {
         $request = BankingPaymentRequest::factory()->create([
-            'status' => 'released',
+            'status' => 'approved',
             'bank_account_id' => $this->bankAccount->id,
             'account_id' => $this->paymentAccount->id,
             'amount' => 0.00,
@@ -289,7 +289,7 @@ class BankingTransactionServiceTest extends TestCase
     public function test_reject_completion_without_valid_payment_account(): void
     {
         $request = BankingPaymentRequest::factory()->create([
-            'status' => 'released',
+            'status' => 'approved',
             'bank_account_id' => $this->bankAccount->id,
             'account_id' => null,
         ]);
@@ -307,7 +307,7 @@ class BankingTransactionServiceTest extends TestCase
     {
         $request = BankingPaymentRequest::factory()->create([
             'source_type' => TransactionType::INCOME->value,
-            'status' => 'released',
+            'status' => 'approved',
             'bank_account_id' => $this->bankAccount->id,
             'account_id' => $this->paymentAccount->id,
             'amount' => 2000.00,
@@ -323,7 +323,7 @@ class BankingTransactionServiceTest extends TestCase
     {
         $request = BankingPaymentRequest::factory()->create([
             'source_type' => TransactionType::INCOME->value,
-            'status' => 'released',
+            'status' => 'approved',
             'bank_account_id' => $this->bankAccount->id,
             'account_id' => $this->paymentAccount->id,
             'amount' => 1500.00,
@@ -338,7 +338,7 @@ class BankingTransactionServiceTest extends TestCase
     {
         $request = BankingPaymentRequest::factory()->create([
             'source_type' => PaymentRequestSourceType::PAYROLL->value,
-            'status' => 'released',
+            'status' => 'approved',
             'bank_account_id' => $this->bankAccount->id,
             'account_id' => $this->paymentAccount->id,
             'sourceable_type' => PayrollPayment::class,
@@ -356,7 +356,7 @@ class BankingTransactionServiceTest extends TestCase
     {
         $request = BankingPaymentRequest::factory()->create([
             'source_type' => PaymentRequestSourceType::SUPPLIER->value,
-            'status' => 'released',
+            'status' => 'approved',
             'bank_account_id' => $this->bankAccount->id,
             'account_id' => $this->paymentAccount->id,
             'sourceable_type' => PurchaseInvoice::class,
@@ -374,7 +374,7 @@ class BankingTransactionServiceTest extends TestCase
     {
         $request = BankingPaymentRequest::factory()->create([
             'source_type' => TransactionType::ADVANCE->value,
-            'status' => 'released',
+            'status' => 'approved',
             'bank_account_id' => $this->bankAccount->id,
             'account_id' => $this->paymentAccount->id,
             // Sourced to a Supplier but missing the external_data fund link.

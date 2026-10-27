@@ -28,11 +28,10 @@
     @include('livewire.admin.accounts.banking.partials.nav-tabs', ['active' => 'payment-requests'])
 
     {{-- ── KPI strip ───────────────────────────────────────────────────────── --}}
-    <div class="grid grid-cols-2 gap-3 mb-5 sm:grid-cols-3 xl:grid-cols-5">
+    <div class="grid grid-cols-2 gap-3 mb-5 sm:grid-cols-4">
         @foreach([
             ['key' => 'pending',   'label' => 'Pending',   'dot' => 'bg-amber-500',  'bg' => 'border-amber-200'],
             ['key' => 'approved',  'label' => 'Approved',  'dot' => 'bg-blue-500',   'bg' => 'border-blue-200'],
-            ['key' => 'released',  'label' => 'Released',  'dot' => 'bg-violet-500', 'bg' => 'border-violet-200'],
             ['key' => 'completed', 'label' => 'Completed', 'dot' => 'bg-emerald-500','bg' => 'border-emerald-200'],
             ['key' => 'rejected',  'label' => 'Rejected',  'dot' => 'bg-rose-500',   'bg' => 'border-rose-200'],
         ] as $stat)
@@ -96,7 +95,6 @@
                             $statusClass = match($req->status) {
                                 'pending'   => 'bg-amber-50 text-amber-700 border-amber-200',
                                 'approved'  => 'bg-blue-50 text-blue-700 border-blue-200',
-                                'released'  => 'bg-violet-50 text-violet-700 border-violet-200',
                                 'completed' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
                                 'rejected'  => 'bg-rose-50 text-rose-700 border-rose-200',
                                 default     => 'bg-gray-100 text-gray-600 border-gray-200',
@@ -169,18 +167,13 @@
                                             Reject
                                         </button>
                                     @elseif($req->status === 'approved')
-                                        <button type="button" wire:click.stop="release({{ $req->id }})"
-                                            class="inline-flex items-center gap-1 rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-[10px] font-semibold text-violet-700 hover:bg-violet-100 transition">
-                                            Release
+                                        <button type="button" wire:click.stop="markCompleted({{ $req->id }})"
+                                            class="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-100 transition">
+                                            Complete
                                         </button>
                                         <button type="button" wire:click.stop="openRejectModal({{ $req->id }})"
                                             class="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-[10px] font-semibold text-rose-700 hover:bg-rose-100 transition">
                                             Reject
-                                        </button>
-                                    @elseif($req->status === 'released')
-                                        <button type="button" wire:click.stop="markCompleted({{ $req->id }})"
-                                            class="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-100 transition">
-                                            Complete
                                         </button>
                                     @endif
                                     <button type="button" wire:click.stop="openDrawer({{ $req->id }})"
@@ -237,7 +230,6 @@
                 $statusClass = match($r->status) {
                     'pending'   => 'bg-amber-50 text-amber-700 border-amber-200',
                     'approved'  => 'bg-blue-50 text-blue-700 border-blue-200',
-                    'released'  => 'bg-violet-50 text-violet-700 border-violet-200',
                     'completed' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
                     'rejected'  => 'bg-rose-50 text-rose-700 border-rose-200',
                     default     => 'bg-gray-100 text-gray-600 border-gray-200',
@@ -400,13 +392,6 @@
                                 <p class="text-[10px] text-gray-400 font-mono">{{ $r->approved_at->format('d M Y, H:i') }}</p>
                             </li>
                         @endif
-                        @if($r->released_at)
-                            <li>
-                                <div class="absolute -left-1.5 mt-1 h-3 w-3 rounded-full border-2 border-white bg-violet-500"></div>
-                                <p class="text-xs font-semibold text-gray-700">Released by {{ $r->releasedBy?->name ?? '—' }}</p>
-                                <p class="text-[10px] text-gray-400 font-mono">{{ $r->released_at->format('d M Y, H:i') }}</p>
-                            </li>
-                        @endif
                         @if($r->completed_at)
                             <li>
                                 <div class="absolute -left-1.5 mt-1 h-3 w-3 rounded-full border-2 border-white bg-emerald-500"></div>
@@ -485,7 +470,7 @@
                 @endif
 
                 {{-- Action buttons --}}
-                @if(in_array($r->status, ['pending', 'approved', 'released']))
+                @if(in_array($r->status, ['pending', 'approved']))
                     <div class="flex flex-wrap gap-2 border-t border-gray-100 pt-4">
                         @if($r->status === 'pending')
                             <button type="button" wire:click="approve({{ $r->id }})"
@@ -493,11 +478,6 @@
                                 Approve
                             </button>
                         @elseif($r->status === 'approved')
-                            <button type="button" wire:click="release({{ $r->id }})"
-                                class="flex-1 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 transition">
-                                Release
-                            </button>
-                        @elseif($r->status === 'released')
                             <button type="button" wire:click="markCompleted({{ $r->id }})"
                                 class="flex-1 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition">
                                 Mark Completed

@@ -101,7 +101,7 @@
                     ? $inv->status->value : (string) $inv->status;
                 $isDue = (float) $inv->due_amount > 0;
                 $payReqs = $this->paymentHistory;
-                $pendingCount = $payReqs->whereIn('status', ['pending','approved','released'])->count();
+                $pendingCount = $payReqs->whereIn('status', ['pending','approved'])->count();
             @endphp
             <div class="modal-head">
                 <div>
@@ -284,7 +284,6 @@
                                 $prPill = match($pr['status']) {
                                     'completed' => ['paid',      'Completed'],
                                     'approved'  => ['partial',   'Approved'],
-                                    'released'  => ['unpaid',    'Released'],
                                     'pending'   => ['draft',     'Pending'],
                                     'rejected'  => ['cancelled', 'Rejected'],
                                     default     => ['draft', ucfirst($pr['status'] ?? '?')],
@@ -342,7 +341,7 @@
                         @if ($payMode === 'advance')
                             Applying an advance settles the invoice immediately — no banking approval needed
                         @else
-                            Payment request goes to Banking for approval → release → completion
+                            Payment request goes to Banking for approval → completion
                         @endif
                     @else
                         This invoice is fully settled

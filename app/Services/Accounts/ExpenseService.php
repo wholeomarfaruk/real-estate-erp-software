@@ -20,8 +20,8 @@ class ExpenseService
     public function completeExpense(BankingPaymentRequest $bankingRequest, int $userId): BankingPaymentRequest
     {
         return DB::transaction(function () use ($bankingRequest, $userId): BankingPaymentRequest {
-            if ($bankingRequest->status !== 'released') {
-                throw new \DomainException('Only a released payment request can be completed.');
+            if ($bankingRequest->status !== 'approved') {
+                throw new \DomainException('Only an approved payment request can be completed.');
             }
 
             $bankAccount = BankAccount::query()->findOrFail($bankingRequest->bank_account_id);

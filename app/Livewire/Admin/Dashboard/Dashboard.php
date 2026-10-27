@@ -81,7 +81,7 @@ class Dashboard extends Component
                 'icon'  => 'expense',
             ];
 
-            $pendingPayments = BankingPaymentRequest::whereIn('status', ['pending', 'approved', 'released'])->count();
+            $pendingPayments = BankingPaymentRequest::whereIn('status', ['pending', 'approved'])->count();
 
             $kpis[] = [
                 'label' => 'Pending Banking',

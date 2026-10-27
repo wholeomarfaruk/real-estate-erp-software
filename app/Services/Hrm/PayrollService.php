@@ -354,7 +354,7 @@ class PayrollService
             ->where(function (Builder $query): void {
                 $query->whereNotNull('transaction_id')
                     ->orWhereHas('bankingRequest', function (Builder $requestQuery): void {
-                        $requestQuery->whereIn('status', ['pending', 'approved', 'released', 'completed']);
+                        $requestQuery->whereIn('status', ['pending', 'approved', 'completed']);
                     });
             })
             ->sum('amount'), 2);

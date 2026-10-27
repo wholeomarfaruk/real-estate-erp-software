@@ -112,7 +112,7 @@ class ProjectExpenses extends Component
             ->where('source_type', 'expense')
             ->where('sourceable_type', Project::class)
             ->where('sourceable_id', $this->project->id)
-            ->whereIn('status', ['pending', 'approved', 'released'])
+            ->whereIn('status', ['pending', 'approved'])
             ->sum('amount');
 
         $project = $this->project;

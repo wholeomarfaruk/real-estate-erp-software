@@ -151,7 +151,6 @@
                                 $workflowClass = match($workflowStatus) {
                                     'pending' => 'bg-amber-100 text-amber-700',
                                     'approved' => 'bg-blue-100 text-blue-700',
-                                    'released' => 'bg-violet-100 text-violet-700',
                                     'completed' => 'bg-emerald-100 text-emerald-700',
                                     'rejected' => 'bg-rose-100 text-rose-700',
                                     default => 'bg-zinc-100 text-zinc-700',

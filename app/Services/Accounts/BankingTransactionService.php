@@ -705,9 +705,9 @@ class BankingTransactionService
      */
     private function validatePaymentRequest(BankingPaymentRequest $request): void
     {
-        if ($request->status !== 'released') {
+        if ($request->status !== 'approved') {
             throw new \DomainException(
-                "Payment request must be 'released' to complete. Current status: {$request->status}"
+                "Payment request must be 'approved' to complete. Current status: {$request->status}"
             );
         }
 

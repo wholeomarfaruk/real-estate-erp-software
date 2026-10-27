@@ -37,8 +37,6 @@ class BankingPaymentRequest extends Model
         'requested_by',
         'approved_by',
         'approved_at',
-        'released_by',
-        'released_at',
         'completed_by',
         'completed_at',
         'rejected_by',
@@ -52,7 +50,6 @@ class BankingPaymentRequest extends Model
         'credit_amount'    => 'decimal:3',
         'payment_date'     => 'date',
         'approved_at'      => 'datetime',
-        'released_at'      => 'datetime',
         'completed_at'     => 'datetime',
         'rejected_at'      => 'datetime',
         'external_data'    => 'array',
@@ -104,11 +101,6 @@ class BankingPaymentRequest extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
-    public function releasedBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'released_by');
-    }
-
     public function completedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'completed_by');
@@ -130,7 +122,6 @@ class BankingPaymentRequest extends Model
         return match ($this->status) {
             'pending'   => 'bg-amber-50 text-amber-700 border-amber-200',
             'approved'  => 'bg-blue-50 text-blue-700 border-blue-200',
-            'released'  => 'bg-violet-50 text-violet-700 border-violet-200',
             'completed' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
             'rejected'  => 'bg-rose-50 text-rose-700 border-rose-200',
             default     => 'bg-gray-100 text-gray-600 border-gray-200',
@@ -167,7 +158,7 @@ class BankingPaymentRequest extends Model
 
     public function canBeCompleted(): bool
     {
-        if ($this->status !== 'released') {
+        if ($this->status !== 'approved') {
             return false;
         }
 
