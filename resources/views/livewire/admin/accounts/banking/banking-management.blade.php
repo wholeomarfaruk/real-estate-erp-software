@@ -7,13 +7,6 @@
             <p class="text-sm text-gray-500">Review and approve outgoing payment requests.</p>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{{ route('admin.accounts.transaction-categories') }}"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
-                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 6h16M4 12h8M4 18h4"/>
-                </svg>
-                Categories
-            </a>
             <button type="button" wire:click="openCreateModal"
                 class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800">
                 <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -112,9 +105,6 @@
                                 <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide {{ $srcBadgeClass }}">
                                     {{ $srcLabel }}
                                 </span>
-                                @if($req->transactionCategory)
-                                    <p class="mt-0.5 text-[10px] text-gray-400">{{ $req->transactionCategory->name }}</p>
-                                @endif
                             </td>
                             <td class="px-4 py-3 text-gray-700 max-w-[200px]">
                                 <p class="truncate">{{ $req->description ?: '—' }}</p>
@@ -277,12 +267,6 @@
                                 </span>
                             </dd>
                         </div>
-                        @if($r->transactionCategory)
-                            <div class="flex gap-3">
-                                <dt class="w-28 shrink-0 text-xs text-gray-400">Category</dt>
-                                <dd class="text-gray-700">{{ $r->transactionCategory->name }}</dd>
-                            </div>
-                        @endif
                         <div class="flex gap-3">
                             <dt class="w-28 shrink-0 text-xs text-gray-400">Description</dt>
                             <dd class="text-gray-700 break-words">{{ $r->description ?: '—' }}</dd>
@@ -523,19 +507,6 @@
                     @error('source_type') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
-                @if($source_type === 'advance')
-                <div>
-                    <label class="text-sm font-medium text-gray-700">Advance Category <span class="text-rose-500">*</span></label>
-                    <select wire:model.defer="transaction_category_id"
-                        class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-                        <option value="">— Select Category —</option>
-                        @foreach($advanceCategories as $cat)
-                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('transaction_category_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                </div>
-                @endif
 
                 <div>
                     <label class="text-sm font-medium text-gray-700">Account <span class="text-rose-500">*</span></label>

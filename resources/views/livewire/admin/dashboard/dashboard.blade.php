@@ -171,9 +171,6 @@
                         <p class="text-xs font-semibold text-gray-800 truncate">{{ $exp->title }}</p>
                         <p class="text-xs text-gray-500 mt-0.5">
                             {{ $exp->date->format('d M Y') }}
-                            @if($exp->transactionCategory)
-                             · {{ $exp->transactionCategory->name }}
-                            @endif
                         </p>
                     </div>
                     <div class="ml-3 flex flex-col items-end gap-1">

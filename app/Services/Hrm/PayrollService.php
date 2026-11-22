@@ -12,7 +12,6 @@ use App\Models\EmployeeAdvanceAdjustment;
 use App\Models\Payroll;
 use App\Models\PayrollPayment;
 use App\Models\SalaryStructure;
-use App\Models\TransactionCategory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -152,7 +151,6 @@ class PayrollService
                     'source_type' => PaymentRequestSourceType::PAYROLL->value,
                     'sourceable_type' => Employee::class,
                     'sourceable_id' => $payroll->employee_id,
-                    'transaction_category_id' => null,
                     'transaction_id' => null,
                     'amount' => $amount,
                     'description' => $this->payrollRequestDescription($payroll),
@@ -217,7 +215,6 @@ class PayrollService
                 'source_type' => PaymentRequestSourceType::PAYROLL->value,
                 'sourceable_type' => PayrollPayment::class,
                 'sourceable_id' => $payment->id,
-                'transaction_category_id' => $this->payrollCategoryId(),
                 'transaction_id' => null,
                 'amount' => $amount,
                 'description' => $this->payrollRequestDescription($payroll),
@@ -360,19 +357,6 @@ class PayrollService
             ->sum('amount'), 2);
     }
 
-    protected function payrollCategoryId(): ?int
-    {
-        return TransactionCategory::query()
-            ->where('is_active', true)
-            ->where(function (Builder $query): void {
-                $query->where('slug', 'payroll')
-                    ->orWhere(function (Builder $subQuery): void {
-                        $subQuery->where('type', 'expense')
-                            ->whereRaw('LOWER(name) = ?', ['payroll']);
-                    });
-            })
-            ->value('id');
-    }
 
     protected function payrollRequestDescription(Payroll $payroll): string
     {

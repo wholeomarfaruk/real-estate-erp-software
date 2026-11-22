@@ -6,9 +6,10 @@ use App\Models\MasterProfile;
 use Illuminate\Support\Collection;
 
 /**
- * Optional "Profile" (party) picker for accounting entry forms.
+ * "Profile" (party) picker for accounting entry forms.
  * Include the partial `livewire.admin.profiles.partials.profile-picker` in the view
- * and save `$master_profile_id` on the request / transaction.
+ * (a searchable select bound to `$master_profile_id`) and save `$master_profile_id`
+ * on the request / transaction.
  */
 trait WithProfilePicker
 {
@@ -52,6 +53,29 @@ trait WithProfilePicker
             ->orderBy('name')
             ->limit(8)
             ->get();
+    }
+
+    /**
+     * Options for the searchable profile select: id => "Name — CODE · phone (roles)".
+     * Active profiles, plus the selected one even if it is no longer active.
+     */
+    public function profilePickerOptions(): array
+    {
+        $selected = $this->master_profile_id ?? null;
+
+        return MasterProfile::query()
+            ->with('roles.type:id,name')
+            ->where(fn ($q) => $q->where('status', 'active')
+                ->when($selected, fn ($q) => $q->orWhere('id', $selected)))
+            ->orderBy('name')
+            ->get(['id', 'name', 'code', 'phone'])
+            ->mapWithKeys(function (MasterProfile $p) {
+                $meta  = collect([$p->code, $p->phone])->filter()->join(' · ');
+                $roles = $p->roles->pluck('type.name')->filter()->unique()->join(', ');
+
+                return [$p->id => $p->name . ($meta ? " — {$meta}" : '') . ($roles ? " ({$roles})" : '')];
+            })
+            ->all();
     }
 
     protected function profilePickerRules(): array

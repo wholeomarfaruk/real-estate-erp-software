@@ -183,7 +183,9 @@ class TransactionReferenceFormatter
             'label' => "{$label}",
             'details' => [
                 'id' => "TXN#{$model->id}",
-                'category' => $model->transactionCategory?->name ?? '—',
+                'type' => \App\Enums\Accounts\TransactionType::tryFrom(
+                    $model->type instanceof \BackedEnum ? $model->type->value : (string) $model->type
+                )?->label() ?? '—',
             ],
             'icon' => '💳',
         ];

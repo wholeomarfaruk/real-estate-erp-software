@@ -172,9 +172,6 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
         ->middleware('can:accounts.advance.refund')
         ->name('advance-refund');
 
-    Route::get('/transaction-categories', App\Livewire\Admin\Accounts\TransactionCategoryManager::class)
-        ->name('transaction-categories');
-
     Route::get('/settings', App\Livewire\Admin\Accounts\Settings\AccountingSettings::class)
         ->middleware('can:accounts.chart.list')
         ->name('settings');
@@ -199,9 +196,6 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
         Route::get('/new', App\Livewire\Admin\Accounts\Expense\DynamicExpenseForm::class)
             ->middleware('can:accounts.expense.create')
             ->name('create');
-        Route::get('/{expense}', App\Livewire\Admin\Accounts\Expense\ExpenseForm::class)
-            ->middleware('can:accounts.expense.list')
-            ->name('show');
     });
 
     Route::get('/transactions/{transaction}/attachments/{file}/download', [TransactionAttachmentController::class, 'download'])

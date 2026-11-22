@@ -11,7 +11,9 @@ use App\Models\File;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\ProjectEstimate;
-use App\Models\TransactionCategory;
+use App\Enums\Accounts\AccountGroupType;
+use App\Models\Account;
+use App\Services\Accounts\FeatureAccountService;
 use Livewire\Component;
 
 class ProjectEstimates extends Component
@@ -37,7 +39,7 @@ class ProjectEstimates extends Component
 
     /**
      * Each row:
-     * id, cost_type, material_id, transaction_category_id, name,
+     * id, cost_type, material_id, account_id (expense head), name,
      * unit, estimated_qty, estimated_rate, work_phase, is_optional, remarks
      */
     public array $items = [];
@@ -113,7 +115,7 @@ class ProjectEstimates extends Component
             'id'                      => $it->id,
             'cost_type'               => $it->cost_type?->value ?? 'material',
             'material_id'             => $it->material_id,
-            'transaction_category_id' => $it->transaction_category_id,
+            'account_id'              => $it->account_id,
             'name'                    => $it->name ?? '',
             'unit'                    => $it->unit ?? '',
             'estimated_qty'           => (float) $it->estimated_qty,
@@ -148,7 +150,7 @@ class ProjectEstimates extends Component
             'id'                      => null,
             'cost_type'               => 'material',
             'material_id'             => null,
-            'transaction_category_id' => null,
+            'account_id'              => null,
             'name'                    => '',
             'unit'                    => '',
             'estimated_qty'           => 1,
@@ -189,18 +191,18 @@ class ProjectEstimates extends Component
         if (str_ends_with($key, '.cost_type')) {
             $index = (int) explode('.', $key)[0];
             if ($value === 'material') {
-                $this->items[$index]['transaction_category_id'] = null;
+                $this->items[$index]['account_id'] = null;
             } else {
                 $this->items[$index]['material_id'] = null;
             }
         }
 
-        // When an expense category is picked, fill the name
-        if (str_ends_with($key, '.transaction_category_id') && $value) {
+        // When an expense head is picked, fill the name
+        if (str_ends_with($key, '.account_id') && $value) {
             $index = (int) explode('.', $key)[0];
-            $cat = TransactionCategory::find($value);
-            if ($cat) {
-                $this->items[$index]['name'] = $cat->name;
+            $account = Account::find($value);
+            if ($account) {
+                $this->items[$index]['name'] = $account->name;
             }
         }
     }
@@ -214,7 +216,7 @@ class ProjectEstimates extends Component
             'items'              => 'required|array|min:1',
             'items.*.cost_type'  => 'required|in:material,labour,overhead,indirect',
             'items.*.material_id'             => 'nullable|exists:products,id',
-            'items.*.transaction_category_id' => 'nullable|exists:transaction_categories,id',
+            'items.*.account_id'              => 'nullable|exists:accounts,id',
             'items.*.name'           => 'required|string|max:255',
             'items.*.unit'           => 'required|string|max:50',
             'items.*.estimated_qty'  => 'required|numeric|min:0',
@@ -244,14 +246,14 @@ class ProjectEstimates extends Component
         }
 
         // Normalise each row: empty selects come through as '' not null, and
-        // only the relevant reference (material vs category) should be kept.
+        // only the relevant reference (material vs expense head) should be kept.
         foreach ($this->items as $i => $row) {
             $isMaterial = ($row['cost_type'] ?? 'material') === 'material';
             $this->items[$i]['material_id'] = $isMaterial
                 ? ($row['material_id'] ?: null)
                 : null;
-            $this->items[$i]['transaction_category_id'] = !$isMaterial
-                ? ($row['transaction_category_id'] ?: null)
+            $this->items[$i]['account_id'] = !$isMaterial
+                ? ($row['account_id'] ?: null)
                 : null;
         }
 
@@ -318,7 +320,7 @@ class ProjectEstimates extends Component
                 EstimateItem::create([
                     'project_estimate_id'     => $estimate->id,
                     'material_id'             => $isMaterial ? $row['material_id'] : null,
-                    'transaction_category_id' => !$isMaterial ? ($row['transaction_category_id'] ?: null) : null,
+                    'account_id'              => !$isMaterial ? ($row['account_id'] ?: null) : null,
                     'name'                    => $row['name'],
                     'unit'                    => $row['unit'],
                     'estimated_qty'           => $row['estimated_qty'],
@@ -451,9 +453,30 @@ class ProjectEstimates extends Component
             ->sum(fn($it) => (float) ($it['estimated_qty'] ?? 0) * (float) ($it['estimated_rate'] ?? 0));
     }
 
+    /**
+     * Expense heads for non-material estimate lines: the Project Expense feature's
+     * accounts (where actual project costs post), else every active expense account.
+     */
+    protected function expenseHeads()
+    {
+        $accounts = app(FeatureAccountService::class)
+            ->getAllEnabledChildrenForFeature('project_expense')
+            ->filter(fn ($a) => $a && $a->is_active)
+            ->unique('id')
+            ->sortBy('name')
+            ->values();
+
+        return $accounts->isNotEmpty()
+            ? $accounts
+            : Account::where('group', AccountGroupType::EXPENSE->value)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'code', 'name', 'is_active']);
+    }
+
     public function render()
     {
-        $estimates = ProjectEstimate::with(['items.transactionCategory', 'items.material', 'createdBy', 'approvedBy'])
+        $estimates = ProjectEstimate::with(['items.account', 'items.material', 'createdBy', 'approvedBy'])
             ->where('project_id', $this->project->id)
             ->orderBy('version')
             ->get();
@@ -490,9 +513,7 @@ class ProjectEstimates extends Component
 
         // Builder dropdowns
         $materials  = Product::with('unit')->orderBy('name')->get(['id', 'name', 'product_unit_id', 'unit']);
-        $categories = TransactionCategory::where('type', 'expense')
-            ->where('is_active', true)
-            ->orderBy('name')->get(['id', 'name']);
+        $expenseHeads = $this->expenseHeads();
 
         $project = $this->project;
 
@@ -505,7 +526,7 @@ class ProjectEstimates extends Component
         $showEditButton = false;
         return view('livewire.admin.projects.project-estimates', compact(
             'project', 'estimates', 'activeEstimate', 'boqItems', 'totals',
-            'approvedBudget', 'totalSpent', 'materials', 'categories', 'showEditButton',
+            'approvedBudget', 'totalSpent', 'materials', 'expenseHeads', 'showEditButton',
             'estimateFiles'
         ))->layout('layouts.admin.admin');
     }

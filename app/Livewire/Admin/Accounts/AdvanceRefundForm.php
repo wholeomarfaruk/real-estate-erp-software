@@ -117,7 +117,6 @@ class AdvanceRefundForm extends Component
             ->whereNotNull('transaction_id')
             ->with([
                 'purchaseOrder:id,po_no',
-                'transactionCategory:id,name',
                 'transaction:id,type',
                 'transaction.lines:id,transaction_id,debit,credit',
                 'receiver',
@@ -130,7 +129,7 @@ class AdvanceRefundForm extends Component
                     '#%d – %s – %s (Remaining: %s)',
                     $fund->id,
                     $fund->purchaseOrder?->po_no ?? 'No PO',
-                    $fund->transactionCategory?->name ?? '—',
+                    $fund->receiver?->name ?? '—',
                     number_format($fund->transaction->remainingAdvance(), 2)
                 ),
                 'remaining' => $fund->transaction->remainingAdvance(),

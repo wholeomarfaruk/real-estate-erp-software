@@ -328,27 +328,6 @@ class JournalPostingEntryForm extends Component
         }
     }
 
-    /** Active profiles for the searchable party picker: id => "Name — CODE · phone (roles)". */
-    protected function profileOptions(): array
-    {
-        if (! $this->item->showsField('profile')) {
-            return [];
-        }
-
-        return \App\Models\MasterProfile::query()
-            ->with('roles.type:id,name')
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->get(['id', 'name', 'code', 'phone'])
-            ->mapWithKeys(function ($p) {
-                $meta  = collect([$p->code, $p->phone])->filter()->join(' · ');
-                $roles = $p->roles->pluck('type.name')->filter()->unique()->join(', ');
-
-                return [$p->id => $p->name . ($meta ? " — {$meta}" : '') . ($roles ? " ({$roles})" : '')];
-            })
-            ->all();
-    }
-
     /** Accounts for one side, from its source: all, cash & bank, or a Feature list. */
     // Lists are resolved once per request (mount, validation and render all reuse them).
     private ?Collection $debitList = null;
@@ -373,7 +352,6 @@ class JournalPostingEntryForm extends Component
             'debitSourceLabel'  => JournalPostingItem::sourceLabel($this->item->debitSource(), Feature::pluck('label', 'key')),
             'creditSourceLabel' => JournalPostingItem::sourceLabel($this->item->creditSource(), Feature::pluck('label', 'key')),
             'paymentMethods' => JournalPostingItem::METHODS,
-            'profileOptions' => $this->profileOptions(),
             'projectOptions' => $this->item->showsField('project')
                 ? Project::orderBy('name')->get(['id', 'name', 'code'])
                     ->mapWithKeys(fn ($p) => [$p->id => $p->name . ($p->code ? " ({$p->code})" : '')])->all()

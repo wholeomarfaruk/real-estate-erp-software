@@ -6,7 +6,6 @@ use App\Enums\Accounts\PaymentRequestSourceType;
 use App\Enums\Accounts\TransactionType;
 use App\Models\BankAccount;
 use App\Models\BankingPaymentRequest;
-use App\Models\TransactionCategory;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -28,7 +27,6 @@ class BankingManagement extends Component
     // ─── Create modal ─────────────────────────────────────────────────────────
     public bool    $showCreateModal          = false;
     public string  $source_type              = 'expense';
-    public ?int    $transaction_category_id  = null;
     public string  $amount                   = '';
     public string  $description              = '';
     public ?int    $bank_account_id          = null;
@@ -49,7 +47,7 @@ class BankingManagement extends Component
     public function render()
     {
         $requests = BankingPaymentRequest::query()
-            ->with(['bankAccount', 'requestedBy', 'transactionCategory'])
+            ->with(['bankAccount', 'requestedBy'])
             ->when($this->statusFilter,  fn ($q, $s) => $q->where('status', $s))
             ->when($this->sourceFilter,  fn ($q, $s) => $q->where('source_type', $s))
             ->when($this->accountFilter, fn ($q, $a) => $q->where('bank_account_id', $a))
@@ -75,7 +73,6 @@ class BankingManagement extends Component
         if ($this->viewingId) {
             $viewingRequest = BankingPaymentRequest::with([
                 'bankAccount.account',
-                'transactionCategory',
                 'requestedBy',
                 'approvedBy',
                 'completedBy',
@@ -89,15 +86,9 @@ class BankingManagement extends Component
             ->push(PaymentRequestSourceType::EMPLOYEE_ADVANCE)
             ->values();
         $createSourceTypes = collect(TransactionType::cases())->values();
-        $advanceCategories = TransactionCategory::query()
-            ->active()
-            ->where('type', 'advance')
-            ->whereIn('slug', ['employee-advance', 'supplier-advance'])
-            ->orderBy('name')
-            ->get(['id', 'name']);
 
         return view('livewire.admin.accounts.banking.banking-management', compact(
-            'requests', 'kpi', 'viewingRequest', 'bankAccounts', 'filterSourceTypes', 'createSourceTypes', 'advanceCategories',
+            'requests', 'kpi', 'viewingRequest', 'bankAccounts', 'filterSourceTypes', 'createSourceTypes',
         ))->layout('layouts.admin.admin');
     }
 
@@ -131,7 +122,6 @@ class BankingManagement extends Component
     {
         $this->validate([
             'source_type'             => ['required', 'in:' . implode(',', $this->manualSourceTypes())],
-            'transaction_category_id' => [$this->source_type === 'advance' ? 'required' : 'nullable', 'nullable', 'exists:transaction_categories,id'],
             'amount'                  => ['required', 'numeric', 'min:0.001'],
             'description'             => ['required', 'string', 'max:500'],
             'bank_account_id'         => ['required', 'exists:bank_accounts,id'],
@@ -142,7 +132,6 @@ class BankingManagement extends Component
             'master_profile_id'       => $this->master_profile_id,
             'request_no'              => BankingPaymentRequest::generateRequestNo(),
             'source_type'             => $this->source_type,
-            'transaction_category_id' => $this->transaction_category_id ?: null,
             'amount'                  => $this->amount,
             'description'             => $this->description,
             'bank_account_id'         => $this->bank_account_id,
@@ -250,7 +239,7 @@ class BankingManagement extends Component
 
     private function resetCreateForm(): void
     {
-        $this->reset(['source_type', 'transaction_category_id', 'amount', 'description', 'bank_account_id', 'notes']);
+        $this->reset(['source_type', 'amount', 'description', 'bank_account_id', 'notes']);
         $this->source_type = 'expense';
         $this->clearProfile();
     }

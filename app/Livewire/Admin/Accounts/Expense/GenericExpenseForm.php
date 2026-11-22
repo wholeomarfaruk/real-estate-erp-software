@@ -84,7 +84,6 @@ class GenericExpenseForm extends Component
                 'request_no' => BankingPaymentRequest::generateRequestNo(),
                 'master_profile_id' => $this->master_profile_id,
                 'source_type' => TransactionType::EXPENSE->value,
-                'transaction_category_id' => null,
                 'amount' => round((float) $this->amount, 3),
                 'description' => $this->title,
                 'account_id' => $this->payment_account_id,

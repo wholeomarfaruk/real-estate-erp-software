@@ -98,14 +98,4 @@ class TransactionLine extends Model
     {
         return $this->transaction?->method;
     }
-
-    /**
-     * The header transaction_category_id column was removed; categories are no
-     * longer attached to transactions. Kept as a null proxy so legacy readers that
-     * reference ->transactionCategory degrade gracefully instead of erroring.
-     */
-    public function getTransactionCategoryAttribute(): mixed
-    {
-        return null;
-    }
 }

@@ -15,7 +15,6 @@ class BankingPaymentRequest extends Model
         'source_type',
         'sourceable_type',
         'sourceable_id',
-        'transaction_category_id',
         'transaction_id',
         'amount',
         'payment_date',
@@ -82,10 +81,6 @@ class BankingPaymentRequest extends Model
         return $this->morphTo();
     }
 
-    public function transactionCategory(): BelongsTo
-    {
-        return $this->belongsTo(TransactionCategory::class);
-    }
 
     public function transaction(): BelongsTo
     {

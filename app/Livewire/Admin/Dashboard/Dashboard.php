@@ -151,7 +151,7 @@ class Dashboard extends Component
 
         // ── Recent Expenses ────────────────────────────────────────────────
         $recentExpenses = ($isFinance)
-            ? Expense::with(['transactionCategory:id,name', 'bankAccount:id,bank_name'])
+            ? Expense::with(['bankAccount:id,bank_name'])
                 ->latest('date')
                 ->limit(6)
                 ->get()

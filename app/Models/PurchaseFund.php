@@ -21,7 +21,6 @@ class PurchaseFund extends Model
         'receiver_type',
         'receiver_id',
         'status',
-        'transaction_category_id',
         'bank_account_id',
         'payment_account_id',
         'method',
@@ -48,10 +47,6 @@ class PurchaseFund extends Model
         return $this->belongsTo(Transaction::class);
     }
 
-    public function transactionCategory(): BelongsTo
-    {
-        return $this->belongsTo(TransactionCategory::class);
-    }
 
     public function bankAccount(): BelongsTo
     {

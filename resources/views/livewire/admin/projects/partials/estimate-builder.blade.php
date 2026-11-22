@@ -1,6 +1,6 @@
 {{--
   Estimate Builder — create / edit a BOQ-style estimate.
-  Props: $project, $materials (Product collection), $categories (TransactionCategory collection)
+  Props: $project, $materials (Product collection), $expenseHeads (expense Account collection)
   Uses parent component state: $items[], $form_title, $form_estimate_date, $form_notes, $editingId
 --}}
 <div>
@@ -133,10 +133,10 @@
                     </select>
                     @error('items.'.$i.'.material_id') <div class="field-err">{{ $message }}</div> @enderror
                   @else
-                    <select wire:model.live="items.{{ $i }}.transaction_category_id" class="li-input" style="margin-bottom:4px;">
-                      <option value="">— Select category —</option>
-                      @foreach($categories as $c)
-                        <option value="{{ $c->id }}">{{ $c->name }}</option>
+                    <select wire:model.live="items.{{ $i }}.account_id" class="li-input" style="margin-bottom:4px;">
+                      <option value="">— Expense head —</option>
+                      @foreach($expenseHeads as $c)
+                        <option value="{{ $c->id }}">{{ $c->code ? $c->code . ' — ' : '' }}{{ $c->name }}</option>
                       @endforeach
                     </select>
                     <input type="text" wire:model="items.{{ $i }}.name" class="li-input @error('items.'.$i.'.name') error @enderror" placeholder="Item name" />

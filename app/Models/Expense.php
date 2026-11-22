@@ -18,7 +18,6 @@ class Expense extends Model
         'expense_account_id',
         'payment_account_id',
         'bank_account_id',
-        'transaction_category_id',
         'transaction_id',
         'reference_type',
         'reference_id',
@@ -48,10 +47,6 @@ class Expense extends Model
         return $this->belongsTo(BankAccount::class);
     }
 
-    public function transactionCategory(): BelongsTo
-    {
-        return $this->belongsTo(TransactionCategory::class);
-    }
 
     public function expenseType(): BelongsTo
     {

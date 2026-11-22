@@ -546,7 +546,7 @@
     @endphp
     <div class="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4" role="dialog" aria-modal="true"
         wire:click.self="closeDepositModal" x-data x-on:keydown.escape.window="$wire.closeDepositModal()">
-        <div class="mx-auto my-6 w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div class="mx-auto my-6 w-full max-w-xl rounded-2xl bg-white shadow-2xl">{{-- no overflow-hidden: the profile dropdown must not be clipped --}}
 
             {{-- Header --}}
             <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
@@ -667,18 +667,6 @@
                             @error('deposit_counter_account_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                     </div>
-
-                    @if ($deposit_mode === 'deposit' && $depositCategories->isNotEmpty())
-                        <div>
-                            <label class="{{ $fl }}">Category</label>
-                            <select wire:model.live="deposit_category_id" class="{{ $fi }}">
-                                <option value="">— None —</option>
-                                @foreach ($depositCategories as $cat)
-                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @endif
                 @endif
 
                 {{-- Amount + Date --}}
@@ -710,9 +698,12 @@
                     </div>
                 </div>
 
-                @if (in_array($deposit_mode, ['deposit', 'adjustment'], true))
-                    @include('livewire.admin.profiles.partials.profile-picker', ['label' => $deposit_mode === 'deposit' ? 'Received from (profile)' : 'Party (profile)'])
-                @endif
+                {{-- Party for every fund entry type (saved on the request → ledger entry) --}}
+                @include('livewire.admin.profiles.partials.profile-picker', ['label' => match ($deposit_mode) {
+                    'deposit' => 'Received from (profile)',
+                    'opening' => 'Owner / party (profile)',
+                    default   => 'Party (profile)',
+                }])
 
                 {{-- Double-entry preview --}}
                 @if ($depositPreview)

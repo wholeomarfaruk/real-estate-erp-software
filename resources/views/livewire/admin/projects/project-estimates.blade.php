@@ -432,7 +432,7 @@ tfoot .grand-val { text-align:right; font-family:"JetBrains Mono",ui-monospace,m
           <tr>
             <td>
               <div class="item-name">
-                {{ $item->material?->name ?? $item->transactionCategory?->name ?? $item->name ?? '—' }}
+                {{ $item->material?->name ?? $item->name ?? $item->account?->name ?? '—' }}
                 @if($item->is_optional)<span class="opt">Optional</span>@endif
               </div>
               @if($item->remarks)<div class="item-remark">{{ $item->remarks }}</div>@endif
@@ -520,7 +520,7 @@ tfoot .grand-val { text-align:right; font-family:"JetBrains Mono",ui-monospace,m
   @include('livewire.admin.projects.partials.estimate-builder', [
       'project'    => $project,
       'materials'  => $materials,
-      'categories' => $categories,
+      'expenseHeads' => $expenseHeads,
   ])
   </div>{{-- end estimates-builder-view --}}
 @endif

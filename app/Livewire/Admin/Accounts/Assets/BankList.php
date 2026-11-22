@@ -10,7 +10,6 @@ use App\Models\Account;
 use App\Models\BankAccount;
 use App\Models\BankingPaymentRequest;
 use App\Models\Transaction;
-use App\Models\TransactionCategory;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -64,7 +63,6 @@ class BankList extends Component
     public string  $deposit_source_type          = 'income';
     public ?int    $deposit_counter_account_id   = null;   // deposit / opening: Cr account · adjustment: Cr account
     public ?int    $deposit_debit_account_id     = null;   // adjustment: Dr account
-    public ?int    $deposit_category_id          = null;
     public string  $deposit_amount               = '';
     public string  $deposit_date                 = '';
     public string  $deposit_description          = '';
@@ -189,14 +187,6 @@ class BankList extends Component
             ];
         }
 
-        $depositCategories = $this->deposit_source_type
-            ? TransactionCategory::query()
-                ->where('is_active', true)
-                ->where('type', $this->deposit_source_type)
-                ->orderBy('name')
-                ->get(['id', 'name'])
-            : collect();
-
         $allBankAccounts = BankAccount::with('account:id,name,code')
             ->where('status', 'active')
             ->whereNotNull('account_id')
@@ -212,7 +202,6 @@ class BankList extends Component
             'assetAccounts',
             'types',
             'depositSourceTypes',
-            'depositCategories',
             'ledgerAccounts',
             'depositPreview',
             'allBankAccounts',
@@ -230,7 +219,6 @@ class BankList extends Component
         $this->deposit_source_type          = 'income';
         $this->deposit_counter_account_id   = null;
         $this->deposit_debit_account_id     = null;
-        $this->deposit_category_id          = null;
         $this->deposit_amount               = '';
         $this->deposit_date                 = now()->toDateString();
         $this->deposit_description          = '';
@@ -254,14 +242,12 @@ class BankList extends Component
         $this->deposit_mode = $mode;
         $this->deposit_counter_account_id = null;
         $this->deposit_debit_account_id = null;
-        $this->deposit_category_id = null;
         $this->resetValidation();
         $this->applyDepositDefaults();
     }
 
     public function updatedDepositSourceType(): void
     {
-        $this->deposit_category_id = null;
         $this->deposit_counter_account_id = $this->defaultCounterAccount();
     }
 
@@ -325,7 +311,6 @@ class BankList extends Component
             'deposit_source_type'          => [$mode === 'deposit' ? 'required' : 'nullable', Rule::in(self::DEPOSIT_TYPES)],
             'deposit_counter_account_id'   => [in_array($mode, ['deposit', 'opening', 'adjustment'], true) ? 'required' : 'nullable', 'exists:accounts,id'],
             'deposit_debit_account_id'     => [$mode === 'adjustment' ? 'required' : 'nullable', 'exists:accounts,id'],
-            'deposit_category_id'          => ['nullable', 'exists:transaction_categories,id'],
             'deposit_amount'               => ['required', 'numeric', 'min:0.001'],
             'deposit_date'                 => ['required', 'date'],
             'deposit_description'          => ['required', 'string', 'max:500'],
@@ -358,7 +343,6 @@ class BankList extends Component
         BankingPaymentRequest::query()->create([
             'request_no'              => BankingPaymentRequest::generateRequestNo(),
             'source_type'             => $type,
-            'transaction_category_id' => $mode === 'deposit' ? ($this->deposit_category_id ?: null) : null,
             'bank_account_id'         => $this->deposit_bank_account_id ?: null,
             'account_id'              => $debitId,
             'amount'                  => $amount,

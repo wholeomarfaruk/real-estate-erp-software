@@ -59,7 +59,7 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-700">Live Preview</h2>
-                <p class="mt-1 text-sm text-gray-500">Transactions are grouped by `transaction_category.type` and matched against `income`, `expense`, `advance`, and `transfer`.</p>
+                <p class="mt-1 text-sm text-gray-500">Transactions are grouped by transaction type: `income`, `expense`, `advance` and `transfer`.</p>
             </div>
         </div>
 

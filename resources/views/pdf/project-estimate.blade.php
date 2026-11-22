@@ -243,7 +243,7 @@
         <tr>
           <td class="center">{{ $sl }}</td>
           <td>
-            <span class="item-name">{{ $item->material?->name ?? $item->transactionCategory?->name ?? $item->name ?? '—' }}</span>
+            <span class="item-name">{{ $item->material?->name ?? $item->name ?? $item->account?->name ?? '—' }}</span>
             @if($item->is_optional)<span class="opt">Optional</span>@endif
             @if($item->remarks)<div class="item-remark">{{ $item->remarks }}</div>@endif
           </td>

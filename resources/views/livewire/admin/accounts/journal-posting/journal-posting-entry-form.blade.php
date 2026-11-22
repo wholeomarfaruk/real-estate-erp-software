@@ -105,17 +105,10 @@
         @endphp
 
         @if ($item->showsField('profile'))
-            <div>
-                <label class="mb-1 block text-xs font-medium text-gray-700">
-                    {{ $labels['party'] }} (profile){!! $star('profile') !!}
-                    @unless ($item->requiresField('profile')) <span class="font-normal text-gray-400">(optional)</span> @endunless
-                </label>
-                <x-searchable-select field="master_profile_id" :value="$master_profile_id"
-                    :options="$profileOptions"
-                    placeholder="— Select profile —"
-                    search-placeholder="Search by name, code, phone or role…" />
-                @error('master_profile_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-            </div>
+            @include('livewire.admin.profiles.partials.profile-picker', [
+                'label'    => $labels['party'] . ' (profile)',
+                'required' => $item->requiresField('profile'),
+            ])
         @endif
 
         @if ($item->showsField('project'))

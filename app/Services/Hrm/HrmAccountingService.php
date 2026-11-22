@@ -48,7 +48,6 @@ class HrmAccountingService
         string $referenceType,
         ?int $referenceId = null,
         ?int $paymentAccountId = null,
-        ?int $transactionCategoryId = null,
         ?string $name = null
     ): Transaction {
         if ($amount <= 0) {

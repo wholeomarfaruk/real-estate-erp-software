@@ -12,7 +12,7 @@ class EstimateItem extends Model
     protected $fillable = [
         'project_estimate_id',
         'material_id',
-        'transaction_category_id',
+        'account_id',
         'type',
         'name',
         'quantity',
@@ -51,9 +51,10 @@ class EstimateItem extends Model
         return $this->belongsTo(Product::class, 'material_id');
     }
 
-    public function transactionCategory(): BelongsTo
+    /** Expense head (chart of accounts) for non-material lines — where actual costs post. */
+    public function account(): BelongsTo
     {
-        return $this->belongsTo(TransactionCategory::class);
+        return $this->belongsTo(Account::class);
     }
 
     protected static function boot()

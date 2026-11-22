@@ -456,7 +456,7 @@ class DailyStatementReportService
                 return [
                     'voucher_no' => $this->referenceNo($transaction),
                     'particulars' => $this->transactionLabel($transaction),
-                    'req_no' => $transaction->transactionCategory?->name ?: Str::headline($type),
+                    'req_no' => Str::headline($type),
                     'amount' => $isBank ? 0.0 : $amount,
                     'bank_transfer' => $isBank ? $amount : 0.0,
                     'bank_name' => $isBank
@@ -493,7 +493,7 @@ class DailyStatementReportService
                 return [
                     'ref_no'       => $this->referenceNo($transaction),
                     'particulars'  => $this->transactionLabel($transaction),
-                    'category'     => $transaction->transactionCategory?->name ?: Str::headline($type),
+                    'category'     => Str::headline($type),
                     'cash'         => $isBank ? 0.0 : $amount,
                     'bank_transfer'=> $isBank ? $amount : 0.0,
                     'bank_name'    => $isBank
@@ -526,18 +526,12 @@ class DailyStatementReportService
     {
         $notes = trim((string) $transaction->notes);
         $name = trim((string) $transaction->name);
-        $category = trim((string) optional($transaction->transactionCategory)->name);
-
         if ($notes !== '') {
             return $notes;
         }
 
         if ($name !== '') {
             return $name;
-        }
-
-        if ($category !== '') {
-            return $category;
         }
 
         return Str::headline(str_replace('_', ' ', $this->classifyTransactionType($transaction)));
@@ -560,12 +554,12 @@ class DailyStatementReportService
 
         $unit = $sale?->propertyUnit;
 
-        // Purpose: schedule label for sale payments, else expense title, else
-        // the transaction category. (transactionLabel() already covers notes/name.)
+        // Purpose: schedule label for sale payments, else expense title.
+        // (transactionLabel() already covers notes/name.)
         $purpose = match (true) {
             $reference instanceof \App\Models\PaymentSchedule => $reference->label(),
             (bool) $transaction->expense => $transaction->expense->title ?: 'Expense',
-            default => (string) ($transaction->transactionCategory?->name ?? ''),
+            default => '',
         };
 
         $unitLabel = $unit

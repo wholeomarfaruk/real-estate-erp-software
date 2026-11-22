@@ -22,6 +22,7 @@
 <div
     x-data="{
         open: false,
+        dropUp: false,
         query: '',
         options: {{ $optionsJson }},
         value: @entangle($field).live,
@@ -36,6 +37,14 @@
             const q = this.query.toLowerCase();
             return this.options.filter(o => o.label.toLowerCase().includes(q));
         },
+        toggle() {
+            // Open upward when there is not enough room below (e.g. near the bottom of a modal).
+            if (! this.open) {
+                const r = this.$el.getBoundingClientRect();
+                this.dropUp = (window.innerHeight - r.bottom) < 300 && r.top > 300;
+            }
+            this.open = ! this.open;
+        },
         select(val) {
             this.value = val;
             this.open = false;
@@ -45,7 +54,7 @@
     @click.outside="open = false"
     {{ $attributes->merge(['class' => 'relative']) }}
 >
-    <button type="button" @click="open = !open" @if($disabled) disabled @endif
+    <button type="button" @click="toggle()" @if($disabled) disabled @endif
         class="flex items-center justify-between gap-2 text-sm rounded-lg border border-gray-300 px-3 py-2 bg-white hover:border-gray-400 transition w-full min-w-[160px]
                focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed">
         <span class="flex items-center gap-2 min-w-0">
@@ -60,7 +69,8 @@
     </button>
 
     <div x-show="open" x-cloak x-transition
-        class="absolute z-30 top-full left-0 mt-1 w-full min-w-64 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden">
+        :class="dropUp ? 'bottom-full mb-1' : 'top-full mt-1'"
+        class="absolute z-30 left-0 w-full min-w-64 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden">
         <div class="p-2 border-b border-gray-100">
             <div class="relative">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">

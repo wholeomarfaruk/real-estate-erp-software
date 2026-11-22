@@ -754,11 +754,6 @@
                                         'permission' => 'accounts.advance.refund',
                                     ],
                                     [
-                                        'label' => 'TX Categories',
-                                        'route' => 'admin.accounts.transaction-categories',
-                                        'permission' => 'accounts.transaction.list',
-                                    ],
-                                    [
                                         'label' => 'Accounting Settings',
                                         'route' => 'admin.accounts.settings',
                                         'permission' => 'accounts.chart.list',
