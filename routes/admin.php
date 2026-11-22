@@ -139,6 +139,22 @@ Route::get('/suppliers/list/{supplier}/purchase-orders/download', [SupplierPurch
     ->middleware('can:supplier.view')
     ->name('inventory.suppliers.purchase-orders.download');
 
+// master profiles
+Route::prefix('profiles')->name('profiles.')->group(function (): void {
+    Route::get('/', App\Livewire\Admin\Profiles\ProfileIndex::class)
+        ->middleware('can:profile.view')
+        ->name('index');
+    Route::get('/balances', App\Livewire\Admin\Profiles\ProfileBalances::class)
+        ->middleware('can:profile.view')
+        ->name('balances');
+    Route::get('/types', App\Livewire\Admin\Profiles\ProfileTypeManager::class)
+        ->middleware('can:profile.type.manage')
+        ->name('types');
+    Route::get('/{profile}', App\Livewire\Admin\Profiles\ProfileShow::class)
+        ->middleware('can:profile.view')
+        ->name('show');
+});
+
 // accounts module
 Route::prefix('accounts')->name('accounts.')->group(function (): void {
     Route::get('/chart-of-accounts', App\Livewire\Admin\Accounts\Account\AccountList::class)
@@ -166,6 +182,14 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
     Route::get('/settings/features', App\Livewire\Admin\Accounts\Features\FeatureAccountConfigurator::class)
         ->middleware('can:accounts.chart.list')
         ->name('settings.features');
+
+    Route::get('/journal-posting', App\Livewire\Admin\Accounts\JournalPosting\JournalPostingHub::class)
+        ->middleware('can:accounts.chart.list')
+        ->name('journal-posting');
+
+    Route::get('/journal-posting/{item:slug}', App\Livewire\Admin\Accounts\JournalPosting\JournalPostingEntryForm::class)
+        ->middleware('can:accounts.chart.list')
+        ->name('journal-posting.entry');
 
     Route::prefix('expenses')->name('expenses.')->group(function (): void {
         Route::get('/', App\Livewire\Admin\Accounts\Expense\ExpenseList::class)

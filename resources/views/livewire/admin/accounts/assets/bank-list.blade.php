@@ -14,7 +14,7 @@
                     <line x1="12" y1="19" x2="12" y2="5" />
                     <polyline points="5 12 12 5 19 12" />
                 </svg>
-                Deposit / Opening Balance
+                Fund Entry
             </button>
             @can('accounts.chart.edit')
                 <button type="button" wire:click="openCreateModal"
@@ -526,135 +526,236 @@
 
 
     {{-- ═══════════════════════════════════════════════════════════════════════
-         DEPOSIT / OPENING BALANCE MODAL
+         FUND ENTRY MODAL — Deposit · Transfer · Opening Balance · Adjustment
+         Every mode is a balanced double entry (Dr one account · Cr another).
     ═══════════════════════════════════════════════════════════════════════════ --}}
-    <div x-cloak x-data="{ open: @entangle('showDepositModal') }" x-show="open" x-transition
-        x-on:keydown.escape.window="open = false; $wire.closeDepositModal()"
-        class="fixed inset-0 z-50 grid place-content-center bg-black/50 p-4" role="dialog" aria-modal="true">
-
-        <div class="w-full max-w-md rounded-2xl bg-white shadow-2xl"
-            @click.outside="open = false; $wire.closeDepositModal()">
+    @if ($showDepositModal)
+    @php
+        $fi = 'mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3! text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/15';
+        $fl = 'block text-xs font-medium text-gray-600';
+        $modes = [
+            'deposit'    => ['Deposit',         'Money coming into a bank / cash account', 'M12 19V5M5 12l7-7 7 7'],
+            'transfer'   => ['Transfer',        'Move money between two bank / cash accounts', 'M17 3l4 4-4 4M3 7h18M7 21l-4-4 4-4M21 17H3'],
+            'opening'    => ['Opening Balance', 'Starting balance of a bank / cash account', 'M3 3v18h18M7 14l4-4 4 4 5-5'],
+            'adjustment' => ['Adjustment',      'Journal correction between any two accounts', 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z'],
+        ];
+        // Show only the linked chart account's name; fall back to the bank name when no account is linked.
+        $bankOption = fn ($ba) => $ba->account?->name ?: $ba->bank_name;
+        // The query orders by bank_name; re-sort by the label that is actually shown.
+        $allBankAccounts = $allBankAccounts->sortBy(fn ($ba) => mb_strtolower($bankOption($ba)))->values();
+    @endphp
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4" role="dialog" aria-modal="true"
+        wire:click.self="closeDepositModal" x-data x-on:keydown.escape.window="$wire.closeDepositModal()">
+        <div class="mx-auto my-6 w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl">
 
             {{-- Header --}}
             <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-                <h2 class="text-base font-semibold text-gray-900">Deposit / Opening Balance</h2>
-                <button type="button" @click="open = false; $wire.closeDepositModal()"
-                    class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                <div>
+                    <h2 class="text-base font-semibold text-gray-900">New Fund Entry</h2>
+                    <p class="text-xs text-gray-500">{{ $modes[$deposit_mode][1] }}</p>
+                </div>
+                <button type="button" wire:click="closeDepositModal"
+                    class="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600" aria-label="Close">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
+            </div>
+
+            {{-- Mode tabs --}}
+            <div class="grid grid-cols-2 gap-2 border-b border-gray-100 bg-slate-50 px-6 py-3 sm:grid-cols-4">
+                @foreach ($modes as $key => [$label, $hint, $path])
+                    <button type="button" wire:click="setDepositMode('{{ $key }}')"
+                        class="flex flex-col items-center gap-1 rounded-lg border px-2 py-2 text-xs font-semibold transition {{ $deposit_mode === $key ? 'border-emerald-500 bg-white text-emerald-700 shadow-sm ring-2 ring-emerald-500/15' : 'border-transparent text-gray-500 hover:bg-white hover:text-gray-700' }}">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $path }}"/></svg>
+                        {{ $label }}
+                    </button>
+                @endforeach
             </div>
 
             {{-- Body --}}
             <div class="space-y-4 px-6 py-5">
 
-                {{-- Bank Account --}}
-                <div>
-                    <label class="block text-xs font-medium text-gray-600">Bank / Cash Account <span
-                            class="text-red-500">*</span></label>
-                    <select wire:model.live="deposit_bank_account_id"
-                        class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-                        <option value="">— Select account —</option>
-                        @foreach ($allBankAccounts as $ba)
-                            <option value="{{ $ba->id }}">
-                                {{ $ba->bank_name }}
-                                @if ($ba->ac_number)
-                                    · {{ $ba->ac_number }}
-                                @endif
-                                — {{ $ba->account?->code }} {{ $ba->account?->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @if ($allBankAccounts->isEmpty())
-                        <p class="mt-1 text-xs text-amber-600">No active accounts with a linked Chart of Accounts
-                            entry. Link COA accounts in Bank settings first.</p>
+                @if ($deposit_mode === 'transfer')
+                    {{-- From → To --}}
+                    <div class="grid items-end gap-3 sm:grid-cols-[1fr_auto_1fr]">
+                        <div>
+                            <label class="{{ $fl }}">From account <span class="text-red-500">*</span> <span class="font-normal text-gray-400">(Cr)</span></label>
+                            <select wire:model.live="deposit_from_bank_account_id" class="{{ $fi }}">
+                                <option value="">— Select —</option>
+                                @foreach ($allBankAccounts as $ba)
+                                    <option value="{{ $ba->id }}">{{ $bankOption($ba) }}</option>
+                                @endforeach
+                            </select>
+                            @error('deposit_from_bank_account_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <span class="hidden pb-2.5 text-gray-400 sm:block">→</span>
+                        <div>
+                            <label class="{{ $fl }}">To account <span class="text-red-500">*</span> <span class="font-normal text-gray-400">(Dr)</span></label>
+                            <select wire:model.live="deposit_bank_account_id" class="{{ $fi }}">
+                                <option value="">— Select —</option>
+                                @foreach ($allBankAccounts as $ba)
+                                    <option value="{{ $ba->id }}">{{ $bankOption($ba) }}</option>
+                                @endforeach
+                            </select>
+                            @error('deposit_bank_account_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                    @if ($allBankAccounts->count() < 2)
+                        <p class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">A transfer needs at least two bank / cash accounts. Add another account first.</p>
                     @endif
-                    @error('deposit_bank_account_id')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
 
-                {{-- Transaction Type --}}
-                <div>
-                    <label class="block text-xs font-medium text-gray-600">Transaction Type <span
-                            class="text-red-500">*</span></label>
-                    <select wire:model.live="deposit_source_type"
-                        class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-                        @foreach ($depositSourceTypes as $st)
-                            <option value="{{ $st->value }}">{{ $st->label() }}</option>
-                        @endforeach
-                    </select>
-                    @error('deposit_source_type')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
+                @elseif ($deposit_mode === 'adjustment')
+                    {{-- Any two ledger accounts --}}
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div>
+                            <label class="{{ $fl }}">Debit account <span class="text-red-500">*</span> <span class="font-normal text-gray-400">(Dr)</span></label>
+                            <select wire:model.live="deposit_debit_account_id" class="{{ $fi }}">
+                                <option value="">— Select —</option>
+                                @foreach ($ledgerAccounts as $acc)
+                                    <option value="{{ $acc->id }}">{{ $acc->code }} — {{ $acc->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('deposit_debit_account_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="{{ $fl }}">Credit account <span class="text-red-500">*</span> <span class="font-normal text-gray-400">(Cr)</span></label>
+                            <select wire:model.live="deposit_counter_account_id" class="{{ $fi }}">
+                                <option value="">— Select —</option>
+                                @foreach ($ledgerAccounts as $acc)
+                                    <option value="{{ $acc->id }}">{{ $acc->code }} — {{ $acc->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('deposit_counter_account_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
 
-                {{-- Category --}}
-                @if ($depositCategories->isNotEmpty())
+                @else
+                    {{-- Deposit / Opening: bank-cash (Dr) + source (Cr) --}}
                     <div>
-                        <label class="block text-xs font-medium text-gray-600">Category</label>
-                        <select wire:model.live="deposit_category_id"
-                            class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-                            <option value="">— None —</option>
-                            @foreach ($depositCategories as $cat)
-                                <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                        <label class="{{ $fl }}">Bank / Cash account <span class="text-red-500">*</span> <span class="font-normal text-gray-400">(Dr — money goes in)</span></label>
+                        <select wire:model.live="deposit_bank_account_id" class="{{ $fi }}">
+                            <option value="">— Select account —</option>
+                            @foreach ($allBankAccounts as $ba)
+                                <option value="{{ $ba->id }}">{{ $bankOption($ba) }}</option>
                             @endforeach
                         </select>
+                        @if ($allBankAccounts->isEmpty())
+                            <p class="mt-1 text-xs text-amber-600">No active accounts with a linked Chart of Accounts entry. Link COA accounts in Bank settings first.</p>
+                        @endif
+                        @error('deposit_bank_account_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
+
+                    <div class="grid gap-3 {{ $deposit_mode === 'deposit' ? 'sm:grid-cols-2' : '' }}">
+                        @if ($deposit_mode === 'deposit')
+                            <div>
+                                <label class="{{ $fl }}">Deposit type <span class="text-red-500">*</span></label>
+                                <select wire:model.live="deposit_source_type" class="{{ $fi }}">
+                                    @foreach ($depositSourceTypes as $st)
+                                        <option value="{{ $st->value }}">{{ $st->label() }}</option>
+                                    @endforeach
+                                </select>
+                                @error('deposit_source_type') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                        @endif
+                        <div>
+                            <label class="{{ $fl }}">{{ $deposit_mode === 'opening' ? 'Equity / opening account' : 'Source account' }} <span class="text-red-500">*</span> <span class="font-normal text-gray-400">(Cr)</span></label>
+                            <select wire:model.live="deposit_counter_account_id" class="{{ $fi }}">
+                                <option value="">— Select —</option>
+                                @foreach ($ledgerAccounts as $acc)
+                                    <option value="{{ $acc->id }}">{{ $acc->code }} — {{ $acc->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('deposit_counter_account_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+
+                    @if ($deposit_mode === 'deposit' && $depositCategories->isNotEmpty())
+                        <div>
+                            <label class="{{ $fl }}">Category</label>
+                            <select wire:model.live="deposit_category_id" class="{{ $fi }}">
+                                <option value="">— None —</option>
+                                @foreach ($depositCategories as $cat)
+                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
                 @endif
 
                 {{-- Amount + Date --}}
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-medium text-gray-600">Amount <span
-                                class="text-red-500">*</span></label>
-                        <input type="number" step="0.01" min="0" wire:model.lazy="deposit_amount"
-                            placeholder="0.00"
-                            class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-right text-sm focus:border-indigo-500 focus:outline-none">
-                        @error('deposit_amount')
-                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                        @enderror
+                        <label class="{{ $fl }}">Amount <span class="text-red-500">*</span></label>
+                        <input type="number" step="0.01" min="0" wire:model.live.debounce.400ms="deposit_amount" placeholder="0.00"
+                            class="{{ $fi }} text-right">
+                        @error('deposit_amount') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-600">Date <span
-                                class="text-red-500">*</span></label>
-                        <input type="date" wire:model.lazy="deposit_date"
-                            class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none flatpickr-only-date">
-                        @error('deposit_date')
-                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                        @enderror
+                        <label class="{{ $fl }}">Date <span class="text-red-500">*</span></label>
+                        <input type="date" wire:model.lazy="deposit_date" class="{{ $fi }}">
+                        @error('deposit_date') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
                 </div>
 
-                {{-- Description --}}
-                <div>
-                    <label class="block text-xs font-medium text-gray-600">Description <span
-                            class="text-red-500">*</span></label>
-                    <input type="text" wire:model.lazy="deposit_description"
-                        placeholder="e.g. Opening balance deposit"
-                        class="mt-1 h-9 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:outline-none">
-                    @error('deposit_description')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
+                <div class="grid gap-3 sm:grid-cols-[1fr_160px]">
+                    <div>
+                        <label class="{{ $fl }}">Description <span class="text-red-500">*</span></label>
+                        <input type="text" wire:model.lazy="deposit_description"
+                            placeholder="{{ ['deposit' => 'e.g. Capital deposit from director', 'transfer' => 'e.g. Cash deposited to bank', 'opening' => 'e.g. Opening balance as of 1 Jan', 'adjustment' => 'e.g. Correct misposted entry'][$deposit_mode] }}"
+                            class="{{ $fi }}">
+                        @error('deposit_description') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="{{ $fl }}">Reference</label>
+                        <input type="text" wire:model.lazy="deposit_reference_no" placeholder="Slip / cheque no" class="{{ $fi }}">
+                    </div>
                 </div>
 
+                @if (in_array($deposit_mode, ['deposit', 'adjustment'], true))
+                    @include('livewire.admin.profiles.partials.profile-picker', ['label' => $deposit_mode === 'deposit' ? 'Received from (profile)' : 'Party (profile)'])
+                @endif
+
+                {{-- Double-entry preview --}}
+                @if ($depositPreview)
+                    <div class="overflow-hidden rounded-lg border border-gray-200">
+                        <div class="flex items-center justify-between bg-gray-50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                            <span>Journal preview</span>
+                            <span class="normal-case tracking-normal text-gray-400">{{ $depositPreview['type'] }}</span>
+                        </div>
+                        <table class="w-full text-sm">
+                            <tbody class="divide-y divide-gray-100">
+                                <tr>
+                                    <td class="w-10 px-3 py-2 text-xs font-bold text-emerald-600">Dr</td>
+                                    <td class="px-1 py-2 {{ $depositPreview['debit'] ? 'text-gray-800' : 'italic text-gray-400' }}">{{ $depositPreview['debit'] ?: 'select account' }}</td>
+                                    <td class="px-3 py-2 text-right font-mono text-gray-800">{{ number_format($depositPreview['amount'], 2) }}</td>
+                                    <td class="w-24 px-3 py-2"></td>
+                                </tr>
+                                <tr>
+                                    <td class="w-10 px-3 py-2 text-xs font-bold text-rose-600">Cr</td>
+                                    <td class="py-2 pl-5 pr-1 {{ $depositPreview['credit'] ? 'text-gray-800' : 'italic text-gray-400' }}">{{ $depositPreview['credit'] ?: 'select account' }}</td>
+                                    <td class="w-24 px-3 py-2"></td>
+                                    <td class="px-3 py-2 text-right font-mono text-gray-800">{{ number_format($depositPreview['amount'], 2) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </div>
 
             {{-- Footer --}}
-            <div class="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
-                <button type="button" @click="open = false; $wire.closeDepositModal()"
-                    class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
-                    Cancel
-                </button>
-                <button type="button" wire:click="createDeposit"
-                    class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition">
-                    Submit to Banking
-                </button>
+            <div class="flex items-center justify-between gap-2 border-t border-gray-100 px-6 py-4">
+                <p class="text-[11px] text-gray-400">Posts to the ledger after approval in Payment Requests.</p>
+                <div class="flex gap-2">
+                    <button type="button" wire:click="closeDepositModal"
+                        class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">Cancel</button>
+                    <button type="button" wire:click="createDeposit" wire:loading.attr="disabled" wire:target="createDeposit"
+                        class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60">
+                        Submit to Banking
+                    </button>
+                </div>
             </div>
         </div>
     </div>
+    @endif
 
     {{-- ═══════════════════════════════════════════════════════════════════════
          CREATE / EDIT MODAL

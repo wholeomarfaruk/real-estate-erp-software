@@ -21,7 +21,7 @@
         $liquidity   = (float) $totalCashBalance + (float) $totalBankBalance;
         $cbCount     = $cashBankAccounts->count();
     @endphp
-    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {{-- Total Cash --}}
         <div class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md">
             <div class="flex items-start justify-between">
@@ -63,26 +63,6 @@
                 </span>
             </div>
             <span class="absolute inset-x-0 bottom-0 h-1 bg-gray-800/70"></span>
-        </div>
-
-        {{-- Cash & Bank accounts breakdown --}}
-        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <div class="flex items-center justify-between">
-                <p class="text-xs font-medium text-gray-500">Cash &amp; Bank Accounts</p>
-                <span class="rounded-full bg-gray-100 px-2 py-0.5 font-mono text-[10px] font-semibold text-gray-600">{{ $cbCount }}</span>
-            </div>
-            <div class="mt-2.5 flex flex-wrap gap-1.5">
-                @forelse ($cashBankAccounts as $balanceAccount)
-                    @php $isCash = $balanceAccount->type?->value === \App\Enums\Accounts\AccountType::CASH->value; @endphp
-                    <span class="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] {{ $isCash ? 'border-emerald-100 bg-emerald-50/60 text-emerald-700' : 'border-blue-100 bg-blue-50/60 text-blue-700' }}">
-                        <span class="h-1.5 w-1.5 rounded-full {{ $isCash ? 'bg-emerald-500' : 'bg-blue-500' }}"></span>
-                        {{ $balanceAccount->name }}
-                        <span class="font-mono font-semibold">{{ number_format((float) $balanceAccount->computed_balance, 2) }}</span>
-                    </span>
-                @empty
-                    <span class="text-xs text-gray-400">No cash or bank accounts found.</span>
-                @endforelse
-            </div>
         </div>
     </div>
 

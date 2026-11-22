@@ -113,7 +113,9 @@ class RequestEngine
 
         $data = [
             'request_no'        => BankingPaymentRequest::generateRequestNo(),
-            'source_type'       => $expenseType,
+            // Must be a TransactionType or Banking can't complete it (e.g. there is
+            // no marketing_expense type). external_data.expense_type keeps the original.
+            'source_type'       => TransactionType::tryFrom($expenseType)?->value ?? TransactionType::EXPENSE->value,
             'amount'            => $roundedAmount,
             'description'       => $title,
             'method'            => $paymentMethod,

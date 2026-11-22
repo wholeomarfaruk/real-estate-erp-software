@@ -19,7 +19,7 @@ use Livewire\WithPagination;
 
 class BankList extends Component
 {
-    use WithPagination, WithMediaPicker;
+    use WithPagination, WithMediaPicker, \App\Livewire\Concerns\WithProfilePicker;
 
     // ─── Filters ─────────────────────────────────────────────────────────────
     public string $search      = '';
@@ -49,14 +49,26 @@ class BankList extends Component
     public bool $showDetailModal = false;
     public ?int $viewingId       = null;
 
-    // ─── Deposit / Opening Balance modal ──────────────────────────────────────
-    public bool    $showDepositModal            = false;
-    public ?int    $deposit_bank_account_id     = null;
-    public string  $deposit_source_type         = 'income';
-    public ?int    $deposit_category_id         = null;
-    public string  $deposit_amount              = '';
-    public string  $deposit_date                = '';
-    public string  $deposit_description         = '';
+    // ─── Fund entry modal (double entry) ──────────────────────────────────────
+    // deposit    : Dr bank/cash        · Cr source account (income, capital, loan…)
+    // transfer   : Dr to bank/cash     · Cr from bank/cash          (contra)
+    // opening    : Dr bank/cash        · Cr equity / opening account
+    // adjustment : Dr any account      · Cr any account
+    public const DEPOSIT_MODES = ['deposit', 'transfer', 'opening', 'adjustment'];
+    public const DEPOSIT_TYPES = ['income', 'owner_investment', 'loan_received', 'customer_receipt', 'advance_receipt'];
+
+    public bool    $showDepositModal             = false;
+    public string  $deposit_mode                 = 'deposit';
+    public ?int    $deposit_bank_account_id      = null;   // bank/cash receiving the money (Dr)
+    public ?int    $deposit_from_bank_account_id = null;   // transfer: bank/cash sending the money (Cr)
+    public string  $deposit_source_type          = 'income';
+    public ?int    $deposit_counter_account_id   = null;   // deposit / opening: Cr account · adjustment: Cr account
+    public ?int    $deposit_debit_account_id     = null;   // adjustment: Dr account
+    public ?int    $deposit_category_id          = null;
+    public string  $deposit_amount               = '';
+    public string  $deposit_date                 = '';
+    public string  $deposit_description          = '';
+    public string  $deposit_reference_no         = '';
 
     protected string $paginationTheme = 'tailwind';
 
@@ -155,9 +167,27 @@ class BankList extends Component
         $types = AccountType::cases();
 
         // Deposit modal data
-        $depositSourceTypes = collect(TransactionType::cases())
-            ->whereIn('value', ['opening_balance', 'transfer', 'adjustment'])
+        $depositSourceTypes = collect(self::DEPOSIT_TYPES)
+            ->map(fn ($v) => TransactionType::from($v))
             ->values();
+
+        // Ledger accounts for the "other side" of the entry
+        $ledgerAccounts = $this->showDepositModal
+            ? Account::where('is_active', true)->orderBy('code')->get(['id', 'code', 'name', 'type'])
+            : collect();
+
+        // Live Dr / Cr preview
+        $depositPreview = null;
+        if ($this->showDepositModal) {
+            [$dr, $cr, $tp] = $this->depositEntry();
+            $names = Account::whereIn('id', array_filter([$dr, $cr]))->get(['id', 'code', 'name'])->keyBy('id');
+            $depositPreview = [
+                'debit'  => $dr ? trim(($names[$dr]->code ?? '') . ' ' . ($names[$dr]->name ?? '')) : null,
+                'credit' => $cr ? trim(($names[$cr]->code ?? '') . ' ' . ($names[$cr]->name ?? '')) : null,
+                'type'   => TransactionType::tryFrom($tp)?->label() ?? $tp,
+                'amount' => (float) $this->deposit_amount,
+            ];
+        }
 
         $depositCategories = $this->deposit_source_type
             ? TransactionCategory::query()
@@ -183,21 +213,31 @@ class BankList extends Component
             'types',
             'depositSourceTypes',
             'depositCategories',
+            'ledgerAccounts',
+            'depositPreview',
             'allBankAccounts',
         ))->layout('layouts.admin.admin');
     }
 
     // ─── Deposit / Opening Balance modal ──────────────────────────────────────
 
-    public function openDepositModal(?int $bankAccountId = null): void
+    public function openDepositModal(?int $bankAccountId = null, string $mode = 'deposit'): void
     {
-        $this->deposit_bank_account_id = $bankAccountId;
-        $this->deposit_source_type     = 'income';
-        $this->deposit_category_id     = null;
-        $this->deposit_amount          = '';
-        $this->deposit_date            = now()->toDateString();
-        $this->deposit_description     = '';
-        $this->showDepositModal        = true;
+        $this->resetValidation();
+        $this->deposit_mode                 = in_array($mode, self::DEPOSIT_MODES, true) ? $mode : 'deposit';
+        $this->deposit_bank_account_id      = $bankAccountId;
+        $this->deposit_from_bank_account_id = null;
+        $this->deposit_source_type          = 'income';
+        $this->deposit_counter_account_id   = null;
+        $this->deposit_debit_account_id     = null;
+        $this->deposit_category_id          = null;
+        $this->deposit_amount               = '';
+        $this->deposit_date                 = now()->toDateString();
+        $this->deposit_description          = '';
+        $this->deposit_reference_no         = '';
+        $this->clearProfile();
+        $this->applyDepositDefaults();
+        $this->showDepositModal             = true;
     }
 
     public function closeDepositModal(): void
@@ -206,36 +246,141 @@ class BankList extends Component
         $this->resetValidation();
     }
 
+    public function setDepositMode(string $mode): void
+    {
+        if (! in_array($mode, self::DEPOSIT_MODES, true)) {
+            return;
+        }
+        $this->deposit_mode = $mode;
+        $this->deposit_counter_account_id = null;
+        $this->deposit_debit_account_id = null;
+        $this->deposit_category_id = null;
+        $this->resetValidation();
+        $this->applyDepositDefaults();
+    }
+
     public function updatedDepositSourceType(): void
     {
         $this->deposit_category_id = null;
+        $this->deposit_counter_account_id = $this->defaultCounterAccount();
+    }
+
+    /** Sensible default for the other side of the entry. */
+    protected function applyDepositDefaults(): void
+    {
+        if (in_array($this->deposit_mode, ['deposit', 'opening'], true)) {
+            $this->deposit_counter_account_id = $this->defaultCounterAccount();
+        }
+    }
+
+    protected function defaultCounterAccount(): ?int
+    {
+        $codes = match (true) {
+            $this->deposit_mode === 'opening'                  => ['EQTY-CAPITAL', 'EQTY'],
+            $this->deposit_source_type === 'owner_investment'  => ['EQTY-CAPITAL', 'EQTY'],
+            $this->deposit_source_type === 'loan_received'     => ['LIAB-LOAN', 'LIAB'],
+            $this->deposit_source_type === 'customer_receipt'  => ['ASSET-AR'],
+            $this->deposit_source_type === 'advance_receipt'   => ['LIAB-ADV'],
+            default                                            => ['INC', 'INC-SALES'],
+        };
+
+        foreach ($codes as $code) {
+            if ($id = Account::where('code', $code)->where('is_active', true)->value('id')) {
+                return $id;
+            }
+        }
+
+        return null;
+    }
+
+    /** Chart account (ledger) behind a bank/cash record. */
+    protected function bankLedgerId(?int $bankAccountId): ?int
+    {
+        return $bankAccountId ? BankAccount::whereKey($bankAccountId)->value('account_id') : null;
+    }
+
+    /**
+     * Debit / credit ledger accounts + transaction type for the current mode.
+     *
+     * @return array{0: ?int, 1: ?int, 2: string}  [debit account, credit account, type]
+     */
+    protected function depositEntry(): array
+    {
+        return match ($this->deposit_mode) {
+            'transfer'   => [$this->bankLedgerId($this->deposit_bank_account_id), $this->bankLedgerId($this->deposit_from_bank_account_id), TransactionType::TRANSFER->value],
+            'opening'    => [$this->bankLedgerId($this->deposit_bank_account_id), $this->deposit_counter_account_id, TransactionType::OPENING_BALANCE->value],
+            'adjustment' => [$this->deposit_debit_account_id, $this->deposit_counter_account_id, TransactionType::ADJUSTMENT->value],
+            default      => [$this->bankLedgerId($this->deposit_bank_account_id), $this->deposit_counter_account_id, $this->deposit_source_type],
+        };
     }
 
     public function createDeposit(): void
     {
+        $mode = in_array($this->deposit_mode, self::DEPOSIT_MODES, true) ? $this->deposit_mode : 'deposit';
+        $needsBank = $mode !== 'adjustment';
+
         $this->validate([
-            'deposit_bank_account_id' => ['required', 'exists:bank_accounts,id'],
-            'deposit_source_type'     => ['required', 'string'],
-            'deposit_category_id'     => ['nullable', 'exists:transaction_categories,id'],
-            'deposit_amount'          => ['required', 'numeric', 'min:0.001'],
-            'deposit_date'            => ['required', 'date'],
-            'deposit_description'     => ['required', 'string', 'max:500'],
+            'deposit_bank_account_id'      => [$needsBank ? 'required' : 'nullable', 'exists:bank_accounts,id'],
+            'deposit_from_bank_account_id' => [$mode === 'transfer' ? 'required' : 'nullable', 'exists:bank_accounts,id', $mode === 'transfer' ? 'different:deposit_bank_account_id' : 'nullable'],
+            'deposit_source_type'          => [$mode === 'deposit' ? 'required' : 'nullable', Rule::in(self::DEPOSIT_TYPES)],
+            'deposit_counter_account_id'   => [in_array($mode, ['deposit', 'opening', 'adjustment'], true) ? 'required' : 'nullable', 'exists:accounts,id'],
+            'deposit_debit_account_id'     => [$mode === 'adjustment' ? 'required' : 'nullable', 'exists:accounts,id'],
+            'deposit_category_id'          => ['nullable', 'exists:transaction_categories,id'],
+            'deposit_amount'               => ['required', 'numeric', 'min:0.001'],
+            'deposit_date'                 => ['required', 'date'],
+            'deposit_description'          => ['required', 'string', 'max:500'],
+            'deposit_reference_no'         => ['nullable', 'string', 'max:100'],
+        ] + $this->profilePickerRules(), [
+            'deposit_from_bank_account_id.different' => 'Transfer needs two different accounts.',
+        ], [
+            'deposit_bank_account_id'      => $mode === 'transfer' ? 'to account' : 'bank / cash account',
+            'deposit_from_bank_account_id' => 'from account',
+            'deposit_counter_account_id'   => $mode === 'adjustment' ? 'credit account' : 'source account',
+            'deposit_debit_account_id'     => 'debit account',
         ]);
+
+        [$debitId, $creditId, $type] = $this->depositEntry();
+
+        if (! $debitId || ! $creditId) {
+            $this->addError('deposit_bank_account_id', 'This bank / cash record is not linked to a Chart of Accounts ledger.');
+            return;
+        }
+        if ($debitId === $creditId) {
+            // Show it on a field the current tab actually displays.
+            $mode === 'transfer'
+                ? $this->addError('deposit_from_bank_account_id', 'Both accounts post to the same ledger account — pick accounts linked to different ledgers.')
+                : $this->addError('deposit_counter_account_id', 'Debit and credit accounts must be different.');
+            return;
+        }
+
+        $amount = round((float) $this->deposit_amount, 3);
 
         BankingPaymentRequest::query()->create([
             'request_no'              => BankingPaymentRequest::generateRequestNo(),
-            'source_type'             => $this->deposit_source_type,
-            'sourceable_type'         => null,
-            'sourceable_id'           => null,
-            'transaction_category_id' => $this->deposit_category_id ?: null,
-            'bank_account_id'         => $this->deposit_bank_account_id,
-            'amount'                  => (float) $this->deposit_amount,
+            'source_type'             => $type,
+            'transaction_category_id' => $mode === 'deposit' ? ($this->deposit_category_id ?: null) : null,
+            'bank_account_id'         => $this->deposit_bank_account_id ?: null,
+            'account_id'              => $debitId,
+            'amount'                  => $amount,
+            'payment_date'            => $this->deposit_date,
             'description'             => $this->deposit_description,
+            'reference_no'            => $this->deposit_reference_no ?: null,
+            'method'                  => $mode === 'adjustment' ? 'journal' : 'bank',
             'status'                  => 'pending',
             'requested_by'            => Auth::id(),
+            'master_profile_id'       => $this->master_profile_id,
+            'debit_account_id'        => $debitId,
+            'debit_amount'            => $amount,
+            'credit_account_id'       => $creditId,
+            'credit_amount'           => $amount,
+            'external_data'           => array_filter([
+                'fund_entry_mode'      => $mode,
+                'from_bank_account_id' => $this->deposit_from_bank_account_id,
+                'entry_date'           => $this->deposit_date,
+            ]),
         ]);
 
-        $this->dispatch('toast', ['type' => 'success', 'message' => 'Request submitted to banking.']);
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Request submitted to banking — posts after approval.']);
         $this->closeDepositModal();
     }
 

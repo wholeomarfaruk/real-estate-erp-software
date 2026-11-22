@@ -35,6 +35,7 @@ class Transaction extends Model
         'related_transaction_id',
         'relation_type',
         'external_data',
+        'master_profile_id',
     ];
 
     protected $casts = [

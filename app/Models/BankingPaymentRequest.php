@@ -42,6 +42,7 @@ class BankingPaymentRequest extends Model
         'rejected_by',
         'rejected_at',
         'external_data',
+        'master_profile_id',
     ];
 
     protected $casts = [

@@ -185,6 +185,9 @@
                 </div>
             </div>
 
+            {{-- Party — optional, e.g. the vendor or person paid --}}
+            @include('livewire.admin.profiles.partials.profile-picker', ['label' => 'Paid to (profile)'])
+
             {{-- Notes --}}
             <div>
                 <label for="notes" class="block text-sm font-medium text-gray-700">Notes (Optional)</label>

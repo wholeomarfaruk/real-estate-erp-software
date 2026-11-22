@@ -16,7 +16,7 @@ use Livewire\Component;
 
 class GenericExpenseForm extends Component
 {
-    use InteractsWithAccountsAccess, InteractsWithFeatureAccounts, WithMediaPicker;
+    use InteractsWithAccountsAccess, InteractsWithFeatureAccounts, WithMediaPicker, \App\Livewire\Concerns\WithProfilePicker;
 
     public ?ExpenseCategory $category = null;
     public ?int $expense_account_id = null;
@@ -61,7 +61,7 @@ class GenericExpenseForm extends Component
                 'attachments.*' => 'integer|exists:files,id',
             ];
 
-            $this->validate($rules);
+            $this->validate($rules + $this->profilePickerRules());
 
             $normalizedAttachmentIds = $this->normalizedAttachmentIds();
             $this->attachments = $normalizedAttachmentIds;
@@ -82,6 +82,7 @@ class GenericExpenseForm extends Component
             // Create banking payment request
             $bpr = BankingPaymentRequest::create([
                 'request_no' => BankingPaymentRequest::generateRequestNo(),
+                'master_profile_id' => $this->master_profile_id,
                 'source_type' => TransactionType::EXPENSE->value,
                 'transaction_category_id' => null,
                 'amount' => round((float) $this->amount, 3),

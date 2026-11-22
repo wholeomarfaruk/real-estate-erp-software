@@ -4,6 +4,7 @@ namespace App\Services\Accounts;
 
 use App\Models\Transaction;
 use App\Models\TransactionLine;
+use App\Services\Profiles\ProfileTransactionResolver;
 use Illuminate\Support\Facades\DB;
 
 class LedgerService
@@ -49,7 +50,15 @@ class LedgerService
                 'datetime', 'type', 'reference_no', 'voucher_no', 'reference_type',
                 'reference_id', 'notes', 'method', 'name', 'phone', 'attachments', 'external_data',
                 'related_transaction_id', 'relation_type', 'created_by', 'updated_by',
+                'master_profile_id',
             ];
+
+            // Party: use the one given, otherwise derive it from the reference
+            // (payroll → employee, purchase invoice → supplier, installment → customer…).
+            if (empty($header['master_profile_id'])) {
+                $header['master_profile_id'] = app(ProfileTransactionResolver::class)
+                    ->profileFor($header['reference_type'] ?? null, isset($header['reference_id']) ? (int) $header['reference_id'] : null);
+            }
 
             $transaction = Transaction::query()->create(
                 array_intersect_key($header, array_flip($allowedKeys))

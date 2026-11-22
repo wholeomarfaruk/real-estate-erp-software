@@ -34,6 +34,35 @@ class BankingTransactionService
         BankingPaymentRequest $request,
         int $userId
     ): Transaction {
+        $transaction = $this->postPaymentRequest($request, $userId);
+
+        // Carry the party chosen on the request (or its source record's profile) to the entry.
+        $profileId = $request->master_profile_id
+            ?? app(\App\Services\Profiles\ProfileTransactionResolver::class)
+                ->profileFor($request->sourceable_type, $request->sourceable_id ? (int) $request->sourceable_id : null);
+
+        if ($profileId && ! $transaction->master_profile_id) {
+            $transaction->update(['master_profile_id' => $profileId]);
+        }
+
+        // Journal Posting / Fund Entry requests carry an explicit entry date (e.g. a
+        // backdated journal or opening balance): book the entry on that date, not on
+        // the day it was approved. Other request types keep their existing posting time.
+        $entryDateValue = $request->external_data['entry_date'] ?? null;
+        if ($entryDateValue) {
+            $entryDate = \Illuminate\Support\Carbon::parse($entryDateValue)->setTimeFrom(now());
+            if (! $entryDate->isSameDay($transaction->datetime)) {
+                $transaction->update(['datetime' => $entryDate]);
+            }
+        }
+
+        return $transaction;
+    }
+
+    private function postPaymentRequest(
+        BankingPaymentRequest $request,
+        int $userId
+    ): Transaction {
         return DB::transaction(function () use ($request, $userId): Transaction {
             $this->validatePaymentRequest($request);
 
@@ -75,6 +104,12 @@ class BankingTransactionService
                 return $this->postIncome($request, $userId);
             }
 
+            // Journal Posting items (receipts / contra / journal) — generic
+            // pre-stored double entry: Dr debit_account / Cr credit_account.
+            $genericTypes = array_merge(TransactionType::receipts(), TransactionType::neutral());
+            if (in_array($sourceType, $genericTypes, true)) {
+                return $this->postExpensePayment($request, $userId);
+            }
 
             throw new \DomainException("Unsupported payment source type: {$sourceType}");
         });
@@ -150,8 +185,9 @@ class BankingTransactionService
      * Post an office expense payment using stored double-entry data:
      *   Dr Office Expense Account / Cr Payment Account
      *
-     * Office expenses have no associated sourceable model (no project, employee,
-     * supplier, etc.) — sourceable_type/sourceable_id are intentionally left null.
+     * Office expenses normally have no associated sourceable model (the Office
+     * Expense form never sets one), so the reference is null. A Journal Posting
+     * entry may link a project — that link is kept.
      * Uses debit/credit accounts and amounts pre-stored on the request.
      */
     private function postOfficeExpensePayment(
@@ -173,8 +209,8 @@ class BankingTransactionService
             [
                 'datetime' => now()->format('Y-m-d H:i:s'),
                 'type' => $request->source_type,
-                'reference_type' => null,
-                'reference_id' => null,
+                'reference_type' => $request->sourceable_type ?: null,
+                'reference_id' => $request->sourceable_type ? $request->sourceable_id : null,
                 'reference_no' => $request->reference_no,
                 'voucher_no' => $request->voucher_no,
                 'name' => $request->name,
@@ -261,6 +297,7 @@ class BankingTransactionService
                 'reference_type' => $request->sourceable_type,
                 'reference_id' => $request->sourceable_id,
                 'reference_no' => $request->reference_no,
+                'voucher_no' => $request->voucher_no,
                 'name' => $request->name ?? $payment->payroll?->employee?->name,
                 'phone' => $request->phone,
                 'method' => $request->method ?? $payment->payment_method ?? 'bank',
@@ -345,6 +382,7 @@ class BankingTransactionService
                 'reference_type' => $request->sourceable_type,
                 'reference_id' => $request->sourceable_id,
                 'reference_no' => $request->reference_no,
+                'voucher_no' => $request->voucher_no,
                 'name' => $request->name ?? $payment->payroll?->employee?->name,
                 'phone' => $request->phone,
                 'method' => 'adjustment',
@@ -436,6 +474,7 @@ class BankingTransactionService
                 'reference_type' => $request->sourceable_type,
                 'reference_id' => $request->sourceable_id,
                 'reference_no' => $request->reference_no,
+                'voucher_no' => $request->voucher_no,
                 'name' => $request->name,
                 'phone' => $request->phone,
                 'method' => $request->method ?? 'cash',
@@ -515,6 +554,7 @@ class BankingTransactionService
                 'reference_type' => $request->sourceable_type,
                 'reference_id' => $request->sourceable_id,
                 'reference_no' => $request->reference_no ?? $invoice->invoice_no,
+                'voucher_no' => $request->voucher_no,
                 'name' => $request->name ?? $invoice->supplier?->name,
                 'phone' => $request->phone,
                 'method' => $request->method ?? 'bank',
@@ -595,6 +635,7 @@ class BankingTransactionService
                 'reference_type' => $request->sourceable_type,
                 'reference_id' => (int) $request->sourceable_id,
                 'reference_no' => $request->reference_no ?? $fund->reference_no,
+                'voucher_no' => $request->voucher_no,
                 'name' => $request->name ?? $fund->receiver?->name,
                 'phone' => $request->phone ?? $fund->receiver?->phone,
                 'method' => $request->method ?? $fund->method ?? 'cash',
@@ -665,6 +706,7 @@ class BankingTransactionService
                 'reference_type' => 'banking_payment_request',
                 'reference_id' => $request->id,
                 'reference_no' => $request->reference_no,
+                'voucher_no' => $request->voucher_no,
                 'name' => $request->name,
                 'phone' => $request->phone,
                 'method' => $request->method ?? 'bank',

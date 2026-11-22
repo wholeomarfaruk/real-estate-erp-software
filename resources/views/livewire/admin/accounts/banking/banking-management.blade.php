@@ -563,6 +563,8 @@
                     @error('description') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
+                @include('livewire.admin.profiles.partials.profile-picker', ['label' => 'Party (profile)'])
+
                 <div>
                     <label class="text-sm font-medium text-gray-700">Notes</label>
                     <textarea wire:model.defer="notes" rows="2" placeholder="Optional notes"

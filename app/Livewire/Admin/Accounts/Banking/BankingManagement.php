@@ -13,7 +13,7 @@ use Livewire\WithPagination;
 
 class BankingManagement extends Component
 {
-    use WithPagination;
+    use WithPagination, \App\Livewire\Concerns\WithProfilePicker;
 
     // ─── Filters ─────────────────────────────────────────────────────────────
     public string $statusFilter   = '';
@@ -136,9 +136,10 @@ class BankingManagement extends Component
             'description'             => ['required', 'string', 'max:500'],
             'bank_account_id'         => ['required', 'exists:bank_accounts,id'],
             'notes'                   => ['nullable', 'string', 'max:500'],
-        ]);
+        ] + $this->profilePickerRules());
 
         $request = BankingPaymentRequest::create([
+            'master_profile_id'       => $this->master_profile_id,
             'request_no'              => BankingPaymentRequest::generateRequestNo(),
             'source_type'             => $this->source_type,
             'transaction_category_id' => $this->transaction_category_id ?: null,
@@ -251,6 +252,7 @@ class BankingManagement extends Component
     {
         $this->reset(['source_type', 'transaction_category_id', 'amount', 'description', 'bank_account_id', 'notes']);
         $this->source_type = 'expense';
+        $this->clearProfile();
     }
 
     /**
