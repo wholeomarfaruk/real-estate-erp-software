@@ -79,7 +79,7 @@ class JournalPostingHub extends Component
     public string $form_description = '';
     public string $form_icon = 'folder';
     public string $form_color = 'bg-gray-50 border-gray-200 text-gray-700';
-    public string $form_kind = 'category';   // adding to Expenses: category (simple) | item (full settings)
+    public string $form_kind = 'item';       // adding to Expenses: item (full settings) | category (simple)
     public string $form_feature_type = '';   // expense categories only
     public string $form_debit_source = 'all';   // all | cashbank | feature:<key>
     public string $form_credit_source = 'cashbank';
@@ -679,16 +679,13 @@ class JournalPostingHub extends Component
 
         // Expense categories
         if ($groups->has('expense')) {
-            // A locked category (hard-coded form) is replaced by a dynamic Expenses item
-            // that debits the same feature's accounts; deleting that item brings it back.
-            $replacedFeatures = $journalItems->where('group_key', 'expense')
-                ->map(fn (JournalPostingItem $item) => JournalPostingItem::sourceFeature($item->debitSource()))
-                ->filter()->unique()->all();
+            // A category replaced by a dynamic item (journal_posting_items.expense_category_id)
+            // is shown through that item; deleting the item brings the category back.
+            $replaced = $journalItems->pluck('expense_category_id')->filter()->all();
 
             $g = $groups['expense'];
             $g['items'] = ExpenseCategory::active()->ordered()->get()
-                ->reject(fn (ExpenseCategory $category) => $category->isLocked()
-                    && $category->feature_type && in_array($category->feature_type, $replacedFeatures, true))
+                ->reject(fn (ExpenseCategory $category) => in_array($category->id, $replaced))
                 ->map(fn (ExpenseCategory $category) => [
                 'id'          => $category->id,
                 'source'      => 'expense',

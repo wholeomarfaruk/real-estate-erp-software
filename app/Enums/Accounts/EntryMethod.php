@@ -10,6 +10,7 @@ enum EntryMethod: string
     case BKASH = 'bkash';
     case NAGAD = 'nagad';
     case ROCKET = 'rocket';
+    case MOBILE_BANKING = 'mobile_banking'; // generic MFS — offered by the expense / journal posting forms
     case CARD = 'card';
     case BANK_TRANSFER = 'bank_transfer';
     case JOURNAL = 'journal';
@@ -24,6 +25,7 @@ enum EntryMethod: string
             self::BKASH => 'bKash',
             self::NAGAD => 'Nagad',
             self::ROCKET => 'Rocket',
+            self::MOBILE_BANKING => 'Mobile Banking',
             self::CARD => 'Card',
             self::BANK_TRANSFER => 'Bank Transfer',
             self::JOURNAL => 'Journal Entry',
@@ -49,6 +51,7 @@ enum EntryMethod: string
             self::BKASH,
             self::NAGAD,
             self::ROCKET,
+            self::MOBILE_BANKING,
             self::CARD,
             self::BANK_TRANSFER,
         ]);
@@ -60,13 +63,14 @@ enum EntryMethod: string
             self::BKASH,
             self::NAGAD,
             self::ROCKET,
+            self::MOBILE_BANKING,
             self::CARD,
         ]);
     }
 
     public function isMFS(): bool
     {
-        return in_array($this, [self::BKASH, self::NAGAD, self::ROCKET]);
+        return in_array($this, [self::BKASH, self::NAGAD, self::ROCKET, self::MOBILE_BANKING]);
     }
 
     public function isJournalEntry(): bool
@@ -93,7 +97,7 @@ enum EntryMethod: string
      * Maps:
      * - CASH → CASH
      * - BANK, CHEQUE, BANK_TRANSFER → BANK
-     * - BKASH, NAGAD, ROCKET → MFS
+     * - BKASH, NAGAD, ROCKET, MOBILE_BANKING → MFS
      * - CARD → WALLET
      * - JOURNAL, ADJUSTMENT → LEDGER (non-account entries)
      */
@@ -102,7 +106,7 @@ enum EntryMethod: string
         return match ($this) {
             self::CASH => AccountType::CASH,
             self::BANK, self::CHEQUE, self::BANK_TRANSFER => AccountType::BANK,
-            self::BKASH, self::NAGAD, self::ROCKET => AccountType::MFS,
+            self::BKASH, self::NAGAD, self::ROCKET, self::MOBILE_BANKING => AccountType::MFS,
             self::CARD => AccountType::WALLET,
             self::JOURNAL, self::ADJUSTMENT => AccountType::LEDGER,
         };

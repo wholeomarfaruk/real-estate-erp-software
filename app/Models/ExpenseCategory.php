@@ -40,6 +40,12 @@ class ExpenseCategory extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    /** Dynamic Journal Posting item that replaces this category's form, if any. */
+    public function journalItem(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(JournalPostingItem::class);
+    }
+
     public function isLocked(): bool
     {
         return $this->is_locked;

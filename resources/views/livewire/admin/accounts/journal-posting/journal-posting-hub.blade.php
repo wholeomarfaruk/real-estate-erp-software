@@ -265,7 +265,7 @@
                             </select>
                             @if ($form_group === 'expense' && ! $editingId)
                                 <div class="mt-2 inline-flex rounded-md bg-gray-100 p-0.5">
-                                    @foreach (['category' => 'Simple expense category', 'item' => 'Journal item (full settings)'] as $kind => $kindLabel)
+                                    @foreach (['item' => 'Journal item (full settings)', 'category' => 'Simple expense category'] as $kind => $kindLabel)
                                         <button type="button" wire:click="$set('form_kind', '{{ $kind }}')"
                                             class="rounded px-2.5 py-1 text-xs font-medium transition {{ $form_kind === $kind ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700' }}">{{ $kindLabel }}</button>
                                     @endforeach

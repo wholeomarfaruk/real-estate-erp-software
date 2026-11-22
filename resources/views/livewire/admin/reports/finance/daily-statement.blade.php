@@ -104,21 +104,48 @@
                             <tr class="bg-ink-5/60 text-ink-2 border-b border-rule">
                                 <th class="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wide">Bank Name</th>
                                 <th class="px-4 py-3 text-right font-semibold text-xs uppercase tracking-wide">Opening Balance</th>
+                                <th class="px-4 py-3 text-right font-semibold text-xs uppercase tracking-wide">Cash Deposit</th>
+                                <th class="px-4 py-3 text-right font-semibold text-xs uppercase tracking-wide">Chq./Online Deposit</th>
+                                <th class="px-4 py-3 text-right font-semibold text-xs uppercase tracking-wide">Cash Withdraw</th>
+                                <th class="px-4 py-3 text-right font-semibold text-xs uppercase tracking-wide">Chq./Online Transfer</th>
                                 <th class="px-4 py-3 text-right font-semibold text-xs uppercase tracking-wide">Closing Balance</th>
                             </tr>
                         </thead>
+                        @php
+                            $fmt = fn ($v) => number_format((float) $v, 0);
+                            $dim = fn ($v) => (float) $v == 0 ? 'text-ink-3' : '';
+                        @endphp
                         <tbody>
                             @forelse($report['banks'] as $bank)
                                 <tr class="border-b border-rule last:border-0 hover:bg-ink-5/20 transition">
-                                    <td class="px-4 py-3 text-left">{{ $bank['name'] }}</td>
-                                    <td class="px-4 py-3 text-right">{{ number_format((float)$bank['opening'], 0) }}</td>
-                                    <td class="px-4 py-3 text-right font-medium">{{ number_format((float)$bank['closing'], 0) }}</td>
+                                    <td class="px-4 py-3 text-left">
+                                        {{ $bank['name'] }}
+                                        @if (! empty($bank['account']))<span class="text-xs text-ink-3">({{ $bank['account'] }})</span>@endif
+                                    </td>
+                                    <td class="px-4 py-3 text-right {{ $dim($bank['opening']) }}">{{ $fmt($bank['opening']) }}</td>
+                                    <td class="px-4 py-3 text-right {{ $dim($bank['cash_deposit']) ?: 'text-green-600' }}">{{ $fmt($bank['cash_deposit']) }}</td>
+                                    <td class="px-4 py-3 text-right {{ $dim($bank['online_deposit']) ?: 'text-green-600' }}">{{ $fmt($bank['online_deposit']) }}</td>
+                                    <td class="px-4 py-3 text-right {{ $dim($bank['cash_withdraw']) ?: 'text-red-600' }}">{{ $fmt($bank['cash_withdraw']) }}</td>
+                                    <td class="px-4 py-3 text-right {{ $dim($bank['online_transfer']) ?: 'text-red-600' }}">{{ $fmt($bank['online_transfer']) }}</td>
+                                    <td class="px-4 py-3 text-right font-medium {{ $dim($bank['closing']) }}">{{ $fmt($bank['closing']) }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="3" class="px-4 py-10 text-center text-ink-3">No bank accounts found</td>
+                                    <td colspan="7" class="px-4 py-10 text-center text-ink-3">No bank accounts found</td>
                                 </tr>
                             @endforelse
+                            @if (count($report['banks']) > 0)
+                                @php $bt = $report['bank_totals']; @endphp
+                                <tr class="bg-ink-5/40 font-semibold border-t border-rule">
+                                    <td class="px-4 py-3 text-right">Total</td>
+                                    <td class="px-4 py-3 text-right">{{ $fmt($bt['opening']) }}</td>
+                                    <td class="px-4 py-3 text-right text-green-600">{{ $fmt($bt['cash_deposit']) }}</td>
+                                    <td class="px-4 py-3 text-right text-green-600">{{ $fmt($bt['online_deposit']) }}</td>
+                                    <td class="px-4 py-3 text-right text-red-600">{{ $fmt($bt['cash_withdraw']) }}</td>
+                                    <td class="px-4 py-3 text-right text-red-600">{{ $fmt($bt['online_transfer']) }}</td>
+                                    <td class="px-4 py-3 text-right">{{ $fmt($bt['closing']) }}</td>
+                                </tr>
+                            @endif
                         </tbody>
                     </table>
                 </div>

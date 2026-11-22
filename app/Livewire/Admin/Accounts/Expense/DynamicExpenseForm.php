@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Accounts\Expense;
 
 use App\Models\ExpenseCategory;
+use App\Models\JournalPostingItem;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
@@ -14,6 +15,18 @@ class DynamicExpenseForm extends Component
     public function mount(string $category = null): void
     {
         $category = $category ?: request()->query('category');
+        $projectId = (int) request()->query('project_id') ?: null;
+
+        // "Add expense" from a project page has no category → the Project Expense item.
+        if (! $category && $projectId) {
+            $item = JournalPostingItem::where('slug', 'project-expense')->first()
+                ?? ExpenseCategory::where('slug', 'project')->first()?->journalItem;
+            if ($item) {
+                $this->redirectRoute('admin.accounts.journal-posting.entry', ['item' => $item->slug, 'project_id' => $projectId], navigate: true);
+                return;
+            }
+            $category = 'project';
+        }
 
         if (!$category) {
             abort(404, 'Expense category not specified');
@@ -22,6 +35,15 @@ class DynamicExpenseForm extends Component
         $this->category = ExpenseCategory::where('slug', $category)
             ->where('is_active', true)
             ->firstOrFail();
+
+        // A dynamic Journal Posting item replaces this category's form.
+        if ($item = $this->category->journalItem) {
+            $this->redirectRoute('admin.accounts.journal-posting.entry', array_filter([
+                'item' => $item->slug,
+                'project_id' => $projectId,
+            ]), navigate: true);
+            return;
+        }
 
         // Determine which form to load
         if ($this->category->is_locked && $this->category->form_component) {

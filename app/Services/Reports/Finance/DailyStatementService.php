@@ -93,10 +93,14 @@ class DailyStatementService
             $ownType = $account->type instanceof AccountType ? $account->type->value : (string) $account->type;
 
             foreach ($dailyLines as $line) {
-                // No entry method → classify by the account itself, so the row still
-                // reconciles (opening + deposits − withdrawals = closing).
-                $accountType = $line->transaction->method?->accountType()
-                    ?? ($ownType === AccountType::CASH->value ? AccountType::CASH : AccountType::BANK);
+                // Cash method → cash columns; bank / cheque / MFS → online columns.
+                // No method, or a non-cash-flow one (journal / adjustment → LEDGER):
+                // classify by the account itself, so the row still reconciles
+                // (opening + deposits − withdrawals = closing).
+                $accountType = $line->transaction->method?->accountType();
+                if (! $accountType || $accountType === AccountType::LEDGER) {
+                    $accountType = $ownType === AccountType::CASH->value ? AccountType::CASH : AccountType::BANK;
+                }
 
                 // Deposits (money in)
                 if ((float) $line->debit > 0) {

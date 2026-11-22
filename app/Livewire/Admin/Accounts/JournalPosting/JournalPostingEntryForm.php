@@ -54,10 +54,9 @@ class JournalPostingEntryForm extends Component
 
     public function mount(JournalPostingItem $item): void
     {
-        $this->authorizePermission('accounts.chart.list');
-        abort_unless($item->usableBy(auth()->user()), 403, 'You are not allowed to use this entry.');
-
         $this->item = $item;
+        $this->authorizeEntry();
+
         $this->date = now()->toDateString();
 
         // Defaults from the item's behaviour settings
@@ -76,6 +75,36 @@ class JournalPostingEntryForm extends Component
         foreach ($item->customFieldDefs() as $field) {
             $this->custom[$field['key']] = '';
         }
+
+        // Opened from a project page ("Add expense") → project pre-selected.
+        $projectId = (int) request()->query('project_id');
+        if ($projectId && $item->showsField('project') && Project::whereKey($projectId)->exists()) {
+            $this->project_id = $projectId;
+        }
+    }
+
+    /**
+     * Journal Posting users (accounts.chart.list) can use any item; Expenses items are
+     * also open to Expenses users (accounts.expense.create), whose category forms
+     * now redirect here.
+     */
+    protected function authorizeEntry(): void
+    {
+        $user = auth()->user();
+        abort_unless(
+            $user && ($user->can('accounts.chart.list') || ($this->item->isExpenseItem() && $user->can('accounts.expense.create'))),
+            403,
+            'Unauthorized action.'
+        );
+        abort_unless($this->item->usableBy($user), 403, 'You are not allowed to use this entry.');
+    }
+
+    /** Where Cancel / Save go: the hub, or the Expenses page for Expenses-only users. */
+    public function backUrl(): string
+    {
+        return $this->item->isExpenseItem() && ! auth()->user()?->can('accounts.chart.list')
+            ? route('admin.accounts.expenses.index')
+            : route('admin.accounts.journal-posting');
     }
 
     public function transactionType(): TransactionType
@@ -90,7 +119,7 @@ class JournalPostingEntryForm extends Component
 
     public function save(): void
     {
-        $this->authorizePermission('accounts.chart.list');
+        $this->authorizeEntry();
 
         // Hidden fields never carry values.
         foreach (['reference_no', 'voucher_no', 'party_name', 'party_phone', 'notes'] as $field) {
@@ -172,7 +201,7 @@ class JournalPostingEntryForm extends Component
         [$debitId, $creditId] = [$this->debit_account_id, $this->credit_account_id];
 
         $amount = round((float) $this->amount, 3);
-        $attachments = array_values(array_unique(array_filter(array_map('intval', $this->mediaIds))));
+        $attachments = array_values(array_unique(array_filter(array_map(fn ($m) => (int) (is_array($m) ? ($m['id'] ?? 0) : $m), $this->mediaIds))));
 
         // Custom field values, stored with their labels so reports stay readable.
         $customValues = collect($this->item->customFieldDefs())
@@ -248,7 +277,7 @@ class JournalPostingEntryForm extends Component
         $this->dispatch('toast', type: 'success', message: $direct
             ? "{$this->item->label}{$voucher} posted to the ledger."
             : "{$this->item->label}{$voucher} request created. It is now pending approval.");
-        $this->redirectRoute('admin.accounts.journal-posting', navigate: true);
+        $this->redirect($this->backUrl(), navigate: true);
     }
 
     public function removeAttachment(int $index): void

@@ -10,7 +10,7 @@
     {{-- Header --}}
     <div class="mb-5">
         <nav class="mb-1 text-xs text-gray-400">
-            <a href="{{ route('admin.accounts.journal-posting') }}" class="hover:text-gray-600">Journal Posting</a>
+            <a href="{{ $this->backUrl() }}" class="hover:text-gray-600">{{ auth()->user()?->can('accounts.chart.list') ? 'Journal Posting' : 'Expenses' }}</a>
             <span class="mx-1">/</span>
             <span class="text-gray-600">{{ $item->label }}</span>
         </nav>
@@ -216,8 +216,14 @@
             </div>
         @endif
 
+        {{-- Attachments (receipts, bills, vouchers) --}}
+        <div>
+            <x-media-picker-field field="mediaIds" label="Attachments" :value="$mediaIds"
+                placeholder="Attach receipts / bills" :multiple="true" type="any" />
+        </div>
+
         <div class="flex justify-end gap-2 border-t border-gray-100 pt-4">
-            <a href="{{ route('admin.accounts.journal-posting') }}" class="inline-flex h-10 items-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-600 hover:bg-gray-50">Cancel</a>
+            <a href="{{ $this->backUrl() }}" class="inline-flex h-10 items-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-600 hover:bg-gray-50">Cancel</a>
             <button type="submit" wire:loading.attr="disabled" wire:target="save" class="inline-flex h-10 items-center rounded-lg bg-gray-900 px-4 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-60">
                 <span wire:loading.remove wire:target="save">{{ $item->setting('requires_approval') ? 'Submit for Approval' : 'Post Entry' }}</span>
                 <span wire:loading wire:target="save">Submitting…</span>

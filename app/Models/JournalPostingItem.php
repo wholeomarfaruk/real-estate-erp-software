@@ -75,6 +75,7 @@ class JournalPostingItem extends Model
         'custom_fields',
         'sort_order',
         'created_by',
+        'expense_category_id',
     ];
 
     protected $casts = [
@@ -82,6 +83,18 @@ class JournalPostingItem extends Model
         'behaviour'      => 'array',
         'custom_fields'  => 'array',
     ];
+
+    /** The expense category this item replaces (its old form redirects here). */
+    public function expenseCategory(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(ExpenseCategory::class);
+    }
+
+    /** Expense items can also be used with the expense permission (Expenses page users). */
+    public function isExpenseItem(): bool
+    {
+        return $this->group_key === 'expense';
+    }
 
     // ── Field rules ─────────────────────────────────────────────
 

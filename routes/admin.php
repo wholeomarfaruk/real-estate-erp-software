@@ -187,8 +187,9 @@ Route::prefix('accounts')->name('accounts.')->group(function (): void {
         ->middleware('can:accounts.chart.list')
         ->name('journal-posting');
 
+    // Permission is checked in the component: accounts.chart.list, or
+    // accounts.expense.create for Expenses items (expense category forms redirect here).
     Route::get('/journal-posting/{item:slug}', App\Livewire\Admin\Accounts\JournalPosting\JournalPostingEntryForm::class)
-        ->middleware('can:accounts.chart.list')
         ->name('journal-posting.entry');
 
     Route::prefix('expenses')->name('expenses.')->group(function (): void {
