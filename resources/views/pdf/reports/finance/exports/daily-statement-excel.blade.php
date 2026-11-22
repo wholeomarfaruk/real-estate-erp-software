@@ -85,8 +85,8 @@
     <th style="border:1px solid #161616; background:#f4f4f4; padding:7px;">S.N</th>
     <th style="border:1px solid #161616; background:#f4f4f4; padding:7px;">Account Name</th>
     <th style="border:1px solid #161616; background:#f4f4f4; padding:7px;">Particulars</th>
-    <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:center;">MR-No</th>
-    <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:center;">Folio/No</th>
+    <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:center;">Project Code</th>
+    <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:center;">Voucher No</th>
     <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:right;">Cash</th>
     <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:right;">Bank</th>
     <td style="border:none;"></td>
@@ -96,8 +96,8 @@
     <td style="border:1px solid #c9c9c9; padding:6px; text-align:center;">{{ $i + 1 }}</td>
     <td style="border:1px solid #c9c9c9; padding:6px;">{{ $r['account'] }}</td>
     <td style="border:1px solid #c9c9c9; padding:6px;">{{ $r['particulars'] ?? '' }}</td>
-    <td style="border:1px solid #c9c9c9; padding:6px; text-align:center;">{{ $r['mr_no'] ?? '–' }}</td>
-    <td style="border:1px solid #c9c9c9; padding:6px; text-align:center;">{{ $r['folio'] ?? '–' }}</td>
+    <td style="border:1px solid #c9c9c9; padding:6px; text-align:center;">{{ $r['project_code'] ?? '–' }}</td>
+    <td style="border:1px solid #c9c9c9; padding:6px; text-align:center;">{{ $r['voucher_no'] ?? '–' }}</td>
     <td style="border:1px solid #c9c9c9; padding:6px; text-align:right;">{{ $n($r['cash']) }}</td>
     <td style="border:1px solid #c9c9c9; padding:6px; text-align:right;">{{ $n($r['bank']) }}</td>
     <td style="border:none;"></td>
@@ -118,8 +118,8 @@
     <th style="border:1px solid #161616; background:#f4f4f4; padding:7px;">S.N</th>
     <th style="border:1px solid #161616; background:#f4f4f4; padding:7px;">Account Name</th>
     <th style="border:1px solid #161616; background:#f4f4f4; padding:7px;">Particulars</th>
-    <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:center;">Proj-No</th>
-    <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:center;">Folio/No</th>
+    <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:center;">Project Code</th>
+    <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:center;">Voucher No</th>
     <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:right;">Cash</th>
     <th style="border:1px solid #161616; background:#f4f4f4; padding:7px; text-align:right;">Bank</th>
     <td style="border:none;"></td>
@@ -129,8 +129,8 @@
     <td style="border:1px solid #c9c9c9; padding:6px; text-align:center;">{{ $i + 1 }}</td>
     <td style="border:1px solid #c9c9c9; padding:6px;"><b>{{ $p['account'] }}</b></td>
     <td style="border:1px solid #c9c9c9; padding:6px;">{{ $p['particulars'] ?? '' }}</td>
-    <td style="border:1px solid #c9c9c9; padding:6px; text-align:center;">{{ $p['proj_no'] ?? '–' }}</td>
-    <td style="border:1px solid #c9c9c9; padding:6px; text-align:center;">{{ $p['folio'] ?? '–' }}</td>
+    <td style="border:1px solid #c9c9c9; padding:6px; text-align:center;">{{ $p['project_code'] ?? '–' }}</td>
+    <td style="border:1px solid #c9c9c9; padding:6px; text-align:center;">{{ $p['voucher_no'] ?? '–' }}</td>
     <td style="border:1px solid #c9c9c9; padding:6px; text-align:right;">{{ $n($p['cash']) }}</td>
     <td style="border:1px solid #c9c9c9; padding:6px; text-align:right;">{{ $n($p['bank']) }}</td>
     <td style="border:none;"></td>

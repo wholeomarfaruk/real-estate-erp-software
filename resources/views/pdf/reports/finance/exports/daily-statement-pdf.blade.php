@@ -147,7 +147,7 @@
       <thead>
         <tr>
           <th class="c">S.N</th><th>Account Name</th><th>Particulars</th>
-          <th class="c">MR-No</th><th class="c">Folio/No</th>
+          <th class="c">Project Code</th><th class="c">Voucher No</th>
           <th style="text-align:right;">Cash</th><th style="text-align:right;">Bank</th>
         </tr>
       </thead>
@@ -157,8 +157,8 @@
           <td class="sn">{{ $i + 1 }}</td>
           <td>{{ $r['account'] }}</td>
           <td>{{ $r['particulars'] ?? '' }}</td>
-          <td class="c {{ empty($r['mr_no']) ? 'num-zero' : '' }}">{{ $r['mr_no'] ?? '–' }}</td>
-          <td class="c {{ empty($r['folio']) ? 'num-zero' : '' }}">{{ $r['folio'] ?? '–' }}</td>
+          <td class="c {{ empty($r['project_code']) ? 'num-zero' : '' }}">{{ $r['project_code'] ?? '–' }}</td>
+          <td class="c {{ empty($r['voucher_no']) ? 'num-zero' : '' }}">{{ $r['voucher_no'] ?? '–' }}</td>
           <td class="num {{ $z($r['cash']) }}">{{ $n($r['cash']) }}</td>
           <td class="num {{ $z($r['bank']) }}">{{ $n($r['bank']) }}</td>
         </tr>
@@ -176,13 +176,13 @@
     <div class="sec-h">Payments</div>
     <table class="table">
       <colgroup>
-        <col style="width:4%"><col style="width:27%"><col style="width:29%">
-        <col style="width:9%"><col style="width:8%"><col style="width:11.5%"><col style="width:11.5%">
+        <col style="width:4%"><col style="width:25%"><col style="width:28%">
+        <col style="width:10%"><col style="width:10%"><col style="width:11.5%"><col style="width:11.5%">
       </colgroup>
       <thead>
         <tr>
           <th class="c">S.N</th><th>Account Name</th><th>Particulars</th>
-          <th class="c">Proj-No</th><th class="c">Folio/N</th><th style="text-align:right;">Cash</th><th style="text-align:right;">Bank</th>
+          <th class="c">Project Code</th><th class="c">Voucher No</th><th style="text-align:right;">Cash</th><th style="text-align:right;">Bank</th>
         </tr>
       </thead>
       <tbody>
@@ -191,8 +191,8 @@
           <td class="sn">{{ $i + 1 }}</td>
           <td>{{ $p['account'] }}</td>
           <td>{{ $p['particulars'] ?? '' }}</td>
-          <td class="c {{ empty($p['proj_no']) ? 'num-zero' : '' }}">{{ $p['proj_no'] ?? '–' }}</td>
-          <td class="c {{ empty($p['folio']) ? 'num-zero' : '' }}">{{ $p['folio'] ?? '–' }}</td>
+          <td class="c {{ empty($p['project_code']) ? 'num-zero' : '' }}">{{ $p['project_code'] ?? '–' }}</td>
+          <td class="c {{ empty($p['voucher_no']) ? 'num-zero' : '' }}">{{ $p['voucher_no'] ?? '–' }}</td>
           <td class="num {{ $z($p['cash']) }}">{{ $n($p['cash']) }}</td>
           <td class="num {{ $z($p['bank']) }}">{{ $n($p['bank']) }}</td>
         </tr>

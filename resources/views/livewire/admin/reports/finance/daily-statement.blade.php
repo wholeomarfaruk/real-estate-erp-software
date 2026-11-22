@@ -76,7 +76,7 @@
                 <div class="bg-paper border border-rule rounded-xl p-4">
                     <div class="text-ink-3 text-xs uppercase tracking-wide mb-1">Opening Balance</div>
                     <div class="text-2xl font-bold text-ink-1">{{ number_format((float)$report['bank_totals']['opening'], 0) }}</div>
-                    <div class="text-xs text-ink-3 mt-1">Bank: {{ number_format((float)$report['bank_totals']['opening'], 0) }}</div>
+                    <div class="text-xs text-ink-3 mt-1">Cash: {{ number_format((float)($report['opening']['cash'] ?? 0), 0) }} · Bank: {{ number_format((float)($report['opening']['bank'] ?? 0), 0) }}</div>
                 </div>
                 <div class="bg-paper border border-rule rounded-xl p-4">
                     <div class="text-ink-3 text-xs uppercase tracking-wide mb-1">Total Receipts</div>
@@ -89,7 +89,7 @@
                 <div class="bg-paper border border-rule rounded-xl p-4">
                     <div class="text-ink-3 text-xs uppercase tracking-wide mb-1">Closing Balance</div>
                     <div class="text-2xl font-bold text-accent">{{ number_format((float)$report['closing']['cash'] + (float)$report['closing']['bank'], 0) }}</div>
-                    <div class="text-xs text-ink-3 mt-1">Cash: {{ number_format((float)$report['closing']['cash'], 0) }}</div>
+                    <div class="text-xs text-ink-3 mt-1">Cash: {{ number_format((float)$report['closing']['cash'], 0) }} · Bank: {{ number_format((float)$report['closing']['bank'], 0) }}</div>
                 </div>
             </div>
 
@@ -134,28 +134,30 @@
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="bg-ink-5/60 text-ink-2 border-b border-rule">
-                                <th class="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wide">MR No</th>
+                                <th class="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wide">Voucher No</th>
                                 <th class="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wide">Particulars</th>
                                 <th class="px-4 py-3 text-center font-semibold text-xs uppercase tracking-wide">Account</th>
+                                <th class="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wide">Project Code</th>
                                 <th class="px-4 py-3 text-right font-semibold text-xs uppercase tracking-wide">Amount</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($report['receipts'] as $receipt)
                                 <tr class="border-b border-rule last:border-0 hover:bg-ink-5/20 transition">
-                                    <td class="px-4 py-3 font-medium text-accent">{{ $receipt['mr_no'] }}</td>
+                                    <td class="px-4 py-3 font-medium text-accent">{{ $receipt['voucher_no'] ?? '—' }}</td>
                                     <td class="px-4 py-3">{{ $receipt['particulars'] }}</td>
                                     <td class="px-4 py-3 text-center text-ink-3 text-xs">{{ $receipt['account'] }}</td>
+                                    <td class="px-4 py-3 text-ink-3">{{ $receipt['project_code'] ?? '—' }}</td>
                                     <td class="px-4 py-3 text-right font-medium text-green-600">{{ number_format((float)($receipt['cash'] + $receipt['bank']), 0) }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-4 py-10 text-center text-ink-3">No receipts for this date</td>
+                                    <td colspan="5" class="px-4 py-10 text-center text-ink-3">No receipts for this date</td>
                                 </tr>
                             @endforelse
                             @if(count($report['receipts']) > 0)
                                 <tr class="bg-ink-5/40 font-semibold border-t border-rule">
-                                    <td colspan="3" class="px-4 py-3 text-right">Total Receipts</td>
+                                    <td colspan="4" class="px-4 py-3 text-right">Total Receipts</td>
                                     <td class="px-4 py-3 text-right text-green-600">{{ number_format($totalReceipts, 0) }}</td>
                                 </tr>
                             @endif
@@ -174,8 +176,10 @@
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="bg-ink-5/60 text-ink-2 border-b border-rule">
+                                <th class="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wide">Voucher No</th>
                                 <th class="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wide">Account Name</th>
                                 <th class="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wide">Particulars</th>
+                                <th class="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wide">Project Code</th>
                                 <th class="px-4 py-3 text-center font-semibold text-xs uppercase tracking-wide">Payment Method</th>
                                 <th class="px-4 py-3 text-right font-semibold text-xs uppercase tracking-wide">Amount</th>
                             </tr>
@@ -183,19 +187,21 @@
                         <tbody>
                             @forelse($report['payments'] as $payment)
                                 <tr class="border-b border-rule last:border-0 hover:bg-ink-5/20 transition">
+                                    <td class="px-4 py-3 font-medium text-accent">{{ $payment['voucher_no'] ?? '—' }}</td>
                                     <td class="px-4 py-3">{{ $payment['account'] }}</td>
                                     <td class="px-4 py-3 text-ink-2">{{ $payment['particulars'] }}</td>
+                                    <td class="px-4 py-3 text-ink-3">{{ $payment['project_code'] ?? '—' }}</td>
                                     <td class="px-4 py-3 text-center text-ink-3 text-xs">{{ (float)($payment['bank'] ?? 0) > 0 ? 'Bank' : 'Cash' }}</td>
                                     <td class="px-4 py-3 text-right font-medium text-red-600">{{ number_format((float)$payment['cash'] + (float)($payment['bank'] ?? 0), 0) }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-4 py-10 text-center text-ink-3">No payments for this date</td>
+                                    <td colspan="6" class="px-4 py-10 text-center text-ink-3">No payments for this date</td>
                                 </tr>
                             @endforelse
                             @if(count($report['payments']) > 0)
                                 <tr class="bg-ink-5/40 font-semibold border-t border-rule">
-                                    <td colspan="3" class="px-4 py-3 text-right">Total Payments</td>
+                                    <td colspan="5" class="px-4 py-3 text-right">Total Payments</td>
                                     <td class="px-4 py-3 text-right text-red-600">{{ number_format($totalPayments, 0) }}</td>
                                 </tr>
                             @endif

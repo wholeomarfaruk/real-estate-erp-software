@@ -5,11 +5,20 @@ namespace App\Services\Reports\Finance;
 use App\Enums\Accounts\AccountType;
 use App\Enums\Accounts\TransactionType;
 use App\Models\Account;
+use App\Models\PaymentSchedule;
+use App\Models\Project;
 use App\Models\TransactionLine;
 use Carbon\Carbon;
 
 class DailyStatementService
 {
+    private const LIQUID_TYPES = [
+        AccountType::CASH->value,
+        AccountType::BANK->value,
+        AccountType::MFS->value,
+        AccountType::WALLET->value,
+    ];
+
     public function build(array $filters): array
     {
         $date = Carbon::parse($filters['date'] ?? now()->toDateString())->startOfDay();
@@ -20,11 +29,14 @@ class DailyStatementService
         $receiptTotals = $this->getReceiptTotals($receipts);
         $payments = $this->getPayments($date);
         $paymentTotals = $this->getPaymentTotals($payments);
-        $cashAccount = $this->getCashAccount($date);
-        $closing = [
-            'cash' => $cashAccount['closing'],
-            'bank' => $bankTotals['closing'],
+        // Cash = all cash accounts; Bank = bank, MFS and wallet accounts.
+        // (bank_totals.closing is every liquid account, cash included.)
+        $split = fn (string $key) => [
+            'cash' => round(collect($banks)->where('type', AccountType::CASH->value)->sum($key), 2),
+            'bank' => round(collect($banks)->where('type', '!=', AccountType::CASH->value)->sum($key), 2),
         ];
+        $opening = $split('opening');
+        $closing = $split('closing');
 
         return [
             'title' => 'Daily Statement — ' . $date->format('d M Y'),
@@ -42,6 +54,7 @@ class DailyStatementService
             'receipt_totals' => $receiptTotals,
             'payments' => $payments,
             'payment_totals' => $paymentTotals,
+            'opening' => $opening,
             'closing' => $closing,
         ];
     }
@@ -52,12 +65,7 @@ class DailyStatementService
     private function getBanks(Carbon $date): array
     {
         $liquidAccounts = Account::query()
-            ->whereIn('type', [
-                AccountType::CASH->value,
-                AccountType::BANK->value,
-                AccountType::MFS->value,
-                AccountType::WALLET->value,
-            ])
+            ->whereIn('type', self::LIQUID_TYPES)
             ->where('is_active', true)
             ->orderBy('type')
             ->orderBy('name')
@@ -82,36 +90,36 @@ class DailyStatementService
             $cashWithdraw = 0;
             $onlineTransfer = 0;
 
+            $ownType = $account->type instanceof AccountType ? $account->type->value : (string) $account->type;
+
             foreach ($dailyLines as $line) {
-                $method = $line->transaction->method;
-
-                if (!$method) {
-                    continue;
-                }
-
-                $accountType = $method->accountType();
+                // No entry method → classify by the account itself, so the row still
+                // reconciles (opening + deposits − withdrawals = closing).
+                $accountType = $line->transaction->method?->accountType()
+                    ?? ($ownType === AccountType::CASH->value ? AccountType::CASH : AccountType::BANK);
 
                 // Deposits (money in)
                 if ((float) $line->debit > 0) {
                     if ($accountType->value === 'cash') {
-                        $cashDeposit += (int) $line->debit;
+                        $cashDeposit += round((float) $line->debit, 2);
                     } else {
-                        $onlineDeposit += (int) $line->debit;
+                        $onlineDeposit += round((float) $line->debit, 2);
                     }
                 }
 
                 // Withdrawals (money out)
                 if ((float) $line->credit > 0) {
                     if ($accountType->value === 'cash') {
-                        $cashWithdraw += (int) $line->credit;
+                        $cashWithdraw += round((float) $line->credit, 2);
                     } else {
-                        $onlineTransfer += (int) $line->credit;
+                        $onlineTransfer += round((float) $line->credit, 2);
                     }
                 }
             }
 
             return [
                 'name' => $account->name,
+                'type' => $ownType,
                 'account' => substr($account->code ?? '', -10),
                 'opening' => $opening,
                 'cash_deposit' => $cashDeposit,
@@ -129,119 +137,144 @@ class DailyStatementService
     private function getBankTotals(array $banks): array
     {
         return [
-            'opening' => (int) collect($banks)->sum('opening'),
-            'cash_deposit' => (int) collect($banks)->sum('cash_deposit'),
-            'online_deposit' => (int) collect($banks)->sum('online_deposit'),
-            'cash_withdraw' => (int) collect($banks)->sum('cash_withdraw'),
-            'online_transfer' => (int) collect($banks)->sum('online_transfer'),
-            'closing' => (int) collect($banks)->sum('closing'),
+            'opening' => round(collect($banks)->sum('opening'), 2),
+            'cash_deposit' => round(collect($banks)->sum('cash_deposit'), 2),
+            'online_deposit' => round(collect($banks)->sum('online_deposit'), 2),
+            'cash_withdraw' => round(collect($banks)->sum('cash_withdraw'), 2),
+            'online_transfer' => round(collect($banks)->sum('online_transfer'), 2),
+            'closing' => round(collect($banks)->sum('closing'), 2),
         ];
     }
 
     /**
-     * Get daily receipts
+     * Liquid accounts (cash / bank / MFS / wallet): id => type value.
+     */
+    private function liquidAccountTypes(): array
+    {
+        return $this->liquidTypes ??= Account::query()
+            ->whereIn('type', self::LIQUID_TYPES)
+            ->where('is_active', true)
+            ->pluck('type', 'id')
+            ->map(fn ($type) => $type instanceof AccountType ? $type->value : (string) $type)
+            ->all();
+    }
+
+    private ?array $liquidTypes = null;
+
+    /**
+     * Cash accounts go to the Cash column; bank, MFS and wallet to the Bank column.
+     */
+    private function liquidColumn(?string $accountType): string
+    {
+        return $accountType === AccountType::CASH->value ? 'cash' : 'bank';
+    }
+
+    /**
+     * Daily receipts — money into a liquid account.
      */
     private function getReceipts(Carbon $date): array
     {
-        $liquidAccounts = Account::query()
-            ->whereIn('type', [
-                AccountType::CASH->value,
-                AccountType::BANK->value,
-                AccountType::MFS->value,
-                AccountType::WALLET->value,
-            ])
-            ->where('is_active', true)
-            ->pluck('id')
-            ->toArray();
+        return $this->getMovements($date, 'debit', TransactionType::receipts());
+    }
 
-        $receiptTypes = TransactionType::receipts();
-        $neutralTypes = TransactionType::neutral();
+    /**
+     * Daily payments — money out of a liquid account.
+     */
+    private function getPayments(Carbon $date): array
+    {
+        return $this->getMovements($date, 'credit', TransactionType::payments());
+    }
 
-        $receipts = TransactionLine::query()
-            ->where('debit', '>', 0)
-            ->whereIn('account_id', $liquidAccounts)
-            ->whereHas('transaction', function ($query) use ($date, $receiptTypes, $neutralTypes) {
-                $query->whereDate('datetime', '=', $date->toDateString())
-                      ->where(function ($q) use ($receiptTypes, $neutralTypes) {
-                          $q->whereIn('type', $receiptTypes)
-                            ->orWhereIn('type', $neutralTypes);
-                      })
-                      ->where('type', '!=', TransactionType::OPENING_BALANCE->value);
-            })
-            ->with([
-                'account',
-                'transaction',
-            ])
+    /**
+     * Rows for the Receipts (debit side) or Payments (credit side) table.
+     * Neutral types (adjustments…) are included; transfers between two liquid
+     * accounts and opening balances are not.
+     */
+    private function getMovements(Carbon $date, string $side, array $types): array
+    {
+        $liquid = $this->liquidAccountTypes();
+        $types = array_merge($types, TransactionType::neutral());
+
+        $lines = TransactionLine::query()
+            ->where($side, '>', 0)
+            ->whereIn('account_id', array_keys($liquid))
+            ->whereHas('transaction', fn ($q) => $q
+                ->whereDate('datetime', '=', $date->toDateString())
+                ->whereIn('type', $types)
+                ->where('type', '!=', TransactionType::OPENING_BALANCE->value))
+            // Not eager-loading `reference`: many rows store a plain string type
+            // (transfer, purchase_invoice…) with no morph map, which would throw.
+            ->with('transaction.lines.account')
             ->orderBy('id')
             ->get();
 
-        return $receipts->map(function (TransactionLine $line) use ($liquidAccounts) {
-            // Exclude pure transfers (both accounts are liquid)
-            $otherLine = $line->transaction->lines->firstWhere('account_id', '!=', $line->account_id);
-            if ($otherLine && in_array($otherLine->account_id, $liquidAccounts)) {
-                return null; // Skip transfer between liquid accounts
+        // Project codes in one query.
+        $projectCodes = Project::whereIn('id', $lines->pluck('transaction')
+                ->where('reference_type', Project::class)->pluck('reference_id')->unique()->filter())
+            ->pluck('code', 'id');
+
+        return $lines->map(function (TransactionLine $line) use ($liquid, $side, $projectCodes) {
+            $transaction = $line->transaction;
+            $otherLines = $transaction->lines->where('account_id', '!=', $line->account_id);
+
+            // Transfer between liquid accounts — not a receipt / payment.
+            if ($otherLines->isNotEmpty() && $otherLines->every(fn ($l) => isset($liquid[$l->account_id]))) {
+                return null;
             }
 
-            $sourceAccount = $otherLine?->account;
-            $sourceName = $sourceAccount?->name ?? $line->transaction->name ?? 'Transfer';
+            // The counter account (first non-liquid one).
+            $counter = $otherLines->first(fn ($l) => ! isset($liquid[$l->account_id]))?->account;
+            $account = $counter?->name ?? $transaction->name ?? ($side === 'debit' ? 'Transfer' : '-');
+            $particulars = (string) ($transaction->notes ?? '');
 
-            // Build account column with property details if available
-            $accountDisplay = $sourceName;
-            $enhancedParticulars = $line->transaction->notes ?? '';
+            $projectCode = $transaction->reference_type === Project::class
+                ? $projectCodes->get($transaction->reference_id)
+                : null;
 
-            // Check if transaction references a PaymentSchedule (property unit payment)
-            if ($line->transaction->reference_type === 'App\\Models\\PaymentSchedule') {
-                $paymentSchedule = $line->transaction->reference ?? $line->transaction->reference()->with(['propertySale.propertyUnit.property', 'propertySale.customer'])->first();
-                if ($paymentSchedule && $paymentSchedule->propertySale) {
-                    $propertyUnit = $paymentSchedule->propertySale->propertyUnit;
-                    $property = $propertyUnit?->property;
-                    $customer = $paymentSchedule->propertySale->customer;
-                    $scheduleLabel = $paymentSchedule->label();
-
-                    // Build account: Customer Name, Property Name, Floor, Unit Code
-                    $details = [];
-
-                    if ($customer?->name) {
-                        $details[] = $customer->name;
-                    }
-
-                    if ($property?->name) {
-                        $details[] = $property->name;
-                    }
-
-                    if ($propertyUnit && $propertyUnit->floor) {
-                        $floorLabel = is_object($propertyUnit->floor) ? $propertyUnit->floor->label : $propertyUnit->floor;
-                        $details[] = $floorLabel;
-                    }
-
-                    if ($propertyUnit?->code) {
-                        $details[] = $propertyUnit->code;
-                    }
-
-                    if (count($details) > 0) {
-                        $accountDisplay = implode(", ", $details);
-                    }
-
-                    // Use schedule label as particulars
-                    $enhancedParticulars = $scheduleLabel;
-                    if ($line->transaction->notes) {
-                        $enhancedParticulars .= " - " . $line->transaction->notes;
-                    }
+            if ($transaction->reference_type === PaymentSchedule::class) {
+                $schedule = PaymentSchedule::with(['propertySale.propertyUnit.property', 'propertySale.customer'])
+                    ->find($transaction->reference_id);
+                if ($schedule?->propertySale) {
+                    [$account, $particulars] = $this->scheduleDetails($schedule, $transaction->notes, $account);
                 }
             }
 
+            $amount = round((float) $line->{$side}, 2);
+            $column = $this->liquidColumn($liquid[$line->account_id] ?? null);
+
             return [
-                'account' => $accountDisplay,
-                'particulars' => $enhancedParticulars,
-                'mr_no' => $line->transaction->reference_no,
-                'folio' => null,
-                'cash' => $line->account->type->value === 'cash' ? (int) $line->debit : 0,
-                'bank' => $line->account->type->value === 'bank' ? (int) $line->debit : 0,
+                'account'      => $account,
+                'particulars'  => $particulars,
+                'voucher_no'   => $transaction->voucher_no ?: null,
+                'project_code' => $projectCode ?: null,
+                'cash'         => $column === 'cash' ? $amount : 0,
+                'bank'         => $column === 'bank' ? $amount : 0,
             ];
         })
         ->filter()
         ->values()
         ->toArray();
+    }
+
+    /**
+     * Account / particulars for a property installment:
+     * "Customer, Property, Floor, Unit" and the schedule label.
+     */
+    private function scheduleDetails(PaymentSchedule $schedule, ?string $notes, string $fallbackAccount): array
+    {
+        $unit = $schedule->propertySale->propertyUnit;
+        $floor = $unit?->floor;
+
+        $details = array_filter([
+            $schedule->propertySale->customer?->name,
+            $unit?->property?->name,
+            is_object($floor) ? $floor->label : $floor,
+            $unit?->code,
+        ]);
+
+        $particulars = $schedule->label() . ($notes ? ' - ' . $notes : '');
+
+        return [$details ? implode(', ', $details) : $fallbackAccount, $particulars];
     }
 
     /**
@@ -250,121 +283,9 @@ class DailyStatementService
     private function getReceiptTotals(array $receipts): array
     {
         return [
-            'cash' => (int) collect($receipts)->sum('cash'),
-            'bank' => (int) collect($receipts)->sum('bank'),
+            'cash' => round(collect($receipts)->sum('cash'), 2),
+            'bank' => round(collect($receipts)->sum('bank'), 2),
         ];
-    }
-
-    /**
-     * Get daily payments
-     */
-    private function getPayments(Carbon $date): array
-    {
-        $liquidAccounts = Account::query()
-            ->whereIn('type', [
-                AccountType::CASH->value,
-                AccountType::BANK->value,
-                AccountType::MFS->value,
-                AccountType::WALLET->value,
-            ])
-            ->where('is_active', true)
-            ->pluck('id')
-            ->toArray();
-
-        $paymentTypes = TransactionType::payments();
-        $neutralTypes = TransactionType::neutral();
-
-        $payments = TransactionLine::query()
-            ->where('credit', '>', 0)
-            ->whereIn('account_id', $liquidAccounts)
-            ->whereHas('transaction', function ($query) use ($date, $paymentTypes, $neutralTypes) {
-                $query->whereDate('datetime', '=', $date->toDateString())
-                      ->where(function ($q) use ($paymentTypes, $neutralTypes) {
-                          $q->whereIn('type', $paymentTypes)
-                            ->orWhereIn('type', $neutralTypes);
-                      })
-                      ->where('type', '!=', TransactionType::OPENING_BALANCE->value);
-            })
-            ->with([
-                'account',
-                'transaction',
-            ])
-            ->orderBy('id')
-            ->get();
-
-        return $payments->map(function (TransactionLine $line) use ($liquidAccounts) {
-            // Exclude pure transfers (both accounts are liquid)
-            $otherLine = $line->transaction->lines->firstWhere('account_id', '!=', $line->account_id);
-            if ($otherLine && in_array($otherLine->account_id, $liquidAccounts)) {
-                return null; // Skip transfer between liquid accounts
-            }
-
-            $destinationAccount = $otherLine?->account;
-            $destinationName = $destinationAccount?->name ?? '-';
-
-            $accountDisplay = $destinationName;
-            $enhancedParticulars = $line->transaction->notes ?? '';
-            $projNo = null;
-
-            // Check if transaction references a Project
-            if ($line->transaction->reference_type === 'App\\Models\\Project') {
-                $project = $line->transaction->reference ?? $line->transaction->reference()->first();
-                $projNo = $project?->code;
-            }
-
-            // Check if transaction references a PaymentSchedule (property unit payment)
-            if ($line->transaction->reference_type === 'App\\Models\\PaymentSchedule') {
-                $paymentSchedule = $line->transaction->reference ?? $line->transaction->reference()->with(['propertySale.propertyUnit.property', 'propertySale.customer'])->first();
-                if ($paymentSchedule && $paymentSchedule->propertySale) {
-                    $propertyUnit = $paymentSchedule->propertySale->propertyUnit;
-                    $property = $propertyUnit?->property;
-                    $customer = $paymentSchedule->propertySale->customer;
-                    $scheduleLabel = $paymentSchedule->label();
-
-                    // Build account: Customer Name, Property Name, Floor, Unit Code
-                    $details = [];
-
-                    if ($customer?->name) {
-                        $details[] = $customer->name;
-                    }
-
-                    if ($property?->name) {
-                        $details[] = $property->name;
-                    }
-
-                    if ($propertyUnit && $propertyUnit->floor) {
-                        $floorLabel = is_object($propertyUnit->floor) ? $propertyUnit->floor->label : $propertyUnit->floor;
-                        $details[] = $floorLabel;
-                    }
-
-                    if ($propertyUnit?->code) {
-                        $details[] = $propertyUnit->code;
-                    }
-
-                    if (count($details) > 0) {
-                        $accountDisplay = implode(", ", $details);
-                    }
-
-                    // Use schedule label as particulars
-                    $enhancedParticulars = $scheduleLabel;
-                    if ($line->transaction->notes) {
-                        $enhancedParticulars .= " - " . $line->transaction->notes;
-                    }
-                }
-            }
-
-            return [
-                'account' => $accountDisplay,
-                'particulars' => $enhancedParticulars,
-                'proj_no' => $projNo,
-                'folio' => null,
-                'cash' => $line->account->type->value === 'cash' ? (int) $line->credit : 0,
-                'bank' => $line->account->type->value === 'bank' ? (int) $line->credit : 0,
-            ];
-        })
-        ->filter()
-        ->values()
-        ->toArray();
     }
 
     /**
@@ -373,28 +294,8 @@ class DailyStatementService
     private function getPaymentTotals(array $payments): array
     {
         return [
-            'cash' => (int) collect($payments)->sum('cash'),
-            'bank' => (int) collect($payments)->sum('bank'),
-        ];
-    }
-
-    /**
-     * Get cash account info
-     */
-    private function getCashAccount(Carbon $date): array
-    {
-        $cashAccount = Account::query()
-            ->where('type', AccountType::CASH->value)
-            ->where('is_active', true)
-            ->first();
-
-        if (!$cashAccount) {
-            return ['opening' => 0, 'closing' => 0];
-        }
-
-        return [
-            'opening' => (int) $this->calculateOpeningBalance($cashAccount->id, $date),
-            'closing' => (int) $this->calculateClosingBalance($cashAccount->id, $date),
+            'cash' => round(collect($payments)->sum('cash'), 2),
+            'bank' => round(collect($payments)->sum('bank'), 2),
         ];
     }
 
@@ -406,7 +307,7 @@ class DailyStatementService
         $balance = TransactionLine::query()
             ->where('account_id', $accountId)
             ->whereHas('transaction', fn ($q) =>
-                $q->where('datetime', '<', $date->startOfDay())
+                $q->where('datetime', '<', $date->copy()->startOfDay())
             )
             ->selectRaw('COALESCE(SUM(debit), 0) - COALESCE(SUM(credit), 0) as balance')
             ->value('balance') ?? 0;
@@ -422,7 +323,7 @@ class DailyStatementService
         $balance = TransactionLine::query()
             ->where('account_id', $accountId)
             ->whereHas('transaction', fn ($q) =>
-                $q->where('datetime', '<=', $date->endOfDay())
+                $q->where('datetime', '<=', $date->copy()->endOfDay())
             )
             ->selectRaw('COALESCE(SUM(debit), 0) - COALESCE(SUM(credit), 0) as balance')
             ->value('balance') ?? 0;
